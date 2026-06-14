@@ -9,7 +9,7 @@ void main() {
   runApp(GameWidget(game: HexPuzzleGame()));
 }
 
-class HexPuzzleGame extends FlameGame with ScaleDetector, DragCallbacks {
+class HexPuzzleGame extends FlameGame with ScaleDetector, DragCallbacks, TapDetector {
   final Random rng = Random();
   final double hexSize = 55;
 
