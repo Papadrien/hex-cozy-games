@@ -38,31 +38,55 @@ class _GameScreenState extends State<GameScreen> {
     _game = HexGame();
   }
 
+  // Track whether a pan gesture started over an empty hex (place action)
+  // vs open space (camera pan). We decide on panStart based on drag distance.
+  // Simple approach: any single-finger drag => pan camera.
+  // Taps => place tile (handled by TapDetector in Flame).
+  bool _isDragging = false;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Stack(
         children: [
-          GameWidget(game: _game),
-          // HUD overlay
+          // Wrap GameWidget with a GestureDetector to intercept 1-finger pan
+          GestureDetector(
+            onPanStart: (details) {
+              _isDragging = false;
+              _game.externalPanStart(details.globalPosition);
+            },
+            onPanUpdate: (details) {
+              _isDragging = true;
+              _game.externalPanUpdate(details.globalPosition);
+            },
+            onPanEnd: (_) {
+              _isDragging = false;
+              _game.externalPanEnd();
+            },
+            // Let Flame handle the tap (TapDetector). We only suppress tap
+            // when we've detected actual movement.
+            behavior: HitTestBehavior.translucent,
+            child: GameWidget(game: _game),
+          ),
+          // HUD
           Positioned(
             top: 0,
             left: 0,
             right: 0,
             child: _HudBar(game: _game),
           ),
-          // Tile deck bottom right
+          // Next tile preview — bottom right
           Positioned(
             bottom: 24,
             right: 24,
             child: _TileDeck(game: _game),
           ),
-          // Instructions bottom left
+          // Instructions — bottom left
           Positioned(
             bottom: 24,
-            left: 24,
+            left: 16,
             child: Container(
-              padding: const EdgeInsets.all(10),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
               decoration: BoxDecoration(
                 color: Colors.black54,
                 borderRadius: BorderRadius.circular(10),
@@ -70,8 +94,8 @@ class _GameScreenState extends State<GameScreen> {
               child: const Text(
                 '👆 Glisser pour déplacer\n'
                 '🤏 Pincer pour zoomer\n'
-                'Appuyer sur une case vide pour poser',
-                style: TextStyle(color: Colors.white70, fontSize: 12),
+                'Toucher une case vide pour poser',
+                style: TextStyle(color: Colors.white70, fontSize: 11),
               ),
             ),
           ),
@@ -80,6 +104,8 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 }
+
+// ---- HUD Bar ----
 
 class _HudBar extends StatefulWidget {
   final HexGame game;
@@ -128,6 +154,8 @@ class _HudBarState extends State<_HudBar> {
   }
 }
 
+// ---- Tile Deck (next tile preview) ----
+
 class _TileDeck extends StatefulWidget {
   final HexGame game;
   const _TileDeck({required this.game});
@@ -148,26 +176,31 @@ class _TileDeckState extends State<_TileDeck> {
   @override
   Widget build(BuildContext context) {
     final next = widget.game.peekNextTile();
+
     return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.end,
       children: [
         if (next != null) ...[
-          // Legend for next tile
-          _buildEdgeLegend(next),
-          const SizedBox(height: 6),
+          // Preview hex — large enough to see clearly
           Container(
-            width: 90,
-            height: 90,
+            width: 100,
+            height: 100,
             decoration: BoxDecoration(
               color: Colors.black54,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.white30),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: Colors.white30, width: 1.5),
             ),
             child: CustomPaint(
               painter: TilePreviewPainter(next),
             ),
           ),
+          const SizedBox(height: 6),
+          // Edge legend
+          _EdgeLegend(tile: next),
+          const SizedBox(height: 8),
         ],
-        const SizedBox(height: 8),
+        // Deck count badge
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           decoration: BoxDecoration(
@@ -178,28 +211,39 @@ class _TileDeckState extends State<_TileDeck> {
           child: Text(
             '${widget.game.deckSize}',
             style: const TextStyle(
-                color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+                color: Colors.white,
+                fontSize: 22,
+                fontWeight: FontWeight.bold),
           ),
         ),
       ],
     );
   }
+}
 
-  /// Small legend showing how many edges of each biome are on the next tile
-  Widget _buildEdgeLegend(HexTile tile) {
+class _EdgeLegend extends StatelessWidget {
+  final HexTile tile;
+  const _EdgeLegend({required this.tile});
+
+  static const _icons = {
+    Biome.forest: '🌲',
+    Biome.grassland: '🌿',
+    Biome.water: '💧',
+    Biome.village: '🏠',
+    Biome.desert: '🏜',
+    Biome.mountain: '⛰',
+  };
+
+  @override
+  Widget build(BuildContext context) {
     final counts = <Biome, int>{};
     for (final e in tile.edges) {
       counts[e] = (counts[e] ?? 0) + 1;
     }
-
-    final biomeNames = {
-      Biome.forest: ('🌲', 'Forêt'),
-      Biome.grassland: ('🌿', 'Prairie'),
-      Biome.water: ('💧', 'Eau'),
-      Biome.village: ('🏠', 'Village'),
-      Biome.desert: ('🏜', 'Désert'),
-      Biome.mountain: ('⛰', 'Montagne'),
-    };
+    // Also show center if different
+    if (!counts.containsKey(tile.center)) {
+      counts[tile.center] = 0;
+    }
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
@@ -209,13 +253,24 @@ class _TileDeckState extends State<_TileDeck> {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: counts.entries.map((e) {
-          final info = biomeNames[e.key]!;
-          return Text(
-            '${info.$1} ×${e.value}',
-            style: const TextStyle(color: Colors.white70, fontSize: 11),
-          );
-        }).toList(),
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text('Tuile suivante',
+              style: TextStyle(
+                  color: Colors.white54,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600)),
+          const SizedBox(height: 3),
+          ...counts.entries.map((e) {
+            final isCenterOnly = e.value == 0;
+            return Text(
+              isCenterOnly
+                  ? '${_icons[e.key]} centre'
+                  : '${_icons[e.key]} ×${e.value}',
+              style: const TextStyle(color: Colors.white70, fontSize: 11),
+            );
+          }),
+        ],
       ),
     );
   }

@@ -63,7 +63,6 @@ extension BiomeExt on Biome {
   }
 }
 
-// Axial hex coordinates
 class HexCoord {
   final int q;
   final int r;
@@ -78,7 +77,6 @@ class HexCoord {
   @override
   int get hashCode => Object.hash(q, r);
 
-  /// Neighbor directions 0..5 (flat-top, clockwise from right)
   List<HexCoord> get neighbors => [
         HexCoord(q + 1, r),
         HexCoord(q + 1, r - 1),
@@ -95,60 +93,52 @@ class HexCoord {
   }
 }
 
-/// A tile with a center biome + 6 edge biomes (one per neighbor direction).
-/// This is the Dorfromantik-style mechanic: edges must match with adjacent tiles.
+/// Tile with a center biome + 6 edge biomes (Dorfromantik style).
+/// edges[i] = biome shown on edge i, which faces neighbor direction i.
 class HexTile {
   final Biome center;
-
-  /// edges[i] = the biome shown on edge i (toward neighbor direction i)
-  final List<Biome> edges; // length 6
+  final List<Biome> edges; // length 6, immutable
 
   HexTile({required this.center, required List<Biome> edges})
       : edges = List.unmodifiable(edges);
 
-  factory HexTile.uniform(Biome biome) {
-    return HexTile(center: biome, edges: List.filled(6, biome));
-  }
+  factory HexTile.uniform(Biome biome) =>
+      HexTile(center: biome, edges: List.filled(6, biome));
 
-  /// Creates a tile with a center biome and 2-3 distinct edge biomes
-  /// arranged in contiguous arcs, like Dorfromantik.
+  /// Random tile: 1 or 2 arc of secondary biomes on the edges.
   factory HexTile.random(Random rng) {
-    final allBiomes = Biome.values;
-    final center = allBiomes[rng.nextInt(allBiomes.length)];
-
-    final edgeList = _generateEdges(center, rng);
-    return HexTile(center: center, edges: edgeList);
+    final center = Biome.values[rng.nextInt(Biome.values.length)];
+    return HexTile(center: center, edges: _buildEdges(center, rng));
   }
 
-  static List<Biome> _generateEdges(Biome center, Random rng) {
+  /// Random tile biased toward a given center biome (for map generation).
+  factory HexTile.randomWithBias(Biome bias, Random rng) {
+    return HexTile(center: bias, edges: _buildEdges(bias, rng));
+  }
+
+  static List<Biome> _buildEdges(Biome center, Random rng) {
     final edges = List<Biome>.filled(6, center);
-    final allBiomes = Biome.values;
-
-    // Pick 1 or 2 secondary biomes for arcs on the edges
-    final numArcs = 1 + rng.nextInt(2); // 1 or 2 arcs
+    final numArcs = 1 + rng.nextInt(2); // 1 or 2 secondary arcs
     for (int arc = 0; arc < numArcs; arc++) {
-      Biome arcBiome;
+      Biome secondary;
       do {
-        arcBiome = allBiomes[rng.nextInt(allBiomes.length)];
-      } while (arcBiome == center);
-
-      // Arc of 2-3 contiguous edges
-      final arcLen = 2 + rng.nextInt(2);
-      final startEdge = rng.nextInt(6);
+        secondary = Biome.values[rng.nextInt(Biome.values.length)];
+      } while (secondary == center);
+      final arcLen = 2 + rng.nextInt(2); // arc of 2 or 3 edges
+      final start = rng.nextInt(6);
       for (int i = 0; i < arcLen; i++) {
-        edges[(startEdge + i) % 6] = arcBiome;
+        edges[(start + i) % 6] = secondary;
       }
     }
-
     return edges;
   }
 
-  /// Returns the opposite edge index (the edge of this tile facing neighbor[dir])
-  /// and the edge index of the neighbor facing back.
+  /// The edge of tile B that faces tile A when A is in direction [dir] from B.
   static int oppositeEdge(int dir) => (dir + 3) % 6;
 }
 
-// Decorative elements drawn on top of a biome
+// ---- Decoration helpers ----
+
 class TileDecoration {
   final String type;
   final Offset localOffset;
@@ -167,12 +157,12 @@ List<TileDecoration> decorationsFor(Biome biome, Random rng) {
       return [
         TileDecoration(
             type: 'tree',
-            localOffset: Offset(rng.nextDouble() * 0.3 - 0.15,
-                rng.nextDouble() * 0.2 - 0.1)),
+            localOffset: Offset(
+                rng.nextDouble() * 0.3 - 0.15, rng.nextDouble() * 0.2 - 0.1)),
         TileDecoration(
             type: 'tree',
-            localOffset: Offset(rng.nextDouble() * 0.3 + 0.1,
-                rng.nextDouble() * 0.2 - 0.15),
+            localOffset: Offset(
+                rng.nextDouble() * 0.3 + 0.1, rng.nextDouble() * 0.2 - 0.15),
             scale: 0.8),
       ];
     case Biome.village:
@@ -201,8 +191,8 @@ List<TileDecoration> decorationsFor(Biome biome, Random rng) {
       return [
         TileDecoration(
             type: 'bush',
-            localOffset: Offset(rng.nextDouble() * 0.2 - 0.1,
-                rng.nextDouble() * 0.1 - 0.05)),
+            localOffset: Offset(
+                rng.nextDouble() * 0.2 - 0.1, rng.nextDouble() * 0.1 - 0.05)),
       ];
   }
 }

@@ -16,8 +16,30 @@ class HexGame extends FlameGame with ScaleDetector, TapDetector {
   int score = 0;
   VoidCallback? onStateChanged;
 
-  // Camera pan/zoom state
-  double _zoom = 1.0;
+  // Exposed so Flutter GestureDetector can drive pan from outside
+  void externalPanStart(Offset globalPos) {
+    _panStart = Vector2(globalPos.dx, globalPos.dy);
+    _cameraAtPanStart = camera.viewfinder.position.clone();
+    _isPanning = true;
+  }
+
+  void externalPanUpdate(Offset globalPos) {
+    if (!_isPanning) return;
+    final current = Vector2(globalPos.dx, globalPos.dy);
+    final delta = current - _panStart;
+    camera.viewfinder.position =
+        _cameraAtPanStart - delta / camera.viewfinder.zoom;
+  }
+
+  void externalPanEnd() {
+    _isPanning = false;
+  }
+
+  bool _isPanning = false;
+  Vector2 _panStart = Vector2.zero();
+  Vector2 _cameraAtPanStart = Vector2.zero();
+
+  // Pinch zoom state (driven by ScaleDetector — works for 2 fingers)
   double _scaleStart = 1.0;
   Vector2 _focalAtScaleStart = Vector2.zero();
   Vector2 _cameraAtScaleStart = Vector2.zero();
@@ -29,10 +51,8 @@ class HexGame extends FlameGame with ScaleDetector, TapDetector {
   Future<void> onLoad() async {
     _generateInitialMap();
     _generateDeck();
-
-    camera.viewfinder.zoom = _zoom;
+    camera.viewfinder.zoom = 1.0;
     camera.viewfinder.position = Vector2.zero();
-
     add(_HexMapComponent(this));
   }
 
@@ -67,8 +87,8 @@ class HexGame extends FlameGame with ScaleDetector, TapDetector {
       }
       runLength--;
 
-      // Initial map tiles are uniform (single biome) to keep it simple to start
-      placedTiles[coord] = HexTile.uniform(currentBiome);
+      // Use random multi-biome tiles for the initial map too
+      placedTiles[coord] = HexTile.randomWithBias(currentBiome, _rng);
 
       for (final n in coord.neighbors) {
         if (!visited.contains(n) && !frontier.contains(n)) {
@@ -106,30 +126,26 @@ class HexGame extends FlameGame with ScaleDetector, TapDetector {
     final tile = deck.removeLast();
     placedTiles[coord] = tile;
 
-    // Score: count matching edges between this tile and neighbors
     int edgeMatches = 0;
     final neighbors = coord.neighbors;
     for (int dir = 0; dir < 6; dir++) {
       final neighborCoord = neighbors[dir];
       final neighbor = placedTiles[neighborCoord];
       if (neighbor != null) {
-        // My edge[dir] touches neighbor's opposite edge
         final myEdge = tile.edges[dir];
         final neighborEdge = neighbor.edges[HexTile.oppositeEdge(dir)];
         if (myEdge == neighborEdge) edgeMatches++;
       }
     }
-
-    // Scoring: +5 base, +15 per matching edge
     score += 5 + edgeMatches * 15;
-
     onStateChanged?.call();
   }
 
-  // --- Scale handles both pinch-zoom AND single-finger pan ---
+  // --- 2-finger pinch zoom via ScaleDetector ---
 
   @override
   void onScaleStart(ScaleStartInfo info) {
+    if (info.raw.pointerCount < 2) return;
     _scaleStart = camera.viewfinder.zoom;
     _focalAtScaleStart = Vector2(
       info.raw.focalPoint.dx,
@@ -140,9 +156,9 @@ class HexGame extends FlameGame with ScaleDetector, TapDetector {
 
   @override
   void onScaleUpdate(ScaleUpdateInfo info) {
+    if (info.raw.pointerCount < 2) return;
     final newZoom = (_scaleStart * info.raw.scale).clamp(0.3, 2.5);
     camera.viewfinder.zoom = newZoom;
-
     final focal = Vector2(
       info.raw.focalPoint.dx,
       info.raw.focalPoint.dy,
@@ -151,6 +167,8 @@ class HexGame extends FlameGame with ScaleDetector, TapDetector {
     camera.viewfinder.position =
         _cameraAtScaleStart - delta / camera.viewfinder.zoom;
   }
+
+  // --- Tap to place tile ---
 
   @override
   void onTapUp(TapUpInfo info) {
