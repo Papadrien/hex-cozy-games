@@ -1,15 +1,15 @@
-name: hexworld
-description: Hex tile placement prototype
+
+name: hex_puzzle_flame_prototype
+description: Prototype Flame hex puzzle
 publish_to: 'none'
-version: 1.0.0+1
 
 environment:
-  sdk: '>=3.0.0 <4.0.0'
+  sdk: ">=3.5.0 <4.0.0"
 
 dependencies:
   flutter:
     sdk: flutter
-  flame: 1.18.0
+  flame: ^1.20.0
 
 flutter:
   uses-material-design: true

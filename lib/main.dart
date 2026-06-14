@@ -1,268 +1,222 @@
-import 'package:flutter/material.dart';
+
+import 'dart:math';
+import 'package:flame/components.dart';
+import 'package:flame/events.dart';
 import 'package:flame/game.dart';
-import 'hex_game.dart';
-import 'hex_painter.dart';
-import 'hex_tile.dart';
+import 'package:flutter/material.dart';
 
 void main() {
-  runApp(const HexWorldApp());
+  runApp(GameWidget(game: HexPuzzleGame()));
 }
 
-class HexWorldApp extends StatelessWidget {
-  const HexWorldApp({super.key});
+class HexPuzzleGame extends FlameGame with ScaleDetector, DragCallbacks {
+  final Random rng = Random();
+  final double hexSize = 55;
+
+  final Map<Point<int>, HexTile> tiles = {};
+  Point<int>? highlighted;
+  late HexTile nextTile;
 
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'HexWorld',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData.dark(),
-      home: const GameScreen(),
-    );
-  }
-}
+  Future<void> onLoad() async {
+    camera.viewfinder.zoom = 1.0;
 
-class GameScreen extends StatefulWidget {
-  const GameScreen({super.key});
-
-  @override
-  State<GameScreen> createState() => _GameScreenState();
-}
-
-class _GameScreenState extends State<GameScreen> {
-  late final HexGame _game;
-
-  @override
-  void initState() {
-    super.initState();
-    _game = HexGame();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Stack(
-        children: [
-          // Wrap GameWidget with a GestureDetector to intercept 1-finger pan
-          GestureDetector(
-            onPanStart: (details) {
-              _game.externalPanStart(details.globalPosition);
-            },
-            onPanUpdate: (details) {
-              _game.externalPanUpdate(details.globalPosition);
-            },
-            onPanEnd: (_) {
-              _game.externalPanEnd();
-            },
-            // Let Flame handle the tap (TapDetector). We only suppress tap
-            // when we've detected actual movement.
-            behavior: HitTestBehavior.translucent,
-            child: GameWidget(game: _game),
-          ),
-          // HUD
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: _HudBar(game: _game),
-          ),
-          // Next tile preview — bottom right
-          Positioned(
-            bottom: 24,
-            right: 24,
-            child: _TileDeck(game: _game),
-          ),
-          // Instructions — bottom left
-          Positioned(
-            bottom: 24,
-            left: 16,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.black54,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Text(
-                '👆 Glisser pour déplacer\n'
-                '🤏 Pincer pour zoomer\n'
-                'Toucher une case vide pour poser',
-                style: TextStyle(color: Colors.white70, fontSize: 11),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ---- HUD Bar ----
-
-class _HudBar extends StatefulWidget {
-  final HexGame game;
-  const _HudBar({required this.game});
-
-  @override
-  State<_HudBar> createState() => _HudBarState();
-}
-
-class _HudBarState extends State<_HudBar> {
-  @override
-  void initState() {
-    super.initState();
-    widget.game.onStateChanged = () {
-      if (mounted) setState(() {});
-    };
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 40, 16, 8),
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Colors.black87, Colors.transparent],
-        ),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          const Text('🌍 HexWorld',
-              style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold)),
-          Text('Score: ${widget.game.score}',
-              style: const TextStyle(
-                  color: Colors.amber,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold)),
-        ],
-      ),
-    );
-  }
-}
-
-// ---- Tile Deck (next tile preview) ----
-
-class _TileDeck extends StatefulWidget {
-  final HexGame game;
-  const _TileDeck({required this.game});
-
-  @override
-  State<_TileDeck> createState() => _TileDeckState();
-}
-
-class _TileDeckState extends State<_TileDeck> {
-  @override
-  void initState() {
-    super.initState();
-    widget.game.onStateChanged = () {
-      if (mounted) setState(() {});
-    };
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final next = widget.game.peekNextTile();
-
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        if (next != null) ...[
-          // Preview hex — large enough to see clearly
-          Container(
-            width: 100,
-            height: 100,
-            decoration: BoxDecoration(
-              color: Colors.black54,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: Colors.white30, width: 1.5),
-            ),
-            child: CustomPaint(
-              painter: TilePreviewPainter(next),
-            ),
-          ),
-          const SizedBox(height: 6),
-          // Edge legend
-          _EdgeLegend(tile: next),
-          const SizedBox(height: 8),
-        ],
-        // Deck count badge
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          decoration: BoxDecoration(
-            color: Colors.black87,
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: Colors.white24),
-          ),
-          child: Text(
-            '${widget.game.deckSize}',
-            style: const TextStyle(
-                color: Colors.white,
-                fontSize: 22,
-                fontWeight: FontWeight.bold),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _EdgeLegend extends StatelessWidget {
-  final HexTile tile;
-  const _EdgeLegend({required this.tile});
-
-  static const _icons = {
-    Biome.forest: '🌲',
-    Biome.grassland: '🌿',
-    Biome.water: '💧',
-    Biome.village: '🏠',
-    Biome.desert: '🏜',
-    Biome.mountain: '⛰',
-  };
-
-  @override
-  Widget build(BuildContext context) {
-    final counts = <Biome, int>{};
-    for (final e in tile.edges) {
-      counts[e] = (counts[e] ?? 0) + 1;
-    }
-    // Also show center if different
-    if (!counts.containsKey(tile.center)) {
-      counts[tile.center] = 0;
+    for (int q = -1; q <= 1; q++) {
+      for (int r = -1; r <= 1; r++) {
+        tiles[Point(q, r)] = randomTile(q, r);
+      }
     }
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.black54,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text('Tuile suivante',
-              style: TextStyle(
-                  color: Colors.white54,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w600)),
-          const SizedBox(height: 3),
-          ...counts.entries.map((e) {
-            final isCenterOnly = e.value == 0;
-            return Text(
-              isCenterOnly
-                  ? '${_icons[e.key]} centre'
-                  : '${_icons[e.key]} ×${e.value}',
-              style: const TextStyle(color: Colors.white70, fontSize: 11),
-            );
-          }),
-        ],
-      ),
+    nextTile = randomTile(0, 0);
+    rebuild();
+  }
+
+  HexTile randomTile(int q, int r) {
+    final colors = [
+      Colors.blue,
+      Colors.yellow,
+      Colors.green,
+      Colors.red,
+      Colors.black,
+    ];
+
+    final sides = List.generate(6, (_) => colors[rng.nextInt(colors.length)]);
+    return HexTile(q, r, hexSize, sides);
+  }
+
+  void rebuild() {
+    children.whereType<HexTile>().forEach(remove);
+    children.whereType<HighlightHex>().forEach(remove);
+
+    for (final t in tiles.values) {
+      add(t);
+    }
+
+    if (highlighted != null) {
+      add(HighlightHex(highlighted!.x, highlighted!.y, hexSize));
+    }
+  }
+
+  @override
+  void onScaleUpdate(ScaleUpdateInfo info) {
+    camera.viewfinder.zoom *= info.scale.global.y;
+    camera.viewfinder.zoom =
+        camera.viewfinder.zoom.clamp(0.4, 3.0);
+  }
+
+  @override
+  void onDragUpdate(DragUpdateEvent event) {
+    camera.viewfinder.position -= event.localDelta;
+  }
+
+  @override
+  void update(double dt) {
+    super.update(dt);
+
+    highlighted ??= firstFreeSpot();
+  }
+
+  Point<int>? firstFreeSpot() {
+    const dirs = [
+      Point(1, 0),
+      Point(1, -1),
+      Point(0, -1),
+      Point(-1, 0),
+      Point(-1, 1),
+      Point(0, 1),
+    ];
+
+    for (final p in tiles.keys) {
+      for (final d in dirs) {
+        final n = Point(p.x + d.x, p.y + d.y);
+        if (!tiles.containsKey(n)) return n;
+      }
+    }
+    return null;
+  }
+
+  @override
+  Color backgroundColor() => const Color(0xFF202020);
+
+  @override
+  void onTapDown(TapDownInfo info) {
+    if (highlighted != null) {
+      tiles[highlighted!] = HexTile(
+        highlighted!.x,
+        highlighted!.y,
+        hexSize,
+        nextTile.sides,
+      );
+      nextTile = randomTile(0, 0);
+      highlighted = firstFreeSpot();
+      rebuild();
+    }
+  }
+
+  @override
+  void render(Canvas canvas) {
+    super.render(canvas);
+
+    nextTile.position = Vector2(size.x - 120, size.y - 120);
+    nextTile.render(canvas);
+  }
+}
+
+class HexTile extends PositionComponent {
+  final int q;
+  final int r;
+  final double sizeHex;
+  final List<Color> sides;
+
+  HexTile(this.q, this.r, this.sizeHex, this.sides);
+
+  @override
+  Future<void> onLoad() async {
+    position = axialToPixel(q, r, sizeHex);
+  }
+
+  @override
+  void render(Canvas canvas) {
+    final center = Offset(position.x, position.y);
+
+    for (int i = 0; i < 6; i++) {
+      final a1 = pi / 3 * i - pi / 6;
+      final a2 = pi / 3 * (i + 1) - pi / 6;
+
+      final path = Path()
+        ..moveTo(center.dx, center.dy)
+        ..lineTo(center.dx + cos(a1) * sizeHex, center.dy + sin(a1) * sizeHex)
+        ..lineTo(center.dx + cos(a2) * sizeHex, center.dy + sin(a2) * sizeHex)
+        ..close();
+
+      canvas.drawPath(path, Paint()..color = sides[i]);
+    }
+
+    final border = Path();
+    for (int i = 0; i < 6; i++) {
+      final a = pi / 3 * i - pi / 6;
+      final p = Offset(
+        center.dx + cos(a) * sizeHex,
+        center.dy + sin(a) * sizeHex,
+      );
+      if (i == 0) {
+        border.moveTo(p.dx, p.dy);
+      } else {
+        border.lineTo(p.dx, p.dy);
+      }
+    }
+    border.close();
+    canvas.drawPath(
+      border,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2,
     );
   }
+}
+
+class HighlightHex extends PositionComponent {
+  final int q;
+  final int r;
+  final double sizeHex;
+
+  HighlightHex(this.q, this.r, this.sizeHex);
+
+  @override
+  Future<void> onLoad() async {
+    position = axialToPixel(q, r, sizeHex);
+  }
+
+  @override
+  void render(Canvas canvas) {
+    final path = Path();
+    for (int i = 0; i < 6; i++) {
+      final a = pi / 3 * i - pi / 6;
+      final p = Offset(
+        position.x + cos(a) * sizeHex,
+        position.y + sin(a) * sizeHex,
+      );
+      if (i == 0) {
+        path.moveTo(p.dx, p.dy);
+      } else {
+        path.lineTo(p.dx, p.dy);
+      }
+    }
+    path.close();
+
+    canvas.drawPath(
+      path,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 4
+        ..color = Colors.white,
+    );
+  }
+}
+
+Vector2 axialToPixel(int q, int r, double size) {
+  return Vector2(
+    size * sqrt(3) * (q + r / 2),
+    size * 1.5 * r,
+  );
 }
