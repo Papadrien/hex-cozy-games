@@ -38,12 +38,6 @@ class _GameScreenState extends State<GameScreen> {
     _game = HexGame();
   }
 
-  // Track whether a pan gesture started over an empty hex (place action)
-  // vs open space (camera pan). We decide on panStart based on drag distance.
-  // Simple approach: any single-finger drag => pan camera.
-  // Taps => place tile (handled by TapDetector in Flame).
-  bool _isDragging = false;
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -52,15 +46,12 @@ class _GameScreenState extends State<GameScreen> {
           // Wrap GameWidget with a GestureDetector to intercept 1-finger pan
           GestureDetector(
             onPanStart: (details) {
-              _isDragging = false;
               _game.externalPanStart(details.globalPosition);
             },
             onPanUpdate: (details) {
-              _isDragging = true;
               _game.externalPanUpdate(details.globalPosition);
             },
             onPanEnd: (_) {
-              _isDragging = false;
               _game.externalPanEnd();
             },
             // Let Flame handle the tap (TapDetector). We only suppress tap
