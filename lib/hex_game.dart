@@ -1,5 +1,4 @@
 import 'dart:math';
-import 'package:flame/camera.dart';
 import 'package:flame/components.dart';
 import 'package:flame/events.dart';
 import 'package:flame/game.dart';
@@ -19,14 +18,10 @@ class HexGame extends FlameGame
   VoidCallback? onStateChanged;
 
   // Camera pan state
-  Vector2 _cameraTarget = Vector2.zero();
   double _zoom = 1.0;
   double _scaleStart = 1.0;
   Vector2 _panStart = Vector2.zero();
   Vector2 _cameraAtPanStart = Vector2.zero();
-
-  // Hover / ghost tile
-  HexCoord? _hoveredEmpty;
 
   @override
   Color backgroundColor() => const Color(0xFFB8D4DC);
@@ -37,14 +32,12 @@ class HexGame extends FlameGame
     _generateDeck();
 
     camera.viewfinder.zoom = _zoom;
-    _cameraTarget = Vector2.zero();
-    camera.viewfinder.position = _cameraTarget;
+    camera.viewfinder.position = Vector2.zero();
 
     add(_HexMapComponent(this));
   }
 
   void _generateInitialMap() {
-    // Seed a natural-looking map using flood-fill-like growth
     final biomeWeights = <Biome, int>{
       Biome.forest: 5,
       Biome.grassland: 4,
@@ -69,7 +62,6 @@ class HexGame extends FlameGame
       if (visited.contains(coord)) continue;
       visited.add(coord);
 
-      // Biome clustering: keep same biome for a few tiles
       if (runLength <= 0) {
         currentBiome = biomePool[_rng.nextInt(biomePool.length)];
         runLength = 2 + _rng.nextInt(5);
@@ -115,7 +107,6 @@ class HexGame extends FlameGame
     final tile = deck.removeLast();
     placedTiles[coord] = tile;
 
-    // Score: count matching neighbors
     int matches = 0;
     for (final n in coord.neighbors) {
       final neighbor = placedTiles[n];
@@ -130,7 +121,7 @@ class HexGame extends FlameGame
 
   @override
   void onPanStart(DragStartInfo info) {
-    _panStart = info.eventPosition.global;
+    _panStart = info.eventPosition.global.clone();
     _cameraAtPanStart = camera.viewfinder.position.clone();
   }
 
@@ -144,7 +135,10 @@ class HexGame extends FlameGame
   @override
   void onScaleStart(ScaleStartInfo info) {
     _scaleStart = camera.viewfinder.zoom;
-    _panStart = info.raw.focalPoint.toVector2();
+    _panStart = Vector2(
+      info.raw.focalPoint.dx,
+      info.raw.focalPoint.dy,
+    );
     _cameraAtPanStart = camera.viewfinder.position.clone();
   }
 
@@ -153,19 +147,23 @@ class HexGame extends FlameGame
     final newZoom = (_scaleStart * info.raw.scale).clamp(0.3, 2.5);
     camera.viewfinder.zoom = newZoom;
 
-    final delta = info.raw.focalPoint.toVector2() - _panStart;
+    final focal = Vector2(
+      info.raw.focalPoint.dx,
+      info.raw.focalPoint.dy,
+    );
+    final delta = focal - _panStart;
     camera.viewfinder.position =
         _cameraAtPanStart - delta / camera.viewfinder.zoom;
   }
 
   @override
-  void onTapUp(TapUpEvent event) {
+  void onTapUp(TapUpInfo info) {
+    final globalPos = info.eventPosition.global;
     final worldPos = camera.viewfinder.position +
-        (event.localPosition - size / 2) / camera.viewfinder.zoom;
-    final coord = _pixelToHex(worldPos.toOffset());
+        (globalPos - size / 2) / camera.viewfinder.zoom;
+    final coord = _pixelToHex(Offset(worldPos.x, worldPos.y));
 
-    if (!placedTiles.containsKey(coord) &&
-        emptyNeighbors.contains(coord)) {
+    if (!placedTiles.containsKey(coord) && emptyNeighbors.contains(coord)) {
       placeTile(coord);
     }
   }
@@ -201,7 +199,6 @@ class _HexMapComponent extends Component with HasGameRef<HexGame> {
 
   @override
   void render(Canvas canvas) {
-    // Draw placed tiles (sorted by y for painter's algorithm)
     final sorted = _game.placedTiles.entries.toList()
       ..sort((a, b) {
         final ya = _game.hexToPixel(a.key).dy;
@@ -214,7 +211,6 @@ class _HexMapComponent extends Component with HasGameRef<HexGame> {
       HexTilePainter.paint(canvas, entry.value, pixel, kHexSize);
     }
 
-    // Draw ghost tiles for empty neighbors
     for (final emptyCoord in _game.emptyNeighbors) {
       final pixel = _game.hexToPixel(emptyCoord);
       _paintEmptyHex(canvas, pixel);
@@ -251,12 +247,4 @@ class _HexMapComponent extends Component with HasGameRef<HexGame> {
     path.close();
     return path;
   }
-}
-
-extension on Offset {
-  Vector2 toVector2() => Vector2(dx, dy);
-}
-
-extension on Vector2 {
-  Offset toOffset() => Offset(x, y);
 }

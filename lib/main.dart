@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flame/game.dart';
 import 'hex_game.dart';
+import 'hex_painter.dart';
 
 void main() {
   runApp(const HexWorldApp());
