@@ -8,8 +8,7 @@ import 'hex_painter.dart';
 
 const double kHexSize = 52.0;
 
-class HexGame extends FlameGame
-    with PanDetector, ScaleDetector, TapDetector {
+class HexGame extends FlameGame with ScaleDetector, TapDetector {
   final Map<HexCoord, HexTile> placedTiles = {};
   final List<HexTile> deck = [];
   final Random _rng = Random(42);
@@ -17,11 +16,11 @@ class HexGame extends FlameGame
   int score = 0;
   VoidCallback? onStateChanged;
 
-  // Camera pan state
+  // Camera pan/zoom state
   double _zoom = 1.0;
   double _scaleStart = 1.0;
-  Vector2 _panStart = Vector2.zero();
-  Vector2 _cameraAtPanStart = Vector2.zero();
+  Vector2 _focalAtScaleStart = Vector2.zero();
+  Vector2 _cameraAtScaleStart = Vector2.zero();
 
   @override
   Color backgroundColor() => const Color(0xFFB8D4DC);
@@ -68,6 +67,7 @@ class HexGame extends FlameGame
       }
       runLength--;
 
+      // Initial map tiles are uniform (single biome) to keep it simple to start
       placedTiles[coord] = HexTile.uniform(currentBiome);
 
       for (final n in coord.neighbors) {
@@ -79,9 +79,8 @@ class HexGame extends FlameGame
   }
 
   void _generateDeck() {
-    final biomes = Biome.values;
     for (int i = 0; i < 30; i++) {
-      deck.add(HexTile.uniform(biomes[_rng.nextInt(biomes.length)]));
+      deck.add(HexTile.random(_rng));
     }
     deck.shuffle(_rng);
   }
@@ -107,39 +106,36 @@ class HexGame extends FlameGame
     final tile = deck.removeLast();
     placedTiles[coord] = tile;
 
-    int matches = 0;
-    for (final n in coord.neighbors) {
-      final neighbor = placedTiles[n];
-      if (neighbor != null && neighbor.biome == tile.biome) matches++;
+    // Score: count matching edges between this tile and neighbors
+    int edgeMatches = 0;
+    final neighbors = coord.neighbors;
+    for (int dir = 0; dir < 6; dir++) {
+      final neighborCoord = neighbors[dir];
+      final neighbor = placedTiles[neighborCoord];
+      if (neighbor != null) {
+        // My edge[dir] touches neighbor's opposite edge
+        final myEdge = tile.edges[dir];
+        final neighborEdge = neighbor.edges[HexTile.oppositeEdge(dir)];
+        if (myEdge == neighborEdge) edgeMatches++;
+      }
     }
-    score += matches * 10 + 5;
+
+    // Scoring: +5 base, +15 per matching edge
+    score += 5 + edgeMatches * 15;
 
     onStateChanged?.call();
   }
 
-  // --- Pan & Zoom ---
-
-  @override
-  void onPanStart(DragStartInfo info) {
-    _panStart = info.eventPosition.global.clone();
-    _cameraAtPanStart = camera.viewfinder.position.clone();
-  }
-
-  @override
-  void onPanUpdate(DragUpdateInfo info) {
-    final delta = info.eventPosition.global - _panStart;
-    camera.viewfinder.position =
-        _cameraAtPanStart - delta / camera.viewfinder.zoom;
-  }
+  // --- Scale handles both pinch-zoom AND single-finger pan ---
 
   @override
   void onScaleStart(ScaleStartInfo info) {
     _scaleStart = camera.viewfinder.zoom;
-    _panStart = Vector2(
+    _focalAtScaleStart = Vector2(
       info.raw.focalPoint.dx,
       info.raw.focalPoint.dy,
     );
-    _cameraAtPanStart = camera.viewfinder.position.clone();
+    _cameraAtScaleStart = camera.viewfinder.position.clone();
   }
 
   @override
@@ -151,9 +147,9 @@ class HexGame extends FlameGame
       info.raw.focalPoint.dx,
       info.raw.focalPoint.dy,
     );
-    final delta = focal - _panStart;
+    final delta = focal - _focalAtScaleStart;
     camera.viewfinder.position =
-        _cameraAtPanStart - delta / camera.viewfinder.zoom;
+        _cameraAtScaleStart - delta / camera.viewfinder.zoom;
   }
 
   @override

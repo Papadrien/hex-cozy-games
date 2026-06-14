@@ -61,23 +61,6 @@ extension BiomeExt on Biome {
         return const Color(0xFF3E3E3E);
     }
   }
-
-  String get emoji {
-    switch (this) {
-      case Biome.forest:
-        return '🌲';
-      case Biome.grassland:
-        return '🌿';
-      case Biome.water:
-        return '💧';
-      case Biome.village:
-        return '🏠';
-      case Biome.desert:
-        return '🏜';
-      case Biome.mountain:
-        return '⛰';
-    }
-  }
 }
 
 // Axial hex coordinates
@@ -95,6 +78,7 @@ class HexCoord {
   @override
   int get hashCode => Object.hash(q, r);
 
+  /// Neighbor directions 0..5 (flat-top, clockwise from right)
   List<HexCoord> get neighbors => [
         HexCoord(q + 1, r),
         HexCoord(q + 1, r - 1),
@@ -111,26 +95,63 @@ class HexCoord {
   }
 }
 
+/// A tile with a center biome + 6 edge biomes (one per neighbor direction).
+/// This is the Dorfromantik-style mechanic: edges must match with adjacent tiles.
 class HexTile {
-  final Biome biome;
-  final List<Biome> edges; // 6 edges, one per neighbor direction
+  final Biome center;
 
-  HexTile({required this.biome, required this.edges});
+  /// edges[i] = the biome shown on edge i (toward neighbor direction i)
+  final List<Biome> edges; // length 6
+
+  HexTile({required this.center, required List<Biome> edges})
+      : edges = List.unmodifiable(edges);
 
   factory HexTile.uniform(Biome biome) {
-    return HexTile(biome: biome, edges: List.filled(6, biome));
+    return HexTile(center: biome, edges: List.filled(6, biome));
   }
 
+  /// Creates a tile with a center biome and 2-3 distinct edge biomes
+  /// arranged in contiguous arcs, like Dorfromantik.
   factory HexTile.random(Random rng) {
-    final center = Biome.values[rng.nextInt(Biome.values.length)];
-    return HexTile.uniform(center);
+    final allBiomes = Biome.values;
+    final center = allBiomes[rng.nextInt(allBiomes.length)];
+
+    final edgeList = _generateEdges(center, rng);
+    return HexTile(center: center, edges: edgeList);
   }
+
+  static List<Biome> _generateEdges(Biome center, Random rng) {
+    final edges = List<Biome>.filled(6, center);
+    final allBiomes = Biome.values;
+
+    // Pick 1 or 2 secondary biomes for arcs on the edges
+    final numArcs = 1 + rng.nextInt(2); // 1 or 2 arcs
+    for (int arc = 0; arc < numArcs; arc++) {
+      Biome arcBiome;
+      do {
+        arcBiome = allBiomes[rng.nextInt(allBiomes.length)];
+      } while (arcBiome == center);
+
+      // Arc of 2-3 contiguous edges
+      final arcLen = 2 + rng.nextInt(2);
+      final startEdge = rng.nextInt(6);
+      for (int i = 0; i < arcLen; i++) {
+        edges[(startEdge + i) % 6] = arcBiome;
+      }
+    }
+
+    return edges;
+  }
+
+  /// Returns the opposite edge index (the edge of this tile facing neighbor[dir])
+  /// and the edge index of the neighbor facing back.
+  static int oppositeEdge(int dir) => (dir + 3) % 6;
 }
 
 // Decorative elements drawn on top of a biome
 class TileDecoration {
-  final String type; // 'tree', 'house', 'rock', 'wave', 'cactus', 'peak'
-  final Offset localOffset; // fraction of tile size
+  final String type;
+  final Offset localOffset;
   final double scale;
 
   const TileDecoration({
@@ -167,7 +188,9 @@ List<TileDecoration> decorationsFor(Biome biome, Random rng) {
     case Biome.water:
       return [
         TileDecoration(type: 'wave', localOffset: const Offset(-0.1, 0.05)),
-        TileDecoration(type: 'wave', localOffset: const Offset(0.1, -0.05),
+        TileDecoration(
+            type: 'wave',
+            localOffset: const Offset(0.1, -0.05),
             scale: 0.7),
       ];
     case Biome.desert:

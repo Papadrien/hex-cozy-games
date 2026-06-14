@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flame/game.dart';
 import 'hex_game.dart';
 import 'hex_painter.dart';
+import 'hex_tile.dart';
 
 void main() {
   runApp(const HexWorldApp());
@@ -67,7 +68,9 @@ class _GameScreenState extends State<GameScreen> {
                 borderRadius: BorderRadius.circular(10),
               ),
               child: const Text(
-                '🖱 Drag to pan  •  Scroll to zoom\nTap empty hex to place tile',
+                '👆 Glisser pour déplacer\n'
+                '🤏 Pincer pour zoomer\n'
+                'Appuyer sur une case vide pour poser',
                 style: TextStyle(color: Colors.white70, fontSize: 12),
               ),
             ),
@@ -147,10 +150,13 @@ class _TileDeckState extends State<_TileDeck> {
     final next = widget.game.peekNextTile();
     return Column(
       children: [
-        if (next != null)
+        if (next != null) ...[
+          // Legend for next tile
+          _buildEdgeLegend(next),
+          const SizedBox(height: 6),
           Container(
-            width: 80,
-            height: 80,
+            width: 90,
+            height: 90,
             decoration: BoxDecoration(
               color: Colors.black54,
               borderRadius: BorderRadius.circular(12),
@@ -160,6 +166,7 @@ class _TileDeckState extends State<_TileDeck> {
               painter: TilePreviewPainter(next),
             ),
           ),
+        ],
         const SizedBox(height: 8),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -175,6 +182,41 @@ class _TileDeckState extends State<_TileDeck> {
           ),
         ),
       ],
+    );
+  }
+
+  /// Small legend showing how many edges of each biome are on the next tile
+  Widget _buildEdgeLegend(HexTile tile) {
+    final counts = <Biome, int>{};
+    for (final e in tile.edges) {
+      counts[e] = (counts[e] ?? 0) + 1;
+    }
+
+    final biomeNames = {
+      Biome.forest: ('🌲', 'Forêt'),
+      Biome.grassland: ('🌿', 'Prairie'),
+      Biome.water: ('💧', 'Eau'),
+      Biome.village: ('🏠', 'Village'),
+      Biome.desert: ('🏜', 'Désert'),
+      Biome.mountain: ('⛰', 'Montagne'),
+    };
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.black54,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: counts.entries.map((e) {
+          final info = biomeNames[e.key]!;
+          return Text(
+            '${info.$1} ×${e.value}',
+            style: const TextStyle(color: Colors.white70, fontSize: 11),
+          );
+        }).toList(),
+      ),
     );
   }
 }

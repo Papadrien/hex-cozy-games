@@ -2,14 +2,14 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'hex_tile.dart';
 
-// Draws a single hex tile with pseudo-3D relief effect
+// Draws a single hex tile with multi-biome segments (Dorfromantik style)
 class HexTilePainter {
   static const double _sideHeight = 14.0;
 
   static void paint(Canvas canvas, HexTile tile, Offset center, double size,
       {bool highlighted = false, bool ghost = false}) {
     final opacity = ghost ? 0.5 : 1.0;
-    final path = _hexPath(center, size);
+    final hexPath = _hexPath(center, size);
 
     // Shadow
     if (!ghost) {
@@ -20,14 +20,14 @@ class HexTilePainter {
           _hexPath(center + const Offset(4, 6), size), shadowPaint);
     }
 
-    // Bottom side faces (pseudo-3D)
-    _paintSides(canvas, center, size, tile.biome, opacity);
+    // Bottom side faces (pseudo-3D) based on center biome
+    _paintSides(canvas, center, size, tile.center, opacity);
 
-    // Top face
-    final topPaint = Paint()
-      ..color = tile.biome.topColor.withOpacity(opacity)
-      ..style = PaintingStyle.fill;
-    canvas.drawPath(path, topPaint);
+    // Paint each of the 6 edge wedge segments
+    _paintEdgeSegments(canvas, tile, center, size, opacity);
+
+    // Center circle with center biome
+    _paintCenter(canvas, tile.center, center, size, opacity);
 
     // Subtle top gradient overlay
     final gradPaint = Paint()
@@ -35,15 +35,15 @@ class HexTilePainter {
         center: const Alignment(-0.3, -0.4),
         radius: 0.9,
         colors: [
-          Colors.white.withOpacity(0.18 * opacity),
+          Colors.white.withOpacity(0.14 * opacity),
           Colors.transparent,
         ],
       ).createShader(Rect.fromCircle(center: center, radius: size))
       ..style = PaintingStyle.fill;
-    canvas.drawPath(path, gradPaint);
+    canvas.drawPath(hexPath, gradPaint);
 
-    // Draw decorations
-    _paintDecorations(canvas, tile.biome, center, size, opacity);
+    // Center decoration
+    _paintCenterDecoration(canvas, tile.center, center, size, opacity);
 
     // Border
     final borderPaint = Paint()
@@ -52,15 +52,85 @@ class HexTilePainter {
               : Colors.black.withOpacity(0.35 * opacity))
       ..style = PaintingStyle.stroke
       ..strokeWidth = highlighted ? 3.0 : 1.2;
-    canvas.drawPath(path, borderPaint);
+    canvas.drawPath(hexPath, borderPaint);
+  }
+
+  /// Paints 6 wedge-shaped segments from center to each edge
+  static void _paintEdgeSegments(
+      Canvas canvas, HexTile tile, Offset center, double size, double opacity) {
+    final verts = _hexVertices(center, size);
+
+    for (int i = 0; i < 6; i++) {
+      final biome = tile.edges[i];
+      final v1 = verts[i];
+      final v2 = verts[(i + 1) % 6];
+
+      // Wedge from center to edge i
+      final wedgePath = Path()
+        ..moveTo(center.dx, center.dy)
+        ..lineTo(v1.dx, v1.dy)
+        ..lineTo(v2.dx, v2.dy)
+        ..close();
+
+      canvas.drawPath(
+        wedgePath,
+        Paint()
+          ..color = biome.topColor.withOpacity(opacity)
+          ..style = PaintingStyle.fill,
+      );
+
+      // Subtle divider between segments
+      final dividerPaint = Paint()
+        ..color = Colors.black.withOpacity(0.08 * opacity)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 0.6;
+      canvas.drawLine(center, v1, dividerPaint);
+    }
+  }
+
+  /// Paints a circle in the center with the center biome color
+  static void _paintCenter(
+      Canvas canvas, Biome biome, Offset center, double size, double opacity) {
+    final r = size * 0.38;
+    canvas.drawCircle(
+      center,
+      r,
+      Paint()
+        ..color = biome.topColor.withOpacity(opacity)
+        ..style = PaintingStyle.fill,
+    );
+    // Subtle ring
+    canvas.drawCircle(
+      center,
+      r,
+      Paint()
+        ..color = Colors.black.withOpacity(0.18 * opacity)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.0,
+    );
+  }
+
+  /// Paints the decoration icon in the center circle area only
+  static void _paintCenterDecoration(
+      Canvas canvas, Biome biome, Offset center, double size, double opacity) {
+    final rng = Random(biome.index * 1337);
+    final decs = decorationsFor(biome, rng);
+
+    // Only draw first decoration, scaled to fit center circle
+    if (decs.isNotEmpty) {
+      final dec = decs[0];
+      final pos = center +
+          Offset(dec.localOffset.dx * size * 0.5,
+              dec.localOffset.dy * size * 0.5);
+      _paintDecoration(
+          canvas, dec.type, pos, size * 0.22 * dec.scale, opacity);
+    }
   }
 
   static void _paintSides(
       Canvas canvas, Offset center, double size, Biome biome, double opacity) {
-    // Only paint bottom-facing sides (directions 3,4,5 in flat-top)
-    // We simulate 3D by drawing parallelograms below the bottom edges
     final vertices = _hexVertices(center, size);
-    final bottomSideIndices = [2, 3, 4]; // bottom-right, bottom, bottom-left
+    final bottomSideIndices = [2, 3, 4];
 
     for (final i in bottomSideIndices) {
       final v1 = vertices[i];
@@ -69,41 +139,19 @@ class HexTilePainter {
       final v2b = v2 + Offset(0, _sideHeight);
 
       final isLeft = i >= 4;
-      final sideColor =
-          isLeft ? biome.sideColorLeft : biome.sideColorRight;
+      final sideColor = isLeft ? biome.sideColorLeft : biome.sideColorRight;
 
-      final sidePaint = Paint()
-        ..color = sideColor.withOpacity(opacity)
-        ..style = PaintingStyle.fill;
-
-      final sidePath = Path()
-        ..moveTo(v1.dx, v1.dy)
-        ..lineTo(v2.dx, v2.dy)
-        ..lineTo(v2b.dx, v2b.dy)
-        ..lineTo(v1b.dx, v1b.dy)
-        ..close();
-
-      canvas.drawPath(sidePath, sidePaint);
-
-      // Edge line
-      final edgePaint = Paint()
-        ..color = Colors.black.withOpacity(0.2 * opacity)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 0.8;
-      canvas.drawPath(sidePath, edgePaint);
-    }
-  }
-
-  static void _paintDecorations(
-      Canvas canvas, Biome biome, Offset center, double size, double opacity) {
-    final rng = Random(biome.index * 1337);
-    final decs = decorationsFor(biome, rng);
-
-    for (final dec in decs) {
-      final pos = center +
-          Offset(dec.localOffset.dx * size * 1.2,
-              dec.localOffset.dy * size * 1.2);
-      _paintDecoration(canvas, dec.type, pos, size * 0.28 * dec.scale, opacity);
+      canvas.drawPath(
+        Path()
+          ..moveTo(v1.dx, v1.dy)
+          ..lineTo(v2.dx, v2.dy)
+          ..lineTo(v2b.dx, v2b.dy)
+          ..lineTo(v1b.dx, v1b.dy)
+          ..close(),
+        Paint()
+          ..color = sideColor.withOpacity(opacity)
+          ..style = PaintingStyle.fill,
+      );
     }
   }
 
@@ -113,13 +161,13 @@ class HexTilePainter {
 
     switch (type) {
       case 'tree':
-        // Trunk
         paint.color = const Color(0xFF6B4226).withOpacity(opacity);
         canvas.drawRect(
             Rect.fromCenter(
-                center: pos + Offset(0, s * 0.6), width: s * 0.3, height: s * 0.7),
+                center: pos + Offset(0, s * 0.6),
+                width: s * 0.3,
+                height: s * 0.7),
             paint);
-        // Canopy layers
         for (int i = 0; i < 3; i++) {
           paint.color = Color.lerp(const Color(0xFF2D6A30),
                   const Color(0xFF5CB85C), i / 2)!
@@ -132,7 +180,6 @@ class HexTilePainter {
         break;
 
       case 'house':
-        // Walls
         paint.color = const Color(0xFFF5DEB3).withOpacity(opacity);
         canvas.drawRect(
             Rect.fromCenter(
@@ -140,11 +187,9 @@ class HexTilePainter {
                 width: s * 1.4,
                 height: s * 0.9),
             paint);
-        // Roof
         paint.color = const Color(0xFFB22222).withOpacity(opacity);
         canvas.drawPath(
             _triangle(pos + Offset(0, -s * 0.3), s * 1.6, s * 0.8), paint);
-        // Door
         paint.color = const Color(0xFF8B4513).withOpacity(opacity);
         canvas.drawRect(
             Rect.fromCenter(
@@ -152,56 +197,38 @@ class HexTilePainter {
                 width: s * 0.35,
                 height: s * 0.5),
             paint);
-        // Window
-        paint.color = const Color(0xFF87CEEB).withOpacity(opacity);
-        canvas.drawRect(
-            Rect.fromCenter(
-                center: pos + Offset(-s * 0.45, s * 0.15),
-                width: s * 0.35,
-                height: s * 0.3),
-            paint);
-        canvas.drawRect(
-            Rect.fromCenter(
-                center: pos + Offset(s * 0.45, s * 0.15),
-                width: s * 0.35,
-                height: s * 0.3),
-            paint);
         break;
 
       case 'peak':
-        // Snow cap
         paint.color = const Color(0xFFFFFFFF).withOpacity(opacity);
         canvas.drawPath(_triangle(pos, s * 1.1, s * 1.3), paint);
-        // Rock body
         paint.color = const Color(0xFF707070).withOpacity(opacity);
         canvas.drawPath(
             _triangle(pos + Offset(0, s * 0.4), s * 1.6, s * 1.0), paint);
         break;
 
       case 'wave':
-        paint.color = const Color(0xFFFFFFFF).withOpacity(0.45 * opacity);
         final wavePath = Path();
         wavePath.moveTo(pos.dx - s, pos.dy);
         wavePath.cubicTo(pos.dx - s * 0.5, pos.dy - s * 0.5, pos.dx,
             pos.dy + s * 0.3, pos.dx + s, pos.dy);
-        final wavePaintLine = Paint()
-          ..color = Colors.white.withOpacity(0.5 * opacity)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = s * 0.35
-          ..strokeCap = StrokeCap.round;
-        canvas.drawPath(wavePath, wavePaintLine);
+        canvas.drawPath(
+            wavePath,
+            Paint()
+              ..color = Colors.white.withOpacity(0.5 * opacity)
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = s * 0.35
+              ..strokeCap = StrokeCap.round);
         break;
 
       case 'cactus':
         paint.color = const Color(0xFF3A7D44).withOpacity(opacity);
-        // Main stem
         canvas.drawRRect(
             RRect.fromRectAndRadius(
                 Rect.fromCenter(
                     center: pos, width: s * 0.4, height: s * 1.4),
                 Radius.circular(s * 0.2)),
             paint);
-        // Arms
         canvas.drawRRect(
             RRect.fromRectAndRadius(
                 Rect.fromCenter(
@@ -251,7 +278,6 @@ class HexTilePainter {
 
   static List<Offset> _hexVertices(Offset center, double size) {
     return List.generate(6, (i) {
-      // flat-top hex: angles at 0°, 60°, 120°...
       final angle = pi / 180 * (60 * i);
       return Offset(
         center.dx + size * cos(angle),
