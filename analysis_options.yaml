@@ -1,1 +1,13 @@
 include: package:flutter_lints/flutter.yaml
+
+linter:
+  rules:
+    - camel_case_types
+    - camel_case_extensions
+    - non_constant_identifier_names
+    - prefer_const_constructors
+    - prefer_const_literals_to_create_immutables
+
+analyzer:
+  exclude:
+    - "**/*.g.dart"

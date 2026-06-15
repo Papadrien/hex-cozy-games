@@ -1,218 +1,221 @@
-
+import 'dart:math' as math;
+import 'package:flame/game.dart';
+import 'package:flame/events.dart';
 import 'package:flutter/material.dart';
+import 'package:flame/components.dart';
 
-void main() {
-  runApp(GameWidget(game: HexPuzzleGame()));
-}
+void main() => runApp(
+      MaterialApp(
+        home: Scaffold(
+          body: GameWidget(
+            game: HexPuzzleGame(),
+          ),
+        ),
+      ),
+    );
 
-class HexPuzzleGame extends FlameGame with ScaleDetector, DragCallbacks, TapDetector {
-  final Random rng = Random();
-  final double hexSize = 55;
-
-  final Map<Point<int>, HexTile> tiles = {};
-  Point<int>? highlighted;
-  late HexTile nextTile;
+class HexPuzzleGame extends FlameGame
+    with
+        HasCollisionDetection,
+        TapCallbacks,
+        ScaleCallbacks,
+        DragCallbacks {
+  late math.Random random;
+  late List<HexTile> hexagons;
+  late Camera camera;
 
   @override
   Future<void> onLoad() async {
-    camera.viewfinder.zoom = 1.0;
+    super.onLoad();
+    random = math.Random();
+    camera = Camera();
+    hexagons = [];
+    _initializeHexagons();
+  }
 
-    for (int q = -1; q <= 1; q++) {
-      for (int r = -1; r <= 1; r++) {
-        tiles[Point(q, r)] = randomTile(q, r);
+  void _initializeHexagons() {
+    for (int i = 0; i < 6; i++) {
+      for (int j = 0; j < 6; j++) {
+        final hex = HexTile(
+          gridX: i,
+          gridY: j,
+          size: 40,
+        );
+        hexagons.add(hex);
+        add(hex);
       }
-    }
-
-    nextTile = randomTile(0, 0);
-    rebuild();
-  }
-
-  HexTile randomTile(int q, int r) {
-    final colors = [
-      Colors.blue,
-      Colors.yellow,
-      Colors.green,
-      Colors.red,
-      Colors.black,
-    ];
-
-    final sides = List.generate(6, (_) => colors[rng.nextInt(colors.length)]);
-    return HexTile(q, r, hexSize, sides);
-  }
-
-  void rebuild() {
-    children.whereType<HexTile>().forEach(remove);
-    children.whereType<HighlightHex>().forEach(remove);
-
-    for (final t in tiles.values) {
-      add(t);
-    }
-
-    if (highlighted != null) {
-      add(HighlightHex(highlighted!.x, highlighted!.y, hexSize));
     }
   }
 
   @override
   void onScaleUpdate(ScaleUpdateInfo info) {
-    camera.viewfinder.zoom *= info.scale.global.y;
-    camera.viewfinder.zoom =
-        camera.viewfinder.zoom.clamp(0.4, 3.0);
+    camera.zoom *= info.scale.global.y;
+    camera.zoom = math.max(0.5, math.min(3.0, camera.zoom));
   }
 
   @override
   void onDragUpdate(DragUpdateEvent event) {
-    camera.viewfinder.position -= event.localDelta;
+    camera.position.subtract(event.delta);
+  }
+
+  @override
+  void onTapDown(TapDownEvent info) {
+    final tapPosition = info.localPosition;
+    for (final hex in hexagons) {
+      if (hex.contains(tapPosition)) {
+        hex.toggleSelect();
+      }
+    }
   }
 
   @override
   void update(double dt) {
     super.update(dt);
-
-    highlighted ??= firstFreeSpot();
-  }
-
-  Point<int>? firstFreeSpot() {
-    const dirs = [
-      Point(1, 0),
-      Point(1, -1),
-      Point(0, -1),
-      Point(-1, 0),
-      Point(-1, 1),
-      Point(0, 1),
-    ];
-
-    for (final p in tiles.keys) {
-      for (final d in dirs) {
-        final n = Point(p.x + d.x, p.y + d.y);
-        if (!tiles.containsKey(n)) return n;
-      }
-    }
-    return null;
   }
 
   @override
-  Color backgroundColor() => const Color(0xFF202020);
+  void render(Canvas canvas) {
+    super.render(canvas);
+  }
+
+  static const List<math.Point<int>> offsetDirections = [
+    math.Point(1, 0),
+    math.Point(1, -1),
+    math.Point(0, -1),
+    math.Point(-1, 0),
+    math.Point(-1, 1),
+    math.Point(0, 1),
+  ];
+}
+
+class HexTile extends PositionComponent {
+  final int gridX;
+  final int gridY;
+  final double size;
+  late List<math.Point<double>> vertices;
+  bool isSelected = false;
+
+  HexTile({
+    required this.gridX,
+    required this.gridY,
+    required this.size,
+  });
 
   @override
-  void onTapDown(TapDownInfo info) {
-    if (highlighted != null) {
-      tiles[highlighted!] = HexTile(
-        highlighted!.x,
-        highlighted!.y,
-        hexSize,
-        nextTile.sides,
-      );
-      nextTile = randomTile(0, 0);
-      highlighted = firstFreeSpot();
-      rebuild();
+  Future<void> onLoad() async {
+    super.onLoad();
+    position = calculateHexPosition();
+    _calculateVertices();
+  }
+
+  Vector2 calculateHexPosition() {
+    const double hexWidth = 2;
+    const double hexHeight = math.pi * 2 / 3;
+
+    final double x = size * (hexWidth * (gridX + 0.5 * gridY));
+    final double y = size * (hexHeight * gridY);
+
+    return Vector2(x, y);
+  }
+
+  void _calculateVertices() {
+    vertices = [];
+    for (int i = 0; i < 6; i++) {
+      final double angle = math.pi / 3 * i;
+      final double x = size * math.cos(angle);
+      final double y = size * math.sin(angle);
+      vertices.add(math.Point(x, y));
     }
+  }
+
+  bool contains(Vector2 point) {
+    final double relativeX = point.x - position.x;
+    final double relativeY = point.y - position.y;
+    final double distance = math.sqrt(relativeX * relativeX + relativeY * relativeY);
+    return distance <= size;
+  }
+
+  void toggleSelect() {
+    isSelected = !isSelected;
   }
 
   @override
   void render(Canvas canvas) {
     super.render(canvas);
 
-    nextTile.position = Vector2(size.x - 120, size.y - 120);
-    nextTile.render(canvas);
-  }
-}
+    final paint = Paint()
+      ..color = isSelected ? Colors.blue : Colors.grey
+      ..style = PaintingStyle.fill;
 
-class HexTile extends PositionComponent {
-  final int q;
-  final int r;
-  final double sizeHex;
-  final List<Color> sides;
-
-  HexTile(this.q, this.r, this.sizeHex, this.sides);
-
-  @override
-  Future<void> onLoad() async {
-    position = axialToPixel(q, r, sizeHex);
-  }
-
-  @override
-  void render(Canvas canvas) {
-    final center = Offset(position.x, position.y);
-
-    for (int i = 0; i < 6; i++) {
-      final a1 = pi / 3 * i - pi / 6;
-      final a2 = pi / 3 * (i + 1) - pi / 6;
-
-      final path = Path()
-        ..moveTo(center.dx, center.dy)
-        ..lineTo(center.dx + cos(a1) * sizeHex, center.dy + sin(a1) * sizeHex)
-        ..lineTo(center.dx + cos(a2) * sizeHex, center.dy + sin(a2) * sizeHex)
-        ..close();
-
-      canvas.drawPath(path, Paint()..color = sides[i]);
-    }
-
-    final border = Path();
-    for (int i = 0; i < 6; i++) {
-      final a = pi / 3 * i - pi / 6;
-      final p = Offset(
-        center.dx + cos(a) * sizeHex,
-        center.dy + sin(a) * sizeHex,
+    final path = Path();
+    if (vertices.isNotEmpty) {
+      path.moveTo(
+        position.x + vertices[0].x.toDouble(),
+        position.y + vertices[0].y.toDouble(),
       );
-      if (i == 0) {
-        border.moveTo(p.dx, p.dy);
-      } else {
-        border.lineTo(p.dx, p.dy);
+      for (int i = 1; i < vertices.length; i++) {
+        path.lineTo(
+          position.x + vertices[i].x.toDouble(),
+          position.y + vertices[i].y.toDouble(),
+        );
       }
+      path.close();
     }
-    border.close();
-    canvas.drawPath(
-      border,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 2,
-    );
+
+    canvas.drawPath(path, paint);
+
+    final strokePaint = Paint()
+      ..color = Colors.black
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2;
+
+    canvas.drawPath(path, strokePaint);
   }
 }
 
 class HighlightHex extends PositionComponent {
-  final int q;
-  final int r;
-  final double sizeHex;
+  final int gridX;
+  final int gridY;
+  final double size;
+  late List<math.Point<double>> vertices;
 
-  HighlightHex(this.q, this.r, this.sizeHex);
+  HighlightHex({
+    required this.gridX,
+    required this.gridY,
+    required this.size,
+  });
 
   @override
   Future<void> onLoad() async {
-    position = axialToPixel(q, r, sizeHex);
+    super.onLoad();
+    position = calculateHighlightPosition();
+    _calculateHighlightVertices();
   }
 
-  @override
-  void render(Canvas canvas) {
-    final path = Path();
-    for (int i = 0; i < 6; i++) {
-      final a = pi / 3 * i - pi / 6;
-      final p = Offset(
-        position.x + cos(a) * sizeHex,
-        position.y + sin(a) * sizeHex,
-      );
-      if (i == 0) {
-        path.moveTo(p.dx, p.dy);
-      } else {
-        path.lineTo(p.dx, p.dy);
-      }
-    }
-    path.close();
+  Vector2 calculateHighlightPosition() {
+    final double angle = math.pi / 3 * gridY;
 
-    canvas.drawPath(
-      path,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 4
-        ..color = Colors.white,
-    );
+    final double x = size * math.cos(angle);
+    final double y = size * math.sin(angle);
+
+    return Vector2(x, y);
+  }
+
+  void _calculateHighlightVertices() {
+    vertices = [];
+    for (int i = 0; i < 6; i++) {
+      final double angle = math.pi / 3 * i;
+      final double x = size * math.cos(angle);
+      final double y = size * math.sin(angle);
+      vertices.add(math.Point(x, y));
+    }
   }
 }
 
-Vector2 axialToPixel(int q, int r, double size) {
-  return Vector2(
-    size * sqrt(3) * (q + r / 2),
-    size * 1.5 * r,
-  );
+extension Vector2Extensions on Vector2 {
+  Vector2 subtract(Vector2 other) {
+    x -= other.x;
+    y -= other.y;
+    return this;
+  }
 }
