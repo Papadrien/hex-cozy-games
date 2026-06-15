@@ -1,7 +1,9 @@
 
-name: hex_puzzle_flame_prototype
-description: Prototype Flame hex puzzle
+name: hex_puzzle_flutter_full
+description: Hex puzzle prototype
 publish_to: 'none'
+
+version: 1.0.0+1
 
 environment:
   sdk: ">=3.5.0 <4.0.0"
