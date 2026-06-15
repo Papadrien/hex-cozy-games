@@ -1,6 +1,5 @@
 import 'dart:math' as math;
 import 'package:flame/game.dart';
-import 'package:flame/events.dart';
 import 'package:flutter/material.dart';
 import 'package:flame/components.dart';
 
@@ -14,8 +13,7 @@ void main() => runApp(
       ),
     );
 
-class HexPuzzleGame extends FlameGame
-    with TapCallbacks, ScaleCallbacks, DragCallbacks {
+class HexPuzzleGame extends FlameGame with TapCallbacks {
   late math.Random random;
   late List<HexTile> hexagons;
   double zoom = 1.0;
@@ -42,17 +40,6 @@ class HexPuzzleGame extends FlameGame
         add(hex);
       }
     }
-  }
-
-  @override
-  void onScaleUpdate(ScaleUpdateEvent event) {
-    zoom *= event.scale.global.y;
-    zoom = math.max(0.5, math.min(3.0, zoom));
-  }
-
-  @override
-  void onDragUpdate(DragUpdateEvent event) {
-    cameraOffset.subtract(event.localDelta);
   }
 
   @override
