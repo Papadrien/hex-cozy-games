@@ -15,20 +15,17 @@ void main() => runApp(
     );
 
 class HexPuzzleGame extends FlameGame
-    with
-        HasCollisionDetection,
-        TapCallbacks,
-        ScaleCallbacks,
-        DragCallbacks {
+    with TapCallbacks, ScaleCallbacks, DragCallbacks {
   late math.Random random;
   late List<HexTile> hexagons;
-  late Camera camera;
+  double zoom = 1.0;
+  late Vector2 cameraOffset;
 
   @override
   Future<void> onLoad() async {
     super.onLoad();
     random = math.Random();
-    camera = Camera();
+    cameraOffset = Vector2.zero();
     hexagons = [];
     _initializeHexagons();
   }
@@ -39,7 +36,7 @@ class HexPuzzleGame extends FlameGame
         final hex = HexTile(
           gridX: i,
           gridY: j,
-          size: 40,
+          hexSize: 40,
         );
         hexagons.add(hex);
         add(hex);
@@ -48,37 +45,27 @@ class HexPuzzleGame extends FlameGame
   }
 
   @override
-  void onScaleUpdate(ScaleUpdateInfo info) {
-    camera.zoom *= info.scale.global.y;
-    camera.zoom = math.max(0.5, math.min(3.0, camera.zoom));
+  void onScaleUpdate(ScaleUpdateEvent event) {
+    zoom *= event.scale.global.y;
+    zoom = math.max(0.5, math.min(3.0, zoom));
   }
 
   @override
   void onDragUpdate(DragUpdateEvent event) {
-    camera.position.subtract(event.delta);
+    cameraOffset.subtract(event.localDelta);
   }
 
   @override
-  void onTapDown(TapDownEvent info) {
-    final tapPosition = info.localPosition;
+  void onTapDown(TapDownEvent event) {
+    final tapPosition = event.localPosition;
     for (final hex in hexagons) {
-      if (hex.contains(tapPosition)) {
+      if (hex.checkHit(tapPosition)) {
         hex.toggleSelect();
       }
     }
   }
 
-  @override
-  void update(double dt) {
-    super.update(dt);
-  }
-
-  @override
-  void render(Canvas canvas) {
-    super.render(canvas);
-  }
-
-  static const List<math.Point<int>> offsetDirections = [
+static const List<math.Point<int>> offsetDirections = [
     math.Point(1, 0),
     math.Point(1, -1),
     math.Point(0, -1),
@@ -91,14 +78,14 @@ class HexPuzzleGame extends FlameGame
 class HexTile extends PositionComponent {
   final int gridX;
   final int gridY;
-  final double size;
+  final double hexSize;
   late List<math.Point<double>> vertices;
   bool isSelected = false;
 
   HexTile({
     required this.gridX,
     required this.gridY,
-    required this.size,
+    required this.hexSize,
   });
 
   @override
@@ -112,8 +99,8 @@ class HexTile extends PositionComponent {
     const double hexWidth = 2;
     const double hexHeight = math.pi * 2 / 3;
 
-    final double x = size * (hexWidth * (gridX + 0.5 * gridY));
-    final double y = size * (hexHeight * gridY);
+    final double x = hexSize * (hexWidth * (gridX + 0.5 * gridY));
+    final double y = hexSize * (hexHeight * gridY);
 
     return Vector2(x, y);
   }
@@ -122,17 +109,23 @@ class HexTile extends PositionComponent {
     vertices = [];
     for (int i = 0; i < 6; i++) {
       final double angle = math.pi / 3 * i;
-      final double x = size * math.cos(angle);
-      final double y = size * math.sin(angle);
+      final double x = hexSize * math.cos(angle);
+      final double y = hexSize * math.sin(angle);
       vertices.add(math.Point(x, y));
     }
   }
 
-  bool contains(Vector2 point) {
-    final double relativeX = point.x - position.x;
-    final double relativeY = point.y - position.y;
+  @override
+  bool containsLocalPoint(Vector2 point) {
+    final double relativeX = point.x;
+    final double relativeY = point.y;
     final double distance = math.sqrt(relativeX * relativeX + relativeY * relativeY);
-    return distance <= size;
+    return distance <= hexSize;
+  }
+
+  bool checkHit(Vector2 globalPoint) {
+    final localPoint = globalPoint - position;
+    return containsLocalPoint(localPoint);
   }
 
   void toggleSelect() {
@@ -150,13 +143,13 @@ class HexTile extends PositionComponent {
     final path = Path();
     if (vertices.isNotEmpty) {
       path.moveTo(
-        position.x + vertices[0].x.toDouble(),
-        position.y + vertices[0].y.toDouble(),
+        vertices[0].x.toDouble(),
+        vertices[0].y.toDouble(),
       );
       for (int i = 1; i < vertices.length; i++) {
         path.lineTo(
-          position.x + vertices[i].x.toDouble(),
-          position.y + vertices[i].y.toDouble(),
+          vertices[i].x.toDouble(),
+          vertices[i].y.toDouble(),
         );
       }
       path.close();
@@ -176,13 +169,13 @@ class HexTile extends PositionComponent {
 class HighlightHex extends PositionComponent {
   final int gridX;
   final int gridY;
-  final double size;
+  final double hexSize;
   late List<math.Point<double>> vertices;
 
   HighlightHex({
     required this.gridX,
     required this.gridY,
-    required this.size,
+    required this.hexSize,
   });
 
   @override
@@ -195,8 +188,8 @@ class HighlightHex extends PositionComponent {
   Vector2 calculateHighlightPosition() {
     final double angle = math.pi / 3 * gridY;
 
-    final double x = size * math.cos(angle);
-    final double y = size * math.sin(angle);
+    final double x = hexSize * math.cos(angle);
+    final double y = hexSize * math.sin(angle);
 
     return Vector2(x, y);
   }
@@ -205,8 +198,8 @@ class HighlightHex extends PositionComponent {
     vertices = [];
     for (int i = 0; i < 6; i++) {
       final double angle = math.pi / 3 * i;
-      final double x = size * math.cos(angle);
-      final double y = size * math.sin(angle);
+      final double x = hexSize * math.cos(angle);
+      final double y = hexSize * math.sin(angle);
       vertices.add(math.Point(x, y));
     }
   }
