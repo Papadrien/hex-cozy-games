@@ -53,7 +53,7 @@ class HexPuzzleGame extends FlameGame with TapCallbacks {
     }
   }
 
-static const List<math.Point<int>> offsetDirections = [
+  static const List<math.Point<int>> offsetDirections = [
     math.Point(1, 0),
     math.Point(1, -1),
     math.Point(0, -1),
