@@ -54,7 +54,7 @@ dependencies:
   games_services: ^4.1.0
 
   # Publicités
-  google_mobile_ads: ^6.0.0
+  google_mobile_ads: ^9.0.0
 
   # Achats in-app
   in_app_purchase: ^3.2.4
