@@ -85,15 +85,19 @@ class TileComponent extends PositionComponent {
 
   @override
   void render(Canvas canvas) {
-    // Coins en espace "plat", la projection Y est appliquée ici.
-    final corners = _isoCorners();
+    // L'ancrage center translate le canvas de sorte que (0,0) corresponde au
+    // coin haut-gauche du composant. Le centre de la tuile dans ce repère est
+    // donc à (size.x/2, size.y/2) — on l'utilise comme origine du tracé.
+    final cx = size.x / 2;
+    final cy = size.y / 2;
+    final corners = _isoCorners(cx, cy);
 
     for (var i = 0; i < 6; i++) {
       final c0 = corners[i];
       final c1 = corners[(i + 1) % 6];
 
       final path = Path()
-        ..moveTo(0, 0) // centre de la tuile (anchor = center)
+        ..moveTo(cx, cy)
         ..lineTo(c0.dx, c0.dy)
         ..lineTo(c1.dx, c1.dy)
         ..close();
@@ -106,9 +110,8 @@ class TileComponent extends PositionComponent {
       );
 
       if (_showBorder) {
-        // Séparateur entre segments — ligne du centre vers chaque coin
         canvas.drawLine(
-          Offset.zero,
+          Offset(cx, cy),
           c0,
           Paint()
             ..color = Colors.black.withValues(alpha: _alpha * 0.3)
@@ -117,7 +120,6 @@ class TileComponent extends PositionComponent {
       }
     }
 
-    // Contour extérieur
     final outline = Path()..moveTo(corners[0].dx, corners[0].dy);
     for (var i = 1; i < 6; i++) {
       outline.lineTo(corners[i].dx, corners[i].dy);
@@ -134,16 +136,14 @@ class TileComponent extends PositionComponent {
 
   // ── Helpers ───────────────────────────────────────────────────────────────
 
-  /// Calcule les 6 sommets de l'hexagone pointy-top avec projection iso.
-  ///
-  /// pointy-top : 1er sommet à −90° (nord), puis +60° sens horaire.
-  /// Le Y de chaque sommet est multiplié par [kIsoScaleY] pour l'aplatissement.
-  List<Offset> _isoCorners() {
+  /// Calcule les 6 sommets de l'hexagone pointy-top avec projection iso,
+  /// décalés de (cx, cy) pour compenser l'offset d'ancrage centre.
+  List<Offset> _isoCorners(double cx, double cy) {
     return List.generate(6, (i) {
       final angleDeg = 60.0 * i - 90.0;
       final angleRad = angleDeg * pi / 180.0;
-      final x = _hexSize * cos(angleRad);
-      final y = _hexSize * sin(angleRad) * kIsoScaleY;
+      final x = cx + _hexSize * cos(angleRad);
+      final y = cy + _hexSize * sin(angleRad) * kIsoScaleY;
       return Offset(x, y);
     });
   }
