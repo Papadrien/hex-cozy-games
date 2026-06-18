@@ -1,20 +1,22 @@
 /// Composant Flame gérant l'affichage de la grille hexagonale.
 ///
-/// Story 1.2 :
-///  - Grille invisible (aucun contour de cellule)
-///  - Hexagones pointy-top, coordonnées axiales
-///  - Projection isométrique à 45° (scaleY = 0.5)
-///  - Hit-testing via [handleTap] (appelé depuis HexBoardGame)
+/// Story 1.2 : grille invisible, hexagones pointy-top, coordonnées axiales,
+///             projection isométrique à 45°, pan/zoom, hit-testing.
+/// Story 1.3 : les cellules posées sont rendues via [TileComponent] au lieu
+///             d'un rectangle uni — [placedTiles] mappe les coordonnées vers
+///             les composants tuiles actifs.
 library;
 
 import 'dart:math';
-import 'dart:typed_data';
+import 'dart:ui' show Canvas, Offset;
 
 import 'package:flame/components.dart';
 import 'package:flutter/foundation.dart';
 
 import 'hex_coords.dart';
 import 'hex_cell.dart';
+import 'hex_tile.dart';
+import 'tile_component.dart';
 
 /// Taille de base de l'hexagone (rayon circumscrit) en pixels logiques.
 const double kBaseHexSize = 44.0;
@@ -30,7 +32,12 @@ class HexGridComponent extends PositionComponent {
 
   // ── État ──────────────────────────────────────────────────────────────────
 
+  /// Données de cellule (biome majoritaire) — conservé pour la compatibilité
+  /// avec les stories suivantes (hit-testing, adjacence, etc.).
   final Map<HexCoords, HexCell> placedCells = {};
+
+  /// Composants [TileComponent] actifs, indexés par coordonnées axiales.
+  final Map<HexCoords, TileComponent> placedTiles = {};
 
   // ── Vue ───────────────────────────────────────────────────────────────────
 
@@ -49,35 +56,73 @@ class HexGridComponent extends PositionComponent {
         ),
       );
 
+  // ── API publique (story 1.3) ───────────────────────────────────────────────
+
+  /// Place une [HexTile] sur les coordonnées [coords].
+  ///
+  /// Crée (ou remplace) le [TileComponent] correspondant et l'ajoute à ce
+  /// composant. Met à jour [placedCells] pour les logiques d'adjacence.
+  void placeTile(HexCoords coords, HexTile tile) {
+    // Supprimer un éventuel composant existant
+    final existing = placedTiles.remove(coords);
+    if (existing != null) remove(existing);
+
+    final layout = _layout;
+    final center = layout.hexToPixel(coords);
+
+    final component = TileComponent(
+      tile: tile,
+      coords: coords,
+      hexSize: kBaseHexSize * zoom,
+      position: Vector2(center.x, center.y * kIsoScaleY),
+    );
+
+    placedTiles[coords] = component;
+    add(component);
+
+    // Mettre à jour placedCells (biome majoritaire pour la logique métier)
+    placedCells[coords] = HexCell(
+      q: coords.q,
+      r: coords.r,
+      biome: _dominantBiome(tile),
+    );
+  }
+
+  /// Supprime la tuile posée sur [coords], si elle existe.
+  void removeTile(HexCoords coords) {
+    final component = placedTiles.remove(coords);
+    if (component != null) remove(component);
+    placedCells.remove(coords);
+  }
+
   // ── Rendu ─────────────────────────────────────────────────────────────────
 
   @override
   void render(Canvas canvas) {
     canvas.save();
-    // Projection isométrique : on aplatit l'axe Y de moitié (vue à ~45°).
-    // Matrice column-major 4×4 pour canvas.transform :
-    //   col0=[1,0,0,0] col1=[0,0.5,0,0] col2=[0,0,1,0] col3=[0,0,0,1]
-    canvas.transform(
-      Float64List.fromList([
-        1.0, 0.0, 0.0, 0.0,
-        0.0, kIsoScaleY, 0.0, 0.0,
-        0.0, 0.0, 1.0, 0.0,
-        0.0, 0.0, 0.0, 1.0,
-      ]),
-    );
-    _renderCells(canvas);
+    // Projection isométrique : on aplatit l'axe Y (vue à ~45°).
+    // Les TileComponent sont positionnés avec Y déjà écrasé (voir placeTile),
+    // donc on n'applique PAS kIsoScaleY ici — la transformation reste identité
+    // pour le rendu des enfants PositionComponent.
+    // En revanche on l'applique pour dessiner les highlights (story 1.5).
     canvas.restore();
   }
 
-  void _renderCells(Canvas canvas) {
+  /// Reblit toutes les tuiles existantes quand le zoom/offset change.
+  ///
+  /// Appelé par [HexBoardGame] à chaque frame si la caméra a bougé.
+  void refreshTilePositions() {
     final layout = _layout;
-    for (final coords in _visibleCoords()) {
-      final center = layout.hexToPixel(coords);
-      _drawCell(canvas, coords, center, layout);
+    for (final entry in placedTiles.entries) {
+      final center = layout.hexToPixel(entry.key);
+      entry.value.position = Vector2(center.x, center.y * kIsoScaleY);
+      entry.value.hexSize = kBaseHexSize * zoom;
     }
   }
 
-  Set<HexCoords> _visibleCoords() {
+  // ── Visible coords (pour highlights futurs) ───────────────────────────────
+
+  Set<HexCoords> visibleCoords() {
     if (placedCells.isEmpty) return _disk(HexCoords(0, 0), 5);
     final cells = <HexCoords>{};
     for (final c in placedCells.keys) {
@@ -104,44 +149,25 @@ class HexGridComponent extends PositionComponent {
     return result;
   }
 
-  void _drawCell(
-    Canvas canvas,
-    HexCoords coords,
-    Point<double> center,
-    HexLayout layout,
-  ) {
-    final corners = layout.hexCorners(center);
-    final path = Path()..moveTo(corners[0].x, corners[0].y);
-    for (var i = 1; i < 6; i++) {
-      path.lineTo(corners[i].x, corners[i].y);
-    }
-    path.close();
-
-    if (placedCells.containsKey(coords)) {
-      canvas.drawPath(
-        path,
-        Paint()..color = const Color(0xFF607D8B).withValues(alpha: 0.8),
-      );
-      canvas.drawPath(
-        path,
-        Paint()
-          ..color = const Color(0xFF37474F)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 1.0,
-      );
-    }
-    // Cellule vide : rien (grille invisible — règle story 1.2)
-  }
-
   // ── Hit-testing ───────────────────────────────────────────────────────────
 
   /// Reçoit un tap depuis l'écran Flutter (coordonnées logiques), le convertit
-  /// en [HexCoords] en tenant compte de la projection isométrique, et loggue
-  /// le résultat (story 1.5 transmettra ces coords au provider de placement).
+  /// en [HexCoords] en tenant compte de la projection isométrique.
   void handleTap(Offset screenPos) {
     final worldX = screenPos.dx;
-    final worldY = screenPos.dy / kIsoScaleY; // inverse la compression Y
+    final worldY = screenPos.dy / kIsoScaleY;
     final coords = _layout.pixelToHex(Point(worldX, worldY));
     debugPrint('[HexGrid] tap → $coords');
+  }
+
+  // ── Helpers ───────────────────────────────────────────────────────────────
+
+  /// Retourne le biome le plus présent sur la tuile (pour [HexCell]).
+  static BiomeType _dominantBiome(HexTile tile) {
+    final counts = <BiomeType, int>{};
+    for (final b in tile.sides) {
+      counts[b] = (counts[b] ?? 0) + 1;
+    }
+    return counts.entries.reduce((a, b) => a.value >= b.value ? a : b).key;
   }
 }
