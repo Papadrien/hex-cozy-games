@@ -8,7 +8,7 @@
 library;
 
 import 'dart:math';
-import 'dart:typed_data';
+import 'dart:ui' show Canvas, Color, Offset, Paint, PaintingStyle, Path;
 
 import 'package:flame/components.dart';
 import 'package:flutter/foundation.dart';

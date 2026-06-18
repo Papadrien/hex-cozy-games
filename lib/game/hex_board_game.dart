@@ -31,10 +31,10 @@ class HexBoardGame extends FlameGame with PanDetector, ScaleDetector {
   }
 
   @override
-  void onGameResize(Vector2 newSize) {
-    super.onGameResize(newSize);
-    _grid?.screenSize.setFrom(newSize);
-    _grid?.size.setFrom(newSize);
+  void onGameResize(Vector2 size) {
+    super.onGameResize(size);
+    _grid?.screenSize.setFrom(size);
+    _grid?.size.setFrom(size);
   }
 
   // ── Pan ───────────────────────────────────────────────────────────────────
@@ -57,7 +57,7 @@ class HexBoardGame extends FlameGame with PanDetector, ScaleDetector {
   void onScaleUpdate(ScaleUpdateInfo info) {
     final grid = _grid;
     if (grid != null && _scaleStart != null) {
-      grid.zoom = (_scaleStart! * info.scale.global)
+      grid.zoom = (_scaleStart! * info.scale.global.x)
           .clamp(HexGridComponent.minZoom, HexGridComponent.maxZoom);
     }
   }
