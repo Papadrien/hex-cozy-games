@@ -3,17 +3,21 @@
 /// Story 1.2 : grille invisible, hexagones pointy-top, coordonnées axiales,
 ///             pan/zoom, hit-testing.
 /// Story 1.3 : les cellules posées sont rendues via [TileComponent].
+/// Story 1.5a : surbrillance des emplacements disponibles + prévisualisation
+///              translucide/surélevée de la tuile active. Seul indicateur de
+///              grille visible — aucun contour n'est dessiné par ailleurs.
 ///
 /// Projection isométrique : chaque [TileComponent] applique lui-même le
 /// facteur kIsoScaleY sur ses coins. La position (x, y) du composant est en
-/// coordonnées écran "plates" — on ne multiplie PAS y ici.
+/// coordonnées écran "plates" — on ne multiplie PAS y ici. Les highlights
+/// dessinés directement dans [render] appliquent kIsoScaleY manuellement
+/// pour rester cohérents avec les tuiles.
 library;
 
 import 'dart:math';
-import 'dart:ui' show Canvas, Offset;
+import 'dart:ui' show Canvas, Color, Offset, Paint, PaintingStyle, Path;
 
 import 'package:flame/components.dart';
-import 'package:flutter/foundation.dart';
 
 import 'hex_coords.dart';
 import 'hex_cell.dart';
@@ -22,6 +26,18 @@ import 'tile_component.dart'; // kIsoScaleY, TileComponent
 
 /// Taille de base de l'hexagone (rayon circumscrit) en pixels logiques.
 const double kBaseHexSize = 48.0;
+
+/// Décalage vertical (en pixels écran "plat", avant projection iso) de la
+/// tuile en prévisualisation pour la faire paraître "légèrement surélevée"
+/// au-dessus du plateau (story 1.5a).
+const double kPreviewLiftPx = 10.0;
+
+/// Opacité de la tuile en prévisualisation (translucide — story 1.5a).
+const double kPreviewAlpha = 0.62;
+
+/// Opacité de fond des emplacements disponibles en surbrillance.
+const double kHighlightFillAlpha = 0.22;
+const double kHighlightStrokeAlpha = 0.55;
 
 class HexGridComponent extends PositionComponent {
   HexGridComponent({required this.screenSize})
@@ -33,6 +49,82 @@ class HexGridComponent extends PositionComponent {
 
   final Map<HexCoords, HexCell> placedCells = {};
   final Map<HexCoords, TileComponent> placedTiles = {};
+
+  // ── Prévisualisation de placement (story 1.5a) ──────────────────────────
+
+  /// Emplacements actuellement disponibles (surbrillance). Réassigner
+  /// déclenche un recalcul du rendu au prochain frame, pas de besoin de
+  /// `setState`-like ici : [render] lit directement ce champ.
+  Set<HexCoords> availableHighlights = const {};
+
+  HexCoords? _previewCoords;
+  HexTile? _previewTile;
+  TileComponent? _previewComponent;
+
+  /// Coordonnées de la prévisualisation en cours, ou null si aucune
+  /// sélection. Mettre à jour ce champ recrée/déplace le composant de
+  /// prévisualisation si nécessaire.
+  HexCoords? get previewCoords => _previewCoords;
+  set previewCoords(HexCoords? value) {
+    if (_previewCoords == value) return;
+    _previewCoords = value;
+    _syncPreviewComponent();
+  }
+
+  /// Tuile (déjà tournée) affichée en prévisualisation, ou null.
+  HexTile? get previewTile => _previewTile;
+  set previewTile(HexTile? value) {
+    if (_previewTile == value) return;
+    _previewTile = value;
+    _syncPreviewComponent();
+  }
+
+  /// Crée, met à jour ou retire le [TileComponent] de prévisualisation selon
+  /// l'état courant de [_previewCoords] / [_previewTile]. Rendu translucide
+  /// et légèrement surélevé (décalage vertical négatif en écran "plat", donc
+  /// vers le haut de l'écran une fois la projection iso appliquée) pour le
+  /// distinguer clairement d'une tuile réellement posée.
+  void _syncPreviewComponent() {
+    final coords = _previewCoords;
+    final tile = _previewTile;
+
+    if (coords == null || tile == null) {
+      final existing = _previewComponent;
+      if (existing != null) {
+        remove(existing);
+        _previewComponent = null;
+      }
+      return;
+    }
+
+    final center = _layout.hexToPixel(coords, isoScaleY: kIsoScaleY);
+    final liftedPosition = Vector2(
+      center.x,
+      center.y - kPreviewLiftPx,
+    );
+
+    final existing = _previewComponent;
+    if (existing != null) {
+      existing.tile = tile;
+      existing.hexSize = kBaseHexSize * zoom;
+      existing.position = liftedPosition;
+      return;
+    }
+
+    final component = TileComponent(
+      tile: tile,
+      coords: coords,
+      hexSize: kBaseHexSize * zoom,
+      alpha: kPreviewAlpha,
+      position: liftedPosition,
+    );
+    // Priorité plus élevée que les tuiles posées (priority: 1) pour que la
+    // prévisualisation "surélevée" reste visuellement au-dessus en cas de
+    // chevauchement avec une tuile voisine déjà posée.
+    component.priority = 2;
+    _previewComponent = component;
+    add(component);
+  }
 
   // ── Caméra ────────────────────────────────────────────────────────────────
 
@@ -94,38 +186,80 @@ class HexGridComponent extends PositionComponent {
       entry.value.position = Vector2(center.x, center.y);
       entry.value.hexSize = kBaseHexSize * zoom;
     }
+    _syncPreviewComponent();
   }
 
-  // ── Rendu (grille invisible — story 1.2) ──────────────────────────────────
+  // ── Rendu (grille invisible — story 1.2 / surbrillances — story 1.5a) ────
 
   @override
   void render(Canvas canvas) {
-    // Rien à dessiner ici : les tuiles sont des PositionComponent enfants,
-    // Flame les dessine automatiquement. Les highlights (story 1.5) seront
-    // dessinés ici avec la même projection iso que TileComponent.
+    // Les tuiles posées et la prévisualisation sont des PositionComponent
+    // enfants, Flame les dessine automatiquement par-dessus. Ici on ne
+    // dessine QUE les surbrillances des emplacements disponibles — c'est le
+    // seul indicateur de grille visible, aucun contour de grille par
+    // ailleurs (règle story 1.2 / 1.5a).
+    if (availableHighlights.isEmpty) return;
+
+    final layout = _layout;
+    for (final coords in availableHighlights) {
+      // Une cellule déjà occupée par la prévisualisation reste surlignée
+      // dessous : c'est voulu, ça montre que l'emplacement reste "valide"
+      // pendant qu'on y prévisualise la tuile.
+      final center = layout.hexToPixel(coords, isoScaleY: kIsoScaleY);
+      _renderHighlight(canvas, Offset(center.x, center.y));
+    }
+  }
+
+  void _renderHighlight(Canvas canvas, Offset center) {
+    final corners = _isoHighlightCorners(center);
+
+    final path = Path()..moveTo(corners[0].dx, corners[0].dy);
+    for (var i = 1; i < 6; i++) {
+      path.lineTo(corners[i].dx, corners[i].dy);
+    }
+    path.close();
+
+    canvas.drawPath(
+      path,
+      Paint()
+        ..color = const Color(0xFFFFF3B0).withValues(alpha: kHighlightFillAlpha)
+        ..style = PaintingStyle.fill,
+    );
+    canvas.drawPath(
+      path,
+      Paint()
+        ..color = const Color(0xFFFFE066).withValues(alpha: kHighlightStrokeAlpha)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.6,
+    );
+  }
+
+  /// Sommets d'un hexagone pointy-top avec projection iso, pour le rendu des
+  /// surbrillances (même convention d'angle que [TileComponent._isoCorners]).
+  List<Offset> _isoHighlightCorners(Offset center) {
+    final hexSize = kBaseHexSize * zoom;
+    return List.generate(6, (i) {
+      final angleDeg = 60.0 * i - 90.0;
+      final angleRad = angleDeg * pi / 180.0;
+      final x = hexSize * cos(angleRad);
+      final y = hexSize * sin(angleRad) * kIsoScaleY;
+      return Offset(center.dx + x, center.dy + y);
+    });
   }
 
   // ── Hit-testing ───────────────────────────────────────────────────────────
 
-  void handleTap(Offset screenPos) {
-    // L'écran "plat" correspond directement aux coords HexLayout.
-    final coords = _layout.pixelToHex(Point(screenPos.dx, screenPos.dy));
-    debugPrint('[HexGrid] tap → $coords');
+  /// Convertit une position écran en coordonnées hexagonales, en tenant
+  /// compte de la projection iso (story 1.5a — corrige le décalage qui
+  /// existait quand le hit-testing ignorait kIsoScaleY).
+  HexCoords hexAt(Offset screenPos) {
+    return _layout.pixelToHex(
+      Point(screenPos.dx, screenPos.dy),
+      isoScaleY: kIsoScaleY,
+    );
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────────
-
-  Set<HexCoords> _disk(HexCoords center, int radius) {
-    final result = <HexCoords>{};
-    for (var q = -radius; q <= radius; q++) {
-      final r1 = max(-radius, -q - radius);
-      final r2 = min(radius, -q + radius);
-      for (var r = r1; r <= r2; r++) {
-        result.add(HexCoords(center.q + q, center.r + r));
-      }
-    }
-    return result;
-  }
 
   static BiomeType _dominantBiome(HexTile tile) {
     final counts = <BiomeType, int>{};

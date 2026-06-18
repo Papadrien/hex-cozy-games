@@ -84,9 +84,12 @@ class HexLayout {
 
   /// Convertit une position pixel en coordonnées axiales (arrondies à la
   /// cellule la plus proche).
-  HexCoords pixelToHex(Point<double> point) {
+  /// [isoScaleY] : DOIT correspondre exactement à la valeur utilisée pour le
+  /// rendu (voir [hexToPixel]) — sinon le hit-testing serait décalé par
+  /// rapport à ce que le joueur voit à l'écran (story 1.5a).
+  HexCoords pixelToHex(Point<double> point, {double isoScaleY = 1.0}) {
     final px = point.x - origin.x;
-    final py = point.y - origin.y;
+    final py = (point.y - origin.y) / isoScaleY;
 
     final q = (sqrt(3) / 3 * px - 1.0 / 3.0 * py) / hexSize;
     final r = (2.0 / 3.0 * py) / hexSize;

@@ -1,12 +1,14 @@
-/// Écran de jeu principal — story 1.2 / 1.3.
+/// Écran de jeu principal — story 1.2 / 1.3 / 1.5a.
 ///
 /// Gestion des gestes :
 ///  - Pan 1 doigt + Zoom pinch : délégués à Flame via [HexBoardGame]
 ///    (PanDetector + ScaleDetector). Le [GameWidget] reçoit les gestes
 ///    directement — pas de GestureDetector Flutter par-dessus pour ne pas
-///    interférer avec le multi-touch.
-///  - Tap : capturé via [onTapCallback] passé au [HexBoardGame] (Flame
-///    TapDetector), pas de GestureDetector Flutter.
+///    interférer avec le multi-touch. Pendant une prévisualisation (story
+///    1.5a), le pan vertical sert à la rotation plutôt qu'au déplacement
+///    caméra — voir [HexBoardGame].
+///  - Tap : capturé via [TapDetector] dans [HexBoardGame] — sélectionne ou
+///    déplace la prévisualisation sur un emplacement disponible.
 library;
 
 import 'package:flame/game.dart';
@@ -14,6 +16,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../game/hex_board_game.dart';
+import 'tile_stack_hud.dart';
 
 class GameScreen extends ConsumerStatefulWidget {
   const GameScreen({super.key});
@@ -23,7 +26,16 @@ class GameScreen extends ConsumerStatefulWidget {
 }
 
 class _GameScreenState extends ConsumerState<GameScreen> {
-  final HexBoardGame _game = HexBoardGame();
+  late final HexBoardGame _game;
+
+  @override
+  void initState() {
+    super.initState();
+    // [HexBoardGame] a besoin du Ref pour lire/écrire les providers de
+    // placement (story 1.5a) — créé ici plutôt qu'en field initializer,
+    // `ref` n'étant disponible qu'à partir de `initState`.
+    _game = HexBoardGame(ref: ref);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -41,14 +53,17 @@ class _GameScreenState extends ConsumerState<GameScreen> {
           const Positioned(
             top: 48,
             left: 16,
-            child: _DebugBadge(label: 'Story 1.3 — Tuiles colorées'),
+            child: _DebugBadge(label: 'Story 1.5a — Sélection & rotation'),
           ),
 
-          // ── Placeholder HUD pile de tuiles (story 1.4) ────────────────────
+          // ── HUD pile de tuiles (story 1.4b) ───────────────────────────────
+          // Positionné sous l'emplacement réservé au futur bouton Pause
+          // (story 1.5bis-a, pas encore implémenté) — top offset suffisant
+          // pour qu'il s'insère au-dessus sans recouvrement.
           const Positioned(
-            top: 48,
-            right: 16,
-            child: _HudPlaceholder(),
+            top: 88,
+            right: 12,
+            child: TileStackHud(),
           ),
         ],
       ),
@@ -80,26 +95,3 @@ class _DebugBadge extends StatelessWidget {
   }
 }
 
-class _HudPlaceholder extends StatelessWidget {
-  const _HudPlaceholder();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 72,
-      height: 160,
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.04),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-      ),
-      child: const Center(
-        child: Text(
-          'Pile\n1.4',
-          textAlign: TextAlign.center,
-          style: TextStyle(color: Colors.white24, fontSize: 10),
-        ),
-      ),
-    );
-  }
-}
