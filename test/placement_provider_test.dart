@@ -62,13 +62,18 @@ void main() {
 
     test('sélectionner une autre cellule disponible déplace la preview et '
         'réinitialise la rotation', () {
-      final container = ProviderContainer();
+      final waterTile = HexTile(sides: List.filled(6, BiomeType.water));
+      final container = ProviderContainer(overrides: [
+        tileStackProvider.overrideWithValue(
+          TileStackState(remaining: 1, visible: [waterTile]),
+        ),
+      ]);
       addTearDown(container.dispose);
 
       // On pose une tuile tout-eau au centre pour ouvrir plusieurs voisins.
       container.read(gridProvider.notifier).placeTile(
             const HexCoords(0, 0),
-            HexTile(sides: List.filled(6, BiomeType.water)),
+            waterTile,
           );
 
       final notifier = container.read(placementProvider.notifier);

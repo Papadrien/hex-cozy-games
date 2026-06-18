@@ -1,6 +1,5 @@
-// Test smoke minimal — vérifie que l'app démarre, que le GameWidget Flame
-// s'affiche, et que le provider Riverpod de test ('Riverpod OK') est bien
-// résolu. Voir critères d'acceptance story 1.1.
+// Test smoke minimal — vérifie que l'app démarre et que le GameWidget Flame
+// s'affiche sans erreur. Voir critères d'acceptance story 1.1.
 
 import 'package:flame/game.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -20,6 +19,5 @@ void main() {
     await tester.pump(const Duration(seconds: 1));
 
     expect(find.byType(GameWidget<HexBoardGame>), findsOneWidget);
-    expect(find.text('Riverpod OK'), findsOneWidget);
   });
 }

@@ -122,13 +122,7 @@ class HexBoardGame extends FlameGame
   void onTapDown(int pointerId, TapDownInfo info) {
     final grid = _grid;
     if (grid == null) return;
-    final coords = grid.hexAt(info.eventPosition.widget.toOffset());
-    final placement=_ref.read(placementProvider);
-    if(placement.selected==coords){
-      confirmPlacement(_ref);
-      _syncPlacementPreview();
-      return;
-    }
+    final coords = grid.screenToHex(info.eventPosition.widget.toOffset());
     _ref.read(placementProvider.notifier).selectCell(coords);
   }
 
