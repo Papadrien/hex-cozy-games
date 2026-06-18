@@ -24,6 +24,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/grid_state_provider.dart';
 import '../providers/placement_provider.dart';
+import '../providers/placement_commit.dart';
 import 'hex_coords.dart';
 import 'hex_grid_component.dart';
 import 'hex_tile.dart';
@@ -35,6 +36,10 @@ const double kSwipePixelsPerRotationStep = 36.0;
 
 class HexBoardGame extends FlameGame
     with PanDetector, ScaleDetector, MultiTouchTapDetector {
+  HexBoardGame({required WidgetRef ref}) : _ref = ref;
+
+  final WidgetRef _ref;
+
   HexGridComponent? _grid;
 
   bool _cameraDirty = false;
@@ -115,7 +120,16 @@ class HexBoardGame extends FlameGame
 
   @override
   void onTapDown(int pointerId, TapDownInfo info) {
-    _grid?.handleTap(info.eventPosition.widget.toOffset());
+    final grid = _grid;
+    if (grid == null) return;
+    final coords = grid.hexAt(info.eventPosition.widget.toOffset());
+    final placement=_ref.read(placementProvider);
+    if(placement.selected==coords){
+      confirmPlacement(_ref);
+      _syncPlacementPreview();
+      return;
+    }
+    _ref.read(placementProvider.notifier).selectCell(coords);
   }
 
   // ── Pan : déplacement caméra OU rotation de la prévisualisation ────────────

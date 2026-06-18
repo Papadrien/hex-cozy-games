@@ -18,6 +18,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../game/hex_board_game.dart';
 import 'tile_stack_hud.dart';
 
+import '../providers/placement_commit.dart';
+
+
 class GameScreen extends ConsumerStatefulWidget {
   const GameScreen({super.key});
 
@@ -60,7 +63,35 @@ class _GameScreenState extends ConsumerState<GameScreen> {
           // Positionné sous l'emplacement réservé au futur bouton Pause
           // (story 1.5bis-a, pas encore implémenté) — top offset suffisant
           // pour qu'il s'insère au-dessus sans recouvrement.
-          const Positioned(
+          
+          Consumer(builder:(context,ref,_){
+            final reward=ref.watch(previewRewardProvider);
+            final canUndo=ref.watch(lastPlacementProvider)!=null;
+            return Stack(children:[
+              Positioned(bottom:24,left:16,child:FloatingActionButton.small(
+                heroTag:'undo',
+                onPressed: canUndo?()=>undoPlacement(ref):null,
+                child: const Icon(Icons.undo),
+              )),
+              if(reward.connectedSides.isNotEmpty)
+              Positioned(top:180,left:24,child:Row(children:[
+                for(final _ in reward.connectedSides)
+                  TweenAnimationBuilder(duration: const Duration(milliseconds:350),
+                  tween: Tween(begin:1.57,end:0.0),
+                  builder:(c,v,ch)=>Transform(transform: Matrix4.identity()..setEntry(3,2,0.001)..rotateX(v),alignment:Alignment.center,child: ch),
+                  child: const CircleAvatar(radius:10,child:Icon(Icons.monetization_on,size:12)))
+              ])),
+              if(reward.bonusTiles>0)
+              Positioned(top:220,left:60,child:Row(children:[
+                for(int i=0;i<reward.bonusTiles;i++)
+                TweenAnimationBuilder(duration: const Duration(milliseconds:350),
+                tween: Tween(begin:1.57,end:0.0),
+                builder:(c,v,ch)=>Transform(transform: Matrix4.identity()..setEntry(3,2,0.001)..rotateX(v),child:ch),
+                child: const Icon(Icons.hexagon,size:18))
+              ]))
+            ]);
+          }),
+const Positioned(
             top: 88,
             right: 12,
             child: TileStackHud(),
