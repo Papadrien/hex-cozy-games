@@ -17,9 +17,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../game/hex_board_game.dart';
-import 'tile_stack_hud.dart';
-
+import '../providers/pause_provider.dart';
 import '../providers/placement_commit.dart';
+import 'pause_button.dart';
+import 'pause_modal.dart';
+import 'tile_stack_hud.dart';
 
 class GameScreen extends ConsumerStatefulWidget {
   const GameScreen({super.key});
@@ -42,6 +44,12 @@ class _GameScreenState extends ConsumerState<GameScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<PauseState>(pauseProvider, (prev, next) {
+      if (prev?.isPaused != next.isPaused) {
+        _game.paused = next.isPaused;
+      }
+    });
+
     return Scaffold(
       backgroundColor: const Color(0xFF1A2332),
       body: Stack(
@@ -123,12 +131,22 @@ class _GameScreenState extends ConsumerState<GameScreen> {
             ]);
           }),
 
+          // ── Bouton Pause (story 1.5bis-a) ─────────────────────────────────
+          const Positioned(
+            top: 48,
+            right: 12,
+            child: PauseButton(),
+          ),
+
           // ── HUD pile de tuiles (story 1.4b) ───────────────────────────────
           const Positioned(
-            top: 88,
+            top: 96,
             right: 12,
             child: TileStackHud(),
           ),
+
+          // ── Modale Pause (story 1.5bis-a) ─────────────────────────────────
+          const PauseModal(),
         ],
       ),
     );

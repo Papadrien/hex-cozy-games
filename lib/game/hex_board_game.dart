@@ -24,6 +24,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/grid_state_provider.dart';
+import '../providers/pause_provider.dart';
 import '../providers/placement_provider.dart';
 import '../providers/placement_commit.dart';
 import 'hex_coords.dart';
@@ -130,10 +131,14 @@ class HexBoardGame extends FlameGame
     _syncPlacementPreview();
   }
 
+  /// Vrai si le jeu est en pause — les gestes doivent être ignorés.
+  bool get _isPaused => _ref.read(pauseProvider).isPaused;
+
   // ── Tap ───────────────────────────────────────────────────────────────────
 
   @override
   void onTapDown(int pointerId, TapDownInfo info) {
+    if (_isPaused) return;
     final grid = _grid;
     if (grid == null) return;
 
@@ -156,6 +161,7 @@ class HexBoardGame extends FlameGame
 
   @override
   void onPanUpdate(DragUpdateInfo info) {
+    if (_isPaused) return;
     final hasSelection = _ref.read(placementProvider).hasSelection;
 
     if (hasSelection) {
@@ -178,11 +184,13 @@ class HexBoardGame extends FlameGame
 
   @override
   void onPanEnd(DragEndInfo info) {
+    if (_isPaused) return;
     _verticalDragAccumPx = 0.0;
   }
 
   @override
   void onPanCancel() {
+    if (_isPaused) return;
     _verticalDragAccumPx = 0.0;
   }
 
@@ -192,11 +200,13 @@ class HexBoardGame extends FlameGame
 
   @override
   void onScaleStart(ScaleStartInfo info) {
+    if (_isPaused) return;
     _scaleStart = _grid?.zoom;
   }
 
   @override
   void onScaleUpdate(ScaleUpdateInfo info) {
+    if (_isPaused) return;
     final grid = _grid;
     if (grid != null && _scaleStart != null) {
       grid.zoom = (_scaleStart! * info.scale.global.x)
@@ -207,6 +217,7 @@ class HexBoardGame extends FlameGame
 
   @override
   void onScaleEnd(ScaleEndInfo info) {
+    if (_isPaused) return;
     _scaleStart = null;
   }
 }

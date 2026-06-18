@@ -1,8 +1,7 @@
 /// UI de la pile de tuiles (HUD) — Story 1.4b.
 ///
 /// Affiche les 3 prochaines tuiles ([tileStackProvider]) en haut à droite de
-/// l'écran de jeu, sous le futur bouton Pause (story 1.5bis-a — pas encore
-/// implémenté, l'espace est réservé via [topOffset]).
+/// l'écran de jeu, sous le bouton Pause (story 1.5bis-a).
 ///
 /// Référence (contexte 7.4 / 7.5) : esprit Dorfromantik PC — badge compact,
 /// sobre, sans cadre lourd, qui flotte sur la vue du plateau. Taille des
