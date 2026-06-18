@@ -62,13 +62,18 @@ void main() {
 
     test('sélectionner une autre cellule disponible déplace la preview et '
         'réinitialise la rotation', () {
-      final container = ProviderContainer();
+      // On force la tuile active à tout-forêt (kTilePool[0]) pour que les 6
+      // voisins soient toujours compatibles avec une tuile-forêt au centre.
+      final container = ProviderContainer(overrides: [
+        tileStackProvider.overrideWith(
+          () => _ForcedTileStack(kTilePool[0]),
+        ),
+      ]);
       addTearDown(container.dispose);
 
-      // On pose une tuile tout-eau au centre pour ouvrir plusieurs voisins.
       container.read(gridProvider.notifier).placeTile(
             const HexCoords(0, 0),
-            HexTile(sides: List.filled(6, BiomeType.water)),
+            HexTile(sides: List.filled(6, BiomeType.forest)),
           );
 
       final notifier = container.read(placementProvider.notifier);
@@ -144,3 +149,14 @@ void main() {
     });
   });
 }
+
+class _ForcedTileStack extends TileStack {
+  _ForcedTileStack(this._forcedTile);
+  final HexTile _forcedTile;
+
+  @override
+  TileStackState build() {
+    return TileStackState(remaining: 12, visible: [_forcedTile]);
+  }
+}
+

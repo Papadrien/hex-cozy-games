@@ -18,7 +18,15 @@ class LastPlacement {
   final HexTile tile;
 }
 
-final lastPlacementProvider = StateProvider<LastPlacement?>((_) => null);
+class LastPlacementNotifier extends Notifier<LastPlacement?> {
+  @override
+  LastPlacement? build() => null;
+
+  void set(LastPlacement? last) => state = last;
+}
+
+final lastPlacementProvider =
+    NotifierProvider<LastPlacementNotifier, LastPlacement?>(LastPlacementNotifier.new);
 
 final previewRewardProvider = Provider<PlacementReward>((ref) {
   final placement = ref.watch(placementProvider);
@@ -41,7 +49,7 @@ final previewRewardProvider = Provider<PlacementReward>((ref) {
 
 class SessionSaver {
   static String? lastSnapshot;
-  static void save(Ref ref) {
+  static void save(WidgetRef ref) {
     final grid = ref.read(gridProvider);
     lastSnapshot = jsonEncode({'tiles': grid.placedTiles.length});
   }
@@ -69,7 +77,7 @@ void confirmPlacement(
   onConfirm(coords, tile);
 
   // 3. Mémoriser pour le bouton Annuler.
-  ref.read(lastPlacementProvider.notifier).state = LastPlacement(coords, tile);
+  ref.read(lastPlacementProvider.notifier).set(LastPlacement(coords, tile));
 
   // 4. Avancer la pile de tuiles.
   ref.read(tileStackProvider.notifier).consumeActiveTile();
@@ -98,5 +106,5 @@ void undoPlacement(
   onUndo(last.coords);
 
   // 3. Effacer la mémoire d'annulation (1 seul niveau).
-  ref.read(lastPlacementProvider.notifier).state = null;
+  ref.read(lastPlacementProvider.notifier).set(null);
 }

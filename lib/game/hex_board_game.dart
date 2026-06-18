@@ -36,8 +36,8 @@ import 'hex_tile.dart';
 const double kSwipePixelsPerRotationStep = 36.0;
 
 class HexBoardGame extends FlameGame
-    with PanDetector, ScaleDetector, TapDetector {
-  HexBoardGame({required WidgetRef ref}) : _ref = ref;
+    with PanDetector, ScaleDetector, MultiTouchTapDetector {
+  HexBoardGame({required this._ref});
 
   final WidgetRef _ref;
 
@@ -133,7 +133,7 @@ class HexBoardGame extends FlameGame
   // ── Tap ───────────────────────────────────────────────────────────────────
 
   @override
-  void onTapDown(TapDownInfo info) {
+  void onTapDown(int pointerId, TapDownInfo info) {
     final grid = _grid;
     if (grid == null) return;
 

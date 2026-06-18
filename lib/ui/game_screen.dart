@@ -12,7 +12,7 @@
 ///    valide le placement au second tap sur la même cellule (1.5b).
 library;
 
-import 'package:flame/game.dart';
+import 'package:flame/game.dart' hide Matrix4;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
