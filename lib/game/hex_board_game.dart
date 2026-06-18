@@ -15,8 +15,6 @@ import 'hex_tile.dart';
 class HexBoardGame extends FlameGame with PanDetector, ScaleDetector {
   HexGridComponent? _grid;
 
-  bool _cameraDirty = false;
-
   /// Callback appelé par le GestureDetector Flutter lors d'un tap.
   void onTap(Offset screenPosition) {
     _grid?.handleTap(screenPosition);
@@ -68,7 +66,6 @@ class HexBoardGame extends FlameGame with PanDetector, ScaleDetector {
   @override
   void onPanUpdate(DragUpdateInfo info) {
     _grid?.cameraOffset.add(info.delta.global);
-    _cameraDirty = true;
   }
 
   // ── Zoom ──────────────────────────────────────────────────────────────────
@@ -86,7 +83,6 @@ class HexBoardGame extends FlameGame with PanDetector, ScaleDetector {
     if (grid != null && _scaleStart != null) {
       grid.zoom = (_scaleStart! * info.scale.global.x)
           .clamp(HexGridComponent.minZoom, HexGridComponent.maxZoom);
-      _cameraDirty = true;
     }
   }
 

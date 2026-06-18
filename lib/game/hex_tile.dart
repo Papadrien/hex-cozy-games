@@ -39,7 +39,7 @@ class HexTile {
 /// Chaque tuile respecte la règle des arcs contigus : les biomes identiques
 /// sont groupés en blocs consécutifs (ex : [F,F,F,W,W,W] et non [F,W,F,W,F,W]).
 /// Aucune tuile ne dépasse 3 BiomeType différents.
-const List<HexTile> kTilePool = [
+final List<HexTile> kTilePool = [
   // ── 1 biome (monochrome) ─────────────────────────────────────────────────
 
   /// Tuile tout forêt
