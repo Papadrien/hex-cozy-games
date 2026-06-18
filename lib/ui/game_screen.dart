@@ -11,7 +11,7 @@
 ///    déplace la prévisualisation sur un emplacement disponible.
 library;
 
-import 'package:flame/game.dart';
+import 'package:flame/game.dart' hide Matrix4;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 

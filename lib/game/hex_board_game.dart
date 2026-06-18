@@ -24,7 +24,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/grid_state_provider.dart';
 import '../providers/placement_provider.dart';
-import '../providers/placement_commit.dart';
 import 'hex_coords.dart';
 import 'hex_grid_component.dart';
 import 'hex_tile.dart';
@@ -36,7 +35,7 @@ const double kSwipePixelsPerRotationStep = 36.0;
 
 class HexBoardGame extends FlameGame
     with PanDetector, ScaleDetector, MultiTouchTapDetector {
-  HexBoardGame({required WidgetRef ref}) : _ref = ref;
+  HexBoardGame({required this._ref});
 
   final WidgetRef _ref;
 
