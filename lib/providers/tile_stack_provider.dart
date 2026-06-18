@@ -83,4 +83,13 @@ class TileStack extends _$TileStack {
     }
     state = _buildState();
   }
+
+  /// Replace [tile] au sommet de la pile (annulation).
+  ///
+  /// Utilisé par le bouton Annuler pour remettre la dernière tuile posée
+  /// en tête de la file _queue, restaurant la pile à l'état précédent.
+  void returnTile(HexTile tile) {
+    _queue.insert(0, tile);
+    state = _buildState();
+  }
 }

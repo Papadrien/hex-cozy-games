@@ -38,7 +38,8 @@ class HexTile {
 ///
 /// Chaque tuile respecte la règle des arcs contigus : les biomes identiques
 /// sont groupés en blocs consécutifs (ex : [F,F,F,W,W,W] et non [F,W,F,W,F,W]).
-/// Aucune tuile ne dépasse 3 BiomeType différents.
+/// Aucune tuile ne dépasse 3 BiomeType différents. Le ratio 3-couleurs est
+/// réduit (~17 %) pour éviter une trop grande complexité au placement.
 final List<HexTile> kTilePool = [
   // ── 1 biome (monochrome) ─────────────────────────────────────────────────
 
@@ -62,7 +63,7 @@ final List<HexTile> kTilePool = [
     BiomeType.water,
   ]),
 
-  // ── 2 biomes (moitié-moitié) ─────────────────────────────────────────────
+  // ── 2 biomes ─────────────────────────────────────────────────────────────
 
   /// Forêt 3 / Eau 3
   HexTile(sides: [
@@ -114,7 +115,37 @@ final List<HexTile> kTilePool = [
     BiomeType.plain,
   ]),
 
-  // ── 3 biomes ─────────────────────────────────────────────────────────────
+  /// Forêt 3 / Montagne 3
+  HexTile(sides: [
+    BiomeType.forest,
+    BiomeType.forest,
+    BiomeType.forest,
+    BiomeType.mountain,
+    BiomeType.mountain,
+    BiomeType.mountain,
+  ]),
+
+  /// Village 3 / Eau 3
+  HexTile(sides: [
+    BiomeType.village,
+    BiomeType.village,
+    BiomeType.village,
+    BiomeType.water,
+    BiomeType.water,
+    BiomeType.water,
+  ]),
+
+  /// Plaine 3 / Montagne 3
+  HexTile(sides: [
+    BiomeType.plain,
+    BiomeType.plain,
+    BiomeType.plain,
+    BiomeType.mountain,
+    BiomeType.mountain,
+    BiomeType.mountain,
+  ]),
+
+  // ── 3 biomes (probabilité réduite) ───────────────────────────────────────
 
   /// Forêt 2 / Eau 2 / Plaine 2
   HexTile(sides: [
@@ -126,16 +157,6 @@ final List<HexTile> kTilePool = [
     BiomeType.plain,
   ]),
 
-  /// Montagne 2 / Forêt 3 / Plaine 1
-  HexTile(sides: [
-    BiomeType.mountain,
-    BiomeType.mountain,
-    BiomeType.forest,
-    BiomeType.forest,
-    BiomeType.forest,
-    BiomeType.plain,
-  ]),
-
   /// Village 1 / Plaine 3 / Eau 2
   HexTile(sides: [
     BiomeType.village,
@@ -144,25 +165,5 @@ final List<HexTile> kTilePool = [
     BiomeType.plain,
     BiomeType.water,
     BiomeType.water,
-  ]),
-
-  /// Eau 3 / Montagne 2 / Forêt 1
-  HexTile(sides: [
-    BiomeType.water,
-    BiomeType.water,
-    BiomeType.water,
-    BiomeType.mountain,
-    BiomeType.mountain,
-    BiomeType.forest,
-  ]),
-
-  /// Forêt 1 / Village 2 / Plaine 3
-  HexTile(sides: [
-    BiomeType.forest,
-    BiomeType.village,
-    BiomeType.village,
-    BiomeType.plain,
-    BiomeType.plain,
-    BiomeType.plain,
   ]),
 ];

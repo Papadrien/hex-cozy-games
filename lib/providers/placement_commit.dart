@@ -105,6 +105,9 @@ void undoPlacement(
   // 2. Retirer du rendu Flame via le callback.
   onUndo(last.coords);
 
-  // 3. Effacer la mémoire d'annulation (1 seul niveau).
+  // 3. Remettre la tuile au sommet de la pile.
+  ref.read(tileStackProvider.notifier).returnTile(last.tile);
+
+  // 4. Effacer la mémoire d'annulation (1 seul niveau).
   ref.read(lastPlacementProvider.notifier).set(null);
 }
