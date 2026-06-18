@@ -75,9 +75,10 @@ class HexLayout {
 
   /// Convertit des coordonnées axiales (q, r) en position pixel (centre de
   /// l'hexagone), sans l'offset d'origine.
-  Point<double> hexToPixel(HexCoords hex) {
+  /// [isoScaleY] : facteur d'écrasement vertical iso (défaut 1.0 = plat).
+  Point<double> hexToPixel(HexCoords hex, {double isoScaleY = 1.0}) {
     final x = hexSize * (sqrt(3) * hex.q + sqrt(3) / 2 * hex.r);
-    final y = hexSize * (3.0 / 2.0 * hex.r);
+    final y = hexSize * (3.0 / 2.0 * hex.r) * isoScaleY;
     return Point(x + origin.x, y + origin.y);
   }
 

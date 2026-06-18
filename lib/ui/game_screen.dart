@@ -1,9 +1,12 @@
-/// Écran de jeu principal — story 1.2.
+/// Écran de jeu principal — story 1.2 / 1.3.
 ///
-/// Architecture des gestes :
-///  - Pan / Zoom : gérés par Flame (PanDetector + ScaleDetector dans HexBoardGame)
-///  - Tap : GestureDetector Flutter par-dessus le GameWidget, délégué au Game
-///    via [HexBoardGame.onTap] pour éviter les conflits de routing Flame.
+/// Gestion des gestes :
+///  - Pan 1 doigt + Zoom pinch : délégués à Flame via [HexBoardGame]
+///    (PanDetector + ScaleDetector). Le [GameWidget] reçoit les gestes
+///    directement — pas de GestureDetector Flutter par-dessus pour ne pas
+///    interférer avec le multi-touch.
+///  - Tap : capturé via [onTapCallback] passé au [HexBoardGame] (Flame
+///    TapDetector), pas de GestureDetector Flutter.
 library;
 
 import 'package:flame/game.dart';
@@ -28,25 +31,20 @@ class _GameScreenState extends ConsumerState<GameScreen> {
       backgroundColor: const Color(0xFF1A2332),
       body: Stack(
         children: [
-          // ── Jeu Flame avec GestureDetector pour les taps ───────────────
-          GestureDetector(
-            // Le tap est capturé ici et transmis au Game.
-            // Les gestes Pan/Scale sont gérés nativement par Flame.
-            onTapDown: (details) =>
-                _game.onTap(details.localPosition),
-            // behavior = translucent pour ne pas bloquer les events Flame
-            behavior: HitTestBehavior.translucent,
-            child: GameWidget(game: _game),
-          ),
+          // ── Jeu Flame — reçoit TOUS les gestes directement ────────────────
+          // Pas de GestureDetector par-dessus : il bloquerait le multi-touch
+          // (pan + scale) de Flame. Le tap est géré dans HexBoardGame via
+          // TapDetector de Flame.
+          GameWidget(game: _game),
 
-          // ── Badge debug story 1.2 ───────────────────────────────────────
+          // ── Badge debug ───────────────────────────────────────────────────
           const Positioned(
             top: 48,
             left: 16,
-            child: _DebugBadge(label: 'Story 1.2 — Grille hexagonale'),
+            child: _DebugBadge(label: 'Story 1.3 — Tuiles colorées'),
           ),
 
-          // ── Placeholder HUD pile de tuiles (story 1.4) ─────────────────
+          // ── Placeholder HUD pile de tuiles (story 1.4) ────────────────────
           const Positioned(
             top: 48,
             right: 16,
@@ -82,8 +80,6 @@ class _DebugBadge extends StatelessWidget {
   }
 }
 
-/// Placeholder visuel pour la zone réservée au HUD pile de tuiles (story 1.4).
-/// Sert à valider que le plateau n'est pas masqué par cet espace.
 class _HudPlaceholder extends StatelessWidget {
   const _HudPlaceholder();
 
@@ -95,9 +91,7 @@ class _HudPlaceholder extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.04),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.08),
-        ),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
       ),
       child: const Center(
         child: Text(
