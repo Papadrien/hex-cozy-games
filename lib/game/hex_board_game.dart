@@ -11,15 +11,16 @@
 ///    la tuile prévisualisée (swipe vertical = rotation, voir story 1.5a).
 ///    Ces deux usages ne coexistent jamais sur le même geste, donc pas
 ///    d'interférence (cf. critère d'acceptance story 1.2b).
-///  - Zoom 2 doigts → [ScaleDetector]  (note : PanDetector + ScaleDetector
-///    coexistent correctement dans Flame ; le Scale absorbe le multi-touch)
-///  - Tap           → [TapDetector.onTapDown] : sélectionne/déplace la
-///    prévisualisation sur un emplacement disponible (story 1.5a), ou
+///  - Zoom 2 doigts → [ScaleGestureRecognizer] enregistré manuellement dans
+///    `onLoad()` pour éviter les conflits d'arène avec PanDetector
+///  - Tap           → [MultiTouchTapDetector.onTapDown] : sélectionne/déplace
+///    la prévisualisation sur un emplacement disponible (story 1.5a), ou
 ///    valide le placement si tap sur la cellule déjà sélectionnée (story 1.5b).
 library;
 
 import 'package:flame/events.dart';
 import 'package:flame/game.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -37,7 +38,7 @@ import 'hex_tile.dart';
 const double kSwipePixelsPerRotationStep = 36.0;
 
 class HexBoardGame extends FlameGame
-    with PanDetector, ScaleDetector, MultiTouchTapDetector {
+    with PanDetector, MultiTouchTapDetector {
   HexBoardGame({required this._ref});
 
   final WidgetRef _ref;
@@ -55,6 +56,39 @@ class HexBoardGame extends FlameGame
     _grid = HexGridComponent(screenSize: size.clone());
     add(_grid!);
     _placeSampleTiles();
+    _syncPlacementPreview();
+
+    // Enregistre ScaleGestureRecognizer manuellement pour le pinch-zoom.
+    // On ne mixe PAS ScaleDetector (qui entrerait en conflit d'arène
+    // gestuelle avec PanDetector).
+    gestureDetectors.add<ScaleGestureRecognizer>(
+      ScaleGestureRecognizer.new,
+      (ScaleGestureRecognizer instance) {
+        instance
+          ..onStart = _handleScaleStart
+          ..onUpdate = _handleScaleUpdate
+          ..onEnd = _handleScaleEnd;
+      },
+    );
+  }
+
+  void _handleScaleStart(ScaleStartDetails details) {
+    if (_isPaused) return;
+    _scaleStart = _grid?.zoom ?? 1.0;
+  }
+
+  void _handleScaleUpdate(ScaleUpdateDetails details) {
+    if (_isPaused) return;
+    final grid = _grid;
+    if (grid == null) return;
+    grid.zoom = (_scaleStart * details.scale)
+        .clamp(HexGridComponent.minZoom, HexGridComponent.maxZoom);
+    _cameraDirty = true;
+  }
+
+  void _handleScaleEnd(ScaleEndDetails details) {
+    if (_isPaused) return;
+    _scaleStart = _grid?.zoom ?? 1.0;
   }
 
   void _placeSampleTiles() {
@@ -196,28 +230,5 @@ class HexBoardGame extends FlameGame
 
   // ── Zoom ──────────────────────────────────────────────────────────────────
 
-  double? _scaleStart;
-
-  @override
-  void onScaleStart(ScaleStartInfo info) {
-    if (_isPaused) return;
-    _scaleStart = _grid?.zoom;
-  }
-
-  @override
-  void onScaleUpdate(ScaleUpdateInfo info) {
-    if (_isPaused) return;
-    final grid = _grid;
-    if (grid != null && _scaleStart != null) {
-      grid.zoom = (_scaleStart! * info.scale.global.x)
-          .clamp(HexGridComponent.minZoom, HexGridComponent.maxZoom);
-      _cameraDirty = true;
-    }
-  }
-
-  @override
-  void onScaleEnd(ScaleEndInfo info) {
-    if (_isPaused) return;
-    _scaleStart = null;
-  }
+  double _scaleStart = 1.0;
 }

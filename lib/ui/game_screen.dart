@@ -64,7 +64,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
           const Positioned(
             top: 48,
             left: 16,
-            child: _DebugBadge(label: 'Story 1.5b — Validation & gains'),
+            child: _DebugBadge(label: 'Story 1.5bis-b — Sauvegarder/Quitter & Abandon'),
           ),
 
           // ── Bouton Annuler + icônes de gains ──────────────────────────────

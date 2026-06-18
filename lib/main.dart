@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/theme.dart';
 import 'services/analytics_service.dart';
 import 'ui/game_screen.dart';
+import 'ui/home_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -24,7 +25,11 @@ class HexCozyGamesApp extends StatelessWidget {
       title: 'Hex Cozy Games',
       theme: AppTheme.light,
       debugShowCheckedModeBanner: false,
-      home: const GameScreen(),
+      initialRoute: '/',
+      routes: {
+        '/': (_) => const HomeScreen(),
+        '/game': (_) => const GameScreen(),
+      },
     );
   }
 }

@@ -1,21 +1,25 @@
-/// Modale de Pause — Story 1.5bis-a.
+/// Modale de Pause — Story 1.5bis-a / 1.5bis-b.
 ///
 /// Overlay plein écran semi-transparent affiché lorsque [pauseProvider]
 /// signale `isPaused == true`.
 ///
-/// Contenu :
-///  1. Bouton **Reprendre**  → ferme la modale, reprend le jeu.
-///  2. Bouton **Options**     → affiche/masque les toggles Son & Vibrations
-///                             dans la même modale (pas d'écran dédié).
-///
-/// Les boutons "Sauvegarder et quitter" / "Abandonner" sont traités en
-/// story 1.5bis-b (hors scope).
+/// Contenu (écran principal) :
+///  1. Bouton **Reprendre**         → ferme la modale, reprend le jeu.
+///  2. Bouton **Options**            → affiche/masque les toggles Son &
+///                                     Vibrations dans la même modale.
+///  3. Bouton **Sauvegarder et quitter** → retour à l'accueil, partie
+///                                         reprenable (state gardé en
+///                                         mémoire via keepAlive providers).
+///  4. Bouton **Abandonner**          → popup de confirmation, puis
+///                                      termine la session et retour
+///                                      à l'accueil.
 library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/strings.dart';
+import '../providers/grid_state_provider.dart';
 import '../providers/options_provider.dart';
 import '../providers/pause_provider.dart';
 
@@ -84,6 +88,10 @@ class _MainContent extends ConsumerWidget {
         _ResumeButton(),
         const SizedBox(height: 12),
         _OptionsButton(),
+        const SizedBox(height: 12),
+        _SaveAndQuitButton(),
+        const SizedBox(height: 12),
+        _AbandonButton(),
         const SizedBox(height: 8),
       ],
     );
@@ -245,4 +253,102 @@ class _BackButton extends ConsumerWidget {
       ),
     );
   }
+}
+
+class _SaveAndQuitButton extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return SizedBox(
+      width: double.infinity,
+      child: TextButton(
+        style: TextButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          foregroundColor: Colors.white.withValues(alpha: 0.8),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+            side: BorderSide(
+              color: Colors.white.withValues(alpha: 0.2),
+            ),
+          ),
+        ),
+        onPressed: () {
+          Navigator.pushReplacementNamed(context, '/');
+        },
+        child: Text(
+          Str.pause_saveAndQuit,
+          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+        ),
+      ),
+    );
+  }
+}
+
+class _AbandonButton extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return SizedBox(
+      width: double.infinity,
+      child: TextButton(
+        style: TextButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          foregroundColor: const Color(0xFFE57373),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+        ),
+        onPressed: () => _showAbandonConfirmDialog(context, ref),
+        child: Text(
+          Str.pause_abandon,
+          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+        ),
+      ),
+    );
+  }
+}
+
+Future<void> _showAbandonConfirmDialog(
+  BuildContext context,
+  WidgetRef ref,
+) {
+  return showDialog(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      backgroundColor: const Color(0xFF1A2332),
+      title: Text(
+        Str.pause_abandonConfirmTitle,
+        style: const TextStyle(color: Colors.white, fontSize: 16),
+      ),
+      content: Text(
+        Str.pause_abandonConfirmBody,
+        style: TextStyle(
+          color: Colors.white.withValues(alpha: 0.7),
+          fontSize: 14,
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(dialogContext).pop(),
+          child: Text(
+            Str.pause_abandonConfirmCancel,
+            style: const TextStyle(color: Colors.white70),
+          ),
+        ),
+        TextButton(
+          onPressed: () {
+            Navigator.of(dialogContext).pop();
+            _abandonGame(context, ref);
+          },
+          child: Text(
+            Str.pause_abandonConfirmConfirm,
+            style: const TextStyle(color: Color(0xFFE57373)),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+void _abandonGame(BuildContext context, WidgetRef ref) {
+  ref.invalidate(gridProvider);
+  Navigator.pushReplacementNamed(context, '/');
 }

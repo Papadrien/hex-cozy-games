@@ -25,4 +25,19 @@ abstract class Str {
   static String get pause_options => _isFr ? 'Options' : 'Options';
   static String get options_sound => _isFr ? 'Son' : 'Sound';
   static String get options_vibrations => _isFr ? 'Vibrations' : 'Vibration';
+
+  // Story 1.5bis-b — Pause modal actions
+  static String get pause_saveAndQuit =>
+      _isFr ? 'Sauvegarder et quitter' : 'Save and quit';
+  static String get pause_abandon => _isFr ? 'Abandonner' : 'Abandon';
+  static String get pause_abandonConfirmTitle =>
+      _isFr ? 'Es-tu sûr de vouloir abandonner cette partie ?'
+            : 'Are you sure you want to abandon this game?';
+  static String get pause_abandonConfirmBody =>
+      _isFr ? 'Tes pièces gagnées durant cette partie seront perdues.'
+            : 'The coins earned during this game will be lost.';
+  static String get pause_abandonConfirmCancel =>
+      _isFr ? 'Annuler' : 'Cancel';
+  static String get pause_abandonConfirmConfirm =>
+      _isFr ? 'Abandonner' : 'Abandon';
 }
