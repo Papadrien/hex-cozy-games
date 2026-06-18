@@ -85,7 +85,7 @@ class GridState {
   }
 }
 
-@riverpod
+@Riverpod(keepAlive: true)
 class Grid extends _$Grid {
   @override
   GridState build() => const GridState(placedTiles: {});

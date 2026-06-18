@@ -36,8 +36,8 @@ const double kPreviewLiftPx = 10.0;
 const double kPreviewAlpha = 0.62;
 
 /// Opacité de fond des emplacements disponibles en surbrillance.
-const double kHighlightFillAlpha = 0.22;
-const double kHighlightStrokeAlpha = 0.55;
+const double kHighlightFillAlpha = 0.48;
+const double kHighlightStrokeAlpha = 0.82;
 
 class HexGridComponent extends PositionComponent {
   HexGridComponent({required this.screenSize})
