@@ -115,18 +115,6 @@ class HexGridComponent extends PositionComponent {
 
   // ── Helpers ───────────────────────────────────────────────────────────────
 
-  Set<HexCoords> _disk(HexCoords center, int radius) {
-    final result = <HexCoords>{};
-    for (var q = -radius; q <= radius; q++) {
-      final r1 = max(-radius, -q - radius);
-      final r2 = min(radius, -q + radius);
-      for (var r = r1; r <= r2; r++) {
-        result.add(HexCoords(center.q + q, center.r + r));
-      }
-    }
-    return result;
-  }
-
   static BiomeType _dominantBiome(HexTile tile) {
     final counts = <BiomeType, int>{};
     for (final b in tile.sides) {

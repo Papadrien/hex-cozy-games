@@ -19,7 +19,7 @@ import 'hex_grid_component.dart';
 import 'hex_tile.dart';
 
 class HexBoardGame extends FlameGame
-    with PanDetector, ScaleDetector, TapDetector {
+    with PanDetector, ScaleDetector, MultiTouchTapDetector {
   HexGridComponent? _grid;
 
   bool _cameraDirty = false;
@@ -52,10 +52,10 @@ class HexBoardGame extends FlameGame
   }
 
   @override
-  void onGameResize(Vector2 newSize) {
-    super.onGameResize(newSize);
-    _grid?.screenSize.setFrom(newSize);
-    _grid?.size.setFrom(newSize);
+  void onGameResize(Vector2 size) {
+    super.onGameResize(size);
+    _grid?.screenSize.setFrom(size);
+    _grid?.size.setFrom(size);
     _cameraDirty = true;
   }
 
@@ -71,8 +71,8 @@ class HexBoardGame extends FlameGame
   // ── Tap ───────────────────────────────────────────────────────────────────
 
   @override
-  void onTapDown(TapDownEvent event) {
-    _grid?.handleTap(event.localPosition.toOffset());
+  void onTapDown(int pointerId, TapDownInfo info) {
+    _grid?.handleTap(info.eventPosition.widget.toOffset());
   }
 
   // ── Pan ───────────────────────────────────────────────────────────────────
