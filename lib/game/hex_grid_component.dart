@@ -247,20 +247,6 @@ class HexGridComponent extends PositionComponent {
     });
   }
 
-  // ── Hit-testing ───────────────────────────────────────────────────────────
-
-  /// Convertit une position écran en coordonnées hexagonales, en tenant
-  /// compte de la projection iso (story 1.5a — corrige le décalage qui
-  /// existait quand le hit-testing ignorait kIsoScaleY).
-  HexCoords hexAt(Offset screenPos) {
-    return _layout.pixelToHex(
-      Point(screenPos.dx, screenPos.dy),
-      isoScaleY: kIsoScaleY,
-    );
-  }
-
-  // ── Helpers ───────────────────────────────────────────────────────────────
-
   static BiomeType _dominantBiome(HexTile tile) {
     final counts = <BiomeType, int>{};
     for (final b in tile.sides) {
