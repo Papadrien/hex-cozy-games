@@ -31,32 +31,19 @@ final class GridProvider extends $NotifierProvider<Grid, GridState> {
   @override
   Grid create() => Grid();
 
-  /// {@macro riverpod.override_with_value}
-  Override overrideWithValue(GridState value) {
-    return $ProviderOverride(
-      origin: this,
-      providerOverride: $SyncValueProvider<GridState>(value),
-    );
-  }
+  @$internal
+  @override
+  $NotifierProviderElement<Grid, GridState> $createElement(
+    $ProviderPointer pointer,
+  ) => $NotifierProviderElement(pointer);
 }
 
-String _$gridHash() => r'b279ce97e06537e76609236ffd882ca0913f616a';
+String _$gridHash() => r'0000000000000000000000000000000000000000';
 
 abstract class _$Grid extends $Notifier<GridState> {
   GridState build();
-  @$mustCallSuper
+
+  @$internal
   @override
-  void runBuild() {
-    final created = build();
-    final ref = this.ref as $Ref<GridState, GridState>;
-    final element =
-        ref.element
-            as $ClassProviderElement<
-              AnyNotifier<GridState, GridState>,
-              GridState,
-              Object?,
-              Object?
-            >;
-    element.handleValue(ref, created);
-  }
+  GridState runBuild() => build();
 }

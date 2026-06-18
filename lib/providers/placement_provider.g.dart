@@ -32,32 +32,19 @@ final class PlacementProvider
   @override
   Placement create() => Placement();
 
-  /// {@macro riverpod.override_with_value}
-  Override overrideWithValue(PlacementState value) {
-    return $ProviderOverride(
-      origin: this,
-      providerOverride: $SyncValueProvider<PlacementState>(value),
-    );
-  }
+  @$internal
+  @override
+  $NotifierProviderElement<Placement, PlacementState> $createElement(
+    $ProviderPointer pointer,
+  ) => $NotifierProviderElement(pointer);
 }
 
-String _$placementHash() => r'cd3a18e8e445bba1a8c62c0b6d1facee226db654';
+String _$placementHash() => r'0000000000000000000000000000000000000000';
 
 abstract class _$Placement extends $Notifier<PlacementState> {
   PlacementState build();
-  @$mustCallSuper
+
+  @$internal
   @override
-  void runBuild() {
-    final created = build();
-    final ref = this.ref as $Ref<PlacementState, PlacementState>;
-    final element =
-        ref.element
-            as $ClassProviderElement<
-              AnyNotifier<PlacementState, PlacementState>,
-              PlacementState,
-              Object?,
-              Object?
-            >;
-    element.handleValue(ref, created);
-  }
+  PlacementState runBuild() => build();
 }

@@ -1,4 +1,4 @@
-/// Écran de jeu principal — story 1.2 / 1.3 / 1.5a.
+/// Écran de jeu principal — story 1.2 / 1.3 / 1.5a / 1.5b.
 ///
 /// Gestion des gestes :
 ///  - Pan 1 doigt + Zoom pinch : délégués à Flame via [HexBoardGame]
@@ -8,10 +8,11 @@
 ///    1.5a), le pan vertical sert à la rotation plutôt qu'au déplacement
 ///    caméra — voir [HexBoardGame].
 ///  - Tap : capturé via [TapDetector] dans [HexBoardGame] — sélectionne ou
-///    déplace la prévisualisation sur un emplacement disponible.
+///    déplace la prévisualisation sur un emplacement disponible (1.5a),
+///    valide le placement au second tap sur la même cellule (1.5b).
 library;
 
-import 'package:flame/game.dart' hide Matrix4;
+import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -19,7 +20,6 @@ import '../game/hex_board_game.dart';
 import 'tile_stack_hud.dart';
 
 import '../providers/placement_commit.dart';
-
 
 class GameScreen extends ConsumerStatefulWidget {
   const GameScreen({super.key});
@@ -56,42 +56,75 @@ class _GameScreenState extends ConsumerState<GameScreen> {
           const Positioned(
             top: 48,
             left: 16,
-            child: _DebugBadge(label: 'Story 1.5a — Sélection & rotation'),
+            child: _DebugBadge(label: 'Story 1.5b — Validation & gains'),
           ),
 
-          // ── HUD pile de tuiles (story 1.4b) ───────────────────────────────
-          // Positionné sous l'emplacement réservé au futur bouton Pause
-          // (story 1.5bis-a, pas encore implémenté) — top offset suffisant
-          // pour qu'il s'insère au-dessus sans recouvrement.
-          
-          Consumer(builder:(context,ref,_){
-            final reward=ref.watch(previewRewardProvider);
-            final canUndo=ref.watch(lastPlacementProvider)!=null;
-            return Stack(children:[
-              Positioned(bottom:24,left:16,child:FloatingActionButton.small(
-                heroTag:'undo',
-                onPressed: canUndo?()=>undoPlacement(ref):null,
-                child: const Icon(Icons.undo),
-              )),
-              if(reward.connectedSides.isNotEmpty)
-              Positioned(top:180,left:24,child:Row(children:[
-                for(final _ in reward.connectedSides)
-                  TweenAnimationBuilder(duration: const Duration(milliseconds:350),
-                  tween: Tween(begin:1.57,end:0.0),
-                  builder:(c,v,ch)=>Transform(transform: Matrix4.identity()..setEntry(3,2,0.001)..rotateX(v),alignment:Alignment.center,child: ch),
-                  child: const CircleAvatar(radius:10,child:Icon(Icons.monetization_on,size:12)))
-              ])),
-              if(reward.bonusTiles>0)
-              Positioned(top:220,left:60,child:Row(children:[
-                for(int i=0;i<reward.bonusTiles;i++)
-                TweenAnimationBuilder(duration: const Duration(milliseconds:350),
-                tween: Tween(begin:1.57,end:0.0),
-                builder:(c,v,ch)=>Transform(transform: Matrix4.identity()..setEntry(3,2,0.001)..rotateX(v),child:ch),
-                child: const Icon(Icons.hexagon,size:18))
-              ]))
+          // ── Bouton Annuler + icônes de gains ──────────────────────────────
+          Consumer(builder: (context, ref, _) {
+            final reward = ref.watch(previewRewardProvider);
+            final canUndo = ref.watch(lastPlacementProvider) != null;
+            return Stack(children: [
+              Positioned(
+                bottom: 24,
+                left: 16,
+                child: FloatingActionButton.small(
+                  heroTag: 'undo',
+                  onPressed: canUndo
+                      ? () => undoPlacement(
+                            ref,
+                            onUndo: _game.removeTileFromFlame,
+                          )
+                      : null,
+                  child: const Icon(Icons.undo),
+                ),
+              ),
+              if (reward.connectedSides.isNotEmpty)
+                Positioned(
+                  top: 180,
+                  left: 24,
+                  child: Row(children: [
+                    for (final _ in reward.connectedSides)
+                      TweenAnimationBuilder(
+                        duration: const Duration(milliseconds: 350),
+                        tween: Tween(begin: 1.57, end: 0.0),
+                        builder: (c, v, ch) => Transform(
+                          transform: Matrix4.identity()
+                            ..setEntry(3, 2, 0.001)
+                            ..rotateX(v),
+                          alignment: Alignment.center,
+                          child: ch,
+                        ),
+                        child: const CircleAvatar(
+                          radius: 10,
+                          child: Icon(Icons.monetization_on, size: 12),
+                        ),
+                      ),
+                  ]),
+                ),
+              if (reward.bonusTiles > 0)
+                Positioned(
+                  top: 220,
+                  left: 60,
+                  child: Row(children: [
+                    for (int i = 0; i < reward.bonusTiles; i++)
+                      TweenAnimationBuilder(
+                        duration: const Duration(milliseconds: 350),
+                        tween: Tween(begin: 1.57, end: 0.0),
+                        builder: (c, v, ch) => Transform(
+                          transform: Matrix4.identity()
+                            ..setEntry(3, 2, 0.001)
+                            ..rotateX(v),
+                          child: ch,
+                        ),
+                        child: const Icon(Icons.hexagon, size: 18),
+                      ),
+                  ]),
+                ),
             ]);
           }),
-const Positioned(
+
+          // ── HUD pile de tuiles (story 1.4b) ───────────────────────────────
+          const Positioned(
             top: 88,
             right: 12,
             child: TileStackHud(),
@@ -125,4 +158,3 @@ class _DebugBadge extends StatelessWidget {
     );
   }
 }
-

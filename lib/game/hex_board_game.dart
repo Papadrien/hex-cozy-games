@@ -3,6 +3,7 @@
 /// Story 1.2 : pan (1 doigt), zoom (2 doigts).
 /// Story 1.3 : placement de tuiles de test pour valider le rendu.
 /// Story 1.5a : sélection d'emplacement, prévisualisation, rotation.
+/// Story 1.5b : validation du placement (second tap), bouton annuler.
 ///
 /// Gestes — tout géré dans Flame, pas de GestureDetector Flutter par-dessus :
 ///  - Pan 1 doigt   → [PanDetector.onPanUpdate] : déplace la caméra si AUCUNE
@@ -13,8 +14,8 @@
 ///  - Zoom 2 doigts → [ScaleDetector]  (note : PanDetector + ScaleDetector
 ///    coexistent correctement dans Flame ; le Scale absorbe le multi-touch)
 ///  - Tap           → [TapDetector.onTapDown] : sélectionne/déplace la
-///    prévisualisation sur un emplacement disponible (story 1.5a). La
-///    validation par second tap est traitée en story 1.5b.
+///    prévisualisation sur un emplacement disponible (story 1.5a), ou
+///    valide le placement si tap sur la cellule déjà sélectionnée (story 1.5b).
 library;
 
 import 'package:flame/events.dart';
@@ -24,6 +25,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/grid_state_provider.dart';
 import '../providers/placement_provider.dart';
+import '../providers/placement_commit.dart';
 import 'hex_coords.dart';
 import 'hex_grid_component.dart';
 import 'hex_tile.dart';
@@ -34,8 +36,8 @@ import 'hex_tile.dart';
 const double kSwipePixelsPerRotationStep = 36.0;
 
 class HexBoardGame extends FlameGame
-    with PanDetector, ScaleDetector, MultiTouchTapDetector {
-  HexBoardGame({required this._ref});
+    with PanDetector, ScaleDetector, TapDetector {
+  HexBoardGame({required WidgetRef ref}) : _ref = ref;
 
   final WidgetRef _ref;
 
@@ -115,13 +117,36 @@ class HexBoardGame extends FlameGame
     grid.previewTile = placementNotifier.previewTile;
   }
 
+  /// Pose la tuile prévisualisée sur la grille Flame (appelé depuis
+  /// [confirmPlacement] via le callback [onConfirm]).
+  void placeTileOnFlame(HexCoords coords, HexTile tile) {
+    _grid?.placeTile(coords, tile);
+    _syncPlacementPreview();
+  }
+
+  /// Retire une tuile du rendu Flame (appelé depuis le bouton Annuler).
+  void removeTileFromFlame(HexCoords coords) {
+    _grid?.removeTile(coords);
+    _syncPlacementPreview();
+  }
+
   // ── Tap ───────────────────────────────────────────────────────────────────
 
   @override
-  void onTapDown(int pointerId, TapDownInfo info) {
+  void onTapDown(TapDownInfo info) {
     final grid = _grid;
     if (grid == null) return;
-    final coords = grid.screenToHex(info.eventPosition.widget.toOffset());
+
+    final coords = grid.hexAt(info.eventPosition.widget.toOffset());
+    final placement = _ref.read(placementProvider);
+
+    if (placement.selected == coords) {
+      // Second tap sur la même cellule → validation du placement (story 1.5b)
+      confirmPlacement(_ref, onConfirm: placeTileOnFlame);
+      _syncPlacementPreview();
+      return;
+    }
+
     _ref.read(placementProvider.notifier).selectCell(coords);
   }
 

@@ -51,12 +51,15 @@ const double kTileSize = 44.0;
 class TileComponent extends PositionComponent {
   TileComponent({
     required this.tile,
-    required this._coords,
+    required HexCoords coords,
     double hexSize = kTileSize,
-    this._alpha = 1.0,
-    this._showBorder = true,
+    double alpha = 1.0,
+    bool showBorder = true,
     Vector2? position,
   })  : _hexSize = hexSize,
+        _alpha = alpha,
+        _showBorder = showBorder,
+        _coords = coords,
         super(
           position: position ?? Vector2.zero(),
           anchor: Anchor.center,
