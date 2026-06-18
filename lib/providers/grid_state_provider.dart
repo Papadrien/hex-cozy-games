@@ -18,6 +18,7 @@ library;
 
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../game/hex_cell.dart';
 import '../game/hex_coords.dart';
 import '../game/hex_tile.dart';
 
@@ -67,7 +68,7 @@ class GridState {
   /// - Sinon → toute cellule vide adjacente à une tuile posée ET ayant au
   ///   moins un côté compatible avec [tile].
   Set<HexCoords> availableCellsFor(HexTile tile) {
-    if (isEmpty) return const {HexCoords(0, 0)};
+    if (isEmpty) return {HexCoords(0, 0)};
 
     final candidates = <HexCoords>{};
     for (final coords in placedTiles.keys) {

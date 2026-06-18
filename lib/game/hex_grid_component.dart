@@ -247,6 +247,12 @@ class HexGridComponent extends PositionComponent {
     });
   }
 
+  /// Convertit une position écran (Offset) en [HexCoords] via le layout
+  /// courant (projection isométrique incluse).
+  HexCoords screenToHex(Offset screenPos) {
+    return _layout.pixelToHex(Point(screenPos.dx, screenPos.dy));
+  }
+
   static BiomeType _dominantBiome(HexTile tile) {
     final counts = <BiomeType, int>{};
     for (final b in tile.sides) {

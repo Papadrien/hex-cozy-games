@@ -35,6 +35,10 @@ const double kSwipePixelsPerRotationStep = 36.0;
 
 class HexBoardGame extends FlameGame
     with PanDetector, ScaleDetector, MultiTouchTapDetector {
+  HexBoardGame({required WidgetRef ref}) : _ref = ref;
+
+  final WidgetRef _ref;
+
   HexGridComponent? _grid;
 
   bool _cameraDirty = false;
@@ -115,7 +119,10 @@ class HexBoardGame extends FlameGame
 
   @override
   void onTapDown(int pointerId, TapDownInfo info) {
-    _grid?.handleTap(info.eventPosition.widget.toOffset());
+    final grid = _grid;
+    if (grid == null) return;
+    final coords = grid.screenToHex(info.eventPosition.widget.toOffset());
+    _ref.read(placementProvider.notifier).selectCell(coords);
   }
 
   // ── Pan : déplacement caméra OU rotation de la prévisualisation ────────────

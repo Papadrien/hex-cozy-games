@@ -32,19 +32,32 @@ final class TileStackProvider
   @override
   TileStack create() => TileStack();
 
-  @$internal
-  @override
-  $NotifierProviderElement<TileStack, TileStackState> $createElement(
-    $ProviderPointer pointer,
-  ) => $NotifierProviderElement(pointer);
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(TileStackState value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<TileStackState>(value),
+    );
+  }
 }
 
-String _$tileStackHash() => r'0000000000000000000000000000000000000000';
+String _$tileStackHash() => r'7857a8cf3c0f460236b65f0d37ef850466fa8d89';
 
 abstract class _$TileStack extends $Notifier<TileStackState> {
   TileStackState build();
-
-  @$internal
+  @$mustCallSuper
   @override
-  TileStackState runBuild() => build();
+  void runBuild() {
+    final created = build();
+    final ref = this.ref as $Ref<TileStackState, TileStackState>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<TileStackState, TileStackState>,
+              TileStackState,
+              Object?,
+              Object?
+            >;
+    element.handleValue(ref, created);
+  }
 }
