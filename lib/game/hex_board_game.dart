@@ -61,16 +61,6 @@ class HexBoardGame extends FlameGame with PanDetector, ScaleDetector {
     super.onGameResize(size);
     _grid?.screenSize.setFrom(size);
     _grid?.size.setFrom(size);
-    _cameraDirty = true;
-  }
-
-  @override
-  void update(double dt) {
-    super.update(dt);
-    if (_cameraDirty) {
-      _grid?.refreshTilePositions();
-      _cameraDirty = false;
-    }
   }
 
   // ── Pan ───────────────────────────────────────────────────────────────────
