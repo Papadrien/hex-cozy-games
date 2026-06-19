@@ -23,10 +23,12 @@ import '../game/hex_board_game.dart';
 import '../providers/pause_provider.dart';
 import '../providers/placement_commit.dart';
 import '../providers/session_provider.dart';
+import '../providers/tutorial_provider.dart';
 import 'pause_button.dart';
 import 'pause_modal.dart';
 import 'results_modal.dart';
 import 'tile_stack_hud.dart';
+import 'tutorial_overlay.dart';
 
 /// Durée d'affichage de l'animation de confirmation de récompense (story 1.6b).
 /// Le tag reste visible 1.5s puis disparaît en fade out sur 0.5s (total 2s).
@@ -49,6 +51,9 @@ class _GameScreenState extends ConsumerState<GameScreen> {
   void initState() {
     super.initState();
     _game = HexBoardGame(ref: ref);
+    Future.microtask(
+      () => ref.read(tutorialProvider.notifier).checkAndStart(),
+    );
   }
 
   @override
@@ -173,6 +178,9 @@ class _GameScreenState extends ConsumerState<GameScreen> {
 
           // ── Écran de résultats (Story 1.8b) ──────────────────────────────
           const ResultsModal(),
+
+          // ── Tutoriel premier lancement (Story 1.10a / 1.10b) ────────────
+          const TutorialOverlay(),
         ],
       ),
     );

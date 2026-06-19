@@ -59,4 +59,22 @@ abstract class Str {
   static String get results_connections5 => _isFr ? '5 côtés' : '5 sides';
   static String get results_connections6 => _isFr ? '6 côtés' : '6 sides';
   static String get results_replay => _isFr ? 'Rejouer' : 'Replay';
+
+  // Story 1.10b — Tutoriel first-launch
+  static String get tutorial_step1 =>
+      _isFr ? 'Les cases brillantes sont les endroits où tu peux poser ta tuile'
+            : 'Glowing tiles are the spots where you can place your tile';
+  static String get tutorial_step2 =>
+      _isFr ? 'Swipe pour la faire pivoter — plusieurs rotations d\'un seul geste !'
+            : 'Swipe to rotate it — multiple turns in a single gesture!';
+  static String get tutorial_step3 =>
+      _isFr ? 'Les icônes pièce te montrent ce que tu vas gagner'
+            : 'Coin icons show you what you\'ll earn';
+  static String get tutorial_step4 =>
+      _isFr ? 'Tape à nouveau pour valider le placement'
+            : 'Tap again to confirm the placement';
+  static String get tutorial_step5 =>
+      _isFr ? 'Connecte les côtés identiques pour gagner des tuiles et des pièces bonus'
+            : 'Match identical sides to earn bonus tiles and coins';
+  static String get tutorial_skip => _isFr ? 'Passer' : 'Skip';
 }

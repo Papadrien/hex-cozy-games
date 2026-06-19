@@ -53,6 +53,9 @@ dependencies:
   # Cloud save (Google Play Games / Game Center)
   games_services: ^4.1.0
 
+  # Persistence tutorial state
+  shared_preferences: ^2.5.3
+
   # Publicités
   google_mobile_ads: ^9.0.0
 
