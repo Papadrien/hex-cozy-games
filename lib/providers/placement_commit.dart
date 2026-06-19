@@ -75,19 +75,25 @@ Future<void> restoreSession(WidgetRef ref) async {
         .map((s) => BiomeType.values.firstWhere((b) => b.name == s))
         .toList();
     final tile = HexTile(sides: sides);
+    final connectedSides = (lastJson['connectedSides'] as List?)
+            ?.cast<int>() ??
+        [];
     ref.read(lastPlacementProvider.notifier).set(LastPlacement(
           HexCoords(lastJson['q'], lastJson['r']),
           tile,
-          bonusTiles: lastJson['bonusTiles'],
+          bonusTiles: lastJson['bonusTiles'] ?? 0,
+          connectedSides: connectedSides,
         ));
   }
 }
 
 class LastPlacement {
-  LastPlacement(this.coords, this.tile, {this.bonusTiles = 0});
+  LastPlacement(this.coords, this.tile,
+      {this.bonusTiles = 0, this.connectedSides = const []});
   final HexCoords coords;
   final HexTile tile;
   final int bonusTiles;
+  final List<int> connectedSides;
 }
 
 class LastPlacementNotifier extends Notifier<LastPlacement?> {
@@ -154,6 +160,7 @@ class SessionSaver {
         'r': lastPlacement.coords.r,
         'sides': lastPlacement.tile.sides.map((b) => b.name).toList(),
         'bonusTiles': lastPlacement.bonusTiles,
+        'connectedSides': lastPlacement.connectedSides,
       });
     }
 
@@ -205,14 +212,16 @@ void confirmPlacement(
   // 2. Mettre à jour le rendu Flame via le callback (avec les connexions).
   onConfirm(coords, tile, reward.connectedSides, reward.bonusTiles);
 
-  // 3. Mémoriser pour le bouton Annuler (avec les bonus pour l'undo).
+  // 3. Mémoriser pour le bouton Annuler (avec les récompenses pour l'undo).
   ref.read(lastPlacementProvider.notifier).set(
-    LastPlacement(coords, tile, bonusTiles: reward.bonusTiles),
+    LastPlacement(coords, tile,
+        bonusTiles: reward.bonusTiles,
+        connectedSides: List.of(reward.connectedSides)),
   );
 
-  // 4. Attribuer les récompenses (story 1.6b).
+  // 4. Attribuer les récompenses (story 1.6b / 1.7c).
+  ref.read(sessionProvider.notifier).addReward(reward);
   if (reward.bonusTiles > 0) {
-    ref.read(sessionProvider.notifier).addReward(reward);
     ref.read(tileStackProvider.notifier).addBonusTiles(reward.bonusTiles);
   }
 
@@ -245,9 +254,10 @@ void undoPlacement(
   // 3. Remettre la tuile au sommet de la pile.
   ref.read(tileStackProvider.notifier).returnTile(last.tile);
 
-  // 4. Annuler les récompenses (story 1.6b).
+  // 4. Annuler les récompenses (story 1.6b / 1.7c).
+  ref.read(sessionProvider.notifier).removeReward(
+      last.connectedSides.length, last.bonusTiles);
   if (last.bonusTiles > 0) {
-    ref.read(sessionProvider.notifier).removeReward(last.bonusTiles);
     ref.read(tileStackProvider.notifier).removeLastBonusTiles(last.bonusTiles);
   }
 

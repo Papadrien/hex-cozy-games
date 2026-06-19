@@ -53,11 +53,11 @@ class Session extends _$Session {
     state = state.copyWith(lastReward: null);
   }
 
-  /// Retire [bonusTiles] du cumul de la session (utilisé par le bouton
-  /// Annuler pour inverser les récompenses — story 1.6b).
-  void removeReward(int bonusTiles) {
+  /// Retire [coins] et [bonusTiles] du cumul de la session (utilisé par le
+  /// bouton Annuler pour inverser les récompenses — story 1.6b / 1.7c).
+  void removeReward(int coins, int bonusTiles) {
     state = SessionState(
-      coins: (state.coins - bonusTiles).clamp(0, double.infinity).toInt(),
+      coins: (state.coins - coins).clamp(0, double.infinity).toInt(),
       totalBonusTiles:
           (state.totalBonusTiles - bonusTiles).clamp(0, double.infinity).toInt(),
       lastReward: null,

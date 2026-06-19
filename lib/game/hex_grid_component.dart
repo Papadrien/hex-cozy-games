@@ -66,7 +66,6 @@ class HexGridComponent extends PositionComponent {
 
   /// Surbrillance des voisins pendant la prévisualisation.
   Map<HexCoords, Set<int>> _previewNeighborHighlights = const {};
-  final Map<HexCoords, Set<int>> _tilePermanentHighlights = {};
 
   /// Côtés de la tuile prévisualisée qui seraient connectés (story 1.7a).
   /// Met à jour la surbrillance sur le composant de prévisualisation existant
@@ -89,7 +88,7 @@ class HexGridComponent extends PositionComponent {
     for (final entry in _previewNeighborHighlights.entries) {
       final tile = placedTiles[entry.key];
       if (tile != null) {
-        tile.highlightedSides = _tilePermanentHighlights[entry.key] ?? const {};
+        tile.highlightedSides = const {};
       }
     }
     _previewNeighborHighlights = value;
@@ -231,13 +230,12 @@ class HexGridComponent extends PositionComponent {
 
     final center = _layout.hexToPixel(coords, isoScaleY: kIsoScaleY);
 
-    final highlightSet = highlightedSides ?? const {};
     final component = TileComponent(
       tile: tile,
       coords: coords,
       hexSize: kBaseHexSize * zoom,
       position: Vector2(center.x, center.y),
-      highlightedSides: highlightSet,
+      highlightedSides: const {},
     );
 
     if (connectedSides != null && connectedSides.isNotEmpty) {
@@ -245,23 +243,7 @@ class HexGridComponent extends PositionComponent {
     }
 
     placedTiles[coords] = component;
-    _tilePermanentHighlights[coords] = highlightSet;
     add(component);
-
-    // Mettre à jour les surbrillances permanentes des voisins.
-    for (final side in highlightSet) {
-      final neighborCoords = coords.neighbor(side);
-      final neighborFacingSide = (side + 3) % 6;
-      final neighborTile = placedTiles[neighborCoords];
-      if (neighborTile != null) {
-        _tilePermanentHighlights[neighborCoords] = {
-          ..._tilePermanentHighlights[neighborCoords] ?? {},
-          neighborFacingSide,
-        };
-        neighborTile.highlightedSides =
-            _tilePermanentHighlights[neighborCoords]!;
-      }
-    }
 
     placedCells[coords] = HexCell(
       q: coords.q,
@@ -273,8 +255,7 @@ class HexGridComponent extends PositionComponent {
     for (final entry in _previewNeighborHighlights.entries) {
       final tile = placedTiles[entry.key];
       if (tile != null) {
-        tile.highlightedSides =
-            _tilePermanentHighlights[entry.key] ?? const {};
+        tile.highlightedSides = const {};
       }
     }
     _previewNeighborHighlights = const {};
@@ -284,7 +265,6 @@ class HexGridComponent extends PositionComponent {
     final existing = placedTiles.remove(coords);
     if (existing != null) remove(existing);
     placedCells.remove(coords);
-    _tilePermanentHighlights.remove(coords);
   }
 
   /// Affiche des pièces (pièces de monnaie) au niveau de chaque côté connecté

@@ -7,11 +7,13 @@
 ///
 /// Gestes — tout géré dans Flame, pas de GestureDetector Flutter par-dessus :
 ///  - Scale (pan+zoom) → [ScaleDetector.onScaleUpdate] : pan 1 doigt + zoom
-///    pinch 2 doigts, fonctionne même pendant la prévisualisation.
-///  - Tap → [MultiTouchTapDetector.onTapDown] : sélectionne/déplace la
+///    pinch 2 doigts. Pendant la prévisualisation, le swipe vertical pivote
+///    la tuile plutôt que de déplacer la caméra verticalement (story 1.7c).
+///  - Tap → [MultiTouchTapDetector.onTapUp] : sélectionne/déplace la
 ///    prévisualisation sur un emplacement disponible (story 1.5a), valide le
 ///    placement si tap sur la cellule déjà sélectionnée (story 1.5b), annule
-///    la prévisualisation si tap en dehors.
+///    la prévisualisation si tap en dehors (story 1.7c). La logique est dans
+///    onTapUp (pas onTapDown) pour éviter le conflit avec le swipe de rotation.
 library;
 
 import 'dart:ui' show Color;
@@ -61,32 +63,6 @@ class HexBoardGame extends FlameGame
           ..onEnd = _handleScaleEnd;
       },
     );
-  }
-
-  void _handleScaleStart(ScaleStartDetails details) {
-    if (_isPaused) return;
-    _scaleStart = _grid?.zoom ?? 1.0;
-  }
-
-  void _handleScaleUpdate(ScaleUpdateDetails details) {
-    if (_isPaused) return;
-    final grid = _grid;
-    if (grid == null) return;
-
-    // Pan : déplacement caméra (1 ou 2 doigts)
-    final delta = details.focalPointDelta;
-    grid.cameraOffset.add(Vector2(delta.dx, delta.dy));
-
-    // Zoom : pinch à 2 doigts
-    grid.zoom = (_scaleStart * details.scale)
-        .clamp(HexGridComponent.minZoom, HexGridComponent.maxZoom);
-
-    _cameraDirty = true;
-  }
-
-  void _handleScaleEnd(ScaleEndDetails details) {
-    if (_isPaused) return;
-    _scaleStart = _grid?.zoom ?? 1.0;
   }
 
   void _initBoard() {
@@ -187,8 +163,7 @@ class HexBoardGame extends FlameGame
     int bonusTiles,
   ) {
     _grid?.placeTile(coords, tile,
-        connectedSides: connectedSides,
-        highlightedSides: connectedSides.toSet());
+        connectedSides: connectedSides);
     if (connectedSides.isNotEmpty || bonusTiles > 0) {
       _grid?.showRewardIndicators(coords, connectedSides, bonusTiles: bonusTiles);
     }
@@ -204,7 +179,21 @@ class HexBoardGame extends FlameGame
   /// Vrai si le jeu est en pause — les gestes doivent être ignorés.
   bool get _isPaused => _ref.read(pauseProvider).isPaused;
 
-  // ── Tap ───────────────────────────────────────────────────────────────────
+  // ── Rotation par swipe vertical ──────────────────────────────────────────
+
+  double _rotationAccumulator = 0;
+  static const double _kRotationThreshold = 40; // pixels pour 1 cran de 60°
+
+  void _handleRotation(double dy) {
+    _rotationAccumulator += dy;
+    while (_rotationAccumulator.abs() >= _kRotationThreshold) {
+      final step = _rotationAccumulator > 0 ? -1 : 1; // haut = horaire
+      _ref.read(placementProvider.notifier).rotate(step);
+      _rotationAccumulator -= step.sign * _kRotationThreshold;
+    }
+  }
+
+  // ── Pan / Zoom ───────────────────────────────────────────────────────────
 
   @override
   void onTapDown(int pointerId, TapDownInfo info) {
@@ -212,9 +201,25 @@ class HexBoardGame extends FlameGame
     final grid = _grid;
     if (grid == null) return;
 
+    final placement = _ref.read(placementProvider);
+
+    if (placement.hasSelection) return;
+
     final coords = grid.hexAt(info.eventPosition.widget.toOffset());
+    _ref.read(placementProvider.notifier).selectCell(coords);
+  }
+
+  @override
+  void onTapUp(int pointerId, TapUpInfo info) {
+    if (_isPaused) return;
+    final grid = _grid;
+    if (grid == null) return;
+
     final placement = _ref.read(placementProvider);
     final placementNotifier = _ref.read(placementProvider.notifier);
+    final coords = grid.hexAt(info.eventPosition.widget.toOffset());
+
+    if (!placement.hasSelection) return;
 
     if (placement.selected == coords) {
       // Second tap sur la même cellule → validation du placement (story 1.5b)
@@ -223,7 +228,7 @@ class HexBoardGame extends FlameGame
       return;
     }
 
-    if (placement.hasSelection && !placementNotifier.availableCells.contains(coords)) {
+    if (!placementNotifier.availableCells.contains(coords)) {
       // Tap en dehors des emplacements disponibles → annuler la prévisualisation.
       placementNotifier.clearSelection();
       return;
@@ -233,4 +238,39 @@ class HexBoardGame extends FlameGame
   }
 
   double _scaleStart = 1.0;
+
+  void _handleScaleStart(ScaleStartDetails details) {
+    if (_isPaused) return;
+    _scaleStart = _grid?.zoom ?? 1.0;
+    _rotationAccumulator = 0;
+  }
+
+  void _handleScaleUpdate(ScaleUpdateDetails details) {
+    if (_isPaused) return;
+    final grid = _grid;
+    if (grid == null) return;
+
+    final delta = details.focalPointDelta;
+
+    // Pendant la prévisualisation, le swipe vertical fait pivoter la tuile.
+    final placement = _ref.read(placementProvider);
+    if (placement.hasSelection && (details.scale - 1.0).abs() < 0.05) {
+      _handleRotation(delta.dy);
+      // Pan horizontal seulement pendant la prévisualisation.
+      grid.cameraOffset.add(Vector2(delta.dx, 0));
+    } else {
+      grid.cameraOffset.add(Vector2(delta.dx, delta.dy));
+    }
+
+    grid.zoom = (_scaleStart * details.scale)
+        .clamp(HexGridComponent.minZoom, HexGridComponent.maxZoom);
+
+    _cameraDirty = true;
+  }
+
+  void _handleScaleEnd(ScaleEndDetails details) {
+    if (_isPaused) return;
+    _scaleStart = _grid?.zoom ?? 1.0;
+    _rotationAccumulator = 0;
+  }
 }
