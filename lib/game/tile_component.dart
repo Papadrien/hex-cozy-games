@@ -13,7 +13,6 @@ import 'dart:math';
 import 'dart:ui';
 
 import 'package:flame/components.dart';
-import 'package:flutter/material.dart' show Colors;
 
 import 'hex_cell.dart';
 import 'hex_coords.dart';
@@ -60,7 +59,6 @@ class TileComponent extends PositionComponent {
     required this._coords,
     double hexSize = kTileSize,
     this._alpha = 1.0,
-    this._showBorder = true,
     this.highlightedSides = const {},
     Vector2? position,
   })  : _hexSize = hexSize,
@@ -85,8 +83,6 @@ class TileComponent extends PositionComponent {
   double _alpha;
   double get alpha => _alpha;
   set alpha(double value) => _alpha = value.clamp(0.0, 1.0);
-
-  final bool _showBorder;
 
   /// Côtés à surligner en permanence (prévisualisation des connexions).
   Set<int> highlightedSides;
@@ -136,7 +132,7 @@ class TileComponent extends PositionComponent {
         canvas.drawPath(
           path,
           Paint()
-            ..color = Colors.white.withValues(alpha: _glowAlpha)
+            ..color = const Color(0xFFFFFFFF).withValues(alpha: _glowAlpha)
             ..style = PaintingStyle.fill,
         );
       }
@@ -146,34 +142,11 @@ class TileComponent extends PositionComponent {
         canvas.drawPath(
           path,
           Paint()
-            ..color = Colors.white.withValues(alpha: 0.20)
+            ..color = const Color(0xFFFFFFFF).withValues(alpha: 0.20)
             ..style = PaintingStyle.fill,
         );
       }
-
-      if (_showBorder) {
-        canvas.drawLine(
-          Offset(cx, cy),
-          c0,
-          Paint()
-            ..color = Colors.black.withValues(alpha: _alpha * 0.3)
-            ..strokeWidth = 0.6,
-        );
-      }
     }
-
-    final outline = Path()..moveTo(corners[0].dx, corners[0].dy);
-    for (var i = 1; i < 6; i++) {
-      outline.lineTo(corners[i].dx, corners[i].dy);
-    }
-    outline.close();
-    canvas.drawPath(
-      outline,
-      Paint()
-        ..color = Colors.black.withValues(alpha: _alpha * 0.55)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.4,
-    );
   }
 
   @override

@@ -18,7 +18,6 @@ import 'dart:math';
 import 'dart:ui' show Canvas, Color, Offset, Paint, PaintingStyle, Path;
 
 import 'package:flame/components.dart';
-import 'package:flutter/material.dart' show Colors;
 
 import 'hex_coords.dart';
 import 'hex_cell.dart';
@@ -33,8 +32,8 @@ const double kBaseHexSize = 48.0;
 /// au-dessus du plateau (story 1.5a).
 const double kPreviewLiftPx = 10.0;
 
-/// Opacité de la tuile en prévisualisation (translucide — story 1.5a).
-const double kPreviewAlpha = 0.62;
+/// Opacité de la tuile en prévisualisation.
+const double kPreviewAlpha = 1.0;
 
 /// Opacité de fond des emplacements disponibles en surbrillance.
 const double kHighlightFillAlpha = 0.48;
@@ -63,9 +62,11 @@ class HexGridComponent extends PositionComponent {
   TileComponent? _previewComponent;
 
   Set<int> _previewHighlightedSides = const {};
-  int _previewBonusTiles = 0;
-  final List<PositionComponent> _previewBonusComponents = [];
   final List<PositionComponent> _previewCoinComponents = [];
+
+  /// Surbrillance des voisins pendant la prévisualisation.
+  Map<HexCoords, Set<int>> _previewNeighborHighlights = const {};
+  final Map<HexCoords, Set<int>> _tilePermanentHighlights = {};
 
   /// Côtés de la tuile prévisualisée qui seraient connectés (story 1.7a).
   /// Met à jour la surbrillance sur le composant de prévisualisation existant
@@ -80,12 +81,24 @@ class HexGridComponent extends PositionComponent {
     _syncPreviewCoinComponents();
   }
 
-  /// Nombre de tuiles bonus à afficher au-dessus de la prévisualisation.
-  int get previewBonusTiles => _previewBonusTiles;
-  set previewBonusTiles(int value) {
-    if (_previewBonusTiles == value) return;
-    _previewBonusTiles = value;
-    _syncPreviewBonusComponents();
+  /// Nombre de tuiles bonus.
+  int previewBonusTiles = 0;
+
+  /// Surbrillance des côtés des tuiles voisines qui seront connectées.
+  set previewNeighborHighlights(Map<HexCoords, Set<int>> value) {
+    for (final entry in _previewNeighborHighlights.entries) {
+      final tile = placedTiles[entry.key];
+      if (tile != null) {
+        tile.highlightedSides = _tilePermanentHighlights[entry.key] ?? const {};
+      }
+    }
+    _previewNeighborHighlights = value;
+    for (final entry in value.entries) {
+      final tile = placedTiles[entry.key];
+      if (tile != null) {
+        tile.highlightedSides = entry.value;
+      }
+    }
   }
 
   /// Coordonnées de la prévisualisation en cours, ou null si aucune
@@ -121,10 +134,6 @@ class HexGridComponent extends PositionComponent {
         remove(existing);
         _previewComponent = null;
       }
-      for (final c in _previewBonusComponents) {
-        remove(c);
-      }
-      _previewBonusComponents.clear();
       for (final c in _previewCoinComponents) {
         remove(c);
       }
@@ -144,7 +153,6 @@ class HexGridComponent extends PositionComponent {
       existing.hexSize = kBaseHexSize * zoom;
       existing.position = liftedPosition;
       existing.highlightedSides = _previewHighlightedSides;
-      _syncPreviewBonusComponents();
       _syncPreviewCoinComponents();
       return;
     }
@@ -157,41 +165,11 @@ class HexGridComponent extends PositionComponent {
       highlightedSides: _previewHighlightedSides,
       position: liftedPosition,
     );
-    // Priorité plus élevée que les tuiles posées (priority: 1) pour que la
-    // prévisualisation "surélevée" reste visuellement au-dessus en cas de
-    // chevauchement avec une tuile voisine déjà posée.
     component.priority = 2;
     _previewComponent = component;
     add(component);
 
-    _syncPreviewBonusComponents();
     _syncPreviewCoinComponents();
-  }
-
-  /// Gère les icônes de tuiles bonus au-dessus de la prévisualisation.
-  void _syncPreviewBonusComponents() {
-    // Nettoyer les anciens composants.
-    for (final c in _previewBonusComponents) {
-      remove(c);
-    }
-    _previewBonusComponents.clear();
-
-    if (_previewCoords == null || _previewBonusTiles <= 0) return;
-
-    final layout = _layout;
-    final center = layout.hexToPixel(_previewCoords!, isoScaleY: kIsoScaleY);
-    final hexSize = kBaseHexSize * zoom;
-
-    for (var i = 0; i < _previewBonusTiles; i++) {
-      final offsetY = -(hexSize * kIsoScaleY * 0.4 + i * 18.0);
-      final component = _BonusTilePreviewComponent(
-        position: Vector2(center.x, center.y + offsetY),
-        hexSize: hexSize * 0.2,
-      );
-      component.priority = 11;
-      _previewBonusComponents.add(component);
-      add(component);
-    }
   }
 
   /// Gère les icônes de pièces au niveau de chaque côté bien connecté pendant
@@ -253,12 +231,13 @@ class HexGridComponent extends PositionComponent {
 
     final center = _layout.hexToPixel(coords, isoScaleY: kIsoScaleY);
 
+    final highlightSet = highlightedSides ?? const {};
     final component = TileComponent(
       tile: tile,
       coords: coords,
       hexSize: kBaseHexSize * zoom,
       position: Vector2(center.x, center.y),
-      highlightedSides: highlightedSides ?? const {},
+      highlightedSides: highlightSet,
     );
 
     if (connectedSides != null && connectedSides.isNotEmpty) {
@@ -266,19 +245,46 @@ class HexGridComponent extends PositionComponent {
     }
 
     placedTiles[coords] = component;
+    _tilePermanentHighlights[coords] = highlightSet;
     add(component);
+
+    // Mettre à jour les surbrillances permanentes des voisins.
+    for (final side in highlightSet) {
+      final neighborCoords = coords.neighbor(side);
+      final neighborFacingSide = (side + 3) % 6;
+      final neighborTile = placedTiles[neighborCoords];
+      if (neighborTile != null) {
+        _tilePermanentHighlights[neighborCoords] = {
+          ..._tilePermanentHighlights[neighborCoords] ?? {},
+          neighborFacingSide,
+        };
+        neighborTile.highlightedSides =
+            _tilePermanentHighlights[neighborCoords]!;
+      }
+    }
 
     placedCells[coords] = HexCell(
       q: coords.q,
       r: coords.r,
       biome: _dominantBiome(tile),
     );
+
+    // Nettoyer les surbrillances de prévisualisation.
+    for (final entry in _previewNeighborHighlights.entries) {
+      final tile = placedTiles[entry.key];
+      if (tile != null) {
+        tile.highlightedSides =
+            _tilePermanentHighlights[entry.key] ?? const {};
+      }
+    }
+    _previewNeighborHighlights = const {};
   }
 
   void removeTile(HexCoords coords) {
     final existing = placedTiles.remove(coords);
     if (existing != null) remove(existing);
     placedCells.remove(coords);
+    _tilePermanentHighlights.remove(coords);
   }
 
   /// Affiche des pièces (pièces de monnaie) au niveau de chaque côté connecté
@@ -339,11 +345,8 @@ class HexGridComponent extends PositionComponent {
 
   @override
   void render(Canvas canvas) {
-    // Les tuiles posées et la prévisualisation sont des PositionComponent
-    // enfants, Flame les dessine automatiquement par-dessus. Ici on ne
-    // dessine QUE les surbrillances des emplacements disponibles — c'est le
-    // seul indicateur de grille visible, aucun contour de grille par
-    // ailleurs (règle story 1.2 / 1.5a).
+    // Pendant la prévisualisation, on masque les surbrillances.
+    if (_previewCoords != null && _previewTile != null) return;
     if (availableHighlights.isEmpty) return;
 
     final layout = _layout;
@@ -506,48 +509,5 @@ class _PreviewCoinComponent extends PositionComponent {
   }
 }
 
-/// Icône de tuile bonus statique pour la prévisualisation (au-dessus de la
-/// cellule prévisualisée — story 1.7a).
-class _BonusTilePreviewComponent extends PositionComponent {
-  _BonusTilePreviewComponent({required super.position, required this._hexSize})
-      : super(priority: 10);
-
-  final double _hexSize;
-
-  @override
-  void render(Canvas canvas) {
-    const alpha = 0.85;
-    final hexSize = _hexSize;
-
-    final corners = List.generate(6, (i) {
-      final angleDeg = 60.0 * i - 90.0;
-      final angleRad = angleDeg * pi / 180.0;
-      return Offset(
-        hexSize * cos(angleRad),
-        hexSize * sin(angleRad),
-      );
-    });
-
-    final path = Path()..moveTo(corners[0].dx, corners[0].dy);
-    for (var i = 1; i < 6; i++) {
-      path.lineTo(corners[i].dx, corners[i].dy);
-    }
-    path.close();
-
-    canvas.drawPath(
-      path,
-      Paint()
-        ..color = const Color(0xFF6FA8DC).withValues(alpha: alpha)
-        ..style = PaintingStyle.fill,
-    );
-    canvas.drawPath(
-      path,
-      Paint()
-        ..color = Colors.white.withValues(alpha: alpha * 0.7)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.2,
-    );
-  }
-}
 
 

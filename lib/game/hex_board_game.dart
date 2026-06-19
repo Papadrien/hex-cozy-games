@@ -6,22 +6,19 @@
 /// Story 1.5b : validation du placement (second tap), bouton annuler.
 ///
 /// Gestes — tout géré dans Flame, pas de GestureDetector Flutter par-dessus :
-///  - Pan 1 doigt   → [PanDetector.onPanUpdate] : déplace la caméra si AUCUNE
-///    prévisualisation n'est en cours ; sinon le delta vertical fait tourner
-///    la tuile prévisualisée (swipe vertical = rotation, voir story 1.5a).
-///    Ces deux usages ne coexistent jamais sur le même geste, donc pas
-///    d'interférence (cf. critère d'acceptance story 1.2b).
-///  - Zoom 2 doigts → [ScaleGestureRecognizer] enregistré manuellement dans
-///    `onLoad()` pour éviter les conflits d'arène avec PanDetector
-///  - Tap           → [MultiTouchTapDetector.onTapDown] : sélectionne/déplace
-///    la prévisualisation sur un emplacement disponible (story 1.5a), ou
-///    valide le placement si tap sur la cellule déjà sélectionnée (story 1.5b).
+///  - Scale (pan+zoom) → [ScaleDetector.onScaleUpdate] : pan 1 doigt + zoom
+///    pinch 2 doigts, fonctionne même pendant la prévisualisation.
+///  - Tap → [MultiTouchTapDetector.onTapDown] : sélectionne/déplace la
+///    prévisualisation sur un emplacement disponible (story 1.5a), valide le
+///    placement si tap sur la cellule déjà sélectionnée (story 1.5b), annule
+///    la prévisualisation si tap en dehors.
 library;
+
+import 'dart:ui' show Color;
 
 import 'package:flame/events.dart';
 import 'package:flame/game.dart';
 import 'package:flutter/gestures.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/grid_state_provider.dart';
@@ -32,13 +29,8 @@ import 'hex_coords.dart';
 import 'hex_grid_component.dart';
 import 'hex_tile.dart';
 
-/// Nombre de pixels logiques de swipe vertical nécessaires pour déclencher
-/// une rotation de 60°. Une valeur assez petite pour qu'un swipe franc sur
-/// quelques crans reste confortable en un seul geste (multi-crans).
-const double kSwipePixelsPerRotationStep = 36.0;
-
 class HexBoardGame extends FlameGame
-    with PanDetector, MultiTouchTapDetector {
+    with MultiTouchTapDetector {
   HexBoardGame({required this._ref});
 
   final WidgetRef _ref;
@@ -58,9 +50,8 @@ class HexBoardGame extends FlameGame
     _initBoard();
     _syncPlacementPreview();
 
-    // Enregistre ScaleGestureRecognizer manuellement pour le pinch-zoom.
-    // On ne mixe PAS ScaleDetector (qui entrerait en conflit d'arène
-    // gestuelle avec PanDetector).
+    // Gesture unique pour pan (1 doigt) + zoom (pinch 2 doigts).
+    // ScaleGestureRecognizer gère les deux sans conflit d'arène.
     gestureDetectors.add<ScaleGestureRecognizer>(
       ScaleGestureRecognizer.new,
       (ScaleGestureRecognizer instance) {
@@ -81,8 +72,15 @@ class HexBoardGame extends FlameGame
     if (_isPaused) return;
     final grid = _grid;
     if (grid == null) return;
+
+    // Pan : déplacement caméra (1 ou 2 doigts)
+    final delta = details.focalPointDelta;
+    grid.cameraOffset.add(Vector2(delta.dx, delta.dy));
+
+    // Zoom : pinch à 2 doigts
     grid.zoom = (_scaleStart * details.scale)
         .clamp(HexGridComponent.minZoom, HexGridComponent.maxZoom);
+
     _cameraDirty = true;
   }
 
@@ -167,6 +165,17 @@ class HexBoardGame extends FlameGame
     final reward = _ref.read(previewRewardProvider);
     grid.previewHighlightedSides = reward.connectedSides.toSet();
     grid.previewBonusTiles = reward.bonusTiles;
+
+    // Surbrillance des voisins qui seront connectés.
+    final neighborHighlights = <HexCoords, Set<int>>{};
+    if (placement.selected != null) {
+      for (final side in reward.connectedSides) {
+        final neighborCoords = placement.selected!.neighbor(side);
+        final facingSide = (side + 3) % 6;
+        neighborHighlights.putIfAbsent(neighborCoords, () => {}).add(facingSide);
+      }
+    }
+    grid.previewNeighborHighlights = neighborHighlights;
   }
 
   /// Pose la tuile prévisualisée sur la grille Flame (appelé depuis
@@ -205,6 +214,7 @@ class HexBoardGame extends FlameGame
 
     final coords = grid.hexAt(info.eventPosition.widget.toOffset());
     final placement = _ref.read(placementProvider);
+    final placementNotifier = _ref.read(placementProvider.notifier);
 
     if (placement.selected == coords) {
       // Second tap sur la même cellule → validation du placement (story 1.5b)
@@ -213,49 +223,14 @@ class HexBoardGame extends FlameGame
       return;
     }
 
-    _ref.read(placementProvider.notifier).selectCell(coords);
-  }
-
-  // ── Pan : déplacement caméra OU rotation de la prévisualisation ────────────
-
-  double _verticalDragAccumPx = 0.0;
-
-  @override
-  void onPanUpdate(DragUpdateInfo info) {
-    if (_isPaused) return;
-    final hasSelection = _ref.read(placementProvider).hasSelection;
-
-    if (hasSelection) {
-      // Swipe vertical pendant la prévisualisation = rotation (story 1.5a).
-      // Le delta global est en pixels logiques d'écran, indépendant du zoom
-      // caméra — on veut un geste de rotation à sensibilité constante.
-      _verticalDragAccumPx += info.delta.global.y;
-      final steps = (_verticalDragAccumPx / kSwipePixelsPerRotationStep)
-          .truncate();
-      if (steps != 0) {
-        _ref.read(placementProvider.notifier).rotate(steps);
-        _verticalDragAccumPx -= steps * kSwipePixelsPerRotationStep;
-      }
+    if (placement.hasSelection && !placementNotifier.availableCells.contains(coords)) {
+      // Tap en dehors des emplacements disponibles → annuler la prévisualisation.
+      placementNotifier.clearSelection();
       return;
     }
 
-    _grid?.cameraOffset.add(info.delta.global);
-    _cameraDirty = true;
+    placementNotifier.selectCell(coords);
   }
-
-  @override
-  void onPanEnd(DragEndInfo info) {
-    if (_isPaused) return;
-    _verticalDragAccumPx = 0.0;
-  }
-
-  @override
-  void onPanCancel() {
-    if (_isPaused) return;
-    _verticalDragAccumPx = 0.0;
-  }
-
-  // ── Zoom ──────────────────────────────────────────────────────────────────
 
   double _scaleStart = 1.0;
 }
