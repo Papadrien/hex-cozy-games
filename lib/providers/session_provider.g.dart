@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'tile_stack_provider.dart';
+part of 'session_provider.dart';
 
 // **************************************************************************
 // RiverpodGenerator
@@ -9,52 +9,51 @@ part of 'tile_stack_provider.dart';
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
 
-@ProviderFor(TileStack)
-const tileStackProvider = TileStackProvider._();
+@ProviderFor(Session)
+const sessionProvider = SessionProvider._();
 
-final class TileStackProvider
-    extends $NotifierProvider<TileStack, TileStackState> {
-  const TileStackProvider._()
+final class SessionProvider extends $NotifierProvider<Session, SessionState> {
+  const SessionProvider._()
     : super(
         from: null,
         argument: null,
         retry: null,
-        name: r'tileStackProvider',
-        isAutoDispose: true,
+        name: r'sessionProvider',
+        isAutoDispose: false,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
 
   @override
-  String debugGetCreateSourceHash() => _$tileStackHash();
+  String debugGetCreateSourceHash() => _$sessionHash();
 
   @$internal
   @override
-  TileStack create() => TileStack();
+  Session create() => Session();
 
   /// {@macro riverpod.override_with_value}
-  Override overrideWithValue(TileStackState value) {
+  Override overrideWithValue(SessionState value) {
     return $ProviderOverride(
       origin: this,
-      providerOverride: $SyncValueProvider<TileStackState>(value),
+      providerOverride: $SyncValueProvider<SessionState>(value),
     );
   }
 }
 
-String _$tileStackHash() => r'b42f1a799948b9da934bece7a83489164e4d2af7';
+String _$sessionHash() => r'fd24d1dc239e71392282234ddf7a7108c293fab6';
 
-abstract class _$TileStack extends $Notifier<TileStackState> {
-  TileStackState build();
+abstract class _$Session extends $Notifier<SessionState> {
+  SessionState build();
   @$mustCallSuper
   @override
   void runBuild() {
     final created = build();
-    final ref = this.ref as $Ref<TileStackState, TileStackState>;
+    final ref = this.ref as $Ref<SessionState, SessionState>;
     final element =
         ref.element
             as $ClassProviderElement<
-              AnyNotifier<TileStackState, TileStackState>,
-              TileStackState,
+              AnyNotifier<SessionState, SessionState>,
+              SessionState,
               Object?,
               Object?
             >;

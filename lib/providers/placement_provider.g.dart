@@ -41,7 +41,7 @@ final class PlacementProvider
   }
 }
 
-String _$placementHash() => r'cd3a18e8e445bba1a8c62c0b6d1facee226db654';
+String _$placementHash() => r'2509dbe62a13c4eb2ada83764d05312e66b80ca2';
 
 abstract class _$Placement extends $Notifier<PlacementState> {
   PlacementState build();

@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class HomeScreen extends StatelessWidget {
+import '../providers/grid_state_provider.dart';
+import '../providers/placement_commit.dart';
+import '../providers/session_provider.dart';
+import '../providers/tile_stack_provider.dart';
+
+class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       backgroundColor: const Color(0xFF1A2332),
       body: Center(
@@ -31,7 +37,7 @@ class HomeScreen extends StatelessWidget {
                   ),
                 ),
                 onPressed: () {
-                  Navigator.pushReplacementNamed(context, '/game');
+                  _startNewGame(context, ref);
                 },
                 child: const Text(
                   'Play',
@@ -47,5 +53,15 @@ class HomeScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  void _startNewGame(BuildContext context, WidgetRef ref) {
+    // Terminer proprement la session précédente.
+    SessionSaver.endSession(ref);
+    // Réinitialiser tous les états de jeu.
+    ref.invalidate(gridProvider);
+    ref.invalidate(tileStackProvider);
+    ref.read(sessionProvider.notifier).reset();
+    Navigator.pushReplacementNamed(context, '/game');
   }
 }

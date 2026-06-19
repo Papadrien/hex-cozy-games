@@ -61,6 +61,7 @@ class TileComponent extends PositionComponent {
     double hexSize = kTileSize,
     this._alpha = 1.0,
     this._showBorder = true,
+    this.highlightedSides = const {},
     Vector2? position,
   })  : _hexSize = hexSize,
         super(
@@ -86,6 +87,9 @@ class TileComponent extends PositionComponent {
   set alpha(double value) => _alpha = value.clamp(0.0, 1.0);
 
   final bool _showBorder;
+
+  /// Côtés à surligner en permanence (prévisualisation des connexions).
+  Set<int> highlightedSides;
 
   // ── Glow (story 1.6b) ──────────────────────────────────────────────────────
 
@@ -133,6 +137,17 @@ class TileComponent extends PositionComponent {
           path,
           Paint()
             ..color = Colors.white.withValues(alpha: _glowAlpha)
+            ..style = PaintingStyle.fill,
+        );
+      }
+
+      // Surbrillance persistante des côtés bien connectés en prévisualisation
+      // (story 1.7a).
+      if (highlightedSides.contains(i) && _alpha < 1.0) {
+        canvas.drawPath(
+          path,
+          Paint()
+            ..color = Colors.white.withValues(alpha: 0.20)
             ..style = PaintingStyle.fill,
         );
       }

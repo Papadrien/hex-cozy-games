@@ -150,12 +150,25 @@ class HexBoardGame extends FlameGame
     grid.availableHighlights = placementNotifier.availableCells;
     grid.previewCoords = placement.selected;
     grid.previewTile = placementNotifier.previewTile;
+
+    // Côtés bien connectés et tuiles bonus à montrer sur la prévisualisation.
+    final reward = _ref.read(previewRewardProvider);
+    grid.previewHighlightedSides = reward.connectedSides.toSet();
+    grid.previewBonusTiles = reward.bonusTiles;
   }
 
   /// Pose la tuile prévisualisée sur la grille Flame (appelé depuis
   /// [confirmPlacement] via le callback [onConfirm]).
-  void placeTileOnFlame(HexCoords coords, HexTile tile, List<int> connectedSides) {
+  void placeTileOnFlame(
+    HexCoords coords,
+    HexTile tile,
+    List<int> connectedSides,
+    int bonusTiles,
+  ) {
     _grid?.placeTile(coords, tile, connectedSides: connectedSides);
+    if (connectedSides.isNotEmpty || bonusTiles > 0) {
+      _grid?.showRewardIndicators(coords, connectedSides, bonusTiles: bonusTiles);
+    }
     _syncPlacementPreview();
   }
 

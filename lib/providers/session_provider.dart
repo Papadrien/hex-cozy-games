@@ -1,12 +1,11 @@
-/// État de session : pièces et tuiles bonus accumulées — Story 1.6b.
-///
-/// [coins] et [totalBonusTiles] sont cumulés au fil des placements.
-/// [lastReward] garde la dernière récompense pour l'affichage de confirmation.
+/// État de session : pièces et tuiles bonus accumulées — Story 1.6b / 1.7a.
 library;
 
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import 'reward_model.dart';
+
+part 'session_provider.g.dart';
 
 /// État cumulé de la session en cours.
 class SessionState {
@@ -33,7 +32,8 @@ class SessionState {
   }
 }
 
-class SessionNotifier extends Notifier<SessionState> {
+@Riverpod(keepAlive: true)
+class Session extends _$Session {
   @override
   SessionState build() => const SessionState();
 
@@ -61,7 +61,9 @@ class SessionNotifier extends Notifier<SessionState> {
       lastReward: null,
     );
   }
-}
 
-final sessionProvider =
-    NotifierProvider<SessionNotifier, SessionState>(SessionNotifier.new);
+  /// Réinitialise l'état de session à zéro (utilisé pour nouvelle partie).
+  void reset() {
+    state = const SessionState();
+  }
+}

@@ -1,5 +1,9 @@
 import 'dart:convert';
+
+import 'package:drift/drift.dart' show InsertMode, Value;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../data/app_database.dart';
 import '../game/hex_coords.dart';
 import '../game/hex_tile.dart';
 import 'grid_state_provider.dart';
@@ -44,22 +48,75 @@ final previewRewardProvider = Provider<PlacementReward>((ref) {
   return PlacementReward(connectedSides: sides, bonusTiles: bonus);
 });
 
+/// Persiste l'état de session dans Drift après chaque placement (Story 1.7a).
+///
+/// Stocke l'intégralité de l'état nécessaire à une restauration fidèle :
+/// plateau, pile, pièces, tuiles bonus, dernier placement (pour annuler).
 class SessionSaver {
-  static String? lastSnapshot;
-  static void save(WidgetRef ref) {
+  static void save(WidgetRef ref) async {
+    final db = ref.read(appDatabaseProvider);
     final grid = ref.read(gridProvider);
-    lastSnapshot = jsonEncode({'tiles': grid.placedTiles.length});
+    final stack = ref.read(tileStackProvider);
+    final session = ref.read(sessionProvider);
+    final lastPlacement = ref.read(lastPlacementProvider);
+
+    final gridJson = jsonEncode(
+      grid.placedTiles.map(
+        (k, v) => MapEntry('${k.q},${k.r}', v.sides.map((b) => b.name).toList()),
+      ),
+    );
+
+    final stackJson = jsonEncode({
+      'remaining': stack.remaining,
+      'visible': stack.visible
+          .map((t) => t.sides.map((b) => b.name).toList())
+          .toList(),
+    });
+
+    String? lastTileJson;
+    if (lastPlacement != null) {
+      lastTileJson = jsonEncode({
+        'q': lastPlacement.coords.q,
+        'r': lastPlacement.coords.r,
+        'sides': lastPlacement.tile.sides.map((b) => b.name).toList(),
+        'bonusTiles': lastPlacement.bonusTiles,
+      });
+    }
+
+    await db.into(db.gameSession).insert(
+          GameSessionRow(
+            id: 1, // Session unique pour le MVP
+            gridState: gridJson,
+            tileStack: stackJson,
+            coins: session.coins,
+            totalBonusTiles: session.totalBonusTiles,
+            lastTilePlaced: lastTileJson,
+            placedTilesCount: grid.placedTiles.length,
+            isActive: true,
+            createdAt: DateTime.now(),
+            updatedAt: DateTime.now(),
+          ),
+          mode: InsertMode.replace,
+        );
+  }
+
+  /// Marque la session active comme terminée (fin de partie ou abandon).
+  static Future<void> endSession(WidgetRef ref) async {
+    final db = ref.read(appDatabaseProvider);
+    await (db.update(db.gameSession)..where((t) => t.id.equals(1)))
+        .write(const GameSessionCompanion(isActive: Value(false)));
   }
 }
 
 /// Valide le placement de la tuile prévisualisée et attribue les récompenses.
 ///
-/// [onConfirm] : callback appelé avec les coordonnées, la tuile et la liste
-/// des côtés connectés pour mettre à jour le rendu Flame (HexGridComponent).
+/// [onConfirm] : callback appelé avec les coordonnées, la tuile, la liste
+/// des côtés connectés et le nombre de tuiles bonus pour mettre à jour le
+/// rendu Flame (HexGridComponent).
 /// Découplé du provider pour éviter une dépendance circulaire providers → Flame.
 void confirmPlacement(
   WidgetRef ref, {
-  required void Function(HexCoords coords, HexTile tile, List<int> connectedSides) onConfirm,
+  required void Function(HexCoords coords, HexTile tile, List<int> connectedSides, int bonusTiles) onConfirm,
 }) {
   final p = ref.read(placementProvider);
   final tile = ref.read(placementProvider.notifier).previewTile;
@@ -72,7 +129,7 @@ void confirmPlacement(
   ref.read(gridProvider.notifier).placeTile(coords, tile);
 
   // 2. Mettre à jour le rendu Flame via le callback (avec les connexions).
-  onConfirm(coords, tile, reward.connectedSides);
+  onConfirm(coords, tile, reward.connectedSides, reward.bonusTiles);
 
   // 3. Mémoriser pour le bouton Annuler (avec les bonus pour l'undo).
   ref.read(lastPlacementProvider.notifier).set(

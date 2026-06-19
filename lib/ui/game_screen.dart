@@ -83,7 +83,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
           const Positioned(
             top: 48,
             left: 16,
-            child: _DebugBadge(label: 'Story 1.6b — Bonus et feedback visuel'),
+            child: _DebugBadge(label: 'Story 1.7a — Persistance GameSession + preview connexions'),
           ),
 
           // ── Compteur de pièces (story 1.6b) ───────────────────────────────
@@ -119,15 +119,9 @@ class _GameScreenState extends ConsumerState<GameScreen> {
             }),
           ),
 
-          // ── Bouton Annuler + icônes de gains ──────────────────────────────
+          // ── Bouton Annuler ──────────────────────────────────────────────
           Consumer(builder: (context, ref, _) {
-            final reward = ref.watch(previewRewardProvider);
-            final session = ref.watch(sessionProvider);
             final canUndo = ref.watch(lastPlacementProvider) != null;
-
-            // Affiche la récompense de confirmation (après placement) OU la
-            // prévisualisation (avant placement).
-            final displayReward = session.lastReward ?? reward;
 
             return Stack(children: [
               Positioned(
@@ -144,64 +138,6 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                   child: const Icon(Icons.undo),
                 ),
               ),
-              if (displayReward.connectedSides.isNotEmpty)
-                Positioned(
-                  top: 180,
-                  left: 24,
-                  child: Row(children: [
-                    for (final _ in displayReward.connectedSides)
-                      TweenAnimationBuilder(
-                        duration: const Duration(milliseconds: 350),
-                        tween: Tween(begin: 1.57, end: 0.0),
-                        builder: (c, v, ch) => Transform(
-                          transform: Matrix4.identity()
-                            ..setEntry(3, 2, 0.001)
-                            ..rotateX(v),
-                          alignment: Alignment.center,
-                          child: ch,
-                        ),
-                        child: CircleAvatar(
-                          radius: 10,
-                          backgroundColor:
-                              session.lastReward != null
-                                  ? Colors.amber
-                                  : Colors.grey.shade300,
-                          child: Icon(
-                            Icons.monetization_on,
-                            size: 12,
-                            color: session.lastReward != null
-                                ? Colors.white
-                                : Colors.black54,
-                          ),
-                        ),
-                      ),
-                  ]),
-                ),
-              if (displayReward.bonusTiles > 0)
-                Positioned(
-                  top: 220,
-                  left: 60,
-                  child: Row(children: [
-                    for (int i = 0; i < displayReward.bonusTiles; i++)
-                      TweenAnimationBuilder(
-                        duration: const Duration(milliseconds: 350),
-                        tween: Tween(begin: 1.57, end: 0.0),
-                        builder: (c, v, ch) => Transform(
-                          transform: Matrix4.identity()
-                            ..setEntry(3, 2, 0.001)
-                            ..rotateX(v),
-                          child: ch,
-                        ),
-                        child: Icon(
-                          Icons.hexagon,
-                          size: 18,
-                          color: session.lastReward != null
-                              ? Colors.lightBlue
-                              : Colors.white54,
-                        ),
-                      ),
-                  ]),
-                ),
             ]);
           }),
 
