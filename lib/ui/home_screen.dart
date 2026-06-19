@@ -5,6 +5,7 @@ import '../core/strings.dart';
 import '../providers/end_game_provider.dart';
 import '../providers/grid_state_provider.dart';
 import '../providers/placement_commit.dart';
+import '../providers/placement_provider.dart';
 import '../providers/session_provider.dart';
 import '../providers/tile_stack_provider.dart';
 
@@ -85,9 +86,11 @@ class HomeScreen extends ConsumerWidget {
 
   void _startNewGame(BuildContext context, WidgetRef ref) {
     SessionSaver.endSession(ref);
-    ref.invalidate(gridProvider);
+    ref.read(gridProvider.notifier).setState({});
     ref.invalidate(tileStackProvider);
     ref.read(sessionProvider.notifier).reset();
+    ref.read(lastPlacementProvider.notifier).set(null);
+    ref.read(placementProvider.notifier).clearSelection();
     resetEndGame(ref);
     Navigator.pushReplacementNamed(context, '/game');
   }
