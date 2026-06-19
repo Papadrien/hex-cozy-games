@@ -47,6 +47,13 @@ class _GameScreenState extends ConsumerState<GameScreen> {
   Timer? _clearRewardTimer;
   double _rewardOpacity = 0.0;
 
+  // Clés réelles utilisées par le tutoriel (Story 1.10a) pour cibler les
+  // éléments UI à mettre en évidence — le highlight suit la position et la
+  // taille effectives du widget, plutôt que des coordonnées arbitraires.
+  final GlobalKey _boardKey = GlobalKey();
+  final GlobalKey _coinsKey = GlobalKey();
+  final GlobalKey _tileStackKey = GlobalKey();
+
   @override
   void initState() {
     super.initState();
@@ -94,7 +101,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
       body: Stack(
         children: [
           // ── Jeu Flame — reçoit TOUS les gestes directement ────────────────
-          GameWidget(game: _game),
+          GameWidget(key: _boardKey, game: _game),
 
           // ── Badge debug ───────────────────────────────────────────────────
           const Positioned(
@@ -110,6 +117,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
             child: Consumer(builder: (context, ref, _) {
               final session = ref.watch(sessionProvider);
               return Column(
+                key: _coinsKey,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -165,6 +173,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
             top: 96,
             right: 12,
             child: Column(
+              key: _tileStackKey,
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 const TileStackHud(),
@@ -180,7 +189,13 @@ class _GameScreenState extends ConsumerState<GameScreen> {
           const ResultsModal(),
 
           // ── Tutoriel premier lancement (Story 1.10a / 1.10b) ────────────
-          const TutorialOverlay(),
+          TutorialOverlay(
+            targetKeys: {
+              'board': _boardKey,
+              'tileStack': _tileStackKey,
+              'coins': _coinsKey,
+            },
+          ),
         ],
       ),
     );

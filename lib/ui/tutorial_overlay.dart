@@ -3,6 +3,12 @@
 /// Affiche un overlay semi-transparent avec une zone en évidence
 /// (highlight) correspondant à l'étape courante, un texte d'instruction,
 /// un indicateur de progression, et des boutons Suivant / Passer.
+///
+/// Story 1.10a (fix) : le highlight suit la position et la taille réelles
+/// du widget ciblé — calculées via la [GlobalKey] correspondante
+/// (transmise par [GameScreen] dans [targetKeys]) — au lieu de coordonnées
+/// arbitraires en pourcentage d'écran, qui ne correspondaient à aucun
+/// élément UI réel.
 library;
 
 import 'package:flutter/material.dart';
@@ -11,161 +17,212 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/strings.dart';
 import '../providers/tutorial_provider.dart';
 
-class TutorialOverlay extends ConsumerWidget {
-  const TutorialOverlay({super.key});
+class TutorialOverlay extends ConsumerStatefulWidget {
+  const TutorialOverlay({super.key, required this.targetKeys});
+
+  /// Map `highlightTargetKey` (cf. [TutorialStep]) → [GlobalKey] du widget
+  /// réel à mettre en évidence dans l'arbre de [GameScreen].
+  final Map<String, GlobalKey> targetKeys;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final tutorial = ref.watch(tutorialProvider);
-    if (!tutorial.isActive) return const SizedBox.shrink();
+  ConsumerState<TutorialOverlay> createState() => _TutorialOverlayState();
+}
 
-    final notifier = ref.read(tutorialProvider.notifier);
-    final step = notifier.currentStepData;
+class _TutorialOverlayState extends ConsumerState<TutorialOverlay>
+    with WidgetsBindingObserver {
+  bool _wasActive = false;
 
-    final screenSize = MediaQuery.of(context).size;
-    final highlightRect = _highlightRectFor(step.highlightTargetKey, screenSize);
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
 
-    return Stack(
-      children: [
-        // Arrière-plan semi-transparent qui bloque les interactions
-        GestureDetector(
-          onTap: () {},
-          child: Container(color: Colors.black.withValues(alpha: 0.65)),
-        ),
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
 
-        // Zone en évidence (highlight)
-        if (highlightRect != null)
-          Positioned(
-            top: highlightRect.top,
-            left: highlightRect.left,
-            child: SizedBox(
-              width: highlightRect.width,
-              height: highlightRect.height,
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: const Color(0xFF6FA8DC),
-                    width: 3,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF6FA8DC).withValues(alpha: 0.35),
-                      blurRadius: 24,
-                      spreadRadius: 6,
+  // Recalcule le highlight si la taille de l'écran change (rotation,
+  // split-screen, etc.) puisque les rects sont dérivés du layout réel.
+  @override
+  void didChangeMetrics() {
+    if (mounted) setState(() {});
+  }
+
+  /// Force un second build juste après le premier frame où le tutoriel
+  /// devient actif : garantit que les [RenderBox] ciblées sont bien
+  /// mesurées (le tout premier build après activation peut survenir avant
+  /// que le layout des widgets cibles ne soit stabilisé).
+  void _scheduleHighlightRefresh() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer(builder: (context, ref, _) {
+      final tutorial = ref.watch(tutorialProvider);
+      if (!tutorial.isActive) {
+        _wasActive = false;
+        return const SizedBox.shrink();
+      }
+      if (!_wasActive) {
+        _wasActive = true;
+        _scheduleHighlightRefresh();
+      }
+
+      final notifier = ref.read(tutorialProvider.notifier);
+      final step = notifier.currentStepData;
+      final highlightRect = _resolveRect(step.highlightTargetKey);
+
+      // Place la carte d'instruction au-dessus ou en dessous de la zone
+      // surlignée selon l'espace disponible, pour ne jamais la recouvrir.
+      final screenSize = MediaQuery.of(context).size;
+      final safeBottom = MediaQuery.of(context).padding.bottom;
+      final cardBelowHighlight = highlightRect == null ||
+          highlightRect.bottom < screenSize.height * 0.55;
+      final cardTop = cardBelowHighlight
+          ? (highlightRect?.bottom ?? screenSize.height * 0.5) + 24
+          : null;
+      final cardBottom = cardBelowHighlight ? null : 160 + safeBottom;
+
+      return Stack(
+        children: [
+          // Arrière-plan semi-transparent qui bloque les interactions.
+          GestureDetector(
+            onTap: () {},
+            child: Container(color: Colors.black.withValues(alpha: 0.65)),
+          ),
+
+          // Zone en évidence (highlight) — uniquement si le widget ciblé
+          // est bien monté et mesurable.
+          if (highlightRect != null)
+            Positioned(
+              top: highlightRect.top,
+              left: highlightRect.left,
+              child: IgnorePointer(
+                child: SizedBox(
+                  width: highlightRect.width,
+                  height: highlightRect.height,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: const Color(0xFF6FA8DC),
+                        width: 3,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF6FA8DC).withValues(alpha: 0.35),
+                          blurRadius: 24,
+                          spreadRadius: 6,
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
+                ),
+              ),
+            ),
+
+          // Texte d'instruction — repositionné dynamiquement pour ne pas
+          // chevaucher le highlight.
+          Positioned(
+            top: cardTop,
+            bottom: cardBottom,
+            left: 32,
+            right: 32,
+            child: _InstructionCard(text: _stepText(step.textKey)),
+          ),
+
+          // Indicateur de progression (points)
+          Positioned(
+            bottom: 48 + safeBottom,
+            left: 0,
+            right: 0,
+            child: _StepDots(
+              total: kTutorialSteps.length,
+              current: tutorial.currentStep,
+            ),
+          ),
+
+          // Bouton Passer
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 8,
+            right: 12,
+            child: TextButton(
+              onPressed: () => notifier.skip(),
+              child: Text(
+                Str.tutorial_skip,
+                style: const TextStyle(
+                  color: Colors.white70,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ),
           ),
 
-        // Texte d'instruction
-        Positioned(
-          bottom: 160,
-          left: 32,
-          right: 32,
-          child: _InstructionCard(text: _stepText(step.textKey)),
-        ),
-
-        // Indicateur de progression (points)
-        Positioned(
-          bottom: 108,
-          left: 0,
-          right: 0,
-          child: _StepDots(
-            total: kTutorialSteps.length,
-            current: tutorial.currentStep,
-          ),
-        ),
-
-        // Bouton Passer
-        Positioned(
-          top: MediaQuery.of(context).padding.top + 8,
-          right: 12,
-          child: TextButton(
-            onPressed: () => notifier.skip(),
-            child: Text(
-              Str.tutorial_skip,
-              style: const TextStyle(
-                color: Colors.white70,
-                fontSize: 15,
-                fontWeight: FontWeight.w500,
+          // Bouton Suivant / Terminer
+          Positioned(
+            bottom: 96 + safeBottom,
+            right: 32,
+            child: FilledButton(
+              onPressed: () => notifier.next(),
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFF6FA8DC),
+                padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+              child: Text(
+                notifier.isLastStep ? 'OK' : '→',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
           ),
-        ),
-
-        // Bouton Suivant / Terminer
-        Positioned(
-          bottom: 48,
-          right: 32,
-          child: FilledButton(
-            onPressed: () => notifier.next(),
-            style: FilledButton.styleFrom(
-              backgroundColor: const Color(0xFF6FA8DC),
-              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-              ),
-            ),
-            child: Text(
-              notifier.isLastStep ? 'OK' : '→',
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
+        ],
+      );
+    });
   }
 
-  Rect? _highlightRectFor(String key, Size screen) {
-    final w = screen.width;
-    final h = screen.height;
+  /// Calcule le [Rect] global (coordonnées écran) du widget ciblé par
+  /// [highlightKey], à partir de sa [GlobalKey] réelle. Retourne `null`
+  /// si la clé est inconnue, si le widget n'est pas encore monté/mesuré
+  /// (premier frame), ou si la cible occupe la quasi-totalité de l'écran
+  /// (ex. le plateau de jeu en plein écran) — dans ce dernier cas, un
+  /// cadre de highlight n'apporterait rien visuellement, seuls le texte
+  /// et les dots de progression restent affichés.
+  Rect? _resolveRect(String highlightKey) {
+    final key = widget.targetKeys[highlightKey];
+    if (key == null) return null;
 
-    switch (key) {
-      case 'board':
-        return Rect.fromLTWH(
-          w * 0.15,
-          h * 0.22,
-          w * 0.70,
-          h * 0.35,
-        );
-      case 'preview':
-        return Rect.fromLTWH(
-          w * 0.20,
-          h * 0.30,
-          w * 0.60,
-          h * 0.35,
-        );
-      case 'coins':
-        return Rect.fromLTWH(
-          16,
-          h * 0.18,
-          120,
-          48,
-        );
-      case 'placement':
-        return Rect.fromLTWH(
-          w * 0.15,
-          h * 0.25,
-          w * 0.70,
-          h * 0.30,
-        );
-      case 'connections':
-        return Rect.fromLTWH(
-          w * 0.10,
-          h * 0.22,
-          w * 0.80,
-          h * 0.35,
-        );
-      default:
-        return null;
-    }
+    final renderObject = key.currentContext?.findRenderObject();
+    if (renderObject is! RenderBox || !renderObject.hasSize) return null;
+
+    final topLeft = renderObject.localToGlobal(Offset.zero);
+    final size = renderObject.size;
+    final screenSize = MediaQuery.of(context).size;
+    final coversScreen =
+        size.width >= screenSize.width * 0.9 && size.height >= screenSize.height * 0.9;
+    if (coversScreen) return null;
+
+    // Léger padding autour du widget pour que le highlight "respire"
+    // au lieu de coller exactement aux bords du contenu.
+    const padding = 10.0;
+    return Rect.fromLTWH(
+      topLeft.dx - padding,
+      topLeft.dy - padding,
+      size.width + padding * 2,
+      size.height + padding * 2,
+    );
   }
 
   String _stepText(String textKey) {

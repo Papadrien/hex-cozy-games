@@ -19,7 +19,7 @@ const List<TutorialStep> kTutorialSteps = [
     order: 0,
   ),
   TutorialStep(
-    highlightTargetKey: 'preview',
+    highlightTargetKey: 'board',
     textKey: 'tutorial.step2',
     order: 1,
   ),
@@ -29,12 +29,12 @@ const List<TutorialStep> kTutorialSteps = [
     order: 2,
   ),
   TutorialStep(
-    highlightTargetKey: 'placement',
+    highlightTargetKey: 'board',
     textKey: 'tutorial.step4',
     order: 3,
   ),
   TutorialStep(
-    highlightTargetKey: 'connections',
+    highlightTargetKey: 'board',
     textKey: 'tutorial.step5',
     order: 4,
   ),
