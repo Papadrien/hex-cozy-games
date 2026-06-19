@@ -4,6 +4,7 @@ import 'package:drift/drift.dart' show InsertMode, Value;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/app_database.dart';
+import '../game/hex_cell.dart';
 import '../game/hex_coords.dart';
 import '../game/hex_tile.dart';
 import 'grid_state_provider.dart';
@@ -11,6 +12,76 @@ import 'placement_provider.dart';
 import 'reward_model.dart';
 import 'session_provider.dart';
 import 'tile_stack_provider.dart';
+
+/// Vérifie si une session active existe en base (Story 1.7b).
+final activeSessionProvider = FutureProvider<bool>((ref) async {
+  final db = ref.read(appDatabaseProvider);
+  final rows = await (db.select(db.gameSession)
+        ..where((t) => t.isActive.equals(true))
+        ..limit(1))
+      .get();
+  return rows.isNotEmpty;
+});
+
+/// Restaure l'état complet d'une session active depuis la base.
+///
+/// À appeler avant de naviguer vers l'écran de jeu pour que les providers
+/// soient déjà initialisés lors de la création du [HexBoardGame].
+Future<void> restoreSession(WidgetRef ref) async {
+  final db = ref.read(appDatabaseProvider);
+  final rows = await (db.select(db.gameSession)
+        ..where((t) => t.isActive.equals(true))
+        ..limit(1))
+      .get();
+  if (rows.isEmpty) return;
+
+  final row = rows.first;
+
+  // Restaurer le plateau.
+  final gridJson =
+      jsonDecode(row.gridState) as Map<String, dynamic>;
+  final placedTiles = <HexCoords, HexTile>{};
+  for (final entry in gridJson.entries) {
+    final parts = entry.key.split(',');
+    final q = int.parse(parts[0]);
+    final r = int.parse(parts[1]);
+    final sides = (entry.value as List)
+        .map((s) => BiomeType.values.firstWhere((b) => b.name == s))
+        .toList();
+    placedTiles[HexCoords(q, r)] = HexTile(sides: sides);
+  }
+  ref.read(gridProvider.notifier).setState(placedTiles);
+
+  // Restaurer la pile de tuiles.
+  final stackJson = jsonDecode(row.tileStack);
+  final queueList = (stackJson['queue'] as List)
+      .map((t) => (t as List)
+          .map((s) => BiomeType.values.firstWhere((b) => b.name == s))
+          .toList())
+      .map((sides) => HexTile(sides: sides))
+      .toList();
+  ref.read(tileStackProvider.notifier).restoreQueue(queueList);
+
+  // Restaurer la session (pièces, tuiles bonus).
+  ref.read(sessionProvider.notifier).restore(SessionState(
+        coins: row.coins,
+        totalBonusTiles: row.totalBonusTiles,
+      ));
+
+  // Restaurer le dernier placement (pour le bouton Annuler).
+  if (row.lastTilePlaced != null) {
+    final lastJson = jsonDecode(row.lastTilePlaced!);
+    final sides = (lastJson['sides'] as List)
+        .map((s) => BiomeType.values.firstWhere((b) => b.name == s))
+        .toList();
+    final tile = HexTile(sides: sides);
+    ref.read(lastPlacementProvider.notifier).set(LastPlacement(
+          HexCoords(lastJson['q'], lastJson['r']),
+          tile,
+          bonusTiles: lastJson['bonusTiles'],
+        ));
+  }
+}
 
 class LastPlacement {
   LastPlacement(this.coords, this.tile, {this.bonusTiles = 0});
@@ -66,11 +137,14 @@ class SessionSaver {
       ),
     );
 
+    final queue = ref.read(tileStackProvider.notifier).queue;
+    final queueJson =
+        queue.map((t) => t.sides.map((b) => b.name).toList()).toList();
     final stackJson = jsonEncode({
       'remaining': stack.remaining,
-      'visible': stack.visible
-          .map((t) => t.sides.map((b) => b.name).toList())
-          .toList(),
+      'visible':
+          stack.visible.map((t) => t.sides.map((b) => b.name).toList()).toList(),
+      'queue': queueJson,
     });
 
     String? lastTileJson;

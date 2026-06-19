@@ -120,4 +120,9 @@ class Grid extends _$Grid {
     final updated = {...state.placedTiles}..remove(coords);
     state = GridState(placedTiles: updated);
   }
+
+  /// Remplace tout l'état du plateau (restauration de session).
+  void setState(Map<HexCoords, HexTile> tiles) {
+    state = GridState(placedTiles: tiles);
+  }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/strings.dart';
 import '../providers/grid_state_provider.dart';
 import '../providers/placement_commit.dart';
 import '../providers/session_provider.dart';
@@ -11,6 +12,8 @@ class HomeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final activeSession = ref.watch(activeSessionProvider);
+
     return Scaffold(
       backgroundColor: const Color(0xFF1A2332),
       body: Center(
@@ -37,14 +40,38 @@ class HomeScreen extends ConsumerWidget {
                   ),
                 ),
                 onPressed: () {
-                  _startNewGame(context, ref);
+                  activeSession.whenData((hasSession) {
+                    if (hasSession) {
+                      _resumeGame(context, ref);
+                    } else {
+                      _startNewGame(context, ref);
+                    }
+                  });
                 },
-                child: const Text(
-                  'Play',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
+                child: activeSession.when(
+                  loading: () => const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  ),
+                  data: (hasSession) => Text(
+                    hasSession ? Str.home_resume : Str.home_play,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  error: (_, _) => Text(
+                    Str.home_play,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ),
@@ -56,12 +83,17 @@ class HomeScreen extends ConsumerWidget {
   }
 
   void _startNewGame(BuildContext context, WidgetRef ref) {
-    // Terminer proprement la session précédente.
     SessionSaver.endSession(ref);
-    // Réinitialiser tous les états de jeu.
     ref.invalidate(gridProvider);
     ref.invalidate(tileStackProvider);
     ref.read(sessionProvider.notifier).reset();
     Navigator.pushReplacementNamed(context, '/game');
+  }
+
+  void _resumeGame(BuildContext context, WidgetRef ref) async {
+    await restoreSession(ref);
+    if (context.mounted) {
+      Navigator.pushReplacementNamed(context, '/game');
+    }
   }
 }

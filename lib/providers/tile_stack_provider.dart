@@ -112,4 +112,15 @@ class TileStack extends _$TileStack {
     _queue.removeRange(_queue.length - count, _queue.length);
     state = _buildState();
   }
+
+  /// Remplace la file interne par [queue] (restauration de session).
+  void restoreQueue(List<HexTile> queue) {
+    _queue
+      ..clear()
+      ..addAll(queue);
+    state = _buildState();
+  }
+
+  /// Retourne la file complète (pour sérialisation).
+  List<HexTile> get queue => List.unmodifiable(_queue);
 }

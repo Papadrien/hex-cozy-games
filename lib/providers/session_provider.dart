@@ -66,4 +66,9 @@ class Session extends _$Session {
   void reset() {
     state = const SessionState();
   }
+
+  /// Remplace l'état de session (restauration de partie).
+  void restore(SessionState restored) {
+    state = restored;
+  }
 }

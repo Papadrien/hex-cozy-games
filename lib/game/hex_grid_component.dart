@@ -65,6 +65,7 @@ class HexGridComponent extends PositionComponent {
   Set<int> _previewHighlightedSides = const {};
   int _previewBonusTiles = 0;
   final List<PositionComponent> _previewBonusComponents = [];
+  final List<PositionComponent> _previewCoinComponents = [];
 
   /// Côtés de la tuile prévisualisée qui seraient connectés (story 1.7a).
   /// Met à jour la surbrillance sur le composant de prévisualisation existant
@@ -76,6 +77,7 @@ class HexGridComponent extends PositionComponent {
     if (_previewComponent != null) {
       _previewComponent!.highlightedSides = value;
     }
+    _syncPreviewCoinComponents();
   }
 
   /// Nombre de tuiles bonus à afficher au-dessus de la prévisualisation.
@@ -123,6 +125,10 @@ class HexGridComponent extends PositionComponent {
         remove(c);
       }
       _previewBonusComponents.clear();
+      for (final c in _previewCoinComponents) {
+        remove(c);
+      }
+      _previewCoinComponents.clear();
       return;
     }
 
@@ -139,6 +145,7 @@ class HexGridComponent extends PositionComponent {
       existing.position = liftedPosition;
       existing.highlightedSides = _previewHighlightedSides;
       _syncPreviewBonusComponents();
+      _syncPreviewCoinComponents();
       return;
     }
 
@@ -158,6 +165,7 @@ class HexGridComponent extends PositionComponent {
     add(component);
 
     _syncPreviewBonusComponents();
+    _syncPreviewCoinComponents();
   }
 
   /// Gère les icônes de tuiles bonus au-dessus de la prévisualisation.
@@ -175,13 +183,40 @@ class HexGridComponent extends PositionComponent {
     final hexSize = kBaseHexSize * zoom;
 
     for (var i = 0; i < _previewBonusTiles; i++) {
-      final offsetY = -(hexSize * kIsoScaleY * 1.6 + i * 18.0);
+      final offsetY = -(hexSize * kIsoScaleY * 0.4 + i * 18.0);
       final component = _BonusTilePreviewComponent(
         position: Vector2(center.x, center.y + offsetY),
         hexSize: hexSize * 0.2,
       );
-      component.priority = 3;
+      component.priority = 11;
       _previewBonusComponents.add(component);
+      add(component);
+    }
+  }
+
+  /// Gère les icônes de pièces au niveau de chaque côté bien connecté pendant
+  /// la prévisualisation.
+  void _syncPreviewCoinComponents() {
+    for (final c in _previewCoinComponents) {
+      remove(c);
+    }
+    _previewCoinComponents.clear();
+
+    if (_previewCoords == null || _previewHighlightedSides.isEmpty) return;
+
+    final layout = _layout;
+    final center = layout.hexToPixel(_previewCoords!, isoScaleY: kIsoScaleY);
+    final hexSize = kBaseHexSize * zoom;
+
+    for (final side in _previewHighlightedSides) {
+      final offset = _sideEdgeMidpoint(side, hexSize);
+      final pos = Vector2(center.x + offset.x, center.y + offset.y);
+      final component = _PreviewCoinComponent(
+        position: pos,
+        hexSize: hexSize,
+      );
+      component.priority = 11;
+      _previewCoinComponents.add(component);
       add(component);
     }
   }
@@ -211,7 +246,8 @@ class HexGridComponent extends PositionComponent {
   ///
   /// [connectedSides] : si fourni, les côtés correspondants s'illuminent
   /// brièvement (glow — story 1.6b).
-  void placeTile(HexCoords coords, HexTile tile, {List<int>? connectedSides}) {
+  void placeTile(HexCoords coords, HexTile tile,
+      {List<int>? connectedSides, Set<int>? highlightedSides}) {
     final existing = placedTiles.remove(coords);
     if (existing != null) remove(existing);
 
@@ -222,6 +258,7 @@ class HexGridComponent extends PositionComponent {
       coords: coords,
       hexSize: kBaseHexSize * zoom,
       position: Vector2(center.x, center.y),
+      highlightedSides: highlightedSides ?? const {},
     );
 
     if (connectedSides != null && connectedSides.isNotEmpty) {
@@ -264,12 +301,8 @@ class HexGridComponent extends PositionComponent {
       add(_RewardCoinComponent(position: pos, hexSize: hexSize));
     }
 
-    // Tuiles bonus au-dessus de la cellule.
-    for (var i = 0; i < bonusTiles; i++) {
-      final offsetY = -(hexSize * kIsoScaleY * 1.6 + i * 22.0);
-      final pos = Vector2(centerVec.x, centerVec.y + offsetY);
-      add(_BonusTileComponent(position: pos, hexSize: hexSize));
-    }
+    // Tuiles bonus : incrémentées dans le stock via addBonusTiles,
+    // pas d'icône visuelle ici.
   }
 
   /// Calcule le décalage (dx, dy) du point milieu du côté [side] (0-5) par
@@ -436,6 +469,43 @@ class _RewardCoinComponent extends PositionComponent {
   }
 }
 
+/// Pièce statique pour la prévisualisation (au niveau d'un côté connecté).
+class _PreviewCoinComponent extends PositionComponent {
+  _PreviewCoinComponent({required super.position, required double hexSize})
+      : _radius = hexSize * 0.18,
+        super(priority: 10);
+
+  final double _radius;
+
+  @override
+  void render(Canvas canvas) {
+    const alpha = 0.85;
+    final r = _radius;
+
+    canvas.drawCircle(
+      Offset.zero,
+      r,
+      Paint()
+        ..color = const Color(0xFFFFD600).withValues(alpha: alpha)
+        ..style = PaintingStyle.fill,
+    );
+    canvas.drawCircle(
+      Offset.zero,
+      r * 0.7,
+      Paint()
+        ..color = const Color(0xFFFFA000).withValues(alpha: alpha * 0.8)
+        ..style = PaintingStyle.fill,
+    );
+    canvas.drawCircle(
+      Offset.zero,
+      r * 0.35,
+      Paint()
+        ..color = const Color(0xFFFFFFFF).withValues(alpha: alpha * 0.9)
+        ..style = PaintingStyle.fill,
+    );
+  }
+}
+
 /// Icône de tuile bonus statique pour la prévisualisation (au-dessus de la
 /// cellule prévisualisée — story 1.7a).
 class _BonusTilePreviewComponent extends PositionComponent {
@@ -480,59 +550,4 @@ class _BonusTilePreviewComponent extends PositionComponent {
   }
 }
 
-/// Icône de tuile bonus animée au-dessus de la cellule posée ou prévisualisée.
-class _BonusTileComponent extends PositionComponent {
-  _BonusTileComponent({required super.position, required double hexSize})
-      : _hexSize = hexSize * 0.22,
-        super(priority: 10);
 
-  final double _hexSize;
-  double _life = 0.0;
-  static const double _kDuration = 1.2;
-
-  @override
-  void update(double dt) {
-    super.update(dt);
-    _life += dt;
-    if (_life >= _kDuration) {
-      removeFromParent();
-    }
-  }
-
-  @override
-  void render(Canvas canvas) {
-    final alpha = (_life < 0.3)
-        ? (_life / 0.3)
-        : (1.0 - (_life - 0.3) / (_kDuration - 0.3));
-    final hexSize = _hexSize + _life * 1.5;
-
-    final corners = List.generate(6, (i) {
-      final angleDeg = 60.0 * i - 90.0;
-      final angleRad = angleDeg * pi / 180.0;
-      return Offset(
-        hexSize * cos(angleRad),
-        hexSize * sin(angleRad),
-      );
-    });
-
-    final path = Path()..moveTo(corners[0].dx, corners[0].dy);
-    for (var i = 1; i < 6; i++) {
-      path.lineTo(corners[i].dx, corners[i].dy);
-    }
-    path.close();
-
-    canvas.drawPath(
-      path,
-      Paint()
-        ..color = const Color(0xFF6FA8DC).withValues(alpha: alpha)
-        ..style = PaintingStyle.fill,
-    );
-    canvas.drawPath(
-      path,
-      Paint()
-        ..color = Colors.white.withValues(alpha: alpha * 0.7)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.2,
-    );
-  }
-}

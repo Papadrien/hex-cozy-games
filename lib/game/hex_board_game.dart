@@ -55,7 +55,7 @@ class HexBoardGame extends FlameGame
     await super.onLoad();
     _grid = HexGridComponent(screenSize: size.clone());
     add(_grid!);
-    _placeSampleTiles();
+    _initBoard();
     _syncPlacementPreview();
 
     // Enregistre ScaleGestureRecognizer manuellement pour le pinch-zoom.
@@ -91,6 +91,21 @@ class HexBoardGame extends FlameGame
     _scaleStart = _grid?.zoom ?? 1.0;
   }
 
+  void _initBoard() {
+    final grid = _grid;
+    if (grid == null) return;
+
+    final gridState = _ref.read(gridProvider);
+    if (gridState.isEmpty) {
+      _placeSampleTiles();
+    } else {
+      // Partie reprise : placer toutes les tuiles restaurées sur Flame.
+      for (final entry in gridState.placedTiles.entries) {
+        grid.placeTile(entry.key, entry.value);
+      }
+    }
+  }
+
   void _placeSampleTiles() {
     final grid = _grid;
     if (grid == null) return;
@@ -106,10 +121,7 @@ class HexBoardGame extends FlameGame
     grid.placeTile(HexCoords(2, -2), kTilePool[5]);
     grid.placeTile(HexCoords(1, -2), kTilePool[6]);
 
-    // Reflète l'état initial du plateau de démo dans gridProvider pour
-    // que la logique de disponibilité (story 1.5a) soit cohérente avec ce
-    // qui est affiché. À terme (story 1.6+), placeTile passera exclusivement
-    // par le provider plutôt que par cet appel direct à Flame.
+    // Reflète l'état initial du plateau de démo dans gridProvider.
     final notifier = _ref.read(gridProvider.notifier);
     for (final coords in grid.placedTiles.keys) {
       notifier.placeTile(coords, grid.placedTiles[coords]!.tile);
@@ -165,7 +177,9 @@ class HexBoardGame extends FlameGame
     List<int> connectedSides,
     int bonusTiles,
   ) {
-    _grid?.placeTile(coords, tile, connectedSides: connectedSides);
+    _grid?.placeTile(coords, tile,
+        connectedSides: connectedSides,
+        highlightedSides: connectedSides.toSet());
     if (connectedSides.isNotEmpty || bonusTiles > 0) {
       _grid?.showRewardIndicators(coords, connectedSides, bonusTiles: bonusTiles);
     }

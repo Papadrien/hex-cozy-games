@@ -141,9 +141,8 @@ class TileComponent extends PositionComponent {
         );
       }
 
-      // Surbrillance persistante des côtés bien connectés en prévisualisation
-      // (story 1.7a).
-      if (highlightedSides.contains(i) && _alpha < 1.0) {
+      // Surbrillance persistante des côtés bien connectés (story 1.7a).
+      if (highlightedSides.contains(i)) {
         canvas.drawPath(
           path,
           Paint()

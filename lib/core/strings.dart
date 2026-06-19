@@ -40,4 +40,8 @@ abstract class Str {
       _isFr ? 'Annuler' : 'Cancel';
   static String get pause_abandonConfirmConfirm =>
       _isFr ? 'Abandonner' : 'Abandon';
+
+  // Story 1.7b — Reprise de partie
+  static String get home_play => _isFr ? 'Jouer' : 'Play';
+  static String get home_resume => _isFr ? 'Reprendre' : 'Resume';
 }

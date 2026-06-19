@@ -83,7 +83,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
           const Positioned(
             top: 48,
             left: 16,
-            child: _DebugBadge(label: 'Story 1.7a — Persistance GameSession + preview connexions'),
+            child: _DebugBadge(label: 'Story 1.7b — Reprise de partie'),
           ),
 
           // ── Compteur de pièces (story 1.6b) ───────────────────────────────
