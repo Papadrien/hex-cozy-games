@@ -80,6 +80,18 @@ class GridState {
     return candidates;
   }
 
+  /// Vrai si [tile] (dans au moins une rotation) a un côté dont le biome
+  /// correspond au côté opposé d'une tuile voisine en [coords].
+  /// Utilisé pour la contrainte de continuité des bords (Story 1.9b).
+  bool canPlaceTileAt(HexCoords coords, HexTile tile) {
+    if (isEmpty) return true; // première tuile toujours autorisée
+    for (var rotation = 0; rotation < 6; rotation++) {
+      final rotated = tile.rotated(rotation);
+      if (hasCompatibleSide(coords, rotated)) return true;
+    }
+    return false;
+  }
+
   /// Compte le nombre de côtés de la tuile [tile] placée en [coords] qui
   /// sont connectés à une tuile adjacente avec un biome correspondant.
   ///

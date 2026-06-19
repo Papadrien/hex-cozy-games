@@ -78,36 +78,10 @@ class HexBoardGame extends FlameGame
     final grid = _grid;
     if (grid == null) return;
 
+    // Partie reprise : placer toutes les tuiles restaurées sur Flame.
     final gridState = _ref.read(gridProvider);
-    if (gridState.isEmpty) {
-      _placeSampleTiles();
-    } else {
-      // Partie reprise : placer toutes les tuiles restaurées sur Flame.
-      for (final entry in gridState.placedTiles.entries) {
-        grid.placeTile(entry.key, entry.value);
-      }
-    }
-  }
-
-  void _placeSampleTiles() {
-    final grid = _grid;
-    if (grid == null) return;
-
-    grid.placeTile(HexCoords(0, 0),  kTilePool[2]);
-    grid.placeTile(HexCoords(1, -1), kTilePool[3]);
-    grid.placeTile(HexCoords(1, 0),  kTilePool[7]);
-    grid.placeTile(HexCoords(0, 1),  kTilePool[8]);
-    grid.placeTile(HexCoords(-1, 1), kTilePool[9]);
-    grid.placeTile(HexCoords(-1, 0), kTilePool[10]);
-    grid.placeTile(HexCoords(0, -1), kTilePool[11]);
-    grid.placeTile(HexCoords(2, -1), kTilePool[4]);
-    grid.placeTile(HexCoords(2, -2), kTilePool[5]);
-    grid.placeTile(HexCoords(1, -2), kTilePool[6]);
-
-    // Reflète l'état initial du plateau de démo dans gridProvider.
-    final notifier = _ref.read(gridProvider.notifier);
-    for (final coords in grid.placedTiles.keys) {
-      notifier.placeTile(coords, grid.placedTiles[coords]!.tile);
+    for (final entry in gridState.placedTiles.entries) {
+      grid.placeTile(entry.key, entry.value);
     }
   }
 

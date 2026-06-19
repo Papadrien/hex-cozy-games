@@ -55,13 +55,14 @@ Future<void> restoreSession(WidgetRef ref) async {
 
   // Restaurer la pile de tuiles.
   final stackJson = jsonDecode(row.tileStack);
+  final seed = stackJson['seed'] as int?;
   final queueList = (stackJson['queue'] as List)
       .map((t) => (t as List)
           .map((s) => BiomeType.values.firstWhere((b) => b.name == s))
           .toList())
       .map((sides) => HexTile(sides: sides))
       .toList();
-  ref.read(tileStackProvider.notifier).restoreQueue(queueList);
+  ref.read(tileStackProvider.notifier).restoreQueue(queueList, seed: seed);
 
   // Restaurer la session (pièces, tuiles bonus).
   ref.read(sessionProvider.notifier).restore(SessionState(
@@ -148,6 +149,7 @@ class SessionSaver {
     final queueJson =
         queue.map((t) => t.sides.map((b) => b.name).toList()).toList();
     final stackJson = jsonEncode({
+      'seed': stack.seed,
       'remaining': stack.remaining,
       'visible':
           stack.visible.map((t) => t.sides.map((b) => b.name).toList()).toList(),
@@ -205,6 +207,7 @@ void confirmPlacement(
   if (p.selected == null || tile == null) return;
 
   final coords = p.selected!;
+
   final reward = ref.read(previewRewardProvider);
 
   // 1. Mettre à jour le provider de grille (logique pure).

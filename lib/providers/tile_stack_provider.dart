@@ -1,10 +1,9 @@
-/// Logique de tirage et état de la pile de tuiles — Story 1.4a.
+/// Logique de tirage et état de la pile de tuiles — Story 1.4a / 1.9a.
 ///
-/// Le pool de tuiles ([kTilePool]) est mélangé au départ (Fisher-Yates).
-/// La pile expose les [kVisibleStackSize] prochaines tuiles ; la tuile
-/// active (première de la pile) est celle que le joueur va poser.
-///
-/// Pas encore d'UI ici (voir story 1.4b).
+/// Le pool de tuiles est généré aléatoirement (Story 1.9a) avec un seed
+/// stocké dans l'état pour reproductibilité. La pile expose les
+/// [kVisibleStackSize] prochaines tuiles ; la tuile active (première de
+/// la pile) est celle que le joueur va poser.
 library;
 
 import 'dart:math';
@@ -22,11 +21,17 @@ part 'tile_stack_provider.g.dart';
 /// tuiles actuellement visibles (donc `remaining >= visible.length`).
 /// [visible] : les [kVisibleStackSize] prochaines tuiles, la première
 /// (`visible.first`) étant la tuile active.
+/// [seed] : seed aléatoire utilisé pour générer le pool (reproductibilité).
 class TileStackState {
-  const TileStackState({required this.remaining, required this.visible});
+  const TileStackState({
+    required this.remaining,
+    required this.visible,
+    this.seed,
+  });
 
   final int remaining;
   final List<HexTile> visible;
+  final int? seed;
 
   /// La tuile que le joueur va poser ensuite, ou null si la pile est vide.
   HexTile? get activeTile => visible.isEmpty ? null : visible.first;
@@ -41,31 +46,40 @@ class TileStack extends _$TileStack {
 
   @override
   TileStackState build() {
+    final seed = Random().nextInt(1 << 31);
+    final rng = Random(seed);
     _queue
       ..clear()
-      ..addAll(_shuffledPool());
-    return _buildState();
+      ..addAll(generateTilePool(kStartingTiles, rng));
+    _shuffleQueue(rng);
+    return _buildState(seed: seed);
   }
 
-  /// Mélange une copie du pool fixe via Fisher-Yates.
-  List<HexTile> _shuffledPool({Random? random}) {
+  /// Mélange la file avec Fisher-Yates.
+  void _shuffleQueue([Random? random]) {
     final rng = random ?? Random();
-    final shuffled = List<HexTile>.of(kTilePool);
-    for (var i = shuffled.length - 1; i > 0; i--) {
+    for (var i = _queue.length - 1; i > 0; i--) {
       final j = rng.nextInt(i + 1);
-      final tmp = shuffled[i];
-      shuffled[i] = shuffled[j];
-      shuffled[j] = tmp;
+      final tmp = _queue[i];
+      _queue[i] = _queue[j];
+      _queue[j] = tmp;
     }
-    return shuffled;
   }
 
-  TileStackState _buildState() {
+  /// Génère un petit pool frais pour les tuiles bonus en dérivant le seed.
+  List<HexTile> _bonusPool(int count) {
+    final bonusSeed = (state.seed ?? 0) + _queue.length + 1;
+    final rng = Random(bonusSeed);
+    return generateTilePool(count, rng);
+  }
+
+  TileStackState _buildState({int? seed}) {
     return TileStackState(
       remaining: _queue.length,
       visible: List.unmodifiable(
         _queue.take(kVisibleStackSize),
       ),
+      seed: seed ?? state.seed,
     );
   }
 
@@ -89,15 +103,15 @@ class TileStack extends _$TileStack {
     state = _buildState();
   }
 
-  /// Ajoute [count] tuiles bonus en fin de file (prélevées d'un pool
-  /// fraîchement mélangé).
+  /// Ajoute [count] tuiles bonus en fin de file (générées depuis un seed
+  /// dérivé).
   ///
   /// Utilisé par l'attribution de récompense (story 1.6b) : les tuiles
   /// bonus sont insérées après la file actuelle, le joueur les verra
   /// arriver une fois la file courante épuisée.
   void addBonusTiles(int count) {
     if (count <= 0) return;
-    _queue.addAll(_shuffledPool().take(count));
+    _queue.addAll(_bonusPool(count));
     state = _buildState();
   }
 
@@ -109,12 +123,13 @@ class TileStack extends _$TileStack {
     state = _buildState();
   }
 
-  /// Remplace la file interne par [queue] (restauration de session).
-  void restoreQueue(List<HexTile> queue) {
+  /// Remplace la file interne par [queue] et restaure le [seed]
+  /// (restauration de session).
+  void restoreQueue(List<HexTile> queue, {int? seed}) {
     _queue
       ..clear()
       ..addAll(queue);
-    state = _buildState();
+    state = _buildState(seed: seed ?? state.seed);
   }
 
   /// Retourne la file complète (pour sérialisation).

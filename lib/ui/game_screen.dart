@@ -29,7 +29,9 @@ import 'results_modal.dart';
 import 'tile_stack_hud.dart';
 
 /// Durée d'affichage de l'animation de confirmation de récompense (story 1.6b).
+/// Le tag reste visible 1.5s puis disparaît en fade out sur 0.5s (total 2s).
 const Duration _kConfirmationDuration = Duration(milliseconds: 1500);
+const Duration _kFadeOutDuration = Duration(milliseconds: 500);
 
 class GameScreen extends ConsumerStatefulWidget {
   const GameScreen({super.key});
@@ -41,6 +43,7 @@ class GameScreen extends ConsumerStatefulWidget {
 class _GameScreenState extends ConsumerState<GameScreen> {
   late final HexBoardGame _game;
   Timer? _clearRewardTimer;
+  double _rewardOpacity = 0.0;
 
   @override
   void initState() {
@@ -63,12 +66,19 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     });
 
     // Auto-effacement de la dernière récompense affichée après le délai.
+    // Fade out sur 500ms après 1.5s de visibilité.
     ref.listen<SessionState>(sessionProvider, (prev, next) {
       if (next.lastReward != null && prev?.lastReward != next.lastReward) {
         _clearRewardTimer?.cancel();
+        setState(() => _rewardOpacity = 1.0);
         _clearRewardTimer = Timer(_kConfirmationDuration, () {
           if (mounted) {
-            ref.read(sessionProvider.notifier).clearLastReward();
+            setState(() => _rewardOpacity = 0.0);
+            Future.delayed(_kFadeOutDuration, () {
+              if (mounted) {
+                ref.read(sessionProvider.notifier).clearLastReward();
+              }
+            });
           }
         });
       }
@@ -88,24 +98,31 @@ class _GameScreenState extends ConsumerState<GameScreen> {
             child: _DebugBadge(label: 'Story 1.8b — écran résultats'),
           ),
 
-          // ── Compteur de pièces (story 1.6b) ───────────────────────────────
+          // ── Compteur de pièces (story 1.6b) + récompense pièces ────────
           Positioned(
             top: 80,
             left: 16,
             child: Consumer(builder: (context, ref, _) {
               final session = ref.watch(sessionProvider);
-              return Row(children: [
-                const Icon(Icons.monetization_on, color: Colors.amber, size: 20),
-                const SizedBox(width: 4),
-                Text(
-                  '${session.coins}',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ]);
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(children: [
+                    const Icon(Icons.monetization_on, color: Colors.amber, size: 20),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${session.coins}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ]),
+                  _CoinRewardTag(opacity: _rewardOpacity),
+                ],
+              );
             }),
           ),
 
@@ -138,16 +155,15 @@ class _GameScreenState extends ConsumerState<GameScreen> {
             child: PauseButton(),
           ),
 
-          // ── HUD pile de tuiles + récompenses (story 1.7g) ────────────────
-          const Positioned(
+          // ── HUD pile de tuiles + tag tuiles bonus (story 1.7g) ──────────
+          Positioned(
             top: 96,
             right: 12,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                TileStackHud(),
-                SizedBox(height: 8),
-                _RewardTag(),
+                const TileStackHud(),
+                _BonusTileTag(opacity: _rewardOpacity),
               ],
             ),
           ),
@@ -187,10 +203,11 @@ class _DebugBadge extends StatelessWidget {
   }
 }
 
-/// Message de récompense affiché sous la pile de tuiles après chaque placement
-/// (story 1.7g). Disparaît automatiquement via le timer dans [GameScreen].
-class _RewardTag extends ConsumerWidget {
-  const _RewardTag();
+/// Tag pièces — affiché sous le compteur de pièces. Disparaît en fade out.
+class _CoinRewardTag extends ConsumerWidget {
+  const _CoinRewardTag({required this.opacity});
+
+  final double opacity;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -199,52 +216,74 @@ class _RewardTag extends ConsumerWidget {
     if (reward == null) return const SizedBox.shrink();
 
     final coins = reward.connectedSides.length + reward.bonusTiles;
-    final hasBonusTiles = reward.bonusTiles > 0;
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.55),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.end,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.monetization_on, color: Colors.amber, size: 16),
-              const SizedBox(width: 4),
-              Text(
-                '+$coins${Str.reward_coins}',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                ),
+    return Opacity(
+      opacity: opacity,
+      child: Container(
+        margin: const EdgeInsets.only(top: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.55),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.monetization_on, color: Colors.amber, size: 16),
+            const SizedBox(width: 4),
+            Text(
+              '+$coins${Str.reward_coins}',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
               ),
-            ],
-          ),
-          if (hasBonusTiles) ...[
-            const SizedBox(height: 4),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.hexagon, color: Colors.lightBlue, size: 14),
-                const SizedBox(width: 4),
-                Text(
-                  '+${reward.bonusTiles}${Str.reward_bonusTiles}',
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
             ),
           ],
-        ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Tag tuiles bonus — affiché sous la pile de tuiles. Disparaît en fade out.
+class _BonusTileTag extends ConsumerWidget {
+  const _BonusTileTag({required this.opacity});
+
+  final double opacity;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final session = ref.watch(sessionProvider);
+    final reward = session.lastReward;
+    if (reward == null || reward.bonusTiles <= 0) {
+      return const SizedBox.shrink();
+    }
+
+    return Opacity(
+      opacity: opacity,
+      child: Container(
+        margin: const EdgeInsets.only(top: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.55),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.hexagon, color: Colors.lightBlue, size: 14),
+            const SizedBox(width: 4),
+            Text(
+              '+${reward.bonusTiles}${Str.reward_bonusTiles}',
+              style: const TextStyle(
+                color: Colors.white70,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

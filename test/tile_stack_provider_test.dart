@@ -1,16 +1,17 @@
-// Tests unitaires pour tileStackProvider — Story 1.4a.
+// Tests unitaires pour tileStackProvider — Story 1.4a / 1.9a.
 //
 // Vérifie :
-//  - le shuffle Fisher-Yates produit bien une permutation du pool
-//  - exactement kVisibleStackSize tuiles sont visibles (ou moins si le pool
-//    en a moins, ce qui n'arrive pas en pratique avec kTilePool)
+//  - le pool généré a la taille de kStartingTiles
+//  - chaque tuile respecte max 3 biomes et arcs contigus
+//  - exactement kVisibleStackSize tuiles sont visibles
 //  - consommer la tuile active fait avancer la pile correctement
-//  - la pile se ré-alimente automatiquement une fois épuisée
+//  - la pile épuisée n'est pas ré-alimentée (fin de partie)
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:hex_cozy_games/core/constants.dart';
+import 'package:hex_cozy_games/game/hex_cell.dart';
 import 'package:hex_cozy_games/game/hex_tile.dart';
 import 'package:hex_cozy_games/providers/tile_stack_provider.dart';
 
@@ -23,32 +24,47 @@ void main() {
       final state = container.read(tileStackProvider);
 
       expect(state.visible.length, kVisibleStackSize);
-      expect(state.remaining, kTilePool.length);
+      expect(state.remaining, kStartingTiles);
       expect(state.activeTile, state.visible.first);
     });
 
-    test('le shuffle est une permutation valide du pool (pas de perte/ajout)', () {
+    test('le pool généré respecte max 3 biomes et arcs contigus', () {
       final container = ProviderContainer();
       addTearDown(container.dispose);
 
-      // On consomme toute la pile initiale (avant ré-alimentation) et on
-      // vérifie qu'on retrouve exactement les tuiles du pool, dans un ordre
-      // potentiellement différent.
       final drawn = <HexTile>[];
-      for (var i = 0; i < kTilePool.length; i++) {
+      for (var i = 0; i < kStartingTiles; i++) {
         final active = container.read(tileStackProvider).activeTile;
         expect(active, isNotNull);
         drawn.add(active!);
         container.read(tileStackProvider.notifier).consumeActiveTile();
       }
 
-      expect(drawn.length, kTilePool.length);
-      // Même multiset de tuiles (comparaison par sides, HexTile n'a pas de ==).
-      final drawnSides = drawn.map((t) => t.sides.toList()).toList()
-        ..sort((a, b) => a.toString().compareTo(b.toString()));
-      final poolSides = kTilePool.map((t) => t.sides.toList()).toList()
-        ..sort((a, b) => a.toString().compareTo(b.toString()));
-      expect(drawnSides, poolSides);
+      expect(drawn.length, kStartingTiles);
+
+      for (final tile in drawn) {
+        // Max 3 biomes par tuile.
+        expect(tile.biomeCount, lessThanOrEqualTo(kMaxBiomeTypesPerTile));
+
+        // Arcs contigus : après rotation, les biomes identiques sont groupés.
+        // On dédouble la liste pour gérer le wrap-around, et on vérifie
+        // que chaque biome n'apparaît que dans un seul bloc continu.
+        final sides = tile.sides;
+        final doubled = [...sides, ...sides];
+        final firsts = <BiomeType, int>{};
+        for (var i = 0; i < 6; i++) {
+          firsts.putIfAbsent(sides[i], () => i);
+        }
+        for (final entry in firsts.entries) {
+          final start = entry.value;
+          final count = sides.where((b) => b == entry.key).length;
+          // Tous les count exemplaires doivent être consécutifs à partir
+          // de [start].
+          for (var i = 0; i < count; i++) {
+            expect(doubled[start + i], entry.key);
+          }
+        }
+      }
     });
 
     test('consumeActiveTile fait avancer la pile et décrémente remaining', () {
@@ -68,20 +84,20 @@ void main() {
       expect(after.visible.first, isNot(firstTile));
     });
 
-    test('la pile se ré-alimente automatiquement une fois épuisée', () {
+    test('la pile épuisée ne se ré-alimente pas (fin de partie)', () {
       final container = ProviderContainer();
       addTearDown(container.dispose);
 
       // Vide complètement la pile initiale.
-      for (var i = 0; i < kTilePool.length; i++) {
+      for (var i = 0; i < kStartingTiles; i++) {
         container.read(tileStackProvider.notifier).consumeActiveTile();
       }
 
       final state = container.read(tileStackProvider);
-      // La pile a été ré-alimentée avec un nouveau pool mélangé : on doit
-      // toujours avoir des tuiles visibles et un remaining cohérent.
-      expect(state.visible.length, kVisibleStackSize);
-      expect(state.remaining, kTilePool.length);
+      // La pile est vide : plus de tuiles visibles, remaining = 0.
+      expect(state.visible.length, 0);
+      expect(state.remaining, 0);
+      expect(state.activeTile, isNull);
     });
   });
 }
