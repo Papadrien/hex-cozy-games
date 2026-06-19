@@ -242,8 +242,8 @@ void confirmPlacement(
     final session = ref.read(sessionProvider);
     final stats = computeEndGameStats(grid, session.coins);
 
-    ref.read(isGameOverProvider.notifier).state = true;
-    ref.read(endGameStatsProvider.notifier).state = stats;
+    ref.read(isGameOverProvider.notifier).set(true);
+    ref.read(endGameStatsProvider.notifier).set(stats);
 
     SessionSaver.endSession(ref);
   }

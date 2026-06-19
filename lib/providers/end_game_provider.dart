@@ -57,14 +57,31 @@ EndGameStats computeEndGameStats(
   );
 }
 
+class _GameOverNotifier extends Notifier<bool> {
+  @override
+  bool build() => false;
+
+  void set(bool value) => state = value;
+}
+
 /// Indique si la partie est terminée (true) ou toujours en cours (false).
-final isGameOverProvider = StateProvider<bool>((ref) => false);
+final isGameOverProvider =
+    NotifierProvider<_GameOverNotifier, bool>(_GameOverNotifier.new);
+
+class _EndGameStatsNotifier extends Notifier<EndGameStats?> {
+  @override
+  EndGameStats? build() => null;
+
+  void set(EndGameStats? stats) => state = stats;
+}
 
 /// Dernières statistiques calculées à la fin de la partie.
-final endGameStatsProvider = StateProvider<EndGameStats?>((ref) => null);
+final endGameStatsProvider =
+    NotifierProvider<_EndGameStatsNotifier, EndGameStats?>(
+        _EndGameStatsNotifier.new);
 
 /// Réinitialise les providers de fin de partie pour une nouvelle partie.
 void resetEndGame(WidgetRef ref) {
-  ref.read(isGameOverProvider.notifier).state = false;
-  ref.read(endGameStatsProvider.notifier).state = null;
+  ref.read(isGameOverProvider.notifier).set(false);
+  ref.read(endGameStatsProvider.notifier).set(null);
 }

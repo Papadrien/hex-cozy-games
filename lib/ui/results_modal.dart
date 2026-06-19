@@ -64,7 +64,7 @@ class _ResultsCard extends ConsumerWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           // Titre
-          const Text(
+          Text(
             Str.results_title,
             style: TextStyle(
               color: Colors.white,
