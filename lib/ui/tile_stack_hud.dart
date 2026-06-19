@@ -16,6 +16,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../game/hex_tile.dart';
 import '../game/tile_component.dart' show BiomeColor;
+import '../providers/placement_provider.dart';
 import '../providers/tile_stack_provider.dart';
 
 /// Rayon (centre → sommet) de la tuile active dans la pile, en px logiques.
@@ -36,6 +37,7 @@ class TileStackHud extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final stackState = ref.watch(tileStackProvider);
+    final placement = ref.watch(placementProvider);
     final visible = stackState.visible;
 
     if (visible.isEmpty) return const SizedBox.shrink();
@@ -57,6 +59,23 @@ class TileStackHud extends ConsumerWidget {
                   tile: visible[i],
                   indexInStack: i,
                   totalVisible: visible.length,
+                ),
+              if (placement.hasSelection)
+                Positioned(
+                  top: -4,
+                  right: -4,
+                  child: GestureDetector(
+                    onTap: () => ref.read(placementProvider.notifier).clearSelection(),
+                    child: Container(
+                      width: 26,
+                      height: 26,
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.6),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.close, size: 16, color: Colors.white70),
+                    ),
+                  ),
                 ),
             ],
           ),

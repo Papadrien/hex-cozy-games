@@ -38,11 +38,11 @@ class Session extends _$Session {
   SessionState build() => const SessionState();
 
   /// Ajoute la récompense [reward] au cumul de la session.
-  /// Les pièces sont calculées selon le nombre de côtés connectés,
-  /// les tuiles bonus selon la table (3→1, 4→2, 5→5, 6→10).
+  /// Les pièces = côtés connectés + tuiles bonus (1 côté=1 pièce,
+  /// 2 côtés=2, 3 côtés=3+1=4, 4 côtés=4+2=6, etc.)
   void addReward(PlacementReward reward) {
     state = SessionState(
-      coins: state.coins + reward.connectedSides.length,
+      coins: state.coins + reward.connectedSides.length + reward.bonusTiles,
       totalBonusTiles: state.totalBonusTiles + reward.bonusTiles,
       lastReward: reward,
     );

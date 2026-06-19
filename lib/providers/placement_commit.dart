@@ -256,7 +256,7 @@ void undoPlacement(
 
   // 4. Annuler les récompenses (story 1.6b / 1.7c).
   ref.read(sessionProvider.notifier).removeReward(
-      last.connectedSides.length, last.bonusTiles);
+      last.connectedSides.length + last.bonusTiles, last.bonusTiles);
   if (last.bonusTiles > 0) {
     ref.read(tileStackProvider.notifier).removeLastBonusTiles(last.bonusTiles);
   }

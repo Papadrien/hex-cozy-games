@@ -4,6 +4,8 @@
 /// Story 1.3 : placement de tuiles de test pour valider le rendu.
 /// Story 1.5a : sélection d'emplacement, prévisualisation, rotation.
 /// Story 1.5b : validation du placement (second tap), bouton annuler.
+/// Story 1.7d : sélection/uniquement dans onTapUp pour permettre la rotation
+///              avant validation ; annulation via croix sur la pile HUD.
 ///
 /// Gestes — tout géré dans Flame, pas de GestureDetector Flutter par-dessus :
 ///  - Scale (pan+zoom) → [ScaleDetector.onScaleUpdate] : pan 1 doigt + zoom
@@ -13,7 +15,8 @@
 ///    prévisualisation sur un emplacement disponible (story 1.5a), valide le
 ///    placement si tap sur la cellule déjà sélectionnée (story 1.5b), annule
 ///    la prévisualisation si tap en dehors (story 1.7c). La logique est dans
-///    onTapUp (pas onTapDown) pour éviter le conflit avec le swipe de rotation.
+///    onTapUp (pas onTapDown) pour éviter le conflit avec le swipe de rotation
+///    et pour qu'un premier tap ne valide pas immédiatement le placement (story 1.7d).
 library;
 
 import 'dart:ui' show Color;
@@ -197,16 +200,9 @@ class HexBoardGame extends FlameGame
 
   @override
   void onTapDown(int pointerId, TapDownInfo info) {
-    if (_isPaused) return;
-    final grid = _grid;
-    if (grid == null) return;
-
-    final placement = _ref.read(placementProvider);
-
-    if (placement.hasSelection) return;
-
-    final coords = grid.hexAt(info.eventPosition.widget.toOffset());
-    _ref.read(placementProvider.notifier).selectCell(coords);
+    // Ne rien faire ici — la sélection est gérée dans onTapUp pour éviter
+    // qu'un seul tap valide immédiatement le placement (le premier tap doit
+    // seulement prévisualiser, pas confirmer).
   }
 
   @override
@@ -219,7 +215,13 @@ class HexBoardGame extends FlameGame
     final placementNotifier = _ref.read(placementProvider.notifier);
     final coords = grid.hexAt(info.eventPosition.widget.toOffset());
 
-    if (!placement.hasSelection) return;
+    if (!placement.hasSelection) {
+      // Premier tap : sélectionner la cellule pour la prévisualisation.
+      if (placementNotifier.availableCells.contains(coords)) {
+        placementNotifier.selectCell(coords);
+      }
+      return;
+    }
 
     if (placement.selected == coords) {
       // Second tap sur la même cellule → validation du placement (story 1.5b)

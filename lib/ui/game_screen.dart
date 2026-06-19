@@ -83,7 +83,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
           const Positioned(
             top: 48,
             left: 16,
-            child: _DebugBadge(label: 'Story 1.7c — Corrections du gameplay'),
+            child: _DebugBadge(label: 'Story 1.7d — corrections du gameplay'),
           ),
 
           // ── Compteur de pièces (story 1.6b) ───────────────────────────────
