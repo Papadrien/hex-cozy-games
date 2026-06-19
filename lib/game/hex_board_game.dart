@@ -4,19 +4,23 @@
 /// Story 1.3 : placement de tuiles de test pour valider le rendu.
 /// Story 1.5a : sélection d'emplacement, prévisualisation, rotation.
 /// Story 1.5b : validation du placement (second tap), bouton annuler.
-/// Story 1.7d : sélection/uniquement dans onTapUp pour permettre la rotation
-///              avant validation ; annulation via croix sur la pile HUD.
+/// Story 1.7d : [MultiTouchTapDetector] et [ScaleGestureRecognizer] coexistent
+///              mais un flag [_scaleGestureActive] (posé dès le début du scale)
+///              empêche onTapUp d'agir après un swipe de rotation. Au lieu de
+///              mettre [_skipNextTap] dans [_handleScaleEnd] (trop tard), on
+///              utilise [_scaleGestureActive] posé dans [_handleScaleStart].
+///              Annulation via croix sur la pile HUD.
 ///
-/// Gestes — tout géré dans Flame, pas de GestureDetector Flutter par-dessus :
-///  - Scale (pan+zoom) → [ScaleDetector.onScaleUpdate] : pan 1 doigt + zoom
-///    pinch 2 doigts. Pendant la prévisualisation, le swipe vertical pivote
-///    la tuile plutôt que de déplacer la caméra verticalement (story 1.7c).
-///  - Tap → [MultiTouchTapDetector.onTapUp] : sélectionne/déplace la
-///    prévisualisation sur un emplacement disponible (story 1.5a), valide le
-///    placement si tap sur la cellule déjà sélectionnée (story 1.5b), annule
-///    la prévisualisation si tap en dehors (story 1.7c). La logique est dans
-///    onTapUp (pas onTapDown) pour éviter le conflit avec le swipe de rotation
-///    et pour qu'un premier tap ne valide pas immédiatement le placement (story 1.7d).
+/// Gestes :
+///  - [MultiTouchTapDetector.onTapDown/onTapUp] : tap immobile → sélection,
+///    confirmation ou annulation (story 1.7d : la sélection est faite dans
+///    onTapUp, pas onTapDown, pour qu'un premier tap ne valide pas).
+///  - [ScaleGestureRecognizer] : pan 1 doigt + zoom pinch 2 doigts. Pendant
+///    la prévisualisation, le swipe vertical pivote la tuile (story 1.7c).
+///  - Le flag [_scaleGestureActive] est levé dans [_handleScaleStart] (dès le
+///    début du mouvement) pour désamorcer le onTapUp qui suit inévitablement
+///    un swipe (les deux systèmes d'event sont sur des chemins différents).
+///    Le flag est nettoyé au microtask suivant via [_handleScaleEnd]. (story 1.7d)
 library;
 
 import 'dart:ui' show Color;
@@ -44,6 +48,12 @@ class HexBoardGame extends FlameGame
 
   bool _cameraDirty = false;
 
+  /// Flag actif tant qu'un scale gesture (pan/zoom/rotation) est en cours.
+  /// Permet à [onTapUp] de savoir si le pointer up fait partie d'un swipe
+  /// (auquel cas il ne doit pas agir). Posé dans [_handleScaleStart] car
+  /// [_handleScaleEnd] arrive trop tard (possiblement après [onTapUp]).
+  bool _scaleGestureActive = false;
+
   @override
   Color backgroundColor() => const Color(0xFF1A2332);
 
@@ -55,8 +65,7 @@ class HexBoardGame extends FlameGame
     _initBoard();
     _syncPlacementPreview();
 
-    // Gesture unique pour pan (1 doigt) + zoom (pinch 2 doigts).
-    // ScaleGestureRecognizer gère les deux sans conflit d'arène.
+    // Gesture pour pan (1 doigt) + zoom (pinch 2 doigts).
     gestureDetectors.add<ScaleGestureRecognizer>(
       ScaleGestureRecognizer.new,
       (ScaleGestureRecognizer instance) {
@@ -196,7 +205,7 @@ class HexBoardGame extends FlameGame
     }
   }
 
-  // ── Pan / Zoom ───────────────────────────────────────────────────────────
+  // ── Tap (via MultiTouchTapDetector) ───────────────────────────────────────
 
   @override
   void onTapDown(int pointerId, TapDownInfo info) {
@@ -208,6 +217,10 @@ class HexBoardGame extends FlameGame
   @override
   void onTapUp(int pointerId, TapUpInfo info) {
     if (_isPaused) return;
+    if (_scaleGestureActive) {
+      // Le pointer up fait partie d'un swipe (rotation/pan) — ignorer.
+      return;
+    }
     final grid = _grid;
     if (grid == null) return;
 
@@ -239,10 +252,13 @@ class HexBoardGame extends FlameGame
     placementNotifier.selectCell(coords);
   }
 
+  // ── Pan / Zoom / Rotation (via ScaleGestureRecognizer) ──────────────────
+
   double _scaleStart = 1.0;
 
   void _handleScaleStart(ScaleStartDetails details) {
     if (_isPaused) return;
+    _scaleGestureActive = true;
     _scaleStart = _grid?.zoom ?? 1.0;
     _rotationAccumulator = 0;
   }
@@ -274,5 +290,10 @@ class HexBoardGame extends FlameGame
     if (_isPaused) return;
     _scaleStart = _grid?.zoom ?? 1.0;
     _rotationAccumulator = 0;
+    // On ne nettoie pas _scaleGestureActive ici car onTapUp n'a peut-être
+    // pas encore été appelé (les deux systèmes d'event sont sur des chemins
+    // différents). On le fait au prochain microtask pour laisser à onTapUp
+    // le temps de vérifier le flag et de l'ignorer.
+    Future.microtask(() => _scaleGestureActive = false);
   }
 }
