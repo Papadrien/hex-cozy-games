@@ -48,4 +48,15 @@ abstract class Str {
   // Story 1.7g — Récompenses de placement
   static String get reward_coins => _isFr ? ' bonus' : ' bonus';
   static String get reward_bonusTiles => _isFr ? ' tuiles bonus' : ' bonus tiles';
+
+  // Story 1.8b — Écran de résultats
+  static String get results_title => _isFr ? 'Partie terminée !' : 'Game Over!';
+  static String get results_tilesPlaced => _isFr ? 'Tuiles posées' : 'Tiles placed';
+  static String get results_connections => _isFr ? 'Connexions' : 'Connections';
+  static String get results_coins => _isFr ? 'Pièces gagnées' : 'Coins earned';
+  static String get results_connections3 => _isFr ? '3 côtés' : '3 sides';
+  static String get results_connections4 => _isFr ? '4 côtés' : '4 sides';
+  static String get results_connections5 => _isFr ? '5 côtés' : '5 sides';
+  static String get results_connections6 => _isFr ? '6 côtés' : '6 sides';
+  static String get results_replay => _isFr ? 'Rejouer' : 'Replay';
 }

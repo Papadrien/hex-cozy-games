@@ -7,6 +7,7 @@ import '../data/app_database.dart';
 import '../game/hex_cell.dart';
 import '../game/hex_coords.dart';
 import '../game/hex_tile.dart';
+import 'end_game_provider.dart';
 import 'grid_state_provider.dart';
 import 'placement_provider.dart';
 import 'reward_model.dart';
@@ -233,6 +234,19 @@ void confirmPlacement(
 
   // 7. Sauvegarde de session.
   SessionSaver.save(ref);
+
+  // 8. Détection de fin de partie (Story 1.8a).
+  final remaining = ref.read(tileStackProvider).remaining;
+  if (remaining == 0) {
+    final grid = ref.read(gridProvider);
+    final session = ref.read(sessionProvider);
+    final stats = computeEndGameStats(grid, session.coins);
+
+    ref.read(isGameOverProvider.notifier).state = true;
+    ref.read(endGameStatsProvider.notifier).state = stats;
+
+    SessionSaver.endSession(ref);
+  }
 }
 
 /// Annule le dernier placement.

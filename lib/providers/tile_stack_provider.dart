@@ -71,16 +71,12 @@ class TileStack extends _$TileStack {
 
   /// Consomme la tuile active (première de la pile) et fait avancer la pile.
   ///
-  /// Si la pile sous-jacente est épuisée, elle est ré-alimentée avec un
-  /// nouveau pool mélangé pour que le jeu ne soit jamais à court de tuiles.
-  /// Ne fait rien si la pile est vide ET ne peut pas être ré-alimentée
-  /// (pool vide — ne devrait jamais arriver en pratique).
+  /// Si la pile est épuisée après consommation, le jeu s'arrête
+  /// (fin de partie — Story 1.8a). Ne fait plus de ré-alimentation
+  /// automatique.
   void consumeActiveTile() {
     if (_queue.isEmpty) return;
     _queue.removeAt(0);
-    if (_queue.isEmpty && kTilePool.isNotEmpty) {
-      _queue.addAll(_shuffledPool());
-    }
     state = _buildState();
   }
 

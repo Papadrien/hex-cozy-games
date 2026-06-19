@@ -25,6 +25,7 @@ import '../providers/placement_commit.dart';
 import '../providers/session_provider.dart';
 import 'pause_button.dart';
 import 'pause_modal.dart';
+import 'results_modal.dart';
 import 'tile_stack_hud.dart';
 
 /// Durée d'affichage de l'animation de confirmation de récompense (story 1.6b).
@@ -84,7 +85,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
           const Positioned(
             top: 48,
             left: 16,
-            child: _DebugBadge(label: 'Story 1.7g — ajout tag bonus'),
+            child: _DebugBadge(label: 'Story 1.8b — écran résultats'),
           ),
 
           // ── Compteur de pièces (story 1.6b) ───────────────────────────────
@@ -153,6 +154,9 @@ class _GameScreenState extends ConsumerState<GameScreen> {
 
           // ── Modale Pause ──────────────────────────────────────────────────
           const PauseModal(),
+
+          // ── Écran de résultats (Story 1.8b) ──────────────────────────────
+          const ResultsModal(),
         ],
       ),
     );

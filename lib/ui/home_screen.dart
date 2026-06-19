@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/strings.dart';
+import '../providers/end_game_provider.dart';
 import '../providers/grid_state_provider.dart';
 import '../providers/placement_commit.dart';
 import '../providers/session_provider.dart';
@@ -87,6 +88,7 @@ class HomeScreen extends ConsumerWidget {
     ref.invalidate(gridProvider);
     ref.invalidate(tileStackProvider);
     ref.read(sessionProvider.notifier).reset();
+    resetEndGame(ref);
     Navigator.pushReplacementNamed(context, '/game');
   }
 
