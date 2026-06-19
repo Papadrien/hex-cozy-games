@@ -4,7 +4,7 @@
 /// Story 1.3 : placement de tuiles de test pour valider le rendu.
 /// Story 1.5a : sélection d'emplacement, prévisualisation, rotation.
 /// Story 1.5b : validation du placement (second tap), bouton annuler.
-/// Story 1.7f — corrections du gameplay :
+/// Story 1.7g — ajout tag bonus :
 ///              Pour éviter que le onTapUp systématique après un swipe ne
 ///              valide le placement, on enregistre la position du onTapDown
 ///              et on mesure la distance parcourue — si > 5 px, c'était un

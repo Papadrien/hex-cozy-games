@@ -1,4 +1,4 @@
-/// Écran de jeu principal — story 1.2 / 1.3 / 1.5a / 1.5b / 1.6b / 1.7f.
+/// Écran de jeu principal — story 1.2 / 1.3 / 1.5a / 1.5b / 1.6b / 1.7g.
 ///
 /// Gestion des gestes :
 ///  - Pan 1 doigt + Zoom pinch : délégués à Flame via [HexBoardGame]
@@ -18,6 +18,7 @@ import 'package:flame/game.dart' hide Matrix4;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/strings.dart';
 import '../game/hex_board_game.dart';
 import '../providers/pause_provider.dart';
 import '../providers/placement_commit.dart';
@@ -83,7 +84,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
           const Positioned(
             top: 48,
             left: 16,
-            child: _DebugBadge(label: 'Story 1.7f — corrections du gameplay'),
+            child: _DebugBadge(label: 'Story 1.7g — ajout tag bonus'),
           ),
 
           // ── Compteur de pièces (story 1.6b) ───────────────────────────────
@@ -136,11 +137,18 @@ class _GameScreenState extends ConsumerState<GameScreen> {
             child: PauseButton(),
           ),
 
-          // ── HUD pile de tuiles ─────────────────────────────────────────────
+          // ── HUD pile de tuiles + récompenses (story 1.7g) ────────────────
           const Positioned(
             top: 96,
             right: 12,
-            child: TileStackHud(),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                TileStackHud(),
+                SizedBox(height: 8),
+                _RewardTag(),
+              ],
+            ),
           ),
 
           // ── Modale Pause ──────────────────────────────────────────────────
@@ -170,6 +178,69 @@ class _DebugBadge extends StatelessWidget {
           fontSize: 11,
           fontFamily: 'monospace',
         ),
+      ),
+    );
+  }
+}
+
+/// Message de récompense affiché sous la pile de tuiles après chaque placement
+/// (story 1.7g). Disparaît automatiquement via le timer dans [GameScreen].
+class _RewardTag extends ConsumerWidget {
+  const _RewardTag();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final session = ref.watch(sessionProvider);
+    final reward = session.lastReward;
+    if (reward == null) return const SizedBox.shrink();
+
+    final coins = reward.connectedSides.length + reward.bonusTiles;
+    final hasBonusTiles = reward.bonusTiles > 0;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.55),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.monetization_on, color: Colors.amber, size: 16),
+              const SizedBox(width: 4),
+              Text(
+                '+$coins${Str.reward_coins}',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          if (hasBonusTiles) ...[
+            const SizedBox(height: 4),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.hexagon, color: Colors.lightBlue, size: 14),
+                const SizedBox(width: 4),
+                Text(
+                  '+${reward.bonusTiles}${Str.reward_bonusTiles}',
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
       ),
     );
   }

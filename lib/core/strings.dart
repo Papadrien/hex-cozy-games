@@ -44,4 +44,8 @@ abstract class Str {
   // Story 1.7b — Reprise de partie
   static String get home_play => _isFr ? 'Jouer' : 'Play';
   static String get home_resume => _isFr ? 'Reprendre' : 'Resume';
+
+  // Story 1.7g — Récompenses de placement
+  static String get reward_coins => _isFr ? ' bonus' : ' bonus';
+  static String get reward_bonusTiles => _isFr ? ' tuiles bonus' : ' bonus tiles';
 }
