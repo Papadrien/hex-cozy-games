@@ -61,9 +61,7 @@ class TileStackHud extends ConsumerWidget {
                   totalVisible: visible.length,
                 ),
               if (placement.hasSelection)
-                Positioned(
-                  top: -4,
-                  right: -4,
+                Center(
                   child: GestureDetector(
                     onTap: () => ref.read(placementProvider.notifier).clearSelection(),
                     child: Container(
