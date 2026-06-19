@@ -4,7 +4,7 @@
 /// Story 1.3 : placement de tuiles de test pour valider le rendu.
 /// Story 1.5a : sélection d'emplacement, prévisualisation, rotation.
 /// Story 1.5b : validation du placement (second tap), bouton annuler.
-/// Story 1.7d : [MultiTouchTapDetector] et [ScaleGestureRecognizer] coexistent.
+/// Story 1.7e : [MultiTouchTapDetector] et [ScaleGestureRecognizer] coexistent.
 ///              Pour éviter que le onTapUp systématique après un swipe ne
 ///              valide le placement, on enregistre la position du onTapDown
 ///              et on mesure la distance parcourue — si > 5 px, c'était un
@@ -272,11 +272,10 @@ class HexBoardGame extends FlameGame
     final delta = details.focalPointDelta;
 
     // Pendant la prévisualisation, le swipe vertical fait pivoter la tuile.
+    // Le pan horizontal est désactivé pendant la prévisualisation (story 1.7e).
     final placement = _ref.read(placementProvider);
     if (placement.hasSelection && (details.scale - 1.0).abs() < 0.05) {
       _handleRotation(delta.dy);
-      // Pan horizontal seulement pendant la prévisualisation.
-      grid.cameraOffset.add(Vector2(delta.dx, 0));
     } else {
       grid.cameraOffset.add(Vector2(delta.dx, delta.dy));
     }

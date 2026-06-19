@@ -1,4 +1,4 @@
-/// Écran de jeu principal — story 1.2 / 1.3 / 1.5a / 1.5b / 1.6b.
+/// Écran de jeu principal — story 1.2 / 1.3 / 1.5a / 1.5b / 1.6b / 1.7e.
 ///
 /// Gestion des gestes :
 ///  - Pan 1 doigt + Zoom pinch : délégués à Flame via [HexBoardGame]
@@ -83,7 +83,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
           const Positioned(
             top: 48,
             left: 16,
-            child: _DebugBadge(label: 'Story 1.7d — corrections du gameplay'),
+            child: _DebugBadge(label: 'Story 1.7e — corrections du gameplay'),
           ),
 
           // ── Compteur de pièces (story 1.6b) ───────────────────────────────
@@ -103,18 +103,6 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                if (session.totalBonusTiles > 0) ...[
-                  const SizedBox(width: 12),
-                  const Icon(Icons.hexagon, color: Colors.lightBlue, size: 18),
-                  const SizedBox(width: 4),
-                  Text(
-                    '${session.totalBonusTiles}',
-                    style: const TextStyle(
-                      color: Colors.white70,
-                      fontSize: 16,
-                    ),
-                  ),
-                ],
               ]);
             }),
           ),

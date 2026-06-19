@@ -35,10 +35,6 @@ const double kPreviewLiftPx = 10.0;
 /// Opacité de la tuile en prévisualisation.
 const double kPreviewAlpha = 1.0;
 
-/// Opacité de fond des emplacements disponibles en surbrillance.
-const double kHighlightFillAlpha = 0.48;
-const double kHighlightStrokeAlpha = 0.82;
-
 class HexGridComponent extends PositionComponent {
   HexGridComponent({required this.screenSize})
       : super(position: Vector2.zero(), priority: 0);
@@ -172,19 +168,21 @@ class HexGridComponent extends PositionComponent {
   }
 
   /// Gère les icônes de pièces au niveau de chaque côté bien connecté pendant
-  /// la prévisualisation.
+  /// la prévisualisation, ainsi que l'icône de tuile bonus centrée sur la
+  /// prévisualisation si une ou plusieurs tuiles bonus sont gagnées (story 1.7e).
   void _syncPreviewCoinComponents() {
     for (final c in _previewCoinComponents) {
       remove(c);
     }
     _previewCoinComponents.clear();
 
-    if (_previewCoords == null || _previewHighlightedSides.isEmpty) return;
+    if (_previewCoords == null) return;
 
     final layout = _layout;
     final center = layout.hexToPixel(_previewCoords!, isoScaleY: kIsoScaleY);
     final hexSize = kBaseHexSize * zoom;
 
+    // Pièces au niveau de chaque côté connecté.
     for (final side in _previewHighlightedSides) {
       final offset = _sideEdgeMidpoint(side, hexSize);
       final pos = Vector2(center.x + offset.x, center.y + offset.y);
@@ -193,6 +191,19 @@ class HexGridComponent extends PositionComponent {
         hexSize: hexSize,
       );
       component.priority = 11;
+      _previewCoinComponents.add(component);
+      add(component);
+    }
+
+    // Tuile bonus centrée sur la prévisualisation (story 1.7e).
+    if (previewBonusTiles > 0) {
+      final pos = Vector2(center.x, center.y - kPreviewLiftPx * 0.5);
+      final component = _PreviewBonusComponent(
+        position: pos,
+        hexSize: hexSize,
+        bonusCount: previewBonusTiles,
+      );
+      component.priority = 12;
       _previewCoinComponents.add(component);
       add(component);
     }
@@ -321,59 +332,11 @@ class HexGridComponent extends PositionComponent {
     _syncPreviewComponent();
   }
 
-  // ── Rendu (grille invisible — story 1.2 / surbrillances — story 1.5a) ────
+  // ── Rendu (plus de surbrillances — story 1.7e) ────────────
 
   @override
   void render(Canvas canvas) {
-    // Pendant la prévisualisation, on masque les surbrillances.
-    if (_previewCoords != null && _previewTile != null) return;
-    if (availableHighlights.isEmpty) return;
-
-    final layout = _layout;
-    for (final coords in availableHighlights) {
-      // Une cellule déjà occupée par la prévisualisation reste surlignée
-      // dessous : c'est voulu, ça montre que l'emplacement reste "valide"
-      // pendant qu'on y prévisualise la tuile.
-      final center = layout.hexToPixel(coords, isoScaleY: kIsoScaleY);
-      _renderHighlight(canvas, Offset(center.x, center.y));
-    }
-  }
-
-  void _renderHighlight(Canvas canvas, Offset center) {
-    final corners = _isoHighlightCorners(center);
-
-    final path = Path()..moveTo(corners[0].dx, corners[0].dy);
-    for (var i = 1; i < 6; i++) {
-      path.lineTo(corners[i].dx, corners[i].dy);
-    }
-    path.close();
-
-    canvas.drawPath(
-      path,
-      Paint()
-        ..color = const Color(0xFFFFF3B0).withValues(alpha: kHighlightFillAlpha)
-        ..style = PaintingStyle.fill,
-    );
-    canvas.drawPath(
-      path,
-      Paint()
-        ..color = const Color(0xFFFFE066).withValues(alpha: kHighlightStrokeAlpha)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.6,
-    );
-  }
-
-  /// Sommets d'un hexagone pointy-top avec projection iso, pour le rendu des
-  /// surbrillances (même convention d'angle que [TileComponent._isoCorners]).
-  List<Offset> _isoHighlightCorners(Offset center) {
-    final hexSize = kBaseHexSize * zoom;
-    return List.generate(6, (i) {
-      final angleDeg = 60.0 * i - 90.0;
-      final angleRad = angleDeg * pi / 180.0;
-      final x = hexSize * cos(angleRad);
-      final y = hexSize * sin(angleRad) * kIsoScaleY;
-      return Offset(center.dx + x, center.dy + y);
-    });
+    // Surbrillances désactivées (story 1.7e).
   }
 
   // ── Hit-testing ───────────────────────────────────────────────────────────
@@ -489,5 +452,58 @@ class _PreviewCoinComponent extends PositionComponent {
   }
 }
 
+/// Icône de tuile bonus centrée sur la prévisualisation (story 1.7e).
+class _PreviewBonusComponent extends PositionComponent {
+  _PreviewBonusComponent({
+    required super.position,
+    required double hexSize,
+    required this.bonusCount,
+  })  : _radius = hexSize * 0.22,
+        super(priority: 10);
 
+  final double _radius;
+  final int bonusCount;
 
+  @override
+  void render(Canvas canvas) {
+    const alpha = 0.9;
+    final r = _radius;
+
+    // Cercle extérieur (fond).
+    canvas.drawCircle(
+      Offset.zero,
+      r,
+      Paint()
+        ..color = const Color(0xFF29B6F6).withValues(alpha: alpha)
+        ..style = PaintingStyle.fill,
+    );
+    canvas.drawCircle(
+      Offset.zero,
+      r * 0.75,
+      Paint()
+        ..color = const Color(0xFF4FC3F7).withValues(alpha: alpha * 0.7)
+        ..style = PaintingStyle.fill,
+    );
+
+    // Symbole hexagone blanc au centre.
+    final hexR = r * 0.4;
+    final hexPath = Path();
+    for (var i = 0; i < 6; i++) {
+      final angle = (60.0 * i - 90.0) * pi / 180.0;
+      final x = hexR * cos(angle);
+      final y = hexR * sin(angle);
+      if (i == 0) {
+        hexPath.moveTo(x, y);
+      } else {
+        hexPath.lineTo(x, y);
+      }
+    }
+    hexPath.close();
+    canvas.drawPath(
+      hexPath,
+      Paint()
+        ..color = const Color(0xFFFFFFFF).withValues(alpha: alpha)
+        ..style = PaintingStyle.fill,
+    );
+  }
+}
