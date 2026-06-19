@@ -46,16 +46,12 @@ class Placement extends _$Placement {
   PlacementState build() => const PlacementState();
 
   /// Les emplacements actuellement disponibles, calculés à partir de l'état
-  /// de grille et de la tuile active (avant rotation — la disponibilité
-  /// d'un emplacement ne dépend pas de l'orientation, seule la *validité*
-  /// du gain en dépendra en 1.5b ; ici on garde la règle simple : au moins
-  /// un côté compatible existe pour CETTE tuile, quelle que soit sa rotation
-  /// actuelle, car le joueur peut toujours tourner après sélection).
+  /// de grille — toute cellule vide adjacente à une tuile posée (sans
+  /// contrainte de compatibilité de biome, story 1.6a).
   Set<HexCoords> get availableCells {
-    final activeTile = ref.read(tileStackProvider).activeTile;
-    if (activeTile == null) return const {};
+    if (ref.read(tileStackProvider).activeTile == null) return const {};
     final grid = ref.read(gridProvider);
-    return grid.availableCellsFor(activeTile);
+    return grid.availableCellsFor();
   }
 
   /// Tuile active actuellement prévisualisée, avec la rotation en cours

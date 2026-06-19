@@ -92,4 +92,24 @@ class TileStack extends _$TileStack {
     _queue.insert(0, tile);
     state = _buildState();
   }
+
+  /// Ajoute [count] tuiles bonus en fin de file (prélevées d'un pool
+  /// fraîchement mélangé).
+  ///
+  /// Utilisé par l'attribution de récompense (story 1.6b) : les tuiles
+  /// bonus sont insérées après la file actuelle, le joueur les verra
+  /// arriver une fois la file courante épuisée.
+  void addBonusTiles(int count) {
+    if (count <= 0) return;
+    _queue.addAll(_shuffledPool().take(count));
+    state = _buildState();
+  }
+
+  /// Retire les [count] dernières tuiles de la file (inverse de
+  /// [addBonusTiles] — utilisé par le bouton Annuler, story 1.6b).
+  void removeLastBonusTiles(int count) {
+    if (count <= 0 || _queue.length < count) return;
+    _queue.removeRange(_queue.length - count, _queue.length);
+    state = _buildState();
+  }
 }

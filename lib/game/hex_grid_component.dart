@@ -148,7 +148,10 @@ class HexGridComponent extends PositionComponent {
   // ── API publique ───────────────────────────────────────────────────────────
 
   /// Place une [HexTile] sur [coords].
-  void placeTile(HexCoords coords, HexTile tile) {
+  ///
+  /// [connectedSides] : si fourni, les côtés correspondants s'illuminent
+  /// brièvement (glow — story 1.6b).
+  void placeTile(HexCoords coords, HexTile tile, {List<int>? connectedSides}) {
     final existing = placedTiles.remove(coords);
     if (existing != null) remove(existing);
 
@@ -160,6 +163,10 @@ class HexGridComponent extends PositionComponent {
       hexSize: kBaseHexSize * zoom,
       position: Vector2(center.x, center.y),
     );
+
+    if (connectedSides != null && connectedSides.isNotEmpty) {
+      component.startGlow(connectedSides);
+    }
 
     placedTiles[coords] = component;
     add(component);

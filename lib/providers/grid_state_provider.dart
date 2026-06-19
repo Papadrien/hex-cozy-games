@@ -4,16 +4,15 @@
 /// Logique pure et testable, indépendante de Flame : [GridState] ne connaît
 /// que les coordonnées et les tuiles, pas les pixels ni le rendu.
 ///
-/// Règle de disponibilité (contexte story 1.5a) :
+/// Règles de disponibilité (contexte story 1.6a) :
 ///  - Au démarrage (plateau vide), seule la cellule centrale (0, 0) est
 ///    disponible.
-///  - Sinon, une cellule vide est disponible si elle est adjacente à au
-///    moins une tuile posée ET si la tuile active y aurait au moins un côté
-///    compatible (même [BiomeType]) avec le côté en regard de cette tuile
-///    voisine.
+///  - Sinon, toute cellule vide adjacente à une tuile posée est disponible,
+///    sans contrainte de compatibilité de biome.
 ///
-/// La validation du placement (1.5b) n'est PAS traitée ici — ce provider
-/// expose seulement l'état déjà posé et les règles de compatibilité.
+/// Détection des connexions : [countConnectedSides] compte le nombre de
+/// côtés d'une tuile posée dont le biome correspond au biome de la tuile
+/// voisine (côté en regard).
 library;
 
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -61,13 +60,12 @@ class GridState {
     return false;
   }
 
-  /// Calcule l'ensemble des emplacements disponibles pour poser [tile]
-  /// (déjà tournée à l'orientation choisie).
+  /// Calcule l'ensemble des emplacements disponibles pour poser une tuile.
   ///
   /// - Plateau vide → uniquement la cellule centrale (0, 0).
-  /// - Sinon → toute cellule vide adjacente à une tuile posée ET ayant au
-  ///   moins un côté compatible avec [tile].
-  Set<HexCoords> availableCellsFor(HexTile tile) {
+  /// - Sinon → toute cellule vide adjacente à une tuile posée (sans
+  ///   contrainte de compatibilité de biome — story 1.6a).
+  Set<HexCoords> availableCellsFor() {
     if (isEmpty) return {HexCoords(0, 0)};
 
     final candidates = <HexCoords>{};
@@ -79,9 +77,27 @@ class GridState {
       }
     }
 
-    return candidates
-        .where((coords) => hasCompatibleSide(coords, tile))
-        .toSet();
+    return candidates;
+  }
+
+  /// Compte le nombre de côtés de la tuile [tile] placée en [coords] qui
+  /// sont connectés à une tuile adjacente avec un biome correspondant.
+  ///
+  /// Pour chaque côté `i` de la tuile, on vérifie si la cellule voisine
+  /// dans cette direction a une tuile posée, et si le [BiomeType] du côté
+  /// en regard de cette tuile voisine (côté `(i + 3) % 6`) correspond au
+  /// biome `tile.sides[i]`.
+  ///
+  /// Retourne un entier entre 0 et 6.
+  int countConnectedSides(HexCoords coords, HexTile tile) {
+    var count = 0;
+    for (var side = 0; side < 6; side++) {
+      final neighborBiome = _neighborFacingBiome(coords, side);
+      if (neighborBiome != null && neighborBiome == tile.sides[side]) {
+        count++;
+      }
+    }
+    return count;
   }
 }
 

@@ -22,6 +22,12 @@ import 'hex_tile.dart';
 /// Facteur d'écrasement vertical isométrique (identique à hex_grid_component).
 const double kIsoScaleY = 0.57; // ~tan(30°) → vue à ~30° du plan
 
+/// Durée de l'effet de glow sur les côtés connectés (story 1.6b).
+const double kGlowDurationSec = 0.6;
+
+/// Opacité initiale du glow.
+const double kGlowStartAlpha = 0.45;
+
 /// Correspondance [BiomeType] → couleur d'affichage MVP.
 extension BiomeColor on BiomeType {
   Color get color {
@@ -81,6 +87,18 @@ class TileComponent extends PositionComponent {
 
   final bool _showBorder;
 
+  // ── Glow (story 1.6b) ──────────────────────────────────────────────────────
+
+  Set<int>? _glowSides;
+  double _glowAlpha = 0.0;
+
+  /// Déclenche un effet de glow sur les [sides] (liste d'indices 0-5).
+  /// Le glow s'estompe sur [kGlowDurationSec] secondes.
+  void startGlow(List<int> sides) {
+    _glowSides = sides.toSet();
+    _glowAlpha = kGlowStartAlpha;
+  }
+
   // ── Rendu ─────────────────────────────────────────────────────────────────
 
   @override
@@ -109,6 +127,16 @@ class TileComponent extends PositionComponent {
           ..style = PaintingStyle.fill,
       );
 
+      // Glow sur les côtés connectés (story 1.6b).
+      if (_glowSides != null && _glowSides!.contains(i) && _glowAlpha > 0.01) {
+        canvas.drawPath(
+          path,
+          Paint()
+            ..color = Colors.white.withValues(alpha: _glowAlpha)
+            ..style = PaintingStyle.fill,
+        );
+      }
+
       if (_showBorder) {
         canvas.drawLine(
           Offset(cx, cy),
@@ -132,6 +160,18 @@ class TileComponent extends PositionComponent {
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1.4,
     );
+  }
+
+  @override
+  void update(double dt) {
+    super.update(dt);
+    if (_glowSides != null && _glowAlpha > 0.01) {
+      _glowAlpha -= (kGlowStartAlpha / kGlowDurationSec) * dt;
+      if (_glowAlpha <= 0.01) {
+        _glowAlpha = 0.0;
+        _glowSides = null;
+      }
+    }
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────────

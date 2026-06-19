@@ -1,4 +1,4 @@
-/// Écran de jeu principal — story 1.2 / 1.3 / 1.5a / 1.5b.
+/// Écran de jeu principal — story 1.2 / 1.3 / 1.5a / 1.5b / 1.6b.
 ///
 /// Gestion des gestes :
 ///  - Pan 1 doigt + Zoom pinch : délégués à Flame via [HexBoardGame]
@@ -12,6 +12,8 @@
 ///    valide le placement au second tap sur la même cellule (1.5b).
 library;
 
+import 'dart:async';
+
 import 'package:flame/game.dart' hide Matrix4;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -19,9 +21,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../game/hex_board_game.dart';
 import '../providers/pause_provider.dart';
 import '../providers/placement_commit.dart';
+import '../providers/session_provider.dart';
 import 'pause_button.dart';
 import 'pause_modal.dart';
 import 'tile_stack_hud.dart';
+
+/// Durée d'affichage de l'animation de confirmation de récompense (story 1.6b).
+const Duration _kConfirmationDuration = Duration(milliseconds: 1500);
 
 class GameScreen extends ConsumerStatefulWidget {
   const GameScreen({super.key});
@@ -32,14 +38,18 @@ class GameScreen extends ConsumerStatefulWidget {
 
 class _GameScreenState extends ConsumerState<GameScreen> {
   late final HexBoardGame _game;
+  Timer? _clearRewardTimer;
 
   @override
   void initState() {
     super.initState();
-    // [HexBoardGame] a besoin du Ref pour lire/écrire les providers de
-    // placement (story 1.5a) — créé ici plutôt qu'en field initializer,
-    // `ref` n'étant disponible qu'à partir de `initState`.
     _game = HexBoardGame(ref: ref);
+  }
+
+  @override
+  void dispose() {
+    _clearRewardTimer?.cancel();
+    super.dispose();
   }
 
   @override
@@ -50,27 +60,75 @@ class _GameScreenState extends ConsumerState<GameScreen> {
       }
     });
 
+    // Auto-effacement de la dernière récompense affichée après le délai.
+    ref.listen<SessionState>(sessionProvider, (prev, next) {
+      if (next.lastReward != null && prev?.lastReward != next.lastReward) {
+        _clearRewardTimer?.cancel();
+        _clearRewardTimer = Timer(_kConfirmationDuration, () {
+          if (mounted) {
+            ref.read(sessionProvider.notifier).clearLastReward();
+          }
+        });
+      }
+    });
+
     return Scaffold(
       backgroundColor: const Color(0xFF1A2332),
       body: Stack(
         children: [
           // ── Jeu Flame — reçoit TOUS les gestes directement ────────────────
-          // Pas de GestureDetector par-dessus : il bloquerait le multi-touch
-          // (pan + scale) de Flame. Le tap est géré dans HexBoardGame via
-          // TapDetector de Flame.
           GameWidget(game: _game),
 
           // ── Badge debug ───────────────────────────────────────────────────
           const Positioned(
             top: 48,
             left: 16,
-            child: _DebugBadge(label: 'Story 1.5bis-b — Sauvegarder/Quitter & Abandon'),
+            child: _DebugBadge(label: 'Story 1.6b — Bonus et feedback visuel'),
+          ),
+
+          // ── Compteur de pièces (story 1.6b) ───────────────────────────────
+          Positioned(
+            top: 80,
+            left: 16,
+            child: Consumer(builder: (context, ref, _) {
+              final session = ref.watch(sessionProvider);
+              return Row(children: [
+                const Icon(Icons.monetization_on, color: Colors.amber, size: 20),
+                const SizedBox(width: 4),
+                Text(
+                  '${session.coins}',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                if (session.totalBonusTiles > 0) ...[
+                  const SizedBox(width: 12),
+                  const Icon(Icons.hexagon, color: Colors.lightBlue, size: 18),
+                  const SizedBox(width: 4),
+                  Text(
+                    '${session.totalBonusTiles}',
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 16,
+                    ),
+                  ),
+                ],
+              ]);
+            }),
           ),
 
           // ── Bouton Annuler + icônes de gains ──────────────────────────────
           Consumer(builder: (context, ref, _) {
             final reward = ref.watch(previewRewardProvider);
+            final session = ref.watch(sessionProvider);
             final canUndo = ref.watch(lastPlacementProvider) != null;
+
+            // Affiche la récompense de confirmation (après placement) OU la
+            // prévisualisation (avant placement).
+            final displayReward = session.lastReward ?? reward;
+
             return Stack(children: [
               Positioned(
                 bottom: 24,
@@ -86,12 +144,12 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                   child: const Icon(Icons.undo),
                 ),
               ),
-              if (reward.connectedSides.isNotEmpty)
+              if (displayReward.connectedSides.isNotEmpty)
                 Positioned(
                   top: 180,
                   left: 24,
                   child: Row(children: [
-                    for (final _ in reward.connectedSides)
+                    for (final _ in displayReward.connectedSides)
                       TweenAnimationBuilder(
                         duration: const Duration(milliseconds: 350),
                         tween: Tween(begin: 1.57, end: 0.0),
@@ -102,19 +160,29 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                           alignment: Alignment.center,
                           child: ch,
                         ),
-                        child: const CircleAvatar(
+                        child: CircleAvatar(
                           radius: 10,
-                          child: Icon(Icons.monetization_on, size: 12),
+                          backgroundColor:
+                              session.lastReward != null
+                                  ? Colors.amber
+                                  : Colors.grey.shade300,
+                          child: Icon(
+                            Icons.monetization_on,
+                            size: 12,
+                            color: session.lastReward != null
+                                ? Colors.white
+                                : Colors.black54,
+                          ),
                         ),
                       ),
                   ]),
                 ),
-              if (reward.bonusTiles > 0)
+              if (displayReward.bonusTiles > 0)
                 Positioned(
                   top: 220,
                   left: 60,
                   child: Row(children: [
-                    for (int i = 0; i < reward.bonusTiles; i++)
+                    for (int i = 0; i < displayReward.bonusTiles; i++)
                       TweenAnimationBuilder(
                         duration: const Duration(milliseconds: 350),
                         tween: Tween(begin: 1.57, end: 0.0),
@@ -124,28 +192,34 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                             ..rotateX(v),
                           child: ch,
                         ),
-                        child: const Icon(Icons.hexagon, size: 18),
+                        child: Icon(
+                          Icons.hexagon,
+                          size: 18,
+                          color: session.lastReward != null
+                              ? Colors.lightBlue
+                              : Colors.white54,
+                        ),
                       ),
                   ]),
                 ),
             ]);
           }),
 
-          // ── Bouton Pause (story 1.5bis-a) ─────────────────────────────────
+          // ── Bouton Pause ──────────────────────────────────────────────────
           const Positioned(
             top: 48,
             right: 12,
             child: PauseButton(),
           ),
 
-          // ── HUD pile de tuiles (story 1.4b) ───────────────────────────────
+          // ── HUD pile de tuiles ─────────────────────────────────────────────
           const Positioned(
             top: 96,
             right: 12,
             child: TileStackHud(),
           ),
 
-          // ── Modale Pause (story 1.5bis-a) ─────────────────────────────────
+          // ── Modale Pause ──────────────────────────────────────────────────
           const PauseModal(),
         ],
       ),

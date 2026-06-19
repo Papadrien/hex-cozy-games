@@ -154,8 +154,8 @@ class HexBoardGame extends FlameGame
 
   /// Pose la tuile prévisualisée sur la grille Flame (appelé depuis
   /// [confirmPlacement] via le callback [onConfirm]).
-  void placeTileOnFlame(HexCoords coords, HexTile tile) {
-    _grid?.placeTile(coords, tile);
+  void placeTileOnFlame(HexCoords coords, HexTile tile, List<int> connectedSides) {
+    _grid?.placeTile(coords, tile, connectedSides: connectedSides);
     _syncPlacementPreview();
   }
 
