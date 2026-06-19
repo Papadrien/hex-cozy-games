@@ -15,7 +15,9 @@
 library;
 
 import 'dart:math';
-import 'dart:ui' show Canvas, Color, Offset, Paint, PaintingStyle, Path;
+import 'dart:ui' show Canvas, Color, FontWeight, Offset, Paint, PaintingStyle, Path, TextDirection;
+
+import 'package:flutter/painting.dart' show TextPainter, TextSpan, TextStyle;
 
 import 'package:flame/components.dart';
 
@@ -332,11 +334,50 @@ class HexGridComponent extends PositionComponent {
     _syncPreviewComponent();
   }
 
-  // ── Rendu (plus de surbrillances — story 1.7e) ────────────
+  // ── Rendu (emplacements disponibles — story 1.7f) ─────────
 
   @override
   void render(Canvas canvas) {
-    // Surbrillances désactivées (story 1.7e).
+    // Pendant la prévisualisation, on masque les emplacements libres.
+    if (_previewCoords != null && _previewTile != null) return;
+    if (availableHighlights.isEmpty) return;
+
+    final layout = _layout;
+    for (final coords in availableHighlights) {
+      final center = layout.hexToPixel(coords, isoScaleY: kIsoScaleY);
+      _renderHighlight(canvas, Offset(center.x, center.y));
+    }
+  }
+
+  void _renderHighlight(Canvas canvas, Offset center) {
+    final corners = _isoHighlightCorners(center);
+
+    final path = Path()..moveTo(corners[0].dx, corners[0].dy);
+    for (var i = 1; i < 6; i++) {
+      path.lineTo(corners[i].dx, corners[i].dy);
+    }
+    path.close();
+
+    // Remplissage blanc translucide (story 1.7f), sans contour.
+    canvas.drawPath(
+      path,
+      Paint()
+        ..color = const Color(0xFFFFFFFF).withValues(alpha: 0.08)
+        ..style = PaintingStyle.fill,
+    );
+  }
+
+  /// Sommets d'un hexagone pointy-top avec projection iso, pour le rendu des
+  /// surbrillances.
+  List<Offset> _isoHighlightCorners(Offset center) {
+    final hexSize = kBaseHexSize * zoom;
+    return List.generate(6, (i) {
+      final angleDeg = 60.0 * i - 90.0;
+      final angleRad = angleDeg * pi / 180.0;
+      final x = hexSize * cos(angleRad);
+      final y = hexSize * sin(angleRad) * kIsoScaleY;
+      return Offset(center.dx + x, center.dy + y);
+    });
   }
 
   // ── Hit-testing ───────────────────────────────────────────────────────────
@@ -485,25 +526,23 @@ class _PreviewBonusComponent extends PositionComponent {
         ..style = PaintingStyle.fill,
     );
 
-    // Symbole hexagone blanc au centre.
-    final hexR = r * 0.4;
-    final hexPath = Path();
-    for (var i = 0; i < 6; i++) {
-      final angle = (60.0 * i - 90.0) * pi / 180.0;
-      final x = hexR * cos(angle);
-      final y = hexR * sin(angle);
-      if (i == 0) {
-        hexPath.moveTo(x, y);
-      } else {
-        hexPath.lineTo(x, y);
-      }
-    }
-    hexPath.close();
-    canvas.drawPath(
-      hexPath,
-      Paint()
-        ..color = const Color(0xFFFFFFFF).withValues(alpha: alpha)
-        ..style = PaintingStyle.fill,
+    // Nombre de tuiles bonus (+N) centré en blanc.
+    final text = '+$bonusCount';
+    final textPainter = TextPainter(
+      text: TextSpan(
+        text: text,
+        style: TextStyle(
+          color: const Color(0xFFFFFFFF).withValues(alpha: alpha),
+          fontSize: r * 1.0,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    );
+    textPainter.layout();
+    textPainter.paint(
+      canvas,
+      Offset(-textPainter.width / 2, -textPainter.height / 2),
     );
   }
 }

@@ -4,7 +4,7 @@
 /// Story 1.3 : placement de tuiles de test pour valider le rendu.
 /// Story 1.5a : sélection d'emplacement, prévisualisation, rotation.
 /// Story 1.5b : validation du placement (second tap), bouton annuler.
-/// Story 1.7e : [MultiTouchTapDetector] et [ScaleGestureRecognizer] coexistent.
+/// Story 1.7f — corrections du gameplay :
 ///              Pour éviter que le onTapUp systématique après un swipe ne
 ///              valide le placement, on enregistre la position du onTapDown
 ///              et on mesure la distance parcourue — si > 5 px, c'était un
@@ -147,9 +147,11 @@ class HexBoardGame extends FlameGame
     grid.previewTile = placementNotifier.previewTile;
 
     // Côtés bien connectés et tuiles bonus à montrer sur la prévisualisation.
+    // previewBonusTiles DOIT être défini AVANT previewHighlightedSides car ce
+    // dernier déclenche _syncPreviewCoinComponents() qui lit previewBonusTiles.
     final reward = _ref.read(previewRewardProvider);
-    grid.previewHighlightedSides = reward.connectedSides.toSet();
     grid.previewBonusTiles = reward.bonusTiles;
+    grid.previewHighlightedSides = reward.connectedSides.toSet();
 
     // Surbrillance des voisins qui seront connectés.
     final neighborHighlights = <HexCoords, Set<int>>{};
