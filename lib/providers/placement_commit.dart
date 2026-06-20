@@ -12,6 +12,7 @@ import 'grid_state_provider.dart';
 import 'placement_provider.dart';
 import 'player_profile_provider.dart';
 import 'player_stats_provider.dart';
+import 'quest_provider.dart';
 import 'reward_model.dart';
 import 'session_provider.dart';
 import 'tile_stack_provider.dart';
@@ -258,6 +259,9 @@ void confirmPlacement(
   // 5. Avancer la pile de tuiles.
   ref.read(tileStackProvider.notifier).consumeActiveTile();
 
+  // 5b. Mettre à jour la progression des quêtes (Story 2.3a).
+  ref.read(questServiceProvider).onTilePlaced();
+
   // 6. Effacer la prévisualisation.
   ref.read(placementProvider.notifier).clearSelection();
 
@@ -282,6 +286,9 @@ void confirmPlacement(
     final db = ref.read(appDatabaseProvider);
     addCoinsToProfile(db, session.coins);
     recordGameEnd(db, coinsEarned: session.coins, score: session.coins);
+
+    // Mise à jour des quêtes village_size & biomes_closed (Story 2.3a).
+    ref.read(questServiceProvider).onGameEnd(grid);
   }
 }
 
