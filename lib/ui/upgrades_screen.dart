@@ -3,6 +3,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/game_enums.dart';
 import '../core/strings.dart';
 import '../data/app_database.dart';
 import '../providers/player_profile_provider.dart';
@@ -296,7 +297,7 @@ class _LevelsPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final levels = _allLevelEffects(upgrade.effectType);
+    final levels = upgradeAllLevelEffects(UpgradeEffectType.fromDb(upgrade.effectType));
 
     return Row(
       children: [
@@ -475,26 +476,11 @@ class _UpgradeButton extends ConsumerWidget {
 // ── Helpers ──────────────────────────────────────────────────────────────
 
 String _effectLabel(UpgradeRow upgrade) {
-  final allLevels = _allLevelEffects(upgrade.effectType);
+  final allLevels = upgradeAllLevelEffects(UpgradeEffectType.fromDb(upgrade.effectType));
   final idx = upgrade.currentLevel < allLevels.length
       ? upgrade.currentLevel
       : allLevels.length - 1;
   return allLevels[idx];
-}
-
-List<String> _allLevelEffects(String effectType) {
-  switch (effectType) {
-    case 'starting_tiles_bonus':
-      return ['+2', '+5', '+10'];
-    case 'connection_bonus_multiplier':
-      return ['x2', 'x2', 'x2'];
-    case 'coins_percent_bonus':
-      return ['+10%', '+20%', '+30%'];
-    case 'village_coins_percent_bonus':
-      return ['+33%', '+66%', '+100%'];
-    default:
-      return ['', '', ''];
-  }
 }
 
 String _conditionLabel(

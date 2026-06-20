@@ -7,6 +7,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/game_enums.dart';
 import '../core/constants.dart';
 import '../core/strings.dart';
 import '../data/app_database.dart';
@@ -119,7 +120,7 @@ class _BuildCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(
-                upgradeIconData(upgrade.effectType),
+                upgradeIconData(UpgradeEffectType.fromDb(upgrade.effectType)),
                 color: isSelected
                     ? const Color(0xFF6FA8DC)
                     : Colors.white.withValues(alpha: 0.5),

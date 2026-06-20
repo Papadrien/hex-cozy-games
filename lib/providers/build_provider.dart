@@ -7,6 +7,7 @@ library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/game_enums.dart';
 import '../core/constants.dart';
 import '../data/app_database.dart';
 import 'progression_provider.dart';
@@ -75,15 +76,16 @@ final activeUpgradeEffectsProvider = Provider<ActiveUpgradeEffects>((ref) {
   double villageBonus = 0.0;
 
   for (final u in selected) {
-    final val = upgradeEffectValue(u.effectType, u.currentLevel);
-    switch (u.effectType) {
-      case 'starting_tiles_bonus':
+    final et = UpgradeEffectType.fromDb(u.effectType);
+    final val = upgradeEffectValue(et, u.currentLevel);
+    switch (et) {
+      case UpgradeEffectType.startingTilesBonus:
         startingBonus += val.toInt();
-      case 'connection_bonus_multiplier':
+      case UpgradeEffectType.connectionBonusMultiplier:
         connectionMult *= val;
-      case 'coins_percent_bonus':
+      case UpgradeEffectType.coinsPercentBonus:
         coinsMult += val;
-      case 'village_coins_percent_bonus':
+      case UpgradeEffectType.villageCoinsPercentBonus:
         villageBonus += val;
     }
   }

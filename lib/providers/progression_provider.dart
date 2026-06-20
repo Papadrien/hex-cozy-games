@@ -13,6 +13,7 @@ import 'package:drift/drift.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/game_enums.dart';
 import '../data/app_database.dart';
 import 'player_profile_provider.dart';
 
@@ -171,24 +172,22 @@ class ProgressionService {
 // ── Helpers publics ───────────────────────────────────────────────────────
 
 /// Icône représentant une amélioration selon son [effectType].
-IconData upgradeIconData(String effectType) {
+IconData upgradeIconData(UpgradeEffectType effectType) {
   switch (effectType) {
-    case 'starting_tiles_bonus':
+    case UpgradeEffectType.startingTilesBonus:
       return Icons.grid_on;
-    case 'connection_bonus_multiplier':
+    case UpgradeEffectType.connectionBonusMultiplier:
       return Icons.link;
-    case 'coins_percent_bonus':
+    case UpgradeEffectType.coinsPercentBonus:
       return Icons.monetization_on;
-    case 'village_coins_percent_bonus':
+    case UpgradeEffectType.villageCoinsPercentBonus:
       return Icons.home;
-    default:
-      return Icons.auto_awesome;
   }
 }
 
 /// Effet textuel au niveau actuel de l'amélioration.
 String upgradeEffectLabel(UpgradeRow upgrade) {
-  final all = upgradeAllLevelEffects(upgrade.effectType);
+  final all = upgradeAllLevelEffects(UpgradeEffectType.fromDb(upgrade.effectType));
   final idx = upgrade.currentLevel < all.length
       ? upgrade.currentLevel
       : all.length - 1;
@@ -196,33 +195,29 @@ String upgradeEffectLabel(UpgradeRow upgrade) {
 }
 
 /// Effet textuel de chaque palier pour un [effectType] donné.
-List<String> upgradeAllLevelEffects(String effectType) {
+List<String> upgradeAllLevelEffects(UpgradeEffectType effectType) {
   switch (effectType) {
-    case 'starting_tiles_bonus':
+    case UpgradeEffectType.startingTilesBonus:
       return ['+2', '+5', '+10'];
-    case 'connection_bonus_multiplier':
+    case UpgradeEffectType.connectionBonusMultiplier:
       return ['x2', 'x2', 'x2'];
-    case 'coins_percent_bonus':
+    case UpgradeEffectType.coinsPercentBonus:
       return ['+10%', '+20%', '+30%'];
-    case 'village_coins_percent_bonus':
+    case UpgradeEffectType.villageCoinsPercentBonus:
       return ['+33%', '+66%', '+100%'];
-    default:
-      return ['', '', ''];
   }
 }
 
 /// Valeur numérique de l'effet au niveau [level] pour un [effectType].
-double upgradeEffectValue(String effectType, int level) {
+double upgradeEffectValue(UpgradeEffectType effectType, int level) {
   switch (effectType) {
-    case 'starting_tiles_bonus':
+    case UpgradeEffectType.startingTilesBonus:
       return [2.0, 5.0, 10.0][level.clamp(0, 2)];
-    case 'connection_bonus_multiplier':
+    case UpgradeEffectType.connectionBonusMultiplier:
       return 2.0;
-    case 'coins_percent_bonus':
+    case UpgradeEffectType.coinsPercentBonus:
       return [0.10, 0.20, 0.30][level.clamp(0, 2)];
-    case 'village_coins_percent_bonus':
+    case UpgradeEffectType.villageCoinsPercentBonus:
       return [0.33, 0.66, 1.00][level.clamp(0, 2)];
-    default:
-      return 0.0;
   }
 }

@@ -23,7 +23,7 @@ import 'tile_stack_provider.dart';
 /// Vérifie si une session active existe en base (Story 1.7b).
 final activeSessionProvider = FutureProvider<bool>((ref) async {
   final db = ref.read(appDatabaseProvider);
-  final rows = await (db.select(db.gameSession)
+  final rows = await (db.select(db.activeBoardSession)
         ..where((t) => t.isActive.equals(true))
         ..limit(1))
       .get();
@@ -37,7 +37,7 @@ final activeSessionProvider = FutureProvider<bool>((ref) async {
 Future<void> restoreSession(WidgetRef ref) async {
   try {
     final db = ref.read(appDatabaseProvider);
-    final rows = await (db.select(db.gameSession)
+    final rows = await (db.select(db.activeBoardSession)
           ..where((t) => t.isActive.equals(true))
           ..limit(1))
         .get();
@@ -228,8 +228,8 @@ class SessionSaver {
         });
       }
 
-      await db.into(db.gameSession).insert(
-            GameSessionRow(
+      await db.into(db.activeBoardSession).insert(
+            ActiveBoardSessionRow(
               id: 1, // Session unique pour le MVP
               gridState: gridJson,
               tileStack: stackJson,
@@ -251,8 +251,8 @@ class SessionSaver {
   /// Marque la session active comme terminée (fin de partie ou abandon).
   static Future<void> endSession(WidgetRef ref) async {
     final db = ref.read(appDatabaseProvider);
-    await (db.update(db.gameSession)..where((t) => t.id.equals(1)))
-        .write(const GameSessionCompanion(isActive: Value(false)));
+    await (db.update(db.activeBoardSession)..where((t) => t.id.equals(1)))
+        .write(const ActiveBoardSessionCompanion(isActive: Value(false)));
   }
 }
 

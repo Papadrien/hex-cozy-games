@@ -17,8 +17,8 @@ class SetupCheck extends Table {
 ///
 /// Contient tout l'état nécessaire pour restaurer fidèlement une partie
 /// interrompue.
-@DataClassName('GameSessionRow')
-class GameSession extends Table {
+@DataClassName('ActiveBoardSessionRow')
+class ActiveBoardSession extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get gridState => text()();       // JSON du plateau (Map<HexCoords, HexTile>)
   TextColumn get tileStack => text()();       // JSON de la pile restante (_queue + remaining)
@@ -85,10 +85,10 @@ class DailyQuests extends Table {
 
 /// Session de jeu méta (Phase 2) — Story 2.1a.
 ///
-/// Distincte de [GameSession] (Phase 1) : ajoute les améliorations
+/// Distincte de [ActiveBoardSession] (Phase 1) : ajoute les améliorations
 /// sélectionnées et les compteurs de run pour le méta-game.
-@DataClassName('MetaGameSessionRow')
-class GameSessions extends Table {
+@DataClassName('MetaRunHistoryRow')
+class MetaRunHistory extends Table {
   IntColumn get id => integer().autoIncrement()();
   BoolColumn get isActive => boolean().withDefault(const Constant(true))();
   IntColumn get tilesRemaining => integer()();
@@ -114,12 +114,12 @@ class PlayerStats extends Table {
 
 @DriftDatabase(tables: [
   SetupCheck,
-  GameSession,
+  ActiveBoardSession,
   PlayerProfile,
   Upgrades,
   PermanentQuests,
   DailyQuests,
-  GameSessions,
+  MetaRunHistory,
   PlayerStats,
 ])
 class AppDatabase extends _$AppDatabase {
@@ -130,7 +130,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration {
@@ -141,16 +141,46 @@ class AppDatabase extends _$AppDatabase {
       },
       onUpgrade: (m, from, to) async {
         if (from == 1) {
-          await m.createTable(gameSession);
+          await customStatement('''
+            CREATE TABLE IF NOT EXISTS game_session (
+              id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+              grid_state TEXT NOT NULL,
+              tile_stack TEXT NOT NULL,
+              coins INTEGER NOT NULL,
+              total_bonus_tiles INTEGER NOT NULL,
+              last_tile_placed TEXT,
+              placed_tiles_count INTEGER NOT NULL,
+              is_active INTEGER NOT NULL,
+              created_at TEXT NOT NULL,
+              updated_at TEXT NOT NULL
+            )
+          ''');
         }
         if (from < 3) {
           await m.createTable(playerProfile);
           await m.createTable(upgrades);
           await m.createTable(permanentQuests);
           await m.createTable(dailyQuests);
-          await m.createTable(gameSessions);
+          await customStatement('''
+            CREATE TABLE IF NOT EXISTS game_sessions (
+              id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+              is_active INTEGER NOT NULL DEFAULT 1,
+              tiles_remaining INTEGER NOT NULL,
+              selected_upgrade_ids TEXT NOT NULL,
+              coins_earned INTEGER NOT NULL DEFAULT 0,
+              tiles_placed INTEGER NOT NULL DEFAULT 0,
+              grid_state TEXT NOT NULL,
+              tile_stack TEXT NOT NULL,
+              last_tile_placed TEXT,
+              seed INTEGER NOT NULL
+            )
+          ''');
           await m.createTable(playerStats);
           await seedDatabase(this);
+        }
+        if (from < 4) {
+          await customStatement('ALTER TABLE game_session RENAME TO active_board_session');
+          await customStatement('ALTER TABLE game_sessions RENAME TO meta_run_history');
         }
       },
     );

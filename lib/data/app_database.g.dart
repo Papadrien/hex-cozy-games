@@ -192,12 +192,12 @@ class SetupCheckCompanion extends UpdateCompanion<SetupCheckRow> {
   }
 }
 
-class $GameSessionTable extends GameSession
-    with TableInfo<$GameSessionTable, GameSessionRow> {
+class $ActiveBoardSessionTable extends ActiveBoardSession
+    with TableInfo<$ActiveBoardSessionTable, ActiveBoardSessionRow> {
   @override
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
-  $GameSessionTable(this.attachedDatabase, [this._alias]);
+  $ActiveBoardSessionTable(this.attachedDatabase, [this._alias]);
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
   late final GeneratedColumn<int> id = GeneratedColumn<int>(
@@ -328,10 +328,10 @@ class $GameSessionTable extends GameSession
   String get aliasedName => _alias ?? actualTableName;
   @override
   String get actualTableName => $name;
-  static const String $name = 'game_session';
+  static const String $name = 'active_board_session';
   @override
   VerificationContext validateIntegrity(
-    Insertable<GameSessionRow> instance, {
+    Insertable<ActiveBoardSessionRow> instance, {
     bool isInserting = false,
   }) {
     final context = VerificationContext();
@@ -424,9 +424,9 @@ class $GameSessionTable extends GameSession
   @override
   Set<GeneratedColumn> get $primaryKey => {id};
   @override
-  GameSessionRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+  ActiveBoardSessionRow map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return GameSessionRow(
+    return ActiveBoardSessionRow(
       id: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}id'],
@@ -471,12 +471,13 @@ class $GameSessionTable extends GameSession
   }
 
   @override
-  $GameSessionTable createAlias(String alias) {
-    return $GameSessionTable(attachedDatabase, alias);
+  $ActiveBoardSessionTable createAlias(String alias) {
+    return $ActiveBoardSessionTable(attachedDatabase, alias);
   }
 }
 
-class GameSessionRow extends DataClass implements Insertable<GameSessionRow> {
+class ActiveBoardSessionRow extends DataClass
+    implements Insertable<ActiveBoardSessionRow> {
   final int id;
   final String gridState;
   final String tileStack;
@@ -487,7 +488,7 @@ class GameSessionRow extends DataClass implements Insertable<GameSessionRow> {
   final bool isActive;
   final DateTime createdAt;
   final DateTime updatedAt;
-  const GameSessionRow({
+  const ActiveBoardSessionRow({
     required this.id,
     required this.gridState,
     required this.tileStack,
@@ -517,8 +518,8 @@ class GameSessionRow extends DataClass implements Insertable<GameSessionRow> {
     return map;
   }
 
-  GameSessionCompanion toCompanion(bool nullToAbsent) {
-    return GameSessionCompanion(
+  ActiveBoardSessionCompanion toCompanion(bool nullToAbsent) {
+    return ActiveBoardSessionCompanion(
       id: Value(id),
       gridState: Value(gridState),
       tileStack: Value(tileStack),
@@ -534,12 +535,12 @@ class GameSessionRow extends DataClass implements Insertable<GameSessionRow> {
     );
   }
 
-  factory GameSessionRow.fromJson(
+  factory ActiveBoardSessionRow.fromJson(
     Map<String, dynamic> json, {
     ValueSerializer? serializer,
   }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
-    return GameSessionRow(
+    return ActiveBoardSessionRow(
       id: serializer.fromJson<int>(json['id']),
       gridState: serializer.fromJson<String>(json['gridState']),
       tileStack: serializer.fromJson<String>(json['tileStack']),
@@ -569,7 +570,7 @@ class GameSessionRow extends DataClass implements Insertable<GameSessionRow> {
     };
   }
 
-  GameSessionRow copyWith({
+  ActiveBoardSessionRow copyWith({
     int? id,
     String? gridState,
     String? tileStack,
@@ -580,7 +581,7 @@ class GameSessionRow extends DataClass implements Insertable<GameSessionRow> {
     bool? isActive,
     DateTime? createdAt,
     DateTime? updatedAt,
-  }) => GameSessionRow(
+  }) => ActiveBoardSessionRow(
     id: id ?? this.id,
     gridState: gridState ?? this.gridState,
     tileStack: tileStack ?? this.tileStack,
@@ -594,8 +595,8 @@ class GameSessionRow extends DataClass implements Insertable<GameSessionRow> {
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
   );
-  GameSessionRow copyWithCompanion(GameSessionCompanion data) {
-    return GameSessionRow(
+  ActiveBoardSessionRow copyWithCompanion(ActiveBoardSessionCompanion data) {
+    return ActiveBoardSessionRow(
       id: data.id.present ? data.id.value : this.id,
       gridState: data.gridState.present ? data.gridState.value : this.gridState,
       tileStack: data.tileStack.present ? data.tileStack.value : this.tileStack,
@@ -617,7 +618,7 @@ class GameSessionRow extends DataClass implements Insertable<GameSessionRow> {
 
   @override
   String toString() {
-    return (StringBuffer('GameSessionRow(')
+    return (StringBuffer('ActiveBoardSessionRow(')
           ..write('id: $id, ')
           ..write('gridState: $gridState, ')
           ..write('tileStack: $tileStack, ')
@@ -648,7 +649,7 @@ class GameSessionRow extends DataClass implements Insertable<GameSessionRow> {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      (other is GameSessionRow &&
+      (other is ActiveBoardSessionRow &&
           other.id == this.id &&
           other.gridState == this.gridState &&
           other.tileStack == this.tileStack &&
@@ -661,7 +662,8 @@ class GameSessionRow extends DataClass implements Insertable<GameSessionRow> {
           other.updatedAt == this.updatedAt);
 }
 
-class GameSessionCompanion extends UpdateCompanion<GameSessionRow> {
+class ActiveBoardSessionCompanion
+    extends UpdateCompanion<ActiveBoardSessionRow> {
   final Value<int> id;
   final Value<String> gridState;
   final Value<String> tileStack;
@@ -672,7 +674,7 @@ class GameSessionCompanion extends UpdateCompanion<GameSessionRow> {
   final Value<bool> isActive;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
-  const GameSessionCompanion({
+  const ActiveBoardSessionCompanion({
     this.id = const Value.absent(),
     this.gridState = const Value.absent(),
     this.tileStack = const Value.absent(),
@@ -684,7 +686,7 @@ class GameSessionCompanion extends UpdateCompanion<GameSessionRow> {
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
   });
-  GameSessionCompanion.insert({
+  ActiveBoardSessionCompanion.insert({
     this.id = const Value.absent(),
     required String gridState,
     required String tileStack,
@@ -703,7 +705,7 @@ class GameSessionCompanion extends UpdateCompanion<GameSessionRow> {
        isActive = Value(isActive),
        createdAt = Value(createdAt),
        updatedAt = Value(updatedAt);
-  static Insertable<GameSessionRow> custom({
+  static Insertable<ActiveBoardSessionRow> custom({
     Expression<int>? id,
     Expression<String>? gridState,
     Expression<String>? tileStack,
@@ -729,7 +731,7 @@ class GameSessionCompanion extends UpdateCompanion<GameSessionRow> {
     });
   }
 
-  GameSessionCompanion copyWith({
+  ActiveBoardSessionCompanion copyWith({
     Value<int>? id,
     Value<String>? gridState,
     Value<String>? tileStack,
@@ -741,7 +743,7 @@ class GameSessionCompanion extends UpdateCompanion<GameSessionRow> {
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
   }) {
-    return GameSessionCompanion(
+    return ActiveBoardSessionCompanion(
       id: id ?? this.id,
       gridState: gridState ?? this.gridState,
       tileStack: tileStack ?? this.tileStack,
@@ -793,7 +795,7 @@ class GameSessionCompanion extends UpdateCompanion<GameSessionRow> {
 
   @override
   String toString() {
-    return (StringBuffer('GameSessionCompanion(')
+    return (StringBuffer('ActiveBoardSessionCompanion(')
           ..write('id: $id, ')
           ..write('gridState: $gridState, ')
           ..write('tileStack: $tileStack, ')
@@ -2624,12 +2626,12 @@ class DailyQuestsCompanion extends UpdateCompanion<DailyQuestRow> {
   }
 }
 
-class $GameSessionsTable extends GameSessions
-    with TableInfo<$GameSessionsTable, MetaGameSessionRow> {
+class $MetaRunHistoryTable extends MetaRunHistory
+    with TableInfo<$MetaRunHistoryTable, MetaRunHistoryRow> {
   @override
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
-  $GameSessionsTable(this.attachedDatabase, [this._alias]);
+  $MetaRunHistoryTable(this.attachedDatabase, [this._alias]);
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
   late final GeneratedColumn<int> id = GeneratedColumn<int>(
@@ -2763,10 +2765,10 @@ class $GameSessionsTable extends GameSessions
   String get aliasedName => _alias ?? actualTableName;
   @override
   String get actualTableName => $name;
-  static const String $name = 'game_sessions';
+  static const String $name = 'meta_run_history';
   @override
   VerificationContext validateIntegrity(
-    Insertable<MetaGameSessionRow> instance, {
+    Insertable<MetaRunHistoryRow> instance, {
     bool isInserting = false,
   }) {
     final context = VerificationContext();
@@ -2859,9 +2861,9 @@ class $GameSessionsTable extends GameSessions
   @override
   Set<GeneratedColumn> get $primaryKey => {id};
   @override
-  MetaGameSessionRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+  MetaRunHistoryRow map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return MetaGameSessionRow(
+    return MetaRunHistoryRow(
       id: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}id'],
@@ -2906,13 +2908,13 @@ class $GameSessionsTable extends GameSessions
   }
 
   @override
-  $GameSessionsTable createAlias(String alias) {
-    return $GameSessionsTable(attachedDatabase, alias);
+  $MetaRunHistoryTable createAlias(String alias) {
+    return $MetaRunHistoryTable(attachedDatabase, alias);
   }
 }
 
-class MetaGameSessionRow extends DataClass
-    implements Insertable<MetaGameSessionRow> {
+class MetaRunHistoryRow extends DataClass
+    implements Insertable<MetaRunHistoryRow> {
   final int id;
   final bool isActive;
   final int tilesRemaining;
@@ -2923,7 +2925,7 @@ class MetaGameSessionRow extends DataClass
   final String tileStack;
   final String? lastTilePlaced;
   final int seed;
-  const MetaGameSessionRow({
+  const MetaRunHistoryRow({
     required this.id,
     required this.isActive,
     required this.tilesRemaining,
@@ -2953,8 +2955,8 @@ class MetaGameSessionRow extends DataClass
     return map;
   }
 
-  GameSessionsCompanion toCompanion(bool nullToAbsent) {
-    return GameSessionsCompanion(
+  MetaRunHistoryCompanion toCompanion(bool nullToAbsent) {
+    return MetaRunHistoryCompanion(
       id: Value(id),
       isActive: Value(isActive),
       tilesRemaining: Value(tilesRemaining),
@@ -2970,12 +2972,12 @@ class MetaGameSessionRow extends DataClass
     );
   }
 
-  factory MetaGameSessionRow.fromJson(
+  factory MetaRunHistoryRow.fromJson(
     Map<String, dynamic> json, {
     ValueSerializer? serializer,
   }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
-    return MetaGameSessionRow(
+    return MetaRunHistoryRow(
       id: serializer.fromJson<int>(json['id']),
       isActive: serializer.fromJson<bool>(json['isActive']),
       tilesRemaining: serializer.fromJson<int>(json['tilesRemaining']),
@@ -3007,7 +3009,7 @@ class MetaGameSessionRow extends DataClass
     };
   }
 
-  MetaGameSessionRow copyWith({
+  MetaRunHistoryRow copyWith({
     int? id,
     bool? isActive,
     int? tilesRemaining,
@@ -3018,7 +3020,7 @@ class MetaGameSessionRow extends DataClass
     String? tileStack,
     Value<String?> lastTilePlaced = const Value.absent(),
     int? seed,
-  }) => MetaGameSessionRow(
+  }) => MetaRunHistoryRow(
     id: id ?? this.id,
     isActive: isActive ?? this.isActive,
     tilesRemaining: tilesRemaining ?? this.tilesRemaining,
@@ -3032,8 +3034,8 @@ class MetaGameSessionRow extends DataClass
         : this.lastTilePlaced,
     seed: seed ?? this.seed,
   );
-  MetaGameSessionRow copyWithCompanion(GameSessionsCompanion data) {
-    return MetaGameSessionRow(
+  MetaRunHistoryRow copyWithCompanion(MetaRunHistoryCompanion data) {
+    return MetaRunHistoryRow(
       id: data.id.present ? data.id.value : this.id,
       isActive: data.isActive.present ? data.isActive.value : this.isActive,
       tilesRemaining: data.tilesRemaining.present
@@ -3059,7 +3061,7 @@ class MetaGameSessionRow extends DataClass
 
   @override
   String toString() {
-    return (StringBuffer('MetaGameSessionRow(')
+    return (StringBuffer('MetaRunHistoryRow(')
           ..write('id: $id, ')
           ..write('isActive: $isActive, ')
           ..write('tilesRemaining: $tilesRemaining, ')
@@ -3090,7 +3092,7 @@ class MetaGameSessionRow extends DataClass
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      (other is MetaGameSessionRow &&
+      (other is MetaRunHistoryRow &&
           other.id == this.id &&
           other.isActive == this.isActive &&
           other.tilesRemaining == this.tilesRemaining &&
@@ -3103,7 +3105,7 @@ class MetaGameSessionRow extends DataClass
           other.seed == this.seed);
 }
 
-class GameSessionsCompanion extends UpdateCompanion<MetaGameSessionRow> {
+class MetaRunHistoryCompanion extends UpdateCompanion<MetaRunHistoryRow> {
   final Value<int> id;
   final Value<bool> isActive;
   final Value<int> tilesRemaining;
@@ -3114,7 +3116,7 @@ class GameSessionsCompanion extends UpdateCompanion<MetaGameSessionRow> {
   final Value<String> tileStack;
   final Value<String?> lastTilePlaced;
   final Value<int> seed;
-  const GameSessionsCompanion({
+  const MetaRunHistoryCompanion({
     this.id = const Value.absent(),
     this.isActive = const Value.absent(),
     this.tilesRemaining = const Value.absent(),
@@ -3126,7 +3128,7 @@ class GameSessionsCompanion extends UpdateCompanion<MetaGameSessionRow> {
     this.lastTilePlaced = const Value.absent(),
     this.seed = const Value.absent(),
   });
-  GameSessionsCompanion.insert({
+  MetaRunHistoryCompanion.insert({
     this.id = const Value.absent(),
     this.isActive = const Value.absent(),
     required int tilesRemaining,
@@ -3142,7 +3144,7 @@ class GameSessionsCompanion extends UpdateCompanion<MetaGameSessionRow> {
        gridState = Value(gridState),
        tileStack = Value(tileStack),
        seed = Value(seed);
-  static Insertable<MetaGameSessionRow> custom({
+  static Insertable<MetaRunHistoryRow> custom({
     Expression<int>? id,
     Expression<bool>? isActive,
     Expression<int>? tilesRemaining,
@@ -3169,7 +3171,7 @@ class GameSessionsCompanion extends UpdateCompanion<MetaGameSessionRow> {
     });
   }
 
-  GameSessionsCompanion copyWith({
+  MetaRunHistoryCompanion copyWith({
     Value<int>? id,
     Value<bool>? isActive,
     Value<int>? tilesRemaining,
@@ -3181,7 +3183,7 @@ class GameSessionsCompanion extends UpdateCompanion<MetaGameSessionRow> {
     Value<String?>? lastTilePlaced,
     Value<int>? seed,
   }) {
-    return GameSessionsCompanion(
+    return MetaRunHistoryCompanion(
       id: id ?? this.id,
       isActive: isActive ?? this.isActive,
       tilesRemaining: tilesRemaining ?? this.tilesRemaining,
@@ -3233,7 +3235,7 @@ class GameSessionsCompanion extends UpdateCompanion<MetaGameSessionRow> {
 
   @override
   String toString() {
-    return (StringBuffer('GameSessionsCompanion(')
+    return (StringBuffer('MetaRunHistoryCompanion(')
           ..write('id: $id, ')
           ..write('isActive: $isActive, ')
           ..write('tilesRemaining: $tilesRemaining, ')
@@ -3671,14 +3673,15 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $SetupCheckTable setupCheck = $SetupCheckTable(this);
-  late final $GameSessionTable gameSession = $GameSessionTable(this);
+  late final $ActiveBoardSessionTable activeBoardSession =
+      $ActiveBoardSessionTable(this);
   late final $PlayerProfileTable playerProfile = $PlayerProfileTable(this);
   late final $UpgradesTable upgrades = $UpgradesTable(this);
   late final $PermanentQuestsTable permanentQuests = $PermanentQuestsTable(
     this,
   );
   late final $DailyQuestsTable dailyQuests = $DailyQuestsTable(this);
-  late final $GameSessionsTable gameSessions = $GameSessionsTable(this);
+  late final $MetaRunHistoryTable metaRunHistory = $MetaRunHistoryTable(this);
   late final $PlayerStatsTable playerStats = $PlayerStatsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
@@ -3686,12 +3689,12 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   @override
   List<DatabaseSchemaEntity> get allSchemaEntities => [
     setupCheck,
-    gameSession,
+    activeBoardSession,
     playerProfile,
     upgrades,
     permanentQuests,
     dailyQuests,
-    gameSessions,
+    metaRunHistory,
     playerStats,
   ];
 }
@@ -3819,8 +3822,8 @@ typedef $$SetupCheckTableProcessedTableManager =
       SetupCheckRow,
       PrefetchHooks Function()
     >;
-typedef $$GameSessionTableCreateCompanionBuilder =
-    GameSessionCompanion Function({
+typedef $$ActiveBoardSessionTableCreateCompanionBuilder =
+    ActiveBoardSessionCompanion Function({
       Value<int> id,
       required String gridState,
       required String tileStack,
@@ -3832,8 +3835,8 @@ typedef $$GameSessionTableCreateCompanionBuilder =
       required DateTime createdAt,
       required DateTime updatedAt,
     });
-typedef $$GameSessionTableUpdateCompanionBuilder =
-    GameSessionCompanion Function({
+typedef $$ActiveBoardSessionTableUpdateCompanionBuilder =
+    ActiveBoardSessionCompanion Function({
       Value<int> id,
       Value<String> gridState,
       Value<String> tileStack,
@@ -3846,9 +3849,9 @@ typedef $$GameSessionTableUpdateCompanionBuilder =
       Value<DateTime> updatedAt,
     });
 
-class $$GameSessionTableFilterComposer
-    extends Composer<_$AppDatabase, $GameSessionTable> {
-  $$GameSessionTableFilterComposer({
+class $$ActiveBoardSessionTableFilterComposer
+    extends Composer<_$AppDatabase, $ActiveBoardSessionTable> {
+  $$ActiveBoardSessionTableFilterComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -3906,9 +3909,9 @@ class $$GameSessionTableFilterComposer
   );
 }
 
-class $$GameSessionTableOrderingComposer
-    extends Composer<_$AppDatabase, $GameSessionTable> {
-  $$GameSessionTableOrderingComposer({
+class $$ActiveBoardSessionTableOrderingComposer
+    extends Composer<_$AppDatabase, $ActiveBoardSessionTable> {
+  $$ActiveBoardSessionTableOrderingComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -3966,9 +3969,9 @@ class $$GameSessionTableOrderingComposer
   );
 }
 
-class $$GameSessionTableAnnotationComposer
-    extends Composer<_$AppDatabase, $GameSessionTable> {
-  $$GameSessionTableAnnotationComposer({
+class $$ActiveBoardSessionTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ActiveBoardSessionTable> {
+  $$ActiveBoardSessionTableAnnotationComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -4012,35 +4015,44 @@ class $$GameSessionTableAnnotationComposer
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
 }
 
-class $$GameSessionTableTableManager
+class $$ActiveBoardSessionTableTableManager
     extends
         RootTableManager<
           _$AppDatabase,
-          $GameSessionTable,
-          GameSessionRow,
-          $$GameSessionTableFilterComposer,
-          $$GameSessionTableOrderingComposer,
-          $$GameSessionTableAnnotationComposer,
-          $$GameSessionTableCreateCompanionBuilder,
-          $$GameSessionTableUpdateCompanionBuilder,
+          $ActiveBoardSessionTable,
+          ActiveBoardSessionRow,
+          $$ActiveBoardSessionTableFilterComposer,
+          $$ActiveBoardSessionTableOrderingComposer,
+          $$ActiveBoardSessionTableAnnotationComposer,
+          $$ActiveBoardSessionTableCreateCompanionBuilder,
+          $$ActiveBoardSessionTableUpdateCompanionBuilder,
           (
-            GameSessionRow,
-            BaseReferences<_$AppDatabase, $GameSessionTable, GameSessionRow>,
+            ActiveBoardSessionRow,
+            BaseReferences<
+              _$AppDatabase,
+              $ActiveBoardSessionTable,
+              ActiveBoardSessionRow
+            >,
           ),
-          GameSessionRow,
+          ActiveBoardSessionRow,
           PrefetchHooks Function()
         > {
-  $$GameSessionTableTableManager(_$AppDatabase db, $GameSessionTable table)
-    : super(
+  $$ActiveBoardSessionTableTableManager(
+    _$AppDatabase db,
+    $ActiveBoardSessionTable table,
+  ) : super(
         TableManagerState(
           db: db,
           table: table,
           createFilteringComposer: () =>
-              $$GameSessionTableFilterComposer($db: db, $table: table),
+              $$ActiveBoardSessionTableFilterComposer($db: db, $table: table),
           createOrderingComposer: () =>
-              $$GameSessionTableOrderingComposer($db: db, $table: table),
+              $$ActiveBoardSessionTableOrderingComposer($db: db, $table: table),
           createComputedFieldComposer: () =>
-              $$GameSessionTableAnnotationComposer($db: db, $table: table),
+              $$ActiveBoardSessionTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
           updateCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
@@ -4053,7 +4065,7 @@ class $$GameSessionTableTableManager
                 Value<bool> isActive = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
-              }) => GameSessionCompanion(
+              }) => ActiveBoardSessionCompanion(
                 id: id,
                 gridState: gridState,
                 tileStack: tileStack,
@@ -4077,7 +4089,7 @@ class $$GameSessionTableTableManager
                 required bool isActive,
                 required DateTime createdAt,
                 required DateTime updatedAt,
-              }) => GameSessionCompanion.insert(
+              }) => ActiveBoardSessionCompanion.insert(
                 id: id,
                 gridState: gridState,
                 tileStack: tileStack,
@@ -4097,21 +4109,25 @@ class $$GameSessionTableTableManager
       );
 }
 
-typedef $$GameSessionTableProcessedTableManager =
+typedef $$ActiveBoardSessionTableProcessedTableManager =
     ProcessedTableManager<
       _$AppDatabase,
-      $GameSessionTable,
-      GameSessionRow,
-      $$GameSessionTableFilterComposer,
-      $$GameSessionTableOrderingComposer,
-      $$GameSessionTableAnnotationComposer,
-      $$GameSessionTableCreateCompanionBuilder,
-      $$GameSessionTableUpdateCompanionBuilder,
+      $ActiveBoardSessionTable,
+      ActiveBoardSessionRow,
+      $$ActiveBoardSessionTableFilterComposer,
+      $$ActiveBoardSessionTableOrderingComposer,
+      $$ActiveBoardSessionTableAnnotationComposer,
+      $$ActiveBoardSessionTableCreateCompanionBuilder,
+      $$ActiveBoardSessionTableUpdateCompanionBuilder,
       (
-        GameSessionRow,
-        BaseReferences<_$AppDatabase, $GameSessionTable, GameSessionRow>,
+        ActiveBoardSessionRow,
+        BaseReferences<
+          _$AppDatabase,
+          $ActiveBoardSessionTable,
+          ActiveBoardSessionRow
+        >,
       ),
-      GameSessionRow,
+      ActiveBoardSessionRow,
       PrefetchHooks Function()
     >;
 typedef $$PlayerProfileTableCreateCompanionBuilder =
@@ -5057,8 +5073,8 @@ typedef $$DailyQuestsTableProcessedTableManager =
       DailyQuestRow,
       PrefetchHooks Function()
     >;
-typedef $$GameSessionsTableCreateCompanionBuilder =
-    GameSessionsCompanion Function({
+typedef $$MetaRunHistoryTableCreateCompanionBuilder =
+    MetaRunHistoryCompanion Function({
       Value<int> id,
       Value<bool> isActive,
       required int tilesRemaining,
@@ -5070,8 +5086,8 @@ typedef $$GameSessionsTableCreateCompanionBuilder =
       Value<String?> lastTilePlaced,
       required int seed,
     });
-typedef $$GameSessionsTableUpdateCompanionBuilder =
-    GameSessionsCompanion Function({
+typedef $$MetaRunHistoryTableUpdateCompanionBuilder =
+    MetaRunHistoryCompanion Function({
       Value<int> id,
       Value<bool> isActive,
       Value<int> tilesRemaining,
@@ -5084,9 +5100,9 @@ typedef $$GameSessionsTableUpdateCompanionBuilder =
       Value<int> seed,
     });
 
-class $$GameSessionsTableFilterComposer
-    extends Composer<_$AppDatabase, $GameSessionsTable> {
-  $$GameSessionsTableFilterComposer({
+class $$MetaRunHistoryTableFilterComposer
+    extends Composer<_$AppDatabase, $MetaRunHistoryTable> {
+  $$MetaRunHistoryTableFilterComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -5144,9 +5160,9 @@ class $$GameSessionsTableFilterComposer
   );
 }
 
-class $$GameSessionsTableOrderingComposer
-    extends Composer<_$AppDatabase, $GameSessionsTable> {
-  $$GameSessionsTableOrderingComposer({
+class $$MetaRunHistoryTableOrderingComposer
+    extends Composer<_$AppDatabase, $MetaRunHistoryTable> {
+  $$MetaRunHistoryTableOrderingComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -5204,9 +5220,9 @@ class $$GameSessionsTableOrderingComposer
   );
 }
 
-class $$GameSessionsTableAnnotationComposer
-    extends Composer<_$AppDatabase, $GameSessionsTable> {
-  $$GameSessionsTableAnnotationComposer({
+class $$MetaRunHistoryTableAnnotationComposer
+    extends Composer<_$AppDatabase, $MetaRunHistoryTable> {
+  $$MetaRunHistoryTableAnnotationComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -5254,39 +5270,41 @@ class $$GameSessionsTableAnnotationComposer
       $composableBuilder(column: $table.seed, builder: (column) => column);
 }
 
-class $$GameSessionsTableTableManager
+class $$MetaRunHistoryTableTableManager
     extends
         RootTableManager<
           _$AppDatabase,
-          $GameSessionsTable,
-          MetaGameSessionRow,
-          $$GameSessionsTableFilterComposer,
-          $$GameSessionsTableOrderingComposer,
-          $$GameSessionsTableAnnotationComposer,
-          $$GameSessionsTableCreateCompanionBuilder,
-          $$GameSessionsTableUpdateCompanionBuilder,
+          $MetaRunHistoryTable,
+          MetaRunHistoryRow,
+          $$MetaRunHistoryTableFilterComposer,
+          $$MetaRunHistoryTableOrderingComposer,
+          $$MetaRunHistoryTableAnnotationComposer,
+          $$MetaRunHistoryTableCreateCompanionBuilder,
+          $$MetaRunHistoryTableUpdateCompanionBuilder,
           (
-            MetaGameSessionRow,
+            MetaRunHistoryRow,
             BaseReferences<
               _$AppDatabase,
-              $GameSessionsTable,
-              MetaGameSessionRow
+              $MetaRunHistoryTable,
+              MetaRunHistoryRow
             >,
           ),
-          MetaGameSessionRow,
+          MetaRunHistoryRow,
           PrefetchHooks Function()
         > {
-  $$GameSessionsTableTableManager(_$AppDatabase db, $GameSessionsTable table)
-    : super(
+  $$MetaRunHistoryTableTableManager(
+    _$AppDatabase db,
+    $MetaRunHistoryTable table,
+  ) : super(
         TableManagerState(
           db: db,
           table: table,
           createFilteringComposer: () =>
-              $$GameSessionsTableFilterComposer($db: db, $table: table),
+              $$MetaRunHistoryTableFilterComposer($db: db, $table: table),
           createOrderingComposer: () =>
-              $$GameSessionsTableOrderingComposer($db: db, $table: table),
+              $$MetaRunHistoryTableOrderingComposer($db: db, $table: table),
           createComputedFieldComposer: () =>
-              $$GameSessionsTableAnnotationComposer($db: db, $table: table),
+              $$MetaRunHistoryTableAnnotationComposer($db: db, $table: table),
           updateCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
@@ -5299,7 +5317,7 @@ class $$GameSessionsTableTableManager
                 Value<String> tileStack = const Value.absent(),
                 Value<String?> lastTilePlaced = const Value.absent(),
                 Value<int> seed = const Value.absent(),
-              }) => GameSessionsCompanion(
+              }) => MetaRunHistoryCompanion(
                 id: id,
                 isActive: isActive,
                 tilesRemaining: tilesRemaining,
@@ -5323,7 +5341,7 @@ class $$GameSessionsTableTableManager
                 required String tileStack,
                 Value<String?> lastTilePlaced = const Value.absent(),
                 required int seed,
-              }) => GameSessionsCompanion.insert(
+              }) => MetaRunHistoryCompanion.insert(
                 id: id,
                 isActive: isActive,
                 tilesRemaining: tilesRemaining,
@@ -5343,21 +5361,21 @@ class $$GameSessionsTableTableManager
       );
 }
 
-typedef $$GameSessionsTableProcessedTableManager =
+typedef $$MetaRunHistoryTableProcessedTableManager =
     ProcessedTableManager<
       _$AppDatabase,
-      $GameSessionsTable,
-      MetaGameSessionRow,
-      $$GameSessionsTableFilterComposer,
-      $$GameSessionsTableOrderingComposer,
-      $$GameSessionsTableAnnotationComposer,
-      $$GameSessionsTableCreateCompanionBuilder,
-      $$GameSessionsTableUpdateCompanionBuilder,
+      $MetaRunHistoryTable,
+      MetaRunHistoryRow,
+      $$MetaRunHistoryTableFilterComposer,
+      $$MetaRunHistoryTableOrderingComposer,
+      $$MetaRunHistoryTableAnnotationComposer,
+      $$MetaRunHistoryTableCreateCompanionBuilder,
+      $$MetaRunHistoryTableUpdateCompanionBuilder,
       (
-        MetaGameSessionRow,
-        BaseReferences<_$AppDatabase, $GameSessionsTable, MetaGameSessionRow>,
+        MetaRunHistoryRow,
+        BaseReferences<_$AppDatabase, $MetaRunHistoryTable, MetaRunHistoryRow>,
       ),
-      MetaGameSessionRow,
+      MetaRunHistoryRow,
       PrefetchHooks Function()
     >;
 typedef $$PlayerStatsTableCreateCompanionBuilder =
@@ -5587,8 +5605,8 @@ class $AppDatabaseManager {
   $AppDatabaseManager(this._db);
   $$SetupCheckTableTableManager get setupCheck =>
       $$SetupCheckTableTableManager(_db, _db.setupCheck);
-  $$GameSessionTableTableManager get gameSession =>
-      $$GameSessionTableTableManager(_db, _db.gameSession);
+  $$ActiveBoardSessionTableTableManager get activeBoardSession =>
+      $$ActiveBoardSessionTableTableManager(_db, _db.activeBoardSession);
   $$PlayerProfileTableTableManager get playerProfile =>
       $$PlayerProfileTableTableManager(_db, _db.playerProfile);
   $$UpgradesTableTableManager get upgrades =>
@@ -5597,8 +5615,8 @@ class $AppDatabaseManager {
       $$PermanentQuestsTableTableManager(_db, _db.permanentQuests);
   $$DailyQuestsTableTableManager get dailyQuests =>
       $$DailyQuestsTableTableManager(_db, _db.dailyQuests);
-  $$GameSessionsTableTableManager get gameSessions =>
-      $$GameSessionsTableTableManager(_db, _db.gameSessions);
+  $$MetaRunHistoryTableTableManager get metaRunHistory =>
+      $$MetaRunHistoryTableTableManager(_db, _db.metaRunHistory);
   $$PlayerStatsTableTableManager get playerStats =>
       $$PlayerStatsTableTableManager(_db, _db.playerStats);
 }

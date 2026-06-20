@@ -19,6 +19,8 @@ import 'package:hex_cozy_games/providers/grid_state_provider.dart';
 import 'package:hex_cozy_games/providers/placement_provider.dart';
 import 'package:hex_cozy_games/providers/tile_stack_provider.dart';
 
+import 'fixtures/tile_pool.dart';
+
 void main() {
   group('placementProvider', () {
     test('aucune sélection initiale', () {

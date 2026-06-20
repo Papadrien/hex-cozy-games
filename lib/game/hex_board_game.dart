@@ -45,6 +45,7 @@ class HexBoardGame extends FlameGame
   HexGridComponent? _grid;
 
   bool _cameraDirty = false;
+  bool _previewDirty = true;
 
   /// Stocke la position du onTapDown par pointerId, pour mesurer la distance
   /// parcourue dans onTapUp : si le doigt a bougé > 5 px, c'était un swipe
@@ -100,7 +101,10 @@ class HexBoardGame extends FlameGame
       _grid?.refreshTilePositions();
       _cameraDirty = false;
     }
-    _syncPlacementPreview();
+    if (_previewDirty) {
+      _syncPlacementPreview();
+      _previewDirty = false;
+    }
   }
 
   /// Lit l'état courant des providers de placement/pile et met à jour le
@@ -152,13 +156,13 @@ class HexBoardGame extends FlameGame
     if (connectedSides.isNotEmpty || bonusTiles > 0) {
       _grid?.showRewardIndicators(coords, connectedSides, bonusTiles: bonusTiles);
     }
-    _syncPlacementPreview();
+    _previewDirty = true;
   }
 
   /// Retire une tuile du rendu Flame (appelé depuis le bouton Annuler).
   void removeTileFromFlame(HexCoords coords) {
     _grid?.removeTile(coords);
-    _syncPlacementPreview();
+    _previewDirty = true;
   }
 
   /// Vrai si le jeu est en pause — les gestes doivent être ignorés.
@@ -176,6 +180,7 @@ class HexBoardGame extends FlameGame
       _ref.read(placementProvider.notifier).rotate(step);
       _rotationAccumulator += step.sign * _kRotationThreshold;
     }
+    _previewDirty = true;
   }
 
   // ── Tap (via MultiTouchTapDetector) ───────────────────────────────────────
@@ -210,6 +215,7 @@ class HexBoardGame extends FlameGame
       // Premier tap : sélectionner la cellule pour la prévisualisation.
       if (placementNotifier.availableCells.contains(coords)) {
         placementNotifier.selectCell(coords);
+        _previewDirty = true;
       }
       return;
     }
@@ -217,13 +223,14 @@ class HexBoardGame extends FlameGame
     if (placement.selected == coords) {
       // Second tap sur la même cellule → validation du placement (story 1.5b)
       await confirmPlacement(_ref, onConfirm: placeTileOnFlame);
-      _syncPlacementPreview();
+      _previewDirty = true;
       return;
     }
 
     if (!placementNotifier.availableCells.contains(coords)) {
       // Tap en dehors des emplacements disponibles → annuler la prévisualisation.
       placementNotifier.clearSelection();
+      _previewDirty = true;
       return;
     }
 

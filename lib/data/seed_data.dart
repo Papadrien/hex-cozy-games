@@ -7,6 +7,7 @@ library;
 
 import 'package:drift/drift.dart';
 
+import '../core/game_enums.dart';
 import 'app_database.dart';
 
 /// Insère les données initiales si les tables sont vides.
@@ -37,75 +38,75 @@ final _permanentQuests = [
   // définis en 5.1 (200 → A, 300 → B...).
   PermanentQuestsCompanion.insert(
     id: 'tiles_50',
-    category: 'tiles_placed',
+    category: QuestCategory.tilesPlaced.dbValue,
     description: 'Poser 50 tuiles',
     targetValue: 50,
-    rewardType: 'coins',
+    rewardType: RewardType.coins.dbValue,
     rewardValue: 50,
     nextQuestId: Value('tiles_100'),
   ),
   PermanentQuestsCompanion.insert(
     id: 'tiles_100',
-    category: 'tiles_placed',
+    category: QuestCategory.tilesPlaced.dbValue,
     description: 'Poser 100 tuiles',
     targetValue: 100,
-    rewardType: 'coins',
+    rewardType: RewardType.coins.dbValue,
     rewardValue: 100,
     nextQuestId: Value('tiles_200'),
   ),
   PermanentQuestsCompanion.insert(
     id: 'tiles_200',
-    category: 'tiles_placed',
+    category: QuestCategory.tilesPlaced.dbValue,
     description: 'Poser 200 tuiles',
     targetValue: 200,
-    rewardType: 'upgrade_unlock',
+    rewardType: RewardType.upgradeUnlock.dbValue,
     rewardValue: 0,
     nextQuestId: Value('tiles_300'),
   ),
   PermanentQuestsCompanion.insert(
     id: 'tiles_300',
-    category: 'tiles_placed',
+    category: QuestCategory.tilesPlaced.dbValue,
     description: 'Poser 300 tuiles',
     targetValue: 300,
-    rewardType: 'upgrade_unlock',
+    rewardType: RewardType.upgradeUnlock.dbValue,
     rewardValue: 0,
     nextQuestId: Value('tiles_500'),
   ),
   PermanentQuestsCompanion.insert(
     id: 'tiles_500',
-    category: 'tiles_placed',
+    category: QuestCategory.tilesPlaced.dbValue,
     description: 'Poser 500 tuiles',
     targetValue: 500,
-    rewardType: 'upgrade_unlock',
+    rewardType: RewardType.upgradeUnlock.dbValue,
     rewardValue: 0,
   ),
 
   // Chaîne "village_size" — débloque Villages+.
   PermanentQuestsCompanion.insert(
     id: 'village_100',
-    category: 'village_size',
+    category: QuestCategory.villageSize.dbValue,
     description: 'Faire un village de 100 maisons',
     targetValue: 100,
-    rewardType: 'upgrade_unlock',
+    rewardType: RewardType.upgradeUnlock.dbValue,
     rewardValue: 0,
   ),
 
   // Chaîne "biomes_closed" — débloque pièces puis Connexions doublées.
   PermanentQuestsCompanion.insert(
     id: 'biomes_10',
-    category: 'biomes_closed',
+    category: QuestCategory.biomesClosed.dbValue,
     description: 'Fermer 10 biomes',
     targetValue: 10,
-    rewardType: 'coins',
+    rewardType: RewardType.coins.dbValue,
     rewardValue: 75,
     nextQuestId: Value('biomes_25'),
   ),
   PermanentQuestsCompanion.insert(
     id: 'biomes_25',
-    category: 'biomes_closed',
+    category: QuestCategory.biomesClosed.dbValue,
     description: 'Fermer 25 biomes',
     targetValue: 25,
-    rewardType: 'upgrade_unlock',
+    rewardType: RewardType.upgradeUnlock.dbValue,
     rewardValue: 0,
   ),
 ];
@@ -125,10 +126,10 @@ final _permanentQuests = [
 /// Définition d'une quête quotidienne (variante d'une quête permanente).
 class DailyQuestDef {
   final String id;
-  final String category;
+  final QuestCategory category;
   final String description;
   final int targetValue;
-  final String rewardType;
+  final RewardType rewardType;
   final int rewardValue;
 
   const DailyQuestDef({
@@ -146,74 +147,74 @@ class DailyQuestDef {
 final kDailyQuestPool = [
   DailyQuestDef(
     id: 'daily_tiles_10',
-    category: 'tiles_placed',
+    category: QuestCategory.tilesPlaced,
     description: 'Poser 10 tuiles',
     targetValue: 10,
-    rewardType: 'coins',
+    rewardType: RewardType.coins,
     rewardValue: 10,
   ),
   DailyQuestDef(
     id: 'daily_tiles_20',
-    category: 'tiles_placed',
+    category: QuestCategory.tilesPlaced,
     description: 'Poser 20 tuiles',
     targetValue: 20,
-    rewardType: 'coins',
+    rewardType: RewardType.coins,
     rewardValue: 12,
   ),
   DailyQuestDef(
     id: 'daily_tiles_30',
-    category: 'tiles_placed',
+    category: QuestCategory.tilesPlaced,
     description: 'Poser 30 tuiles',
     targetValue: 30,
-    rewardType: 'coins',
+    rewardType: RewardType.coins,
     rewardValue: 15,
   ),
   DailyQuestDef(
     id: 'daily_village_3',
-    category: 'village_size',
+    category: QuestCategory.villageSize,
     description: 'Faire un village de 3 maisons',
     targetValue: 3,
-    rewardType: 'coins',
+    rewardType: RewardType.coins,
     rewardValue: 8,
   ),
   DailyQuestDef(
     id: 'daily_village_5',
-    category: 'village_size',
+    category: QuestCategory.villageSize,
     description: 'Faire un village de 5 maisons',
     targetValue: 5,
-    rewardType: 'coins',
+    rewardType: RewardType.coins,
     rewardValue: 10,
   ),
   DailyQuestDef(
     id: 'daily_village_8',
-    category: 'village_size',
+    category: QuestCategory.villageSize,
     description: 'Faire un village de 8 maisons',
     targetValue: 8,
-    rewardType: 'coins',
+    rewardType: RewardType.coins,
     rewardValue: 12,
   ),
   DailyQuestDef(
     id: 'daily_biomes_2',
-    category: 'biomes_closed',
+    category: QuestCategory.biomesClosed,
     description: 'Fermer 2 biomes',
     targetValue: 2,
-    rewardType: 'coins',
+    rewardType: RewardType.coins,
     rewardValue: 6,
   ),
   DailyQuestDef(
     id: 'daily_biomes_3',
-    category: 'biomes_closed',
+    category: QuestCategory.biomesClosed,
     description: 'Fermer 3 biomes',
     targetValue: 3,
-    rewardType: 'coins',
+    rewardType: RewardType.coins,
     rewardValue: 8,
   ),
   DailyQuestDef(
     id: 'daily_biomes_5',
-    category: 'biomes_closed',
+    category: QuestCategory.biomesClosed,
     description: 'Fermer 5 biomes',
     targetValue: 5,
-    rewardType: 'coins',
+    rewardType: RewardType.coins,
     rewardValue: 10,
   ),
 ];
@@ -227,28 +228,28 @@ final _upgrades = [
   UpgradesCompanion.insert(
     id: 'starting_tiles_plus',
     name: 'Tuiles de départ+',
-    effectType: 'starting_tiles_bonus', // niveaux : +2 / +5 / +10
+    effectType: UpgradeEffectType.startingTilesBonus.dbValue,
     unlockConditionType: 'tiles_200',
     unlockConditionValue: 200,
   ),
   UpgradesCompanion.insert(
     id: 'doubled_connections',
     name: 'Connexions doublées',
-    effectType: 'connection_bonus_multiplier', // x2 sur seuil 3/4/5 côtés
+    effectType: UpgradeEffectType.connectionBonusMultiplier.dbValue,
     unlockConditionType: 'biomes_25',
     unlockConditionValue: 25,
   ),
   UpgradesCompanion.insert(
     id: 'coins_plus',
     name: 'Pièces+',
-    effectType: 'coins_percent_bonus', // niveaux : +X% / +Y% / +Z%
+    effectType: UpgradeEffectType.coinsPercentBonus.dbValue,
     unlockConditionType: 'tiles_300',
     unlockConditionValue: 300,
   ),
   UpgradesCompanion.insert(
     id: 'villages_plus',
     name: 'Villages+',
-    effectType: 'village_coins_percent_bonus', // niveaux : +33% / +66% / +100%
+    effectType: UpgradeEffectType.villageCoinsPercentBonus.dbValue,
     unlockConditionType: 'village_100',
     unlockConditionValue: 100,
   ),

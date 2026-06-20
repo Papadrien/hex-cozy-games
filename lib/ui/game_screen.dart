@@ -19,6 +19,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/game_enums.dart';
 import '../core/strings.dart';
 import '../data/app_database.dart';
 import '../game/hex_board_game.dart';
@@ -326,8 +327,8 @@ class _QuestProgressBanner extends ConsumerWidget {
           child: Row(
             children: [
               Icon(
-                _iconForCategory(quest.category),
-                color: _colorForCategory(quest.category),
+                _iconForCategory(QuestCategory.fromDb(quest.category)),
+                color: _colorForCategory(QuestCategory.fromDb(quest.category)),
                 size: 16,
               ),
               const SizedBox(width: 8),
@@ -352,7 +353,7 @@ class _QuestProgressBanner extends ConsumerWidget {
                         value: progress,
                         backgroundColor: Colors.white.withValues(alpha: 0.1),
                         valueColor: AlwaysStoppedAnimation<Color>(
-                          _colorForCategory(quest.category),
+                          _colorForCategory(QuestCategory.fromDb(quest.category)),
                         ),
                         minHeight: 4,
                       ),
@@ -382,30 +383,20 @@ class _QuestProgressBanner extends ConsumerWidget {
     return all.any((q) => q.nextQuestId == quest.id && !q.isCompleted);
   }
 
-  Color _colorForCategory(String category) {
-    switch (category) {
-      case 'tiles_placed':
-        return const Color(0xFF4CAF50);
-      case 'village_size':
-        return const Color(0xFFE57373);
-      case 'biomes_closed':
-        return const Color(0xFF64B5F6);
-      default:
-        return Colors.white;
-    }
+  Color _colorForCategory(QuestCategory category) {
+    return switch (category) {
+      QuestCategory.tilesPlaced => const Color(0xFF4CAF50),
+      QuestCategory.villageSize => const Color(0xFFE57373),
+      QuestCategory.biomesClosed => const Color(0xFF64B5F6),
+    };
   }
 
-  IconData _iconForCategory(String category) {
-    switch (category) {
-      case 'tiles_placed':
-        return Icons.grid_on;
-      case 'village_size':
-        return Icons.home;
-      case 'biomes_closed':
-        return Icons.water_drop;
-      default:
-        return Icons.flag;
-    }
+  IconData _iconForCategory(QuestCategory category) {
+    return switch (category) {
+      QuestCategory.tilesPlaced => Icons.grid_on,
+      QuestCategory.villageSize => Icons.home,
+      QuestCategory.biomesClosed => Icons.water_drop,
+    };
   }
 }
 

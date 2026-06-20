@@ -12,6 +12,7 @@ import 'dart:math';
 import 'package:drift/drift.dart' show InsertMode, Value;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/game_enums.dart';
 import '../data/app_database.dart';
 import '../data/seed_data.dart';
 import 'player_profile_provider.dart';
@@ -196,8 +197,8 @@ class QuestService {
   Future<void> _updateTilesPlaced() async {
     final db = _ref.read(appDatabaseProvider);
     final rows = await (db.select(db.permanentQuests)
-          ..where((q) => q.category.equals('tiles_placed'))
-          ..where((q) => q.isCompleted.equals(false)))
+      ..where((q) => q.category.equals(QuestCategory.tilesPlaced.dbValue))
+      ..where((q) => q.isCompleted.equals(false)))
         .get();
     for (final quest in rows) {
       final newValue = quest.currentValue + 1;
@@ -216,7 +217,7 @@ class QuestService {
     if (largest == 0) return;
     final db = _ref.read(appDatabaseProvider);
     final rows = await (db.select(db.permanentQuests)
-          ..where((q) => q.category.equals('village_size'))
+          ..where((q) => q.category.equals(QuestCategory.villageSize.dbValue))
           ..where((q) => q.isCompleted.equals(false)))
         .get();
     for (final quest in rows) {
@@ -236,7 +237,7 @@ class QuestService {
     if (closed == 0) return;
     final db = _ref.read(appDatabaseProvider);
     final rows = await (db.select(db.permanentQuests)
-          ..where((q) => q.category.equals('biomes_closed'))
+          ..where((q) => q.category.equals(QuestCategory.biomesClosed.dbValue))
           ..where((q) => q.isCompleted.equals(false)))
         .get();
     for (final quest in rows) {
@@ -262,7 +263,7 @@ class QuestService {
   }
 
   Future<void> _grantReward(PermanentQuestRow quest) async {
-    if (quest.rewardType == 'coins') {
+    if (quest.rewardType == RewardType.coins.dbValue) {
       final db = _ref.read(appDatabaseProvider);
       await addCoinsToProfile(db, quest.rewardValue);
     }
@@ -281,7 +282,7 @@ class QuestService {
     final rows =
         await (db.select(db.dailyQuests)..where((t) => t.id.equals(1))).get();
     if (rows.isEmpty) return;
-    await _applyDailyDelta(rows.first, db, 'tiles_placed', increment: 1);
+    await _applyDailyDelta(rows.first, db, QuestCategory.tilesPlaced, increment: 1);
   }
 
   Future<void> _updateDailyVillageSize(int largest) async {
@@ -291,7 +292,7 @@ class QuestService {
     final rows =
         await (db.select(db.dailyQuests)..where((t) => t.id.equals(1))).get();
     if (rows.isEmpty) return;
-    await _applyDailyDelta(rows.first, db, 'village_size',
+    await _applyDailyDelta(rows.first, db, QuestCategory.villageSize,
         absoluteValue: largest);
   }
 
@@ -301,7 +302,7 @@ class QuestService {
     final rows =
         await (db.select(db.dailyQuests)..where((t) => t.id.equals(1))).get();
     if (rows.isEmpty) return;
-    await _applyDailyDelta(rows.first, db, 'biomes_closed', increment: closed);
+    await _applyDailyDelta(rows.first, db, QuestCategory.biomesClosed, increment: closed);
   }
 
   /// Applique une progression aux quêtes quotidiennes d'une catégorie.
@@ -312,7 +313,7 @@ class QuestService {
   Future<void> _applyDailyDelta(
     DailyQuestRow row,
     AppDatabase db,
-    String category, {
+    QuestCategory category, {
     int increment = 0,
     int? absoluteValue,
   }) async {
@@ -363,7 +364,7 @@ class QuestService {
   }
 
   Future<void> _grantDailyReward(DailyQuestDef def) async {
-    if (def.rewardType == 'coins') {
+    if (def.rewardType == RewardType.coins) {
       final db = _ref.read(appDatabaseProvider);
       await addCoinsToProfile(db, def.rewardValue);
     }

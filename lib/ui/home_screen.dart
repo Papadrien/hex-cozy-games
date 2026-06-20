@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/game_enums.dart';
 import '../core/constants.dart';
 import '../core/strings.dart';
 import '../data/app_database.dart';
@@ -358,7 +359,7 @@ class _BuildButton extends StatelessWidget {
                 ...selected.map((u) => Padding(
                       padding: const EdgeInsets.only(right: 4),
                       child: _BuildMiniIcon(
-                        effectType: u.effectType,
+                        effectType: UpgradeEffectType.fromDb(u.effectType),
                       ),
                     )),
             ],
@@ -379,7 +380,7 @@ class _BuildButton extends StatelessWidget {
 class _BuildMiniIcon extends StatelessWidget {
   const _BuildMiniIcon({required this.effectType});
 
-  final String effectType;
+  final UpgradeEffectType effectType;
 
   @override
   Widget build(BuildContext context) {

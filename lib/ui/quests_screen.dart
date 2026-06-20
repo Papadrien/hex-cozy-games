@@ -7,6 +7,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/game_enums.dart';
 import '../core/strings.dart';
 import '../data/app_database.dart';
 import '../providers/quest_provider.dart';
@@ -283,7 +284,7 @@ class _QuestCard extends StatelessWidget {
                       ),
                     const Spacer(),
                     // Reward
-                    _RewardBadge(rewardType: quest.rewardType, rewardValue: quest.rewardValue),
+                    _RewardBadge(rewardType: RewardType.fromDb(quest.rewardType), rewardValue: quest.rewardValue),
                   ],
                 ),
               ],
@@ -298,12 +299,12 @@ class _QuestCard extends StatelessWidget {
 class _RewardBadge extends StatelessWidget {
   const _RewardBadge({required this.rewardType, required this.rewardValue});
 
-  final String rewardType;
+  final RewardType rewardType;
   final int rewardValue;
 
   @override
   Widget build(BuildContext context) {
-    if (rewardType == 'coins') {
+    if (rewardType == RewardType.coins) {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
         decoration: BoxDecoration(
@@ -328,7 +329,7 @@ class _RewardBadge extends StatelessWidget {
       );
     }
 
-    if (rewardType == 'upgrade_unlock') {
+    if (rewardType == RewardType.upgradeUnlock) {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
         decoration: BoxDecoration(
