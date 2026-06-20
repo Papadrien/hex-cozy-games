@@ -40,7 +40,7 @@ final class GridProvider extends $NotifierProvider<Grid, GridState> {
   }
 }
 
-String _$gridHash() => r'8b89b5ed45c3ef66a24d363557708c92fa6cac29';
+String _$gridHash() => r'e17101aa8d8b627af5c361fa0dfdf20c05dde8e3';
 
 abstract class _$Grid extends $Notifier<GridState> {
   GridState build();
