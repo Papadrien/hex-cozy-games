@@ -281,16 +281,6 @@ class _CenterContent extends ConsumerWidget {
       ],
     );
   }
-
-  void _notYet(BuildContext context, String label) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(label),
-        backgroundColor: Colors.white.withValues(alpha: 0.1),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
 }
 
 /// Petit bouton d'accès (quêtes / stats).
