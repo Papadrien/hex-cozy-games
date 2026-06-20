@@ -14,7 +14,9 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/colors.dart';
 import '../core/strings.dart';
+import '../l10n/app_localizations.dart';
 import '../providers/tutorial_provider.dart';
 
 class TutorialOverlay extends ConsumerStatefulWidget {
@@ -111,12 +113,12 @@ class _TutorialOverlayState extends ConsumerState<TutorialOverlay>
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
-                        color: const Color(0xFF6FA8DC),
+                        color: kBrandBlue,
                         width: 3,
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFF6FA8DC).withValues(alpha: 0.35),
+                          color: kBrandBlue.withValues(alpha: 0.35),
                           blurRadius: 24,
                           spreadRadius: 6,
                         ),
@@ -134,7 +136,7 @@ class _TutorialOverlayState extends ConsumerState<TutorialOverlay>
             bottom: cardBottom,
             left: 32,
             right: 32,
-            child: _InstructionCard(text: _stepText(step.textKey)),
+            child: _InstructionCard(text: _stepText(context, step.textKey)),
           ),
 
           // Indicateur de progression (points)
@@ -155,7 +157,7 @@ class _TutorialOverlayState extends ConsumerState<TutorialOverlay>
             child: TextButton(
               onPressed: () => notifier.skip(),
               child: Text(
-                Str.tutorial_skip,
+                context.tr.tutorial_skip,
                 style: const TextStyle(
                   color: Colors.white70,
                   fontSize: 15,
@@ -172,7 +174,7 @@ class _TutorialOverlayState extends ConsumerState<TutorialOverlay>
             child: FilledButton(
               onPressed: () => notifier.next(),
               style: FilledButton.styleFrom(
-                backgroundColor: const Color(0xFF6FA8DC),
+                backgroundColor: kBrandBlue,
                 padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),
@@ -225,18 +227,19 @@ class _TutorialOverlayState extends ConsumerState<TutorialOverlay>
     );
   }
 
-  String _stepText(String textKey) {
+  String _stepText(BuildContext context, String textKey) {
+    final tr = AppLocalizations.of(context)!;
     switch (textKey) {
       case 'tutorial.step1':
-        return Str.tutorial_step1;
+        return tr.tutorial_step1;
       case 'tutorial.step2':
-        return Str.tutorial_step2;
+        return tr.tutorial_step2;
       case 'tutorial.step3':
-        return Str.tutorial_step3;
+        return tr.tutorial_step3;
       case 'tutorial.step4':
-        return Str.tutorial_step4;
+        return tr.tutorial_step4;
       case 'tutorial.step5':
-        return Str.tutorial_step5;
+        return tr.tutorial_step5;
       default:
         return '';
     }
@@ -254,7 +257,7 @@ class _InstructionCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
       decoration: BoxDecoration(
-        color: const Color(0xFF1A2332),
+        color: kBackgroundColor,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: Colors.white.withValues(alpha: 0.12),
@@ -293,7 +296,7 @@ class _StepDots extends StatelessWidget {
           height: 8,
           decoration: BoxDecoration(
             color: isActive
-                ? const Color(0xFF6FA8DC)
+                ? kBrandBlue
                 : Colors.white.withValues(alpha: 0.3),
             borderRadius: BorderRadius.circular(4),
           ),

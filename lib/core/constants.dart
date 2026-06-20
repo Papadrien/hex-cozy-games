@@ -17,3 +17,12 @@ const int kMaxSelectedUpgrades = 3;
 
 /// Nombre maximal de `BiomeType` différents par tuile (contexte 3.6).
 const int kMaxBiomeTypesPerTile = 3;
+
+/// Barème de tuiles bonus selon le nombre de côtés connectés (Story 1.6b).
+/// 3→+1, 4→+2, 5→+5, 6→+10.
+const Map<int, int> kBonusScale = {
+  3: 1,
+  4: 2,
+  5: 5,
+  6: 10,
+};

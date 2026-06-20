@@ -7,6 +7,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/colors.dart';
 import '../core/game_enums.dart';
 import '../core/constants.dart';
 import '../core/strings.dart';
@@ -23,16 +24,16 @@ class BuildScreen extends ConsumerWidget {
     final selected = ref.watch(selectedUpgradeIdsProvider);
 
     return Scaffold(
-      backgroundColor: const Color(0xFF1A2332),
+      backgroundColor: kBackgroundColor,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF1A2332),
+        backgroundColor: kBackgroundColor,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.close, color: Colors.white),
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
-          Str.home_buildSelection,
+          context.tr.home_buildSelection,
           style: const TextStyle(
             color: Colors.white,
             fontSize: 20,
@@ -93,7 +94,7 @@ class _BuildCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final borderColor = isSelected
-        ? const Color(0xFF6FA8DC)
+        ? kBrandBlue
         : Colors.white.withValues(alpha: 0.08);
 
     return GestureDetector(
@@ -103,7 +104,7 @@ class _BuildCard extends StatelessWidget {
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: isSelected
-              ? const Color(0xFF6FA8DC).withValues(alpha: 0.12)
+              ? kBrandBlue.withValues(alpha: 0.12)
               : Colors.white.withValues(alpha: 0.06),
           borderRadius: BorderRadius.circular(14),
           border: Border.all(color: borderColor, width: isSelected ? 1.5 : 1),
@@ -115,14 +116,14 @@ class _BuildCard extends StatelessWidget {
               height: 40,
               decoration: BoxDecoration(
                 color: isSelected
-                    ? const Color(0xFF6FA8DC).withValues(alpha: 0.2)
+                    ? kBrandBlue.withValues(alpha: 0.2)
                     : Colors.white.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(
                 upgradeIconData(UpgradeEffectType.fromDb(upgrade.effectType)),
                 color: isSelected
-                    ? const Color(0xFF6FA8DC)
+                    ? kBrandBlue
                     : Colors.white.withValues(alpha: 0.5),
                 size: 20,
               ),
@@ -156,7 +157,7 @@ class _BuildCard extends StatelessWidget {
                 width: 24,
                 height: 24,
                 decoration: const BoxDecoration(
-                  color: Color(0xFF6FA8DC),
+                  color: kBrandBlue,
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(Icons.check, color: Colors.white, size: 16),

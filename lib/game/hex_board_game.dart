@@ -24,6 +24,8 @@ library;
 import 'dart:ui' show Color;
 
 import 'package:flame/events.dart';
+
+import '../core/colors.dart';
 import 'package:flame/game.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -53,7 +55,7 @@ class HexBoardGame extends FlameGame
   final Map<int, Offset> _tapDownPositions = {};
 
   @override
-  Color backgroundColor() => const Color(0xFF1A2332);
+  Color backgroundColor() => kBackgroundColor;
 
   @override
   Future<void> onLoad() async {

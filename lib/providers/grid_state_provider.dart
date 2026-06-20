@@ -38,6 +38,21 @@ class GridState {
 
   HexTile? tileAt(HexCoords coords) => placedTiles[coords];
 
+  Map<String, dynamic> toJson() => {
+        for (final entry in placedTiles.entries)
+          '${entry.key.q},${entry.key.r}': entry.value.toJson()['sides'],
+      };
+
+  factory GridState.fromJson(Map<String, dynamic> json) => GridState(
+        placedTiles: {
+          for (final entry in json.entries)
+            HexCoords(
+              int.parse(entry.key.split(',')[0]),
+              int.parse(entry.key.split(',')[1]),
+            ): HexTile.fromJson({'sides': entry.value}),
+        },
+      );
+
   /// Pour chaque côté `i` de [coords], le côté opposé `(i+3)%6` du voisin
   /// dans la direction `i` est le côté qui serait en regard. Retourne le
   /// [BiomeType] de ce côté voisin, ou null si pas de voisin posé dans

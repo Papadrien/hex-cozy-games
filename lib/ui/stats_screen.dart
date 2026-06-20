@@ -9,6 +9,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/colors.dart';
 import '../core/strings.dart';
 import '../providers/player_stats_provider.dart';
 
@@ -20,16 +21,16 @@ class StatsScreen extends ConsumerWidget {
     final statsAsync = ref.watch(playerStatsProvider);
 
     return Scaffold(
-      backgroundColor: const Color(0xFF1A2332),
+      backgroundColor: kBackgroundColor,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF1A2332),
+        backgroundColor: kBackgroundColor,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.close, color: Colors.white),
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
-          Str.stats_title,
+          context.tr.stats_title,
           style: const TextStyle(
             color: Colors.white,
             fontSize: 20,
@@ -56,22 +57,22 @@ class StatsScreen extends ConsumerWidget {
             children: [
               _StatCard(
                 icon: Icons.grid_on,
-                label: Str.stats_totalTiles,
+                label: context.tr.stats_totalTiles,
                 value: '${stats.totalTilesPlaced}',
               ),
               _StatCard(
                 icon: Icons.emoji_events,
-                label: Str.stats_bestScore,
+                label: context.tr.stats_bestScore,
                 value: '${stats.bestScore}',
               ),
               _StatCard(
                 icon: Icons.play_arrow,
-                label: Str.stats_gamesPlayed,
+                label: context.tr.stats_gamesPlayed,
                 value: '${stats.totalGamesPlayed}',
               ),
               _StatCard(
                 icon: Icons.monetization_on,
-                label: Str.stats_totalCoins,
+                label: context.tr.stats_totalCoins,
                 value: '${stats.totalCoinsEarned}',
               ),
               const SizedBox(height: 16),
@@ -87,8 +88,8 @@ class StatsScreen extends ConsumerWidget {
               const SizedBox(height: 8),
               ...biomeSizes.entries.map((e) => _StatCard(
                     icon: _biomeIcon(e.key),
-                    label: Str.biomeName(e.key),
-                    value: Str.stats_biomeMax(e.key, e.value),
+                    label: biomeName(context, e.key),
+                    value: context.tr.stats_biomeMax(e.key, e.value),
                   )),
               if (biomeSizes.isEmpty)
                 Padding(
@@ -153,10 +154,10 @@ class _StatCard extends StatelessWidget {
             width: 36,
             height: 36,
             decoration: BoxDecoration(
-              color: const Color(0xFF6FA8DC).withValues(alpha: 0.15),
+              color: kBrandBlue.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(icon, color: const Color(0xFF6FA8DC), size: 20),
+            child: Icon(icon, color: kBrandBlue, size: 20),
           ),
           const SizedBox(width: 12),
           Expanded(

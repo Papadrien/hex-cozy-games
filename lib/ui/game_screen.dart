@@ -19,6 +19,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/colors.dart';
 import '../core/game_enums.dart';
 import '../core/strings.dart';
 import '../data/app_database.dart';
@@ -101,7 +102,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     });
 
     return Scaffold(
-      backgroundColor: const Color(0xFF1A2332),
+      backgroundColor: kBackgroundColor,
       body: Stack(
         children: [
           // ── Jeu Flame — reçoit TOUS les gestes directement ────────────────
@@ -127,7 +128,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    Str.game_sessionCoins,
+                    context.tr.game_sessionCoins,
                     style: TextStyle(
                       color: Colors.white.withValues(alpha: 0.6),
                       fontSize: 11,
@@ -275,7 +276,7 @@ class _CoinRewardTag extends ConsumerWidget {
             const Icon(Icons.monetization_on, color: Colors.amber, size: 16),
             const SizedBox(width: 4),
             Text(
-              '+$coins${Str.reward_coins}',
+               '+$coins${context.tr.reward_coins}',
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 13,
@@ -428,7 +429,7 @@ class _BonusTileTag extends ConsumerWidget {
             const Icon(Icons.hexagon, color: Colors.lightBlue, size: 14),
             const SizedBox(width: 4),
             Text(
-              '+${reward.bonusTiles}${Str.reward_bonusTiles}',
+               '+${reward.bonusTiles}${context.tr.reward_bonusTiles}',
               style: const TextStyle(
                 color: Colors.white70,
                 fontSize: 13,

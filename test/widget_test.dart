@@ -4,7 +4,6 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:hex_cozy_games/game/hex_board_game.dart';
 import 'package:hex_cozy_games/main.dart';
-import 'package:hex_cozy_games/core/strings.dart';
 
 void main() {
   testWidgets('HomeScreen → Play → GameWidget', (WidgetTester tester) async {
@@ -20,7 +19,7 @@ void main() {
 
     // Vérifier qu'on a soit le texte "Play" (DB disponible → écran d'accueil)
     // soit un CircularProgressIndicator (DB en chargement).
-    final hasPlay = find.text(Str.home_play).evaluate().isNotEmpty;
+    final hasPlay = find.text('Play').evaluate().isNotEmpty;
     if (!hasPlay) {
       // DB non disponible en test — on vérifie juste qu'on est sur l'écran
       // d'accueil (présence du CircularProgressIndicator de chargement).
@@ -28,7 +27,7 @@ void main() {
       return;
     }
 
-    await tester.tap(find.text(Str.home_play));
+    await tester.tap(find.text('Play'));
     await tester.pump();
     await tester.pump(const Duration(seconds: 1));
 

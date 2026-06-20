@@ -22,11 +22,14 @@ class HexCell {
   final int r;
   final BiomeType? biome;
 
+  static const _sentinel = Object();
+
   /// Retourne une copie avec le biome modifié.
-  HexCell copyWith({BiomeType? biome}) => HexCell(
+  /// Passez `biome: null` pour effacer le biome.
+  HexCell copyWith({Object? biome = _sentinel}) => HexCell(
         q: q,
         r: r,
-        biome: biome ?? this.biome,
+        biome: biome == _sentinel ? this.biome : biome as BiomeType?,
       );
 
   @override

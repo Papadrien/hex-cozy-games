@@ -20,15 +20,25 @@ class SessionState {
   final int totalBonusTiles;
   final PlacementReward? lastReward;
 
+  /// Sentinel utilisé par [copyWith] pour distinguer "non fourni" de "null".
+  static const _sentinel = Object();
+
+  /// Remplace les champs non-null fournis.
+  /// Permet de remettre un champ nullable à null :
+  /// `copyWith(lastReward: null)` fonctionne correctement.
   SessionState copyWith({
-    int? coins,
-    int? totalBonusTiles,
-    PlacementReward? lastReward,
+    Object? coins = _sentinel,
+    Object? totalBonusTiles = _sentinel,
+    Object? lastReward = _sentinel,
   }) {
     return SessionState(
-      coins: coins ?? this.coins,
-      totalBonusTiles: totalBonusTiles ?? this.totalBonusTiles,
-      lastReward: lastReward ?? this.lastReward,
+      coins: coins == _sentinel ? this.coins : coins as int,
+      totalBonusTiles: totalBonusTiles == _sentinel
+          ? this.totalBonusTiles
+          : totalBonusTiles as int,
+      lastReward: lastReward == _sentinel
+          ? this.lastReward
+          : lastReward as PlacementReward?,
     );
   }
 }

@@ -8,6 +8,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/colors.dart';
 import '../core/strings.dart';
 import '../providers/end_game_provider.dart';
 import '../providers/placement_commit.dart';
@@ -50,7 +51,7 @@ class _ResultsCard extends ConsumerWidget {
       margin: const EdgeInsets.symmetric(horizontal: 40),
       padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 32),
       decoration: BoxDecoration(
-        color: const Color(0xFF1A2332),
+        color: kBackgroundColor,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: Colors.white.withValues(alpha: 0.12),
@@ -62,7 +63,7 @@ class _ResultsCard extends ConsumerWidget {
         children: [
           // Titre
           Text(
-            Str.results_title,
+            context.tr.results_title,
             style: TextStyle(
               color: Colors.white,
               fontSize: 22,
@@ -74,7 +75,7 @@ class _ResultsCard extends ConsumerWidget {
           // Tuiles posées
           _StatRow(
             icon: Icons.grid_on,
-            label: Str.results_tilesPlaced,
+            label: context.tr.results_tilesPlaced,
             value: '${stats.placedTilesCount}',
           ),
           const SizedBox(height: 12),
@@ -82,25 +83,25 @@ class _ResultsCard extends ConsumerWidget {
           // Connexions par type
           _StatRow(
             icon: Icons.link,
-            label: '${Str.results_connections3} (3)',
+            label: '${context.tr.results_connections3} (3)',
             value: '${stats.connections3}',
           ),
           const SizedBox(height: 8),
           _StatRow(
             icon: Icons.link,
-            label: '${Str.results_connections4} (4)',
+            label: '${context.tr.results_connections4} (4)',
             value: '${stats.connections4}',
           ),
           const SizedBox(height: 8),
           _StatRow(
             icon: Icons.link,
-            label: '${Str.results_connections5} (5)',
+            label: '${context.tr.results_connections5} (5)',
             value: '${stats.connections5}',
           ),
           const SizedBox(height: 8),
           _StatRow(
             icon: Icons.link,
-            label: '${Str.results_connections6} (6)',
+            label: '${context.tr.results_connections6} (6)',
             value: '${stats.connections6}',
           ),
           const SizedBox(height: 16),
@@ -108,7 +109,7 @@ class _ResultsCard extends ConsumerWidget {
           // Pièces gagnées
           _StatRow(
             icon: Icons.monetization_on,
-            label: Str.results_coins,
+            label: context.tr.results_coins,
             value: '${stats.coins}',
             valueColor: Colors.amber,
           ),
@@ -120,14 +121,14 @@ class _ResultsCard extends ConsumerWidget {
             child: TextButton(
               style: TextButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),
-                backgroundColor: const Color(0xFF6FA8DC),
+                backgroundColor: kBrandBlue,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),
                 ),
               ),
               onPressed: () => _replay(context, ref),
               child: Text(
-                Str.results_replay,
+                context.tr.results_replay,
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 16,

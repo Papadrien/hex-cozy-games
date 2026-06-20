@@ -32,6 +32,16 @@ class HexTile {
 
   /// Nombre de [BiomeType] uniques sur cette tuile (toujours ≤ 3).
   int get biomeCount => sides.toSet().length;
+
+  Map<String, dynamic> toJson() => {
+        'sides': sides.map((b) => b.name).toList(),
+      };
+
+  factory HexTile.fromJson(Map<String, dynamic> json) => HexTile(
+        sides: (json['sides'] as List)
+            .map((s) => BiomeType.values.firstWhere((b) => b.name == s))
+            .toList(),
+      );
 }
 
 // ── Générateur de pool aléatoire (Story 1.9a) ────────────────────────────────

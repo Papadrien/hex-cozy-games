@@ -32,10 +32,12 @@ class PlacementState {
 
   bool get hasSelection => selected != null;
 
-  PlacementState copyWith({HexCoords? selected, int? rotationSteps}) {
+  static const _sentinel = Object();
+
+  PlacementState copyWith({Object? selected = _sentinel, Object? rotationSteps = _sentinel}) {
     return PlacementState(
-      selected: selected ?? this.selected,
-      rotationSteps: rotationSteps ?? this.rotationSteps,
+      selected: selected == _sentinel ? this.selected : selected as HexCoords?,
+      rotationSteps: rotationSteps == _sentinel ? this.rotationSteps : rotationSteps as int,
     );
   }
 }

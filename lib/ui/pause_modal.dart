@@ -18,6 +18,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/colors.dart';
 import '../core/strings.dart';
 import '../providers/grid_state_provider.dart';
 import '../providers/options_provider.dart';
@@ -61,7 +62,7 @@ class _PauseCard extends ConsumerWidget {
       margin: const EdgeInsets.symmetric(horizontal: 48),
       padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 28),
       decoration: BoxDecoration(
-        color: const Color(0xFF1A2332),
+        color: kBackgroundColor,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: Colors.white.withValues(alpha: 0.12),
@@ -110,13 +111,13 @@ class _OptionsContent extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _OptionToggle(
-          label: Str.options_sound,
+          label: context.tr.options_sound,
           value: options.soundEnabled,
           onToggle: () => ref.read(optionsProvider.notifier).toggleSound(),
         ),
         const SizedBox(height: 16),
         _OptionToggle(
-          label: Str.options_vibrations,
+          label: context.tr.options_vibrations,
           value: options.vibrationEnabled,
           onToggle: () => ref.read(optionsProvider.notifier).toggleVibration(),
         ),
@@ -165,7 +166,7 @@ class _OptionToggle extends StatelessWidget {
             Icon(
               value ? Icons.check_circle : Icons.circle_outlined,
               color: value
-                  ? const Color(0xFF6FA8DC)
+                  ? kBrandBlue
                   : Colors.white.withValues(alpha: 0.35),
               size: 24,
             ),
@@ -184,7 +185,7 @@ class _ResumeButton extends ConsumerWidget {
       child: TextButton(
         style: TextButton.styleFrom(
           padding: const EdgeInsets.symmetric(vertical: 16),
-          backgroundColor: const Color(0xFF6FA8DC),
+          backgroundColor: kBrandBlue,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
           ),
@@ -193,7 +194,7 @@ class _ResumeButton extends ConsumerWidget {
           ref.read(pauseProvider.notifier).resume();
         },
         child: Text(
-          Str.pause_resume,
+          context.tr.pause_resume,
           style: const TextStyle(
             color: Colors.white,
             fontSize: 16,
@@ -225,7 +226,7 @@ class _OptionsButton extends ConsumerWidget {
           ref.read(pauseProvider.notifier).toggleOptions();
         },
         child: Text(
-          Str.pause_options,
+          context.tr.pause_options,
           style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
         ),
       ),
@@ -281,7 +282,7 @@ class _SaveAndQuitButton extends ConsumerWidget {
           }
         },
         child: Text(
-          Str.pause_saveAndQuit,
+          context.tr.pause_saveAndQuit,
           style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
         ),
       ),
@@ -297,14 +298,14 @@ class _AbandonButton extends ConsumerWidget {
       child: TextButton(
         style: TextButton.styleFrom(
           padding: const EdgeInsets.symmetric(vertical: 14),
-          foregroundColor: const Color(0xFFE57373),
+          foregroundColor: kDestructiveRed,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
           ),
         ),
         onPressed: () => _showAbandonConfirmDialog(context, ref),
         child: Text(
-          Str.pause_abandon,
+          context.tr.pause_abandon,
           style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
         ),
       ),
@@ -319,13 +320,13 @@ Future<void> _showAbandonConfirmDialog(
   return showDialog(
     context: context,
     builder: (dialogContext) => AlertDialog(
-      backgroundColor: const Color(0xFF1A2332),
+      backgroundColor: kBackgroundColor,
       title: Text(
-        Str.pause_abandonConfirmTitle,
+        context.tr.pause_abandonConfirmTitle,
         style: const TextStyle(color: Colors.white, fontSize: 16),
       ),
       content: Text(
-        Str.pause_abandonConfirmBody,
+        context.tr.pause_abandonConfirmBody,
         style: TextStyle(
           color: Colors.white.withValues(alpha: 0.7),
           fontSize: 14,
@@ -335,7 +336,7 @@ Future<void> _showAbandonConfirmDialog(
         TextButton(
           onPressed: () => Navigator.of(dialogContext).pop(),
           child: Text(
-            Str.pause_abandonConfirmCancel,
+            context.tr.pause_abandonConfirmCancel,
             style: const TextStyle(color: Colors.white70),
           ),
         ),
@@ -345,8 +346,8 @@ Future<void> _showAbandonConfirmDialog(
             _abandonGame(context, ref);
           },
           child: Text(
-            Str.pause_abandonConfirmConfirm,
-            style: const TextStyle(color: Color(0xFFE57373)),
+            context.tr.pause_abandonConfirmConfirm,
+            style: const TextStyle(color: kDestructiveRed),
           ),
         ),
       ],

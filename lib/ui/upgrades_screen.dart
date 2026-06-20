@@ -3,6 +3,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/colors.dart';
 import '../core/game_enums.dart';
 import '../core/strings.dart';
 import '../data/app_database.dart';
@@ -20,16 +21,16 @@ class UpgradesScreen extends ConsumerWidget {
     final totalCoinsAsync = ref.watch(totalCoinsProvider);
 
     return Scaffold(
-      backgroundColor: const Color(0xFF1A2332),
+      backgroundColor: kBackgroundColor,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF1A2332),
+        backgroundColor: kBackgroundColor,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.close, color: Colors.white),
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
-          Str.upgrades_title,
+          context.tr.upgrades_title,
           style: const TextStyle(
             color: Colors.white,
             fontSize: 20,
@@ -87,7 +88,7 @@ class _UpgradesList extends StatelessWidget {
         if (unlocked.isNotEmpty) ...[
           _SectionHeader(
             icon: Icons.check_circle,
-            color: const Color(0xFF4CAF50),
+            color: kSuccessGreen,
             label: 'Débloquées',
           ),
           const SizedBox(height: 8),
@@ -195,15 +196,14 @@ class _UpgradeCard extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: isLocked
                       ? Colors.white.withValues(alpha: 0.08)
-                      : const Color(0xFF6FA8DC).withValues(alpha: 0.2),
+                      : kBrandBlue.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(
                   isLocked ? Icons.lock : Icons.auto_awesome,
                   color: isLocked
                       ? Colors.white.withValues(alpha: 0.4)
-                      : const Color(0xFF6FA8DC),
-                  size: 20,
+                      : kBrandBlue,
                 ),
               ),
               const SizedBox(width: 12),
@@ -231,7 +231,7 @@ class _UpgradeCard extends StatelessWidget {
                       : Colors.white.withValues(alpha: 0.5)),
               const SizedBox(width: 6),
               Text(
-                isLocked ? Str.upgrades_hiddenEffect : _effectLabel(upgrade),
+                isLocked ? context.tr.upgrades_hiddenEffect : _effectLabel(upgrade),
                 style: TextStyle(
                   color: isLocked
                       ? Colors.white.withValues(alpha: 0.3)
@@ -252,7 +252,7 @@ class _UpgradeCard extends StatelessWidget {
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
-                    '${Str.upgrades_unlockCondition} : ${_conditionLabel(upgrade, questDescriptions)}',
+                    '${context.tr.upgrades_unlockCondition} : ${_conditionLabel(upgrade, questDescriptions)}',
                     style: TextStyle(
                       color: Colors.white.withValues(alpha: 0.45),
                       fontSize: 12,
@@ -271,7 +271,7 @@ class _UpgradeCard extends StatelessWidget {
                     color: Colors.amber.withValues(alpha: 0.7)),
                 const SizedBox(width: 6),
                 Text(
-                  '${Str.upgrades_level} ${upgrade.currentLevel + 1}',
+                  '${context.tr.upgrades_level} ${upgrade.currentLevel + 1}',
                   style: TextStyle(
                     color: Colors.amber.withValues(alpha: 0.8),
                     fontSize: 13,
@@ -332,7 +332,7 @@ class _LevelDot extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = isCurrent
-        ? const Color(0xFF6FA8DC)
+        ? kBrandBlue
         : isReached
             ? Colors.white.withValues(alpha: 0.5)
             : Colors.white.withValues(alpha: 0.2);
@@ -403,7 +403,7 @@ class _UpgradeButton extends ConsumerWidget {
           borderRadius: BorderRadius.circular(8),
         ),
         child: Text(
-          Str.upgrades_max,
+          context.tr.upgrades_max,
           style: TextStyle(
             color: Colors.white.withValues(alpha: 0.3),
             fontSize: 12,
@@ -420,7 +420,7 @@ class _UpgradeButton extends ConsumerWidget {
       style: TextButton.styleFrom(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         backgroundColor: canAfford
-            ? const Color(0xFF6FA8DC).withValues(alpha: 0.2)
+            ? kBrandBlue.withValues(alpha: 0.2)
             : Colors.white.withValues(alpha: 0.05),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(8),
@@ -430,10 +430,10 @@ class _UpgradeButton extends ConsumerWidget {
           ? () => _handleUpgrade(context, ref)
           : null,
       child: Text(
-        '${Str.upgrades_cost} : $cost  ${Str.upgrades_upgradeButton}',
+        '${context.tr.upgrades_cost} : $cost  ${context.tr.upgrades_upgradeButton}',
         style: TextStyle(
           color: canAfford
-              ? const Color(0xFF6FA8DC).withValues(alpha: 0.9)
+              ? kBrandBlue.withValues(alpha: 0.9)
               : Colors.white.withValues(alpha: 0.3),
           fontSize: 12,
           fontWeight: FontWeight.w600,
@@ -450,8 +450,8 @@ class _UpgradeButton extends ConsumerWidget {
 
     final (message, color) = switch (result) {
       UpgradeResult.success => (
-        '${upgrade.name} → ${Str.upgrades_level} ${upgrade.currentLevel + 2}',
-        const Color(0xFF4CAF50),
+        '${upgrade.name} → ${context.tr.upgrades_level} ${upgrade.currentLevel + 2}',
+        kSuccessGreen,
       ),
       UpgradeResult.insufficientCoins => (
         'Pièces insuffisantes',

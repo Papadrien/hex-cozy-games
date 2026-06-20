@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/colors.dart';
 import '../core/game_enums.dart';
 import '../core/constants.dart';
 import '../core/strings.dart';
@@ -23,7 +24,7 @@ class HomeScreen extends ConsumerWidget {
     final totalCoins = ref.watch(totalCoinsProvider);
 
     return Scaffold(
-      backgroundColor: const Color(0xFF1A2332),
+      backgroundColor: kBackgroundColor,
       body: SafeArea(
         child: Column(
           children: [
@@ -90,14 +91,14 @@ class _TopBar extends StatelessWidget {
           const Spacer(),
           _IconButton(
             icon: Icons.settings,
-            tooltip: Str.home_settings,
-            onPressed: () => _notYet(context, Str.home_settings),
+            tooltip: context.tr.home_settings,
+            onPressed: () => _notYet(context, context.tr.home_settings),
           ),
           const SizedBox(width: 8),
           _IconButton(
             icon: Icons.store,
-            tooltip: Str.home_shop,
-            onPressed: () => _notYet(context, Str.home_shop),
+            tooltip: context.tr.home_shop,
+            onPressed: () => _notYet(context, context.tr.home_shop),
           ),
         ],
       ),
@@ -213,7 +214,7 @@ class _CenterContent extends ConsumerWidget {
           child: TextButton(
             style: TextButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 16),
-              backgroundColor: const Color(0xFF6FA8DC),
+              backgroundColor: kBrandBlue,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(14),
               ),
@@ -231,7 +232,7 @@ class _CenterContent extends ConsumerWidget {
                     strokeWidth: 2, color: Colors.white),
               ),
               data: (active) => Text(
-                active ? Str.home_resume : Str.home_play,
+                active ? context.tr.home_resume : context.tr.home_play,
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 18,
@@ -239,7 +240,7 @@ class _CenterContent extends ConsumerWidget {
                 ),
               ),
               error: (_, _) => Text(
-                Str.home_play,
+                context.tr.home_play,
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 18,
@@ -259,7 +260,7 @@ class _CenterContent extends ConsumerWidget {
           children: [
             _NavButton(
               icon: Icons.flag_outlined,
-              label: Str.quests_title,
+              label: context.tr.quests_title,
               onTap: () => Navigator.of(context).push(
                 MaterialPageRoute(
                     builder: (_) => const QuestsScreen()),
@@ -268,7 +269,7 @@ class _CenterContent extends ConsumerWidget {
             const SizedBox(width: 16),
             _NavButton(
               icon: Icons.bar_chart_outlined,
-                  label: Str.home_stats,
+                  label: context.tr.home_stats,
                   onTap: () {
                     Navigator.of(context).push(
                       MaterialPageRoute(
@@ -366,7 +367,7 @@ class _BuildButton extends StatelessWidget {
           ),
           Text(
             selected.isEmpty
-                ? Str.home_buildSelection
+                ? context.tr.home_buildSelection
                 : '${selected.length} / $kMaxSelectedUpgrades',
             style: const TextStyle(fontSize: 13),
           ),
@@ -388,12 +389,12 @@ class _BuildMiniIcon extends StatelessWidget {
       width: 26,
       height: 26,
       decoration: BoxDecoration(
-        color: const Color(0xFF6FA8DC).withValues(alpha: 0.2),
+        color: kBrandBlue.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Icon(
         upgradeIconData(effectType),
-        color: const Color(0xFF6FA8DC),
+        color: kBrandBlue,
         size: 14,
       ),
     );

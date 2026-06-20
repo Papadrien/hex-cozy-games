@@ -4,8 +4,8 @@ import 'package:drift/drift.dart' show InsertMode, Value;
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/constants.dart';
 import '../data/app_database.dart';
-import '../game/hex_cell.dart';
 import '../game/hex_coords.dart';
 import '../game/hex_tile.dart';
 import '../services/cloud_save_service.dart';
@@ -46,28 +46,15 @@ Future<void> restoreSession(WidgetRef ref) async {
     final row = rows.first;
 
     // Restaurer le plateau.
-    final gridJson =
-        jsonDecode(row.gridState) as Map<String, dynamic>;
-    final placedTiles = <HexCoords, HexTile>{};
-    for (final entry in gridJson.entries) {
-      final parts = entry.key.split(',');
-      final q = int.parse(parts[0]);
-      final r = int.parse(parts[1]);
-      final sides = (entry.value as List)
-          .map((s) => BiomeType.values.firstWhere((b) => b.name == s))
-          .toList();
-      placedTiles[HexCoords(q, r)] = HexTile(sides: sides);
-    }
-    ref.read(gridProvider.notifier).setState(placedTiles);
+    final gridJson = jsonDecode(row.gridState) as Map<String, dynamic>;
+    ref.read(gridProvider.notifier)
+        .setState(GridState.fromJson(gridJson).placedTiles);
 
     // Restaurer la pile de tuiles.
     final stackJson = jsonDecode(row.tileStack);
     final seed = stackJson['seed'] as int?;
     final queueList = (stackJson['queue'] as List)
-        .map((t) => (t as List)
-            .map((s) => BiomeType.values.firstWhere((b) => b.name == s))
-            .toList())
-        .map((sides) => HexTile(sides: sides))
+        .map((t) => HexTile.fromJson({'sides': t}))
         .toList();
     ref.read(tileStackProvider.notifier).restoreQueue(queueList, seed: seed);
 
@@ -80,10 +67,7 @@ Future<void> restoreSession(WidgetRef ref) async {
     // Restaurer le dernier placement (pour le bouton Annuler).
     if (row.lastTilePlaced != null) {
       final lastJson = jsonDecode(row.lastTilePlaced!);
-      final sides = (lastJson['sides'] as List)
-          .map((s) => BiomeType.values.firstWhere((b) => b.name == s))
-          .toList();
-      final tile = HexTile(sides: sides);
+      final tile = HexTile.fromJson(lastJson);
       final connectedSides = (lastJson['connectedSides'] as List?)
               ?.cast<int>() ??
           [];
@@ -165,7 +149,7 @@ final previewRewardProvider = Provider<PlacementReward>((ref) {
     }
   }
   final c = sides.length;
-  final baseBonus = c >= 6 ? 10 : c == 5 ? 5 : c == 4 ? 2 : c == 3 ? 1 : 0;
+  final baseBonus = kBonusScale[c] ?? 0;
 
   // Appliquer le multiplicateur de tuiles bonus (Story 2.8a).
   final effects = ref.read(gameEffectsServiceProvider);
@@ -200,20 +184,14 @@ class SessionSaver {
       final session = ref.read(sessionProvider);
       final lastPlacement = ref.read(lastPlacementProvider);
 
-      final gridJson = jsonEncode(
-        grid.placedTiles.map(
-          (k, v) => MapEntry('${k.q},${k.r}', v.sides.map((b) => b.name).toList()),
-        ),
-      );
+      final gridJson = jsonEncode(grid.toJson());
 
       final queue = ref.read(tileStackProvider.notifier).queue;
-      final queueJson =
-          queue.map((t) => t.sides.map((b) => b.name).toList()).toList();
+      final queueJson = queue.map((t) => t.toJson()['sides']).toList();
       final stackJson = jsonEncode({
         'seed': stack.seed,
         'remaining': stack.remaining,
-        'visible':
-            stack.visible.map((t) => t.sides.map((b) => b.name).toList()).toList(),
+        'visible': stack.visible.map((t) => t.toJson()['sides']).toList(),
         'queue': queueJson,
       });
 
@@ -222,7 +200,7 @@ class SessionSaver {
         lastTileJson = jsonEncode({
           'q': lastPlacement.coords.q,
           'r': lastPlacement.coords.r,
-          'sides': lastPlacement.tile.sides.map((b) => b.name).toList(),
+          ...lastPlacement.tile.toJson(),
           'bonusTiles': lastPlacement.bonusTiles,
           'connectedSides': lastPlacement.connectedSides,
         });

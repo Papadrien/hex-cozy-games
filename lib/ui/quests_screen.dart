@@ -7,6 +7,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/colors.dart';
 import '../core/game_enums.dart';
 import '../core/strings.dart';
 import '../data/app_database.dart';
@@ -20,16 +21,16 @@ class QuestsScreen extends ConsumerWidget {
     final questsAsync = ref.watch(permanentQuestsProvider);
 
     return Scaffold(
-      backgroundColor: const Color(0xFF1A2332),
+      backgroundColor: kBackgroundColor,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF1A2332),
+        backgroundColor: kBackgroundColor,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.close, color: Colors.white),
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
-          Str.quests_title,
+          context.tr.quests_title,
           style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
         ),
       ),
@@ -39,7 +40,7 @@ class QuestsScreen extends ConsumerWidget {
         ),
         error: (_, _) => Center(
           child: Text(
-            Str.quests_empty,
+            context.tr.quests_empty,
             style: TextStyle(color: Colors.white.withValues(alpha: 0.6)),
           ),
         ),
@@ -64,8 +65,8 @@ class _QuestsList extends StatelessWidget {
         if (grouped.containsKey('tiles_placed'))
           _CategorySection(
             icon: Icons.grid_on,
-            color: const Color(0xFF4CAF50),
-            label: Str.quests_category_tiles,
+            color: kSuccessGreen,
+            label: context.tr.quests_category_tiles,
             quests: grouped['tiles_placed']!,
             allQuests: quests,
           ),
@@ -73,8 +74,8 @@ class _QuestsList extends StatelessWidget {
         if (grouped.containsKey('village_size'))
           _CategorySection(
             icon: Icons.home,
-            color: const Color(0xFFE57373),
-            label: Str.quests_category_village,
+            color: kDestructiveRed,
+            label: context.tr.quests_category_village,
             quests: grouped['village_size']!,
             allQuests: quests,
           ),
@@ -82,8 +83,8 @@ class _QuestsList extends StatelessWidget {
         if (grouped.containsKey('biomes_closed'))
           _CategorySection(
             icon: Icons.water_drop,
-            color: const Color(0xFF64B5F6),
-            label: Str.quests_category_biomes,
+            color: kQuestBlue,
+            label: context.tr.quests_category_biomes,
             quests: grouped['biomes_closed']!,
             allQuests: quests,
           ),
@@ -263,7 +264,7 @@ class _QuestCard extends StatelessWidget {
                   children: [
                     if (status == _QuestStatus.completed)
                       Text(
-                        Str.quests_status_completed,
+                        context.tr.quests_status_completed,
                         style: TextStyle(
                           color: color,
                           fontSize: 12,
@@ -273,7 +274,7 @@ class _QuestCard extends StatelessWidget {
                     else
                       Text(
                         isLocked
-                            ? Str.quests_status_locked
+                            ? context.tr.quests_status_locked
                             : '${quest.currentValue}/${quest.targetValue}',
                         style: TextStyle(
                           color: isLocked
@@ -333,18 +334,18 @@ class _RewardBadge extends StatelessWidget {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
         decoration: BoxDecoration(
-          color: const Color(0xFFCE93D8).withValues(alpha: 0.15),
+          color: kUpgradePurple.withValues(alpha: 0.15),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.auto_awesome, color: const Color(0xFFCE93D8), size: 14),
+            Icon(Icons.auto_awesome, color: kUpgradePurple, size: 14),
             const SizedBox(width: 3),
             Text(
-              Str.quests_reward_upgrade,
+              context.tr.quests_reward_upgrade,
               style: const TextStyle(
-                color: Color(0xFFCE93D8),
+                color: kUpgradePurple,
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
               ),

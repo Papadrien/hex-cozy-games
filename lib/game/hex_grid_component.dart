@@ -21,6 +21,7 @@ import 'package:flutter/painting.dart' show TextPainter, TextSpan, TextStyle;
 
 import 'package:flame/components.dart';
 
+import '../core/colors.dart';
 import 'hex_coords.dart';
 import 'hex_cell.dart';
 import 'hex_tile.dart';
@@ -188,9 +189,10 @@ class HexGridComponent extends PositionComponent {
     for (final side in _previewHighlightedSides) {
       final offset = _sideEdgeMidpoint(side, hexSize);
       final pos = Vector2(center.x + offset.x, center.y + offset.y);
-      final component = _PreviewCoinComponent(
+      final component = _CoinComponent(
         position: pos,
         hexSize: hexSize,
+        animated: false,
       );
       component.priority = kTileDepthPriorityPreview + 1;
       _previewCoinComponents.add(component);
@@ -298,9 +300,10 @@ class HexGridComponent extends PositionComponent {
         centerVec.x + offset.x,
         centerVec.y + offset.y,
       );
-      add(_RewardCoinComponent(
+      add(_CoinComponent(
         position: pos,
         hexSize: hexSize,
+        animated: true,
         priority: kTileDepthPriorityPreview + 1,
       ));
     }
@@ -409,22 +412,30 @@ class HexGridComponent extends PositionComponent {
   }
 }
 
-/// Pièce de récompense animée affichée au niveau d'un côté connecté.
-class _RewardCoinComponent extends PositionComponent {
-  _RewardCoinComponent({
+/// Pièce affichée au niveau d'un côté connecté — animée ou statique selon [animated].
+class _CoinComponent extends PositionComponent {
+  _CoinComponent({
     required super.position,
     required double hexSize,
+    this.animated = false,
     int priority = 10,
   })  : _radius = hexSize * 0.18,
+        _alpha = animated ? null : 0.85,
         super(priority: priority);
 
   final double _radius;
+  final bool animated;
+
+  /// Non-null en mode statique, null en mode animé.
+  final double? _alpha;
+
   double _life = 0.0;
   static const double _kDuration = 1.2;
 
   @override
   void update(double dt) {
     super.update(dt);
+    if (!animated) return;
     _life += dt;
     if (_life >= _kDuration) {
       removeFromParent();
@@ -433,70 +444,32 @@ class _RewardCoinComponent extends PositionComponent {
 
   @override
   void render(Canvas canvas) {
-    final alpha = (_life < 0.3)
-        ? (_life / 0.3)
-        : (1.0 - (_life - 0.3) / (_kDuration - 0.3));
-    final r = _radius + _life * 2.0;
-
-    // Fond du cercle
-    canvas.drawCircle(
-      Offset.zero,
-      r,
-      Paint()
-        ..color = const Color(0xFFFFD600).withValues(alpha: alpha)
-        ..style = PaintingStyle.fill,
-    );
-    // Cercle intérieur
-    canvas.drawCircle(
-      Offset.zero,
-      r * 0.7,
-      Paint()
-        ..color = const Color(0xFFFFA000).withValues(alpha: alpha * 0.8)
-        ..style = PaintingStyle.fill,
-    );
-    // Symbole pièce
-    canvas.drawCircle(
-      Offset.zero,
-      r * 0.35,
-      Paint()
-        ..color = const Color(0xFFFFFFFF).withValues(alpha: alpha * 0.9)
-        ..style = PaintingStyle.fill,
-    );
-  }
-}
-
-/// Pièce statique pour la prévisualisation (au niveau d'un côté connecté).
-class _PreviewCoinComponent extends PositionComponent {
-  _PreviewCoinComponent({required super.position, required double hexSize})
-      : _radius = hexSize * 0.18,
-        super(priority: kTileDepthPriorityPreview + 1);
-
-  final double _radius;
-
-  @override
-  void render(Canvas canvas) {
-    const alpha = 0.85;
-    final r = _radius;
+    final alpha = animated
+        ? (_life < 0.3)
+            ? (_life / 0.3)
+            : (1.0 - (_life - 0.3) / (_kDuration - 0.3))
+        : _alpha!;
+    final r = animated ? _radius + _life * 2.0 : _radius;
 
     canvas.drawCircle(
       Offset.zero,
       r,
       Paint()
-        ..color = const Color(0xFFFFD600).withValues(alpha: alpha)
+        ..color = kRewardGold.withValues(alpha: alpha)
         ..style = PaintingStyle.fill,
     );
     canvas.drawCircle(
       Offset.zero,
       r * 0.7,
       Paint()
-        ..color = const Color(0xFFFFA000).withValues(alpha: alpha * 0.8)
+        ..color = kRewardGoldDark.withValues(alpha: alpha * 0.8)
         ..style = PaintingStyle.fill,
     );
     canvas.drawCircle(
       Offset.zero,
       r * 0.35,
       Paint()
-        ..color = const Color(0xFFFFFFFF).withValues(alpha: alpha * 0.9)
+        ..color = kRewardWhite.withValues(alpha: alpha * 0.9)
         ..style = PaintingStyle.fill,
     );
   }
@@ -524,14 +497,14 @@ class _PreviewBonusComponent extends PositionComponent {
       Offset.zero,
       r,
       Paint()
-        ..color = const Color(0xFF29B6F6).withValues(alpha: alpha)
+        ..color = kBonusBlueLight.withValues(alpha: alpha)
         ..style = PaintingStyle.fill,
     );
     canvas.drawCircle(
       Offset.zero,
       r * 0.75,
       Paint()
-        ..color = const Color(0xFF4FC3F7).withValues(alpha: alpha * 0.7)
+        ..color = kBonusBlueLighter.withValues(alpha: alpha * 0.7)
         ..style = PaintingStyle.fill,
     );
 
@@ -541,7 +514,7 @@ class _PreviewBonusComponent extends PositionComponent {
       text: TextSpan(
         text: text,
         style: TextStyle(
-          color: const Color(0xFFFFFFFF).withValues(alpha: alpha),
+          color: kRewardWhite.withValues(alpha: alpha),
           fontSize: r * 1.0,
           fontWeight: FontWeight.bold,
         ),
