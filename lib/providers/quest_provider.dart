@@ -39,7 +39,20 @@ final questServiceProvider = Provider<QuestService>((ref) {
   return QuestService(ref);
 });
 
-// ── Daily quests (Story 2.4a) ─────────────────────────────────────────────
+// ── Daily quests (Story 2.4a / 2.4b) ─────────────────────────────────────
+
+/// Quête quotidienne avec sa définition et sa progression parsées.
+class DailyQuestWithProgress {
+  final DailyQuestDef def;
+  final int currentValue;
+  final bool isCompleted;
+
+  const DailyQuestWithProgress({
+    required this.def,
+    required this.currentValue,
+    required this.isCompleted,
+  });
+}
 
 /// Quêtes quotidiennes brutes depuis la base Drift.
 ///
@@ -51,6 +64,35 @@ final dailyQuestsProvider = StreamProvider<DailyQuestRow?>((ref) async* {
   yield* db.select(db.dailyQuests).watch().map(
         (rows) => rows.isEmpty ? null : rows.first,
       );
+});
+
+/// Quêtes quotidiennes parsées (définition + progression + complétion).
+///
+/// Transforme le JSON brut de [dailyQuestsProvider] en une liste structurée
+/// prête pour l'UI. La progression est conservée entre les relances du même
+/// jour (persistance base Drift).
+final todayDailyQuestsProvider =
+    Provider<List<DailyQuestWithProgress>>((ref) {
+  final row = ref.watch(dailyQuestsProvider).maybeWhen(
+        data: (r) => r,
+        orElse: () => null,
+      );
+  if (row == null) return [];
+
+  final ids = (jsonDecode(row.questPoolIds) as List).cast<String>();
+  final completed =
+      (jsonDecode(row.completedIds) as List).cast<String>();
+  final progress = (jsonDecode(row.progressByQuestId) as Map<String, dynamic>)
+      .map((k, v) => MapEntry(k, v as int));
+
+  return ids.map((id) {
+    final def = kDailyQuestDefMap[id]!;
+    return DailyQuestWithProgress(
+      def: def,
+      currentValue: progress[id] ?? 0,
+      isCompleted: completed.contains(id),
+    );
+  }).toList();
 });
 
 // ── Helpers ───────────────────────────────────────────────────────────────
