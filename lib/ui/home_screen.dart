@@ -5,6 +5,7 @@ import '../core/strings.dart';
 import '../providers/placement_commit.dart';
 import '../providers/player_profile_provider.dart';
 import 'quests_screen.dart';
+import 'upgrades_screen.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -132,6 +133,31 @@ class HomeScreen extends ConsumerWidget {
                   },
                   child: Text(
                     Str.quests_title,
+                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: 200,
+                child: TextButton(
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    foregroundColor: Colors.white.withValues(alpha: 0.8),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      side: BorderSide(
+                        color: Colors.white.withValues(alpha: 0.2),
+                      ),
+                    ),
+                  ),
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const UpgradesScreen()),
+                    );
+                  },
+                  child: Text(
+                    Str.upgrades_title,
                     style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
                   ),
                 ),

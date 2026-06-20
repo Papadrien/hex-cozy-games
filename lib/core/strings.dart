@@ -103,4 +103,14 @@ abstract class Str {
   static String get quests_close => _isFr ? 'Fermer' : 'Close';
   static String get quests_next_reward =>
       _isFr ? 'Prochaine récompense' : 'Next reward';
+
+  // Story 2.5b — Écran Améliorations
+  static String get upgrades_title => _isFr ? 'Améliorations' : 'Upgrades';
+  static String get upgrades_locked => _isFr ? 'Verrouillée' : 'Locked';
+  static String get upgrades_hiddenEffect => _isFr ? '???' : '???';
+  static String get upgrades_unlockCondition =>
+      _isFr ? 'Condition de déblocage' : 'Unlock condition';
+  static String get upgrades_upgradeButton =>
+      _isFr ? 'Améliorer' : 'Upgrade';
+  static String get upgrades_level => _isFr ? 'Niveau' : 'Level';
 }
