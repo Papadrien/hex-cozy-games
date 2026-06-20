@@ -1,17 +1,40 @@
-# hex_cozy_games
+# Hex Cozy Games
 
-A new Flutter project.
+A relaxing hex-tile placement game built with Flutter & Flame.
+
+## Tech Stack
+
+| Layer | Choice |
+|---|---|
+| Game engine | [Flame](https://flame-engine.org/) (custom hexagonal grid) |
+| State | [Riverpod](https://riverpod.dev/) |
+| Database | [Drift](https://drift.simonbinder.eu/) (SQLite) |
+| i18n | `flutter_localizations` + ARB files |
+| Linter | `very_good_analysis` |
+| CI | GitHub Actions (`flutter analyze`, `flutter test`, release build) |
 
 ## Getting Started
 
-This project is a starting point for a Flutter application.
+```bash
+flutter pub get
+dart run build_runner build --delete-conflicting-outputs
+flutter gen-l10n
+flutter test
+flutter run
+```
 
-A few resources to get you started if this is your first Flutter project:
+## Project Structure
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+```
+lib/
+  core/          Design tokens (colors, constants), i18n strings
+  data/          Drift database definition + seed data
+  game/          Flame components (grid, tiles, board analysis)
+  providers/     Riverpod providers + business logic
+  ui/            Flutter screens and widgets
+  main.dart      App entry point
+```
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Architecture
+
+See `doc/01_contexte_architecture.md` for the full architectural context document.

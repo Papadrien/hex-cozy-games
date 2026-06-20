@@ -1,63 +1,51 @@
-name: Flutter CI
+name: CI
 
 on:
   push:
-    branches: [ develop, master ]
+    branches: [develop, main]
   pull_request:
-    branches: [ master ]
+    branches: [develop, main]
 
 jobs:
-  analyze:
-    name: Analyze & Test
+  lint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
+      - uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.44.2'
-          channel: 'stable'
-          cache: true
+          flutter-version: 3.44.2
+      - run: flutter pub get
+      - run: flutter analyze
 
-      - name: Install dependencies
-        run: flutter pub get
-
-      - name: Analyze
-        run: flutter analyze --no-fatal-infos
-
-      - name: Test
-        run: flutter test --coverage
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.44.2
+      - run: flutter pub get
+      - run: flutter test --coverage
+      - uses: coverallsapp/github-action@v2
+        with:
+          file: coverage/lcov.info
 
   build-android:
-    name: Build Android APK
     runs-on: ubuntu-latest
-    needs: analyze
     steps:
       - uses: actions/checkout@v4
-
-      - name: Setup Java
-        uses: actions/setup-java@v4
+      - uses: subosito/flutter-action@v2
         with:
-          distribution: 'temurin'
-          java-version: '17'
+          flutter-version: 3.44.2
+      - run: flutter pub get
+      - run: flutter build apk --release
 
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
+  build-ios:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.44.2'
-          channel: 'stable'
-          cache: true
-
-      - name: Install dependencies
-        run: flutter pub get
-
-      - name: Build APK (debug)
-        run: flutter build apk --debug
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: hexworld-debug.apk
-          path: build/app/outputs/flutter-apk/app-debug.apk
-          retention-days: 14
+          flutter-version: 3.44.2
+      - run: flutter pub get
+      - run: flutter build ios --release --no-codesign

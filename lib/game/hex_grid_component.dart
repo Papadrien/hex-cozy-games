@@ -22,13 +22,11 @@ import 'package:flutter/painting.dart' show TextPainter, TextSpan, TextStyle;
 import 'package:flame/components.dart';
 
 import '../core/colors.dart';
+import '../core/constants.dart';
 import 'hex_coords.dart';
 import 'hex_cell.dart';
 import 'hex_tile.dart';
 import 'tile_component.dart'; // kIsoScaleY, TileComponent
-
-/// Taille de base de l'hexagone (rayon circumscrit) en pixels logiques.
-const double kBaseHexSize = 48.0;
 
 /// Décalage vertical (en pixels écran "plat", avant projection iso) de la
 /// tuile en prévisualisation pour la faire paraître "légèrement surélevée"
@@ -148,7 +146,7 @@ class HexGridComponent extends PositionComponent {
     final existing = _previewComponent;
     if (existing != null) {
       existing.tile = tile;
-      existing.hexSize = kBaseHexSize * zoom;
+      existing.hexSize = kHexSize * zoom;
       existing.position = liftedPosition;
       existing.highlightedSides = _previewHighlightedSides;
       _syncPreviewCoinComponents();
@@ -158,7 +156,7 @@ class HexGridComponent extends PositionComponent {
     final component = TileComponent(
       tile: tile,
       coords: coords,
-      hexSize: kBaseHexSize * zoom,
+      hexSize: kHexSize * zoom,
       alpha: kPreviewAlpha,
       highlightedSides: _previewHighlightedSides,
       position: liftedPosition,
@@ -183,7 +181,7 @@ class HexGridComponent extends PositionComponent {
 
     final layout = _layout;
     final center = layout.hexToPixel(_previewCoords!, isoScaleY: kIsoScaleY);
-    final hexSize = kBaseHexSize * zoom;
+    final hexSize = kHexSize * zoom;
 
     // Pièces au niveau de chaque côté connecté.
     for (final side in _previewHighlightedSides) {
@@ -225,7 +223,7 @@ class HexGridComponent extends PositionComponent {
   /// Origine de la grille en coordonnées écran (avant iso).
   /// Décalée à 42 % de la largeur pour laisser la place au HUD droit.
   HexLayout get _layout => HexLayout(
-        hexSize: kBaseHexSize * zoom,
+        hexSize: kHexSize * zoom,
         origin: Point(
           cameraOffset.x + screenSize.x * 0.42,
           cameraOffset.y + screenSize.y * 0.38,
@@ -248,7 +246,7 @@ class HexGridComponent extends PositionComponent {
     final component = TileComponent(
       tile: tile,
       coords: coords,
-      hexSize: kBaseHexSize * zoom,
+      hexSize: kHexSize * zoom,
       position: Vector2(center.x, center.y),
       highlightedSides: const {},
     );
@@ -291,7 +289,7 @@ class HexGridComponent extends PositionComponent {
     final layout = _layout;
     final center = layout.hexToPixel(coords, isoScaleY: kIsoScaleY);
     final centerVec = Vector2(center.x, center.y);
-    final hexSize = kBaseHexSize * zoom;
+    final hexSize = kHexSize * zoom;
 
     // Pièces au niveau de chaque côté connecté.
     for (final side in connectedSides) {
@@ -337,7 +335,7 @@ class HexGridComponent extends PositionComponent {
     for (final entry in placedTiles.entries) {
       final center = layout.hexToPixel(entry.key, isoScaleY: kIsoScaleY);
       entry.value.position = Vector2(center.x, center.y);
-      entry.value.hexSize = kBaseHexSize * zoom;
+      entry.value.hexSize = kHexSize * zoom;
       entry.value.updateDepthPriority();
     }
     _syncPreviewComponent();
@@ -379,7 +377,7 @@ class HexGridComponent extends PositionComponent {
   /// Sommets d'un hexagone pointy-top avec projection iso, pour le rendu des
   /// surbrillances.
   List<Offset> _isoHighlightCorners(Offset center) {
-    final hexSize = kBaseHexSize * zoom;
+    final hexSize = kHexSize * zoom;
     return List.generate(6, (i) {
       final angleDeg = 60.0 * i - 90.0;
       final angleRad = angleDeg * pi / 180.0;

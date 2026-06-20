@@ -26,3 +26,8 @@ const Map<int, int> kBonusScale = {
   5: 5,
   6: 10,
 };
+
+/// Taille de base de l'hexagone (rayon circumscrit) en pixels logiques.
+/// Source unique : utilisée par [HexGridComponent] pour le layout de la grille
+/// et par [TileComponent] comme valeur par défaut du paramètre hexSize.
+const double kHexSize = 48.0;

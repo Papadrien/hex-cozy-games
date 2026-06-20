@@ -1,6 +1,8 @@
 /// État de session : pièces et tuiles bonus accumulées — Story 1.6b / 1.7a.
 library;
 
+import 'dart:math';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -71,9 +73,8 @@ class Session extends _$Session {
   /// bouton Annuler pour inverser les récompenses — story 1.6b / 1.7c).
   void removeReward(int coins, int bonusTiles) {
     state = SessionState(
-      coins: (state.coins - coins).clamp(0, double.infinity).toInt(),
-      totalBonusTiles:
-          (state.totalBonusTiles - bonusTiles).clamp(0, double.infinity).toInt(),
+      coins: max(0, state.coins - coins),
+      totalBonusTiles: max(0, state.totalBonusTiles - bonusTiles),
       lastReward: null,
     );
   }

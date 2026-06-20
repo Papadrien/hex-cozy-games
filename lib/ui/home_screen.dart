@@ -262,7 +262,7 @@ class _CenterContent extends ConsumerWidget {
               icon: Icons.flag_outlined,
               label: context.tr.quests_title,
               onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(
+                MaterialPageRoute<void>(
                     builder: (_) => const QuestsScreen()),
               ),
             ),
@@ -272,7 +272,7 @@ class _CenterContent extends ConsumerWidget {
                   label: context.tr.home_stats,
                   onTap: () {
                     Navigator.of(context).push(
-                      MaterialPageRoute(
+                      MaterialPageRoute<void>(
                         builder: (_) => const StatsScreen(),
                       ),
                     );
@@ -342,7 +342,7 @@ class _BuildButton extends StatelessWidget {
         ),
       ),
       onPressed: () => Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => const BuildScreen()),
+        MaterialPageRoute<void>(builder: (_) => const BuildScreen()),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

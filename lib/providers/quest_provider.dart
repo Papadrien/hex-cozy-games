@@ -200,15 +200,17 @@ class QuestService {
       ..where((q) => q.category.equals(QuestCategory.tilesPlaced.dbValue))
       ..where((q) => q.isCompleted.equals(false)))
         .get();
-    for (final quest in rows) {
-      final newValue = quest.currentValue + 1;
-      final completed = newValue >= quest.targetValue;
-      await db.update(db.permanentQuests).replace(quest.copyWith(
-            currentValue: newValue,
-            isCompleted: completed,
-          ));
-      if (completed) await _handleCompletion(quest);
-    }
+    await db.transaction(() async {
+      for (final quest in rows) {
+        final newValue = quest.currentValue + 1;
+        final completed = newValue >= quest.targetValue;
+        await db.update(db.permanentQuests).replace(quest.copyWith(
+              currentValue: newValue,
+              isCompleted: completed,
+            ));
+        if (completed) await _handleCompletion(quest);
+      }
+    });
   }
 
   // ─── village_size ───────────────────────────────────────────────────────
@@ -220,15 +222,17 @@ class QuestService {
           ..where((q) => q.category.equals(QuestCategory.villageSize.dbValue))
           ..where((q) => q.isCompleted.equals(false)))
         .get();
-    for (final quest in rows) {
-      if (largest <= quest.currentValue) continue;
-      final completed = largest >= quest.targetValue;
-      await db.update(db.permanentQuests).replace(quest.copyWith(
-            currentValue: largest,
-            isCompleted: completed,
-          ));
-      if (completed) await _handleCompletion(quest);
-    }
+    await db.transaction(() async {
+      for (final quest in rows) {
+        if (largest <= quest.currentValue) continue;
+        final completed = largest >= quest.targetValue;
+        await db.update(db.permanentQuests).replace(quest.copyWith(
+              currentValue: largest,
+              isCompleted: completed,
+            ));
+        if (completed) await _handleCompletion(quest);
+      }
+    });
   }
 
   // ─── biomes_closed ──────────────────────────────────────────────────────
@@ -240,15 +244,17 @@ class QuestService {
           ..where((q) => q.category.equals(QuestCategory.biomesClosed.dbValue))
           ..where((q) => q.isCompleted.equals(false)))
         .get();
-    for (final quest in rows) {
-      final newValue = quest.currentValue + closed;
-      final completed = newValue >= quest.targetValue;
-      await db.update(db.permanentQuests).replace(quest.copyWith(
-            currentValue: newValue,
-            isCompleted: completed,
-          ));
-      if (completed) await _handleCompletion(quest);
-    }
+    await db.transaction(() async {
+      for (final quest in rows) {
+        final newValue = quest.currentValue + closed;
+        final completed = newValue >= quest.targetValue;
+        await db.update(db.permanentQuests).replace(quest.copyWith(
+              currentValue: newValue,
+              isCompleted: completed,
+            ));
+        if (completed) await _handleCompletion(quest);
+      }
+    });
   }
 
   // ─── Completion & rewards ───────────────────────────────────────────────
@@ -332,35 +338,37 @@ class QuestService {
       (jsonDecode(row.questPoolIds) as List).cast<String>(),
     );
 
-    var changed = false;
-    for (final id in poolIds) {
-      if (completed.contains(id)) continue;
-      final def = kDailyQuestDefMap[id];
-      if (def == null || def.category != category) continue;
+    await db.transaction(() async {
+      var changed = false;
+      for (final id in poolIds) {
+        if (completed.contains(id)) continue;
+        final def = kDailyQuestDefMap[id];
+        if (def == null || def.category != category) continue;
 
-      int newValue;
-      if (absoluteValue != null) {
-        final current = progress[id] ?? 0;
-        if (absoluteValue <= current) continue;
-        newValue = absoluteValue;
-      } else {
-        newValue = (progress[id] ?? 0) + increment;
+        int newValue;
+        if (absoluteValue != null) {
+          final current = progress[id] ?? 0;
+          if (absoluteValue <= current) continue;
+          newValue = absoluteValue;
+        } else {
+          newValue = (progress[id] ?? 0) + increment;
+        }
+
+        progress[id] = newValue;
+        if (newValue >= def.targetValue) {
+          completed.add(id);
+          await _grantDailyReward(def);
+        }
+        changed = true;
       }
 
-      progress[id] = newValue;
-      if (newValue >= def.targetValue) {
-        completed.add(id);
-        await _grantDailyReward(def);
+      if (changed) {
+        await db.update(db.dailyQuests).replace(row.copyWith(
+              progressByQuestId: jsonEncode(progress),
+              completedIds: jsonEncode(completed),
+            ));
       }
-      changed = true;
-    }
-
-    if (changed) {
-      await db.update(db.dailyQuests).replace(row.copyWith(
-            progressByQuestId: jsonEncode(progress),
-            completedIds: jsonEncode(completed),
-          ));
-    }
+    });
   }
 
   Future<void> _grantDailyReward(DailyQuestDef def) async {

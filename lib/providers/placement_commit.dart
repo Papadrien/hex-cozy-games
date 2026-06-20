@@ -66,15 +66,14 @@ Future<void> restoreSession(WidgetRef ref) async {
 
     // Restaurer le dernier placement (pour le bouton Annuler).
     if (row.lastTilePlaced != null) {
-      final lastJson = jsonDecode(row.lastTilePlaced!);
+      final lastJson = jsonDecode(row.lastTilePlaced!) as Map<String, dynamic>;
       final tile = HexTile.fromJson(lastJson);
-      final connectedSides = (lastJson['connectedSides'] as List?)
-              ?.cast<int>() ??
-          [];
+      final connectedSides =
+          (lastJson['connectedSides'] as List?)?.cast<int>() ?? [];
       ref.read(lastPlacementProvider.notifier).set(LastPlacement(
-            HexCoords(lastJson['q'], lastJson['r']),
+            HexCoords(lastJson['q'] as int, lastJson['r'] as int),
             tile,
-            bonusTiles: lastJson['bonusTiles'] ?? 0,
+            bonusTiles: lastJson['bonusTiles'] as int? ?? 0,
             connectedSides: connectedSides,
           ));
     }

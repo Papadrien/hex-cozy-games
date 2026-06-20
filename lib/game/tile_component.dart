@@ -14,6 +14,7 @@ import 'dart:ui';
 
 import 'package:flame/components.dart';
 
+import '../core/constants.dart';
 import 'hex_cell.dart';
 import 'hex_coords.dart';
 import 'hex_tile.dart';
@@ -45,9 +46,6 @@ extension BiomeColor on BiomeType {
   }
 }
 
-/// Rayon circumscrit par défaut d'une tuile (centre → sommet), en px logiques.
-const double kTileSize = 44.0;
-
 /// Épaisseur du "bloc" 3D des tuiles (effet pavé/palet), en px logiques.
 /// Purement visuel : n'affecte ni la taille du composant, ni le hit-testing,
 /// ni le layout de la grille (qui restent basés sur hexSize / kIsoScaleY).
@@ -77,7 +75,7 @@ class TileComponent extends PositionComponent {
   TileComponent({
     required this.tile,
     required this._coords,
-    double hexSize = kTileSize,
+    double hexSize = kHexSize,
     this._alpha = 1.0,
     this.highlightedSides = const {},
     Vector2? position,
