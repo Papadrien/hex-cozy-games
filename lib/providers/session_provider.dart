@@ -41,12 +41,9 @@ class Session extends _$Session {
   /// Ajoute la récompense [reward] au cumul de la session.
   /// Les pièces = côtés connectés + tuiles bonus (1 côté=1 pièce,
   /// 2 côtés=2, 3 côtés=3+1=4, 4 côtés=4+2=6, etc.)
-  ///
-  /// Si [forcedCoins] est fourni (Story 2.7b), il remplace le calcul par
-  /// défaut pour appliquer les bonus d'améliorations (multiplicateur, %).
-  void addReward(PlacementReward reward, {int? forcedCoins}) {
+  void addReward(PlacementReward reward) {
     state = SessionState(
-      coins: state.coins + (forcedCoins ?? reward.connectedSides.length + reward.bonusTiles),
+      coins: state.coins + reward.connectedSides.length + reward.bonusTiles,
       totalBonusTiles: state.totalBonusTiles + reward.bonusTiles,
       lastReward: reward,
     );
