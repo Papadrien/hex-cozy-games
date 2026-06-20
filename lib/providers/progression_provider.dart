@@ -10,6 +10,7 @@
 library;
 
 import 'package:drift/drift.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/app_database.dart';
@@ -164,5 +165,64 @@ class ProgressionService {
 
       return UpgradeResult.success;
     });
+  }
+}
+
+// ── Helpers publics ───────────────────────────────────────────────────────
+
+/// Icône représentant une amélioration selon son [effectType].
+IconData upgradeIconData(String effectType) {
+  switch (effectType) {
+    case 'starting_tiles_bonus':
+      return Icons.grid_on;
+    case 'connection_bonus_multiplier':
+      return Icons.link;
+    case 'coins_percent_bonus':
+      return Icons.monetization_on;
+    case 'village_coins_percent_bonus':
+      return Icons.home;
+    default:
+      return Icons.auto_awesome;
+  }
+}
+
+/// Effet textuel au niveau actuel de l'amélioration.
+String upgradeEffectLabel(UpgradeRow upgrade) {
+  final all = upgradeAllLevelEffects(upgrade.effectType);
+  final idx = upgrade.currentLevel < all.length
+      ? upgrade.currentLevel
+      : all.length - 1;
+  return all[idx];
+}
+
+/// Effet textuel de chaque palier pour un [effectType] donné.
+List<String> upgradeAllLevelEffects(String effectType) {
+  switch (effectType) {
+    case 'starting_tiles_bonus':
+      return ['+2', '+5', '+10'];
+    case 'connection_bonus_multiplier':
+      return ['x2', 'x2', 'x2'];
+    case 'coins_percent_bonus':
+      return ['+10%', '+20%', '+30%'];
+    case 'village_coins_percent_bonus':
+      return ['+33%', '+66%', '+100%'];
+    default:
+      return ['', '', ''];
+  }
+}
+
+/// Valeur numérique de l'effet au niveau [level] pour un [effectType].
+double upgradeEffectValue(String effectType, int level) {
+  switch (effectType) {
+    case 'starting_tiles_bonus':
+      return [2.0, 5.0, 10.0][level.clamp(0, 2)];
+    case 'connection_bonus_multiplier':
+      return 2.0;
+    case 'coins_percent_bonus':
+      return [0.10, 0.20, 0.30][level.clamp(0, 2)];
+    case 'village_coins_percent_bonus':
+      return [0.33, 0.66, 1.00][level.clamp(0, 2)];
+    default:
+      return 0.0;
   }
 }

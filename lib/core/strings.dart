@@ -119,4 +119,10 @@ abstract class Str {
   // Story 2.7a — Home header bar
   static String get home_settings => _isFr ? 'Réglages' : 'Settings';
   static String get home_shop => _isFr ? 'Boutique' : 'Shop';
+
+  // Story 2.7b — Build, quests and stats on home
+  static String get home_buildSelection =>
+      _isFr ? 'Sélection des améliorations' : 'Upgrade selection';
+  static String get home_quests => _isFr ? 'Quêtes' : 'Quests';
+  static String get home_stats => _isFr ? 'Statistiques' : 'Statistics';
 }

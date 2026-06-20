@@ -2,12 +2,15 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/constants.dart';
 import '../core/strings.dart';
+import '../data/app_database.dart';
+import '../providers/build_provider.dart';
 import '../providers/placement_commit.dart';
 import '../providers/player_profile_provider.dart';
 import '../providers/progression_provider.dart';
+import 'build_screen.dart';
 import 'quests_screen.dart';
-import 'upgrades_screen.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -174,8 +177,8 @@ class _IconButton extends StatelessWidget {
   }
 }
 
-/// Contenu central : titre + bouton Jouer/Reprendre + accès missions.
-class _CenterContent extends StatelessWidget {
+/// Contenu central : titre + bouton Jouer/Reprendre + build + accès.
+class _CenterContent extends ConsumerWidget {
   const _CenterContent({
     required this.activeSession,
     required this.onPlay,
@@ -187,7 +190,9 @@ class _CenterContent extends StatelessWidget {
   final Future<void> Function() onResume;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final selected = ref.watch(selectedUpgradesProvider);
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -199,7 +204,8 @@ class _CenterContent extends StatelessWidget {
             fontWeight: FontWeight.bold,
           ),
         ),
-        const SizedBox(height: 48),
+        const SizedBox(height: 36),
+        // ── Bouton Jouer / Reprendre ────────────────────────────────────
         SizedBox(
           width: 200,
           child: TextButton(
@@ -241,55 +247,157 @@ class _CenterContent extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(height: 16),
-        SizedBox(
-          width: 200,
-          child: TextButton(
-            style: TextButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              foregroundColor: Colors.white.withValues(alpha: 0.8),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-                side: BorderSide(
-                    color: Colors.white.withValues(alpha: 0.2)),
-              ),
-            ),
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                  builder: (_) => const QuestsScreen()),
-            ),
-            child: Text(
-              Str.quests_title,
-              style: const TextStyle(
-                  fontSize: 15, fontWeight: FontWeight.w500),
-            ),
-          ),
-        ),
         const SizedBox(height: 12),
-        SizedBox(
-          width: 200,
-          child: TextButton(
-            style: TextButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              foregroundColor: Colors.white.withValues(alpha: 0.8),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-                side: BorderSide(
-                    color: Colors.white.withValues(alpha: 0.2)),
+        // ── Bouton Build (sélection des améliorations) ──────────────────
+        _BuildButton(selected: selected),
+        const SizedBox(height: 24),
+        // ── Accès Quêtes et Statistiques ─────────────────────────────────
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _NavButton(
+              icon: Icons.flag_outlined,
+              label: Str.quests_title,
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                    builder: (_) => const QuestsScreen()),
               ),
             ),
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                  builder: (_) => const UpgradesScreen()),
+            const SizedBox(width: 16),
+            _NavButton(
+              icon: Icons.bar_chart_outlined,
+              label: Str.home_stats,
+              onTap: () => _notYet(context, Str.home_stats),
             ),
-            child: Text(
-              Str.upgrades_title,
-              style: const TextStyle(
-                  fontSize: 15, fontWeight: FontWeight.w500),
-            ),
-          ),
+          ],
         ),
       ],
+    );
+  }
+
+  void _notYet(BuildContext context, String label) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(label),
+        backgroundColor: Colors.white.withValues(alpha: 0.1),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+}
+
+/// Petit bouton d'accès (quêtes / stats).
+class _NavButton extends StatelessWidget {
+  const _NavButton({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextButton(
+      style: TextButton.styleFrom(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        foregroundColor: Colors.white.withValues(alpha: 0.7),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(color: Colors.white.withValues(alpha: 0.15)),
+        ),
+      ),
+      onPressed: onTap,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 18),
+          const SizedBox(width: 8),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Bouton Build affichant les icônes des améliorations sélectionnées.
+class _BuildButton extends StatelessWidget {
+  const _BuildButton({required this.selected});
+
+  final List<UpgradeRow> selected;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextButton(
+      style: TextButton.styleFrom(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        foregroundColor: Colors.white.withValues(alpha: 0.6),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(color: Colors.white.withValues(alpha: 0.12)),
+        ),
+      ),
+      onPressed: () => Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => const BuildScreen()),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (selected.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: Icon(Icons.build_outlined, size: 18,
+                      color: Colors.white.withValues(alpha: 0.5)),
+                )
+              else
+                ...selected.map((u) => Padding(
+                      padding: const EdgeInsets.only(right: 4),
+                      child: _BuildMiniIcon(
+                        effectType: u.effectType,
+                      ),
+                    )),
+            ],
+          ),
+          Text(
+            selected.isEmpty
+                ? Str.home_buildSelection
+                : '${selected.length} / $kMaxSelectedUpgrades',
+            style: const TextStyle(fontSize: 13),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Petit cercle icône d'une amélioration dans le bouton build.
+class _BuildMiniIcon extends StatelessWidget {
+  const _BuildMiniIcon({required this.effectType});
+
+  final String effectType;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 26,
+      height: 26,
+      decoration: BoxDecoration(
+        color: const Color(0xFF6FA8DC).withValues(alpha: 0.2),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Icon(
+        upgradeIconData(effectType),
+        color: const Color(0xFF6FA8DC),
+        size: 14,
+      ),
     );
   }
 }
