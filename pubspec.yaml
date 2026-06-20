@@ -75,7 +75,7 @@ dev_dependencies:
     sdk: flutter
 
   # Linter strict (remplace flutter_lints).
-  very_good_analysis: ^7.0.0
+  very_good_analysis: ^10.3.0
 
   # Génération de code Riverpod + Drift
   build_runner: ^2.7.1
