@@ -162,7 +162,7 @@ class HexGridComponent extends PositionComponent {
       highlightedSides: _previewHighlightedSides,
       position: liftedPosition,
     );
-    component.priority = 2;
+    component.priority = kTileDepthPriorityPreview;
     _previewComponent = component;
     add(component);
 
@@ -192,7 +192,7 @@ class HexGridComponent extends PositionComponent {
         position: pos,
         hexSize: hexSize,
       );
-      component.priority = 11;
+      component.priority = kTileDepthPriorityPreview + 1;
       _previewCoinComponents.add(component);
       add(component);
     }
@@ -205,7 +205,7 @@ class HexGridComponent extends PositionComponent {
         hexSize: hexSize,
         bonusCount: previewBonusTiles,
       );
-      component.priority = 12;
+      component.priority = kTileDepthPriorityPreview + 1;
       _previewCoinComponents.add(component);
       add(component);
     }
@@ -298,7 +298,11 @@ class HexGridComponent extends PositionComponent {
         centerVec.x + offset.x,
         centerVec.y + offset.y,
       );
-      add(_RewardCoinComponent(position: pos, hexSize: hexSize));
+      add(_RewardCoinComponent(
+        position: pos,
+        hexSize: hexSize,
+        priority: kTileDepthPriorityPreview + 1,
+      ));
     }
 
     // Tuiles bonus : incrémentées dans le stock via addBonusTiles,
@@ -407,9 +411,12 @@ class HexGridComponent extends PositionComponent {
 
 /// Pièce de récompense animée affichée au niveau d'un côté connecté.
 class _RewardCoinComponent extends PositionComponent {
-  _RewardCoinComponent({required super.position, required double hexSize})
-      : _radius = hexSize * 0.18,
-        super(priority: 10);
+  _RewardCoinComponent({
+    required super.position,
+    required double hexSize,
+    int priority = 10,
+  })  : _radius = hexSize * 0.18,
+        super(priority: priority);
 
   final double _radius;
   double _life = 0.0;
@@ -462,7 +469,7 @@ class _RewardCoinComponent extends PositionComponent {
 class _PreviewCoinComponent extends PositionComponent {
   _PreviewCoinComponent({required super.position, required double hexSize})
       : _radius = hexSize * 0.18,
-        super(priority: 10);
+        super(priority: kTileDepthPriorityPreview + 1);
 
   final double _radius;
 
@@ -502,7 +509,7 @@ class _PreviewBonusComponent extends PositionComponent {
     required double hexSize,
     required this.bonusCount,
   })  : _radius = hexSize * 0.22,
-        super(priority: 10);
+        super(priority: kTileDepthPriorityPreview + 1);
 
   final double _radius;
   final int bonusCount;

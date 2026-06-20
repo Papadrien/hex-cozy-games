@@ -59,6 +59,15 @@ const double kTileDepth = 10.0;
 /// pièces, bonus : 2 à 12) même avec un `position.y` négatif important.
 const int kTileDepthPriorityBase = 100000;
 
+/// Priorité de rendu de la tuile en prévisualisation (celle qui flotte
+/// au-dessus du plateau avant validation du placement, cf. [kPreviewLiftPx]
+/// dans hex_grid_component.dart).
+///
+/// Elle doit toujours être dessinée AU-DESSUS de toutes les tuiles posées,
+/// quelle que soit leur profondeur — d'où une marge large par rapport à
+/// [kTileDepthPriorityBase] + le plus grand `position.y` raisonnable.
+const int kTileDepthPriorityPreview = kTileDepthPriorityBase + 1000000;
+
 /// Composant Flame représentant une tuile hexagonale colorée.
 ///
 /// La projection isométrique est appliquée DANS le rendu (Y *= kIsoScaleY) :
