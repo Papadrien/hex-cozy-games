@@ -74,8 +74,8 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
 
-  # Linter strict (remplace flutter_lints).
-  very_good_analysis: ^10.3.0
+  # Linter recommandé Flutter.
+  flutter_lints: ^6.0.0
 
   # Génération de code Riverpod + Drift
   build_runner: ^2.7.1

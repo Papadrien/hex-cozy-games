@@ -1,4 +1,5 @@
 @Tags(['needs-plugin'])
+library;
 import 'package:flame/game.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
