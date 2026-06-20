@@ -1,9 +1,11 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/strings.dart';
 import '../providers/placement_commit.dart';
 import '../providers/player_profile_provider.dart';
+import '../providers/progression_provider.dart';
 import 'quests_screen.dart';
 import 'upgrades_screen.dart';
 
@@ -36,6 +38,7 @@ class HomeScreen extends ConsumerWidget {
                 }
               },
             ),
+            if (!kReleaseMode) _DebugButton(ref: ref),
             const Spacer(),
           ],
         ),
@@ -102,6 +105,35 @@ class _TopBar extends StatelessWidget {
         content: Text(label),
         backgroundColor: Colors.white.withValues(alpha: 0.1),
         behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+}
+
+/// Bouton debug : débloque toutes les améliorations (mode debug uniquement).
+class _DebugButton extends StatelessWidget {
+  const _DebugButton({required this.ref});
+
+  final WidgetRef ref;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: TextButton.icon(
+        icon: const Icon(Icons.build, color: Colors.amber, size: 18),
+        style: TextButton.styleFrom(
+          foregroundColor: Colors.amber.withValues(alpha: 0.6),
+        ),
+        label: const Text('DEBUG : tout débloquer'),
+        onPressed: () async {
+          await ref.read(progressionServiceProvider).unlockAllUpgrades();
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Toutes les améliorations débloquées')),
+            );
+          }
+        },
       ),
     );
   }

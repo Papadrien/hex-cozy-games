@@ -114,6 +114,20 @@ class ProgressionService {
     return quest?.isCompleted ?? false;
   }
 
+  /// Force toutes les améliorations à être débloquées au niveau max — debug.
+  ///
+  /// Utile pour le développement : permet de tester toutes les améliorations
+  /// sans avoir à remplir les conditions de déblocage.
+  Future<void> unlockAllUpgrades() async {
+    final db = _ref.read(appDatabaseProvider);
+    await (db.update(db.upgrades)).write(
+      const UpgradesCompanion(
+        isUnlocked: Value(true),
+        currentLevel: Value(2),
+      ),
+    );
+  }
+
   /// Monte l'amélioration [upgradeId] d'un niveau — Story 2.6a.
   ///
   /// Transaction atomique :
