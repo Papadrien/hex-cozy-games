@@ -1,4 +1,4 @@
-/// Cloud save — Story 2.10a.
+/// Cloud save — Story 2.10a / 2.10b.
 ///
 /// Sérialise la progression (pièces, améliorations débloquées, stats) en JSON
 /// et la synchronise via `games_services` (Google Play Games / Game Center).
@@ -8,6 +8,10 @@
 ///   - au lancement de l'app (pull depuis le cloud)
 ///   - après chaque partie (push vers le cloud)
 ///
+/// Résolution de conflits (2.10b) : last-write-wins. La progression la plus
+/// récente gagne. La progression locale n'est jamais écrasée par une version
+/// cloud plus ancienne (comparaison via timestamp partagé dans le payload).
+///
 /// Pas de compte = pas de sync, tout reste local.
 library;
 
@@ -16,6 +20,7 @@ import 'dart:convert';
 import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:games_services/games_services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../data/app_database.dart';
 
@@ -24,24 +29,48 @@ class CloudSaveService {
   final Ref _ref;
 
   static const _saveName = 'progression_v1';
+  static const _prefsLastSyncKey = 'cloud_last_sync_timestamp';
 
-  /// Charge la progression depuis le cloud et l'applique localement.
+  /// Charge la progression depuis le cloud et l'applique localement
+  /// seulement si elle est plus récente que notre dernier timestamp de sync.
   /// Silencieux si non connecté ou en erreur.
   Future<void> syncOnLaunch() async {
     if (!await _isSignedIn()) return;
     final cloudData = await _loadFromCloud();
     if (cloudData == null) return;
+
+    final cloudTime =
+        DateTime.tryParse(cloudData['lastUpdated'] as String? ?? '');
+    if (cloudTime == null) return;
+
+    final prefs = await SharedPreferences.getInstance();
+    final lastSync = prefs.getString(_prefsLastSyncKey);
+    if (lastSync != null) {
+      final localTime = DateTime.tryParse(lastSync);
+      if (localTime != null && !cloudTime.isAfter(localTime)) {
+        // Cloud pas plus récent — rien à appliquer.
+        return;
+      }
+    }
+
     final db = _ref.read(appDatabaseProvider);
     await _applyToLocal(db, cloudData);
+    await prefs.setString(_prefsLastSyncKey, cloudData['lastUpdated'] as String);
   }
 
-  /// Sérialise la progression locale et la pousse vers le cloud.
+  /// Sérialise la progression locale et la pousse vers le cloud, puis
+  /// met à jour le timestamp local de dernière sync.
   /// Silencieux si non connecté ou en erreur.
   Future<void> syncAfterGame() async {
     if (!await _isSignedIn()) return;
     final db = _ref.read(appDatabaseProvider);
     final data = await _serialize(db);
     await _saveToCloud(data);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+      _prefsLastSyncKey,
+      data['lastUpdated'] as String,
+    );
   }
 
   Future<bool> _isSignedIn() async {
@@ -110,9 +139,6 @@ class CloudSaveService {
     Map<String, dynamic> data,
   ) async {
     if (data['version'] != 1) return;
-    final cloudTime =
-        DateTime.tryParse(data['lastUpdated'] as String? ?? '');
-    if (cloudTime == null) return;
 
     // Player profile
     await db.into(db.playerProfile).insertOnConflictUpdate(
