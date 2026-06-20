@@ -113,4 +113,6 @@ abstract class Str {
   static String get upgrades_upgradeButton =>
       _isFr ? 'Améliorer' : 'Upgrade';
   static String get upgrades_level => _isFr ? 'Niveau' : 'Level';
+  static String get upgrades_cost => _isFr ? 'Coût' : 'Cost';
+  static String get upgrades_max => _isFr ? 'MAX' : 'MAX';
 }

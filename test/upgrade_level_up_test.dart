@@ -53,19 +53,15 @@ void main() {
   group('spendCoins', () {
     late AppDatabase db;
     setUp(() async {
-      final c = await _makeTestContainer();
-      if (c == null) return;
-      db = c.read(appDatabaseProvider);
+      db = (await _makeTestContainer())!.read(appDatabaseProvider);
     });
 
     test('retourne false si solde insuffisant', () async {
-      if (db == null) return;
       final ok = await spendCoins(db, 1);
       expect(ok, isFalse);
     });
 
     test('retourne true et débite si solde suffisant', () async {
-      if (db == null) return;
       await addCoinsToProfile(db, 100);
       final ok = await spendCoins(db, 40);
       expect(ok, isTrue);
@@ -77,7 +73,6 @@ void main() {
     });
 
     test('laisse le solde inchangé si insuffisant', () async {
-      if (db == null) return;
       await addCoinsToProfile(db, 10);
       final ok = await spendCoins(db, 20);
       expect(ok, isFalse);
@@ -94,47 +89,40 @@ void main() {
     late ProgressionService service;
 
     setUp(() async {
-      final c = await _makeTestContainer();
-      if (c == null) return;
+      final c = (await _makeTestContainer())!;
       db = c.read(appDatabaseProvider);
       service = c.read(progressionServiceProvider);
     });
 
     test('retourne maxLevelReached si currentLevel 2', () async {
-      if (db == null) return;
       await _setUpgrade(db, 'coins_plus', isUnlocked: true, level: 2);
       expect(await service.levelUpUpgrade('coins_plus'),
           UpgradeResult.maxLevelReached);
     });
 
     test('retourne maxLevelReached si currentLevel 3', () async {
-      if (db == null) return;
       await _setUpgrade(db, 'coins_plus', isUnlocked: true, level: 3);
       expect(await service.levelUpUpgrade('coins_plus'),
           UpgradeResult.maxLevelReached);
     });
 
     test('retourne maxLevelReached si ID inconnue', () async {
-      if (db == null) return;
       expect(await service.levelUpUpgrade('unknown_id'),
           UpgradeResult.maxLevelReached);
     });
 
     test('retourne maxLevelReached si non débloquée', () async {
-      if (db == null) return;
       expect(await service.levelUpUpgrade('coins_plus'),
           UpgradeResult.maxLevelReached);
     });
 
     test('retourne insufficientCoins si pas assez de pièces', () async {
-      if (db == null) return;
       await _setUpgrade(db, 'coins_plus', isUnlocked: true, level: 0);
       expect(await service.levelUpUpgrade('coins_plus'),
           UpgradeResult.insufficientCoins);
     });
 
     test('réussit et met à jour niveau + débite les pièces', () async {
-      if (db == null) return;
       await addCoinsToProfile(db, 200);
       await _setUpgrade(db, 'coins_plus', isUnlocked: true, level: 0);
 
@@ -146,7 +134,6 @@ void main() {
     });
 
     test('deux montées successives 0→1→2', () async {
-      if (db == null) return;
       await addCoinsToProfile(db, 500);
       await _setUpgrade(db, 'coins_plus', isUnlocked: true, level: 0);
 
@@ -162,7 +149,6 @@ void main() {
     });
 
     test('troisième montée échoue (maxLevelReached)', () async {
-      if (db == null) return;
       await addCoinsToProfile(db, 1000);
       await _setUpgrade(db, 'coins_plus', isUnlocked: true, level: 0);
 

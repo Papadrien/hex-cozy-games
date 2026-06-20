@@ -1,7 +1,3 @@
-/// Écran des améliorations — Story 2.5b.
-///
-/// Affiche les améliorations débloquées (nom + effet + niveau) et
-/// verrouillées (nom + effet masqué + condition de déblocage).
 library;
 
 import 'package:flutter/material.dart';
@@ -9,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/strings.dart';
 import '../data/app_database.dart';
+import '../providers/player_profile_provider.dart';
 import '../providers/progression_provider.dart';
 import '../providers/quest_provider.dart';
 
@@ -19,6 +16,7 @@ class UpgradesScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final upgradesAsync = ref.watch(upgradesProvider);
     final questsAsync = ref.watch(permanentQuestsProvider);
+    final totalCoinsAsync = ref.watch(totalCoinsProvider);
 
     return Scaffold(
       backgroundColor: const Color(0xFF1A2332),
@@ -58,6 +56,7 @@ class UpgradesScreen extends ConsumerWidget {
           return _UpgradesList(
             upgrades: upgrades,
             questDescriptions: questMap,
+            totalCoins: totalCoinsAsync,
           );
         },
       ),
@@ -69,10 +68,12 @@ class _UpgradesList extends StatelessWidget {
   const _UpgradesList({
     required this.upgrades,
     required this.questDescriptions,
+    required this.totalCoins,
   });
 
   final List<UpgradeRow> upgrades;
   final Map<String, String> questDescriptions;
+  final int totalCoins;
 
   @override
   Widget build(BuildContext context) {
@@ -96,6 +97,7 @@ class _UpgradesList extends StatelessWidget {
                 upgrade: u,
                 isLocked: false,
                 questDescriptions: questDescriptions,
+                totalCoins: totalCoins,
               ),
             ),
           ),
@@ -115,6 +117,7 @@ class _UpgradesList extends StatelessWidget {
                 upgrade: u,
                 isLocked: true,
                 questDescriptions: questDescriptions,
+                totalCoins: totalCoins,
               ),
             ),
           ),
@@ -160,11 +163,13 @@ class _UpgradeCard extends StatelessWidget {
     required this.upgrade,
     required this.isLocked,
     required this.questDescriptions,
+    required this.totalCoins,
   });
 
   final UpgradeRow upgrade;
   final bool isLocked;
   final Map<String, String> questDescriptions;
+  final int totalCoins;
 
   @override
   Widget build(BuildContext context) {
@@ -181,7 +186,6 @@ class _UpgradeCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Name row
           Row(
             children: [
               Container(
@@ -217,7 +221,6 @@ class _UpgradeCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 10),
-          // Effect line
           Row(
             children: [
               Icon(Icons.tune,
@@ -239,7 +242,6 @@ class _UpgradeCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 6),
-          // Condition or level
           if (isLocked) ...[
             Row(
               children: [
@@ -259,6 +261,8 @@ class _UpgradeCard extends StatelessWidget {
               ],
             ),
           ] else ...[
+            _LevelsPreview(upgrade: upgrade),
+            const SizedBox(height: 8),
             Row(
               children: [
                 Icon(Icons.stars,
@@ -274,7 +278,7 @@ class _UpgradeCard extends StatelessWidget {
                   ),
                 ),
                 const Spacer(),
-                _UpgradeButton(upgrade: upgrade),
+                _UpgradeButton(upgrade: upgrade, totalCoins: totalCoins),
               ],
             ),
           ],
@@ -284,39 +288,185 @@ class _UpgradeCard extends StatelessWidget {
   }
 }
 
-/// Bouton Améliorer (placeholder — la mécanique de coût sera ajoutée
-/// dans une story ultérieure).
-class _UpgradeButton extends StatelessWidget {
-  const _UpgradeButton({required this.upgrade});
+/// Ligne de preview des 3 niveaux avec effet de chaque palier.
+class _LevelsPreview extends StatelessWidget {
+  const _LevelsPreview({required this.upgrade});
 
   final UpgradeRow upgrade;
 
   @override
   Widget build(BuildContext context) {
+    final levels = _allLevelEffects(upgrade.effectType);
+
+    return Row(
+      children: [
+        for (var i = 0; i < levels.length; i++)
+          Expanded(
+            child: _LevelDot(
+              index: i,
+              label: levels[i],
+              isCurrent: i == upgrade.currentLevel,
+              isReached: i <= upgrade.currentLevel,
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+/// Un petit palier dans la ligne de niveaux.
+class _LevelDot extends StatelessWidget {
+  const _LevelDot({
+    required this.index,
+    required this.label,
+    required this.isCurrent,
+    required this.isReached,
+  });
+
+  final int index;
+  final String label;
+  final bool isCurrent;
+  final bool isReached;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = isCurrent
+        ? const Color(0xFF6FA8DC)
+        : isReached
+            ? Colors.white.withValues(alpha: 0.5)
+            : Colors.white.withValues(alpha: 0.2);
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 10,
+              height: 10,
+              decoration: BoxDecoration(
+                color: color,
+                shape: BoxShape.circle,
+              ),
+            ),
+            if (index < 2)
+              Container(
+                height: 2,
+                width: 12,
+                color: isReached && index < 2
+                    ? color
+                    : Colors.white.withValues(alpha: 0.1),
+              ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Niv.${index + 1}',
+          style: TextStyle(
+            color: color,
+            fontSize: 10,
+            fontWeight: isCurrent ? FontWeight.w700 : FontWeight.w400,
+          ),
+        ),
+        Text(
+          label,
+          style: TextStyle(
+            color: color,
+            fontSize: 10,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Bouton Améliorer avec coût affiché, désactivé si pièces insuffisantes.
+class _UpgradeButton extends ConsumerWidget {
+  const _UpgradeButton({
+    required this.upgrade,
+    required this.totalCoins,
+  });
+
+  final UpgradeRow upgrade;
+  final int totalCoins;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isMaxLevel = upgrade.currentLevel >= kUpgradeCosts.length;
+    if (isMaxLevel) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Text(
+          Str.upgrades_max,
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.3),
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      );
+    }
+
+    final cost = kUpgradeCosts[upgrade.currentLevel];
+    final canAfford = totalCoins >= cost;
+
     return TextButton(
       style: TextButton.styleFrom(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        backgroundColor: const Color(0xFF6FA8DC).withValues(alpha: 0.2),
+        backgroundColor: canAfford
+            ? const Color(0xFF6FA8DC).withValues(alpha: 0.2)
+            : Colors.white.withValues(alpha: 0.05),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(8),
         ),
       ),
-      onPressed: () {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Amélioration à venir'),
-            backgroundColor: Colors.white.withValues(alpha: 0.1),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      },
+      onPressed: canAfford
+          ? () => _handleUpgrade(context, ref)
+          : null,
       child: Text(
-        Str.upgrades_upgradeButton,
+        '${Str.upgrades_cost} : $cost  ${Str.upgrades_upgradeButton}',
         style: TextStyle(
-          color: const Color(0xFF6FA8DC).withValues(alpha: 0.9),
-          fontSize: 13,
+          color: canAfford
+              ? const Color(0xFF6FA8DC).withValues(alpha: 0.9)
+              : Colors.white.withValues(alpha: 0.3),
+          fontSize: 12,
           fontWeight: FontWeight.w600,
         ),
+      ),
+    );
+  }
+
+  Future<void> _handleUpgrade(BuildContext context, WidgetRef ref) async {
+    final service = ref.read(progressionServiceProvider);
+    final result = await service.levelUpUpgrade(upgrade.id);
+
+    if (!context.mounted) return;
+
+    final (message, color) = switch (result) {
+      UpgradeResult.success => (
+        '${upgrade.name} → ${Str.upgrades_level} ${upgrade.currentLevel + 2}',
+        const Color(0xFF4CAF50),
+      ),
+      UpgradeResult.insufficientCoins => (
+        'Pièces insuffisantes',
+        Colors.orange,
+      ),
+      UpgradeResult.maxLevelReached => (
+        'Niveau maximum atteint',
+        Colors.white.withValues(alpha: 0.5),
+      ),
+    };
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: color,
+        behavior: SnackBarBehavior.floating,
       ),
     );
   }
@@ -325,29 +475,25 @@ class _UpgradeButton extends StatelessWidget {
 // ── Helpers ──────────────────────────────────────────────────────────────
 
 String _effectLabel(UpgradeRow upgrade) {
-  switch (upgrade.effectType) {
+  final allLevels = _allLevelEffects(upgrade.effectType);
+  final idx = upgrade.currentLevel < allLevels.length
+      ? upgrade.currentLevel
+      : allLevels.length - 1;
+  return allLevels[idx];
+}
+
+List<String> _allLevelEffects(String effectType) {
+  switch (effectType) {
     case 'starting_tiles_bonus':
-      const bonuses = [2, 5, 10];
-      final value = upgrade.currentLevel < bonuses.length
-          ? bonuses[upgrade.currentLevel]
-          : bonuses.last;
-      return 'Tuiles de départ +$value';
+      return ['+2', '+5', '+10'];
     case 'connection_bonus_multiplier':
-      return 'Bonus de connexion x2';
+      return ['x2', 'x2', 'x2'];
     case 'coins_percent_bonus':
-      const bonuses = [10, 20, 30];
-      final value = upgrade.currentLevel < bonuses.length
-          ? bonuses[upgrade.currentLevel]
-          : bonuses.last;
-      return 'Pièces +$value%';
+      return ['+10%', '+20%', '+30%'];
     case 'village_coins_percent_bonus':
-      const bonuses = [33, 66, 100];
-      final value = upgrade.currentLevel < bonuses.length
-          ? bonuses[upgrade.currentLevel]
-          : bonuses.last;
-      return 'Village +$value%';
+      return ['+33%', '+66%', '+100%'];
     default:
-      return upgrade.effectType;
+      return ['', '', ''];
   }
 }
 
