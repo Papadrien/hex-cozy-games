@@ -7,6 +7,7 @@ import '../data/app_database.dart';
 import '../game/hex_cell.dart';
 import '../game/hex_coords.dart';
 import '../game/hex_tile.dart';
+import '../services/cloud_save_service.dart';
 import 'end_game_provider.dart';
 import 'game_effects_service.dart';
 import 'grid_state_provider.dart';
@@ -323,6 +324,9 @@ void confirmPlacement(
 
     // Mise à jour des quêtes village_size & biomes_closed (Story 2.3a).
     ref.read(questServiceProvider).onGameEnd(grid);
+
+    // Sync cloud après chaque partie (Story 2.10a) — no-op si non connecté.
+    ref.read(cloudSaveServiceProvider).syncAfterGame();
   }
 }
 
