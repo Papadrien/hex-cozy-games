@@ -65,3 +65,25 @@ Future<void> incrementTotalTilesPlaced(AppDatabase db) async {
     ),
   );
 }
+
+/// Débite [amount] pièces du solde persisté — Story 2.6a.
+///
+/// Retourne `false` si le solde est insuffisant, `true` si le débit a
+/// été effectué. L'appelant doit idéalement encapsuler cette opération
+/// dans une transaction Drift pour garantir l'atomicité avec d'autres
+/// écritures (ex: montée en niveau).
+Future<bool> spendCoins(AppDatabase db, int amount) async {
+  await _ensureProfileExists(db);
+  final profile =
+      await (db.select(db.playerProfile)..where((t) => t.id.equals(1)))
+          .getSingleOrNull();
+  if (profile == null || profile.coins < amount) return false;
+
+  final table = db.playerProfile;
+  await (db.update(table)..where((t) => t.id.equals(1))).write(
+    PlayerProfileCompanion.custom(
+      coins: table.coins - Variable(amount),
+    ),
+  );
+  return true;
+}
