@@ -51,3 +51,17 @@ Future<void> addCoinsToProfile(AppDatabase db, int coins) async {
     ),
   );
 }
+
+/// Incrémente le compteur global de tuiles posées (Story 2.5a).
+///
+/// Utilisé pour la condition de déblocage `TILES_PLACED` dans
+/// [ProgressionService].
+Future<void> incrementTotalTilesPlaced(AppDatabase db) async {
+  await _ensureProfileExists(db);
+  final table = db.playerProfile;
+  await (db.update(table)..where((t) => t.id.equals(1))).write(
+    PlayerProfileCompanion.custom(
+      totalTilesPlaced: table.totalTilesPlaced + const Variable(1),
+    ),
+  );
+}

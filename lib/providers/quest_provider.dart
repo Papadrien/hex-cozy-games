@@ -18,6 +18,7 @@ import '../game/hex_cell.dart';
 import '../game/hex_coords.dart';
 import 'grid_state_provider.dart';
 import 'player_profile_provider.dart';
+import 'progression_provider.dart';
 
 // ── Providers ────────────────────────────────────────────────────────────
 
@@ -177,6 +178,8 @@ class QuestService {
   Future<void> onTilePlaced() async {
     await _updateTilesPlaced();
     await _updateDailyTilesPlaced();
+    final db = _ref.read(appDatabaseProvider);
+    await incrementTotalTilesPlaced(db);
     _ref.invalidate(permanentQuestsProvider);
   }
 
@@ -186,6 +189,7 @@ class QuestService {
     await _updateBiomesClosed(grid);
     await _updateDailyVillageSize(grid);
     await _updateDailyBiomesClosed(grid);
+    await _ref.read(progressionServiceProvider).checkUnlocks();
     _ref.invalidate(permanentQuestsProvider);
   }
 
@@ -351,28 +355,14 @@ class QuestService {
     if (quest.nextQuestId != null) {
       _unlockNextQuest(quest.nextQuestId!);
     }
+    // Vérifier les déblocages d'améliorations après chaque quête (Story 2.5a).
+    await _ref.read(progressionServiceProvider).checkUnlocks();
   }
 
   Future<void> _grantReward(PermanentQuestRow quest) async {
     if (quest.rewardType == 'coins') {
       final db = _ref.read(appDatabaseProvider);
       await addCoinsToProfile(db, quest.rewardValue);
-    } else if (quest.rewardType == 'upgrade_unlock') {
-      final db = _ref.read(appDatabaseProvider);
-      _unlockUpgradeByQuest(db, quest.id);
-    }
-  }
-
-  Future<void> _unlockUpgradeByQuest(AppDatabase db, String questId) async {
-    final rows = await (db.select(db.upgrades)
-          ..where((u) => u.unlockConditionType.equals(questId)))
-        .get();
-    for (final upgrade in rows) {
-      if (!upgrade.isUnlocked) {
-        await db.update(db.upgrades).replace(
-              upgrade.copyWith(isUnlocked: true),
-            );
-      }
     }
   }
 
