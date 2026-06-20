@@ -82,4 +82,25 @@ abstract class Str {
       _isFr ? 'Connecte les côtés identiques pour gagner des tuiles et des pièces bonus'
             : 'Match identical sides to earn bonus tiles and coins';
   static String get tutorial_skip => _isFr ? 'Passer' : 'Skip';
+
+  // Story 2.3b — Écran Quêtes
+  static String get quests_title => _isFr ? 'Quêtes' : 'Quests';
+  static String get quests_category_tiles =>
+      _isFr ? 'Tuiles posées' : 'Tiles placed';
+  static String get quests_category_village =>
+      _isFr ? 'Village' : 'Village';
+  static String get quests_category_biomes =>
+      _isFr ? 'Biomes fermés' : 'Closed biomes';
+  static String get quests_status_active => _isFr ? 'En cours' : 'Active';
+  static String get quests_status_completed => _isFr ? 'Terminée' : 'Completed';
+  static String get quests_status_locked => _isFr ? 'Verrouillée' : 'Locked';
+  static String get quests_reward_coins => _isFr ? 'Récompense' : 'Reward';
+  static String get quests_reward_upgrade =>
+      _isFr ? 'Débloque amélioration' : 'Unlocks upgrade';
+  static String get quests_progress => _isFr ? 'Progression' : 'Progress';
+  static String get quests_empty =>
+      _isFr ? 'Aucune quête disponible' : 'No quests available';
+  static String get quests_close => _isFr ? 'Fermer' : 'Close';
+  static String get quests_next_reward =>
+      _isFr ? 'Prochaine récompense' : 'Next reward';
 }

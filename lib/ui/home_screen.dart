@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/strings.dart';
 import '../providers/placement_commit.dart';
 import '../providers/player_profile_provider.dart';
+import 'quests_screen.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -109,6 +110,31 @@ class HomeScreen extends ConsumerWidget {
                   ),
                 ),
               ),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: 200,
+                child: TextButton(
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    foregroundColor: Colors.white.withValues(alpha: 0.8),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      side: BorderSide(
+                        color: Colors.white.withValues(alpha: 0.2),
+                      ),
+                    ),
+                  ),
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const QuestsScreen()),
+                    );
+                  },
+                  child: Text(
+                    Str.quests_title,
+                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+                  ),
+                ),
               ),
             ],
             ),
