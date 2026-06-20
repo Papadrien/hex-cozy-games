@@ -32,7 +32,7 @@ Future<void> seedDatabase(AppDatabase db) async {
 // ou ignoré si rewardType == upgrade_unlock (le déblocage cible est porté
 // par `upgrades.unlockConditionValue`, la quête sert de palier déclencheur).
 
-const _permanentQuests = [
+final _permanentQuests = [
   // Chaîne "tiles_placed" — débloque pièces puis améliorations aux seuils
   // définis en 5.1 (200 → A, 300 → B...).
   PermanentQuestsCompanion.insert(
@@ -117,7 +117,7 @@ const _permanentQuests = [
 // le déblocage réel est piloté par l'achèvement de la quête liée (voir
 // mapping ci-dessous, par cohérence de nommage avec id de quête).
 
-const _upgrades = [
+final _upgrades = [
   UpgradesCompanion.insert(
     id: 'starting_tiles_plus',
     name: 'Tuiles de départ+',

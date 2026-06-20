@@ -299,7 +299,7 @@ class _QuestProgressBanner extends ConsumerWidget {
     final questsAsync = ref.watch(permanentQuestsProvider);
     return questsAsync.when(
       loading: () => const SizedBox.shrink(),
-      error: (_, __) => const SizedBox.shrink(),
+      error: (_, _) => const SizedBox.shrink(),
       data: (quests) {
         final active = quests
             .where((q) => !q.isCompleted)

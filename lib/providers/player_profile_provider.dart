@@ -5,7 +5,7 @@
 /// à la première lecture si elle n'existe pas encore (DB pré-2.2b).
 library;
 
-import 'package:drift/drift.dart' show Value, Variable;
+import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/app_database.dart';

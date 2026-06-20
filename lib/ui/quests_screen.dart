@@ -36,7 +36,7 @@ class QuestsScreen extends ConsumerWidget {
         loading: () => const Center(
           child: CircularProgressIndicator(color: Colors.white),
         ),
-        error: (_, __) => Center(
+        error: (_, _) => Center(
           child: Text(
             Str.quests_empty,
             style: TextStyle(color: Colors.white.withValues(alpha: 0.6)),
