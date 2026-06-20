@@ -172,7 +172,7 @@ class HexBoardGame extends FlameGame
   void _handleRotation(double dy) {
     _rotationAccumulator += dy;
     while (_rotationAccumulator.abs() >= _kRotationThreshold) {
-      final step = _rotationAccumulator > 0 ? -1 : 1; // haut = horaire
+      final step = _rotationAccumulator > 0 ? 1 : -1; // haut = anti-horaire
       _ref.read(placementProvider.notifier).rotate(step);
       _rotationAccumulator += step.sign * _kRotationThreshold;
     }
@@ -192,7 +192,7 @@ class HexBoardGame extends FlameGame
   }
 
   @override
-  void onTapUp(int pointerId, TapUpInfo info) {
+  Future<void> onTapUp(int pointerId, TapUpInfo info) async {
     if (_isPaused) return;
     // Si le doigt a bougé de plus de 5 px, c'était un swipe (rotation/pan),
     // pas un tap — on ignore pour ne pas valider le placement par erreur.
@@ -216,7 +216,7 @@ class HexBoardGame extends FlameGame
 
     if (placement.selected == coords) {
       // Second tap sur la même cellule → validation du placement (story 1.5b)
-      confirmPlacement(_ref, onConfirm: placeTileOnFlame);
+      await confirmPlacement(_ref, onConfirm: placeTileOnFlame);
       _syncPlacementPreview();
       return;
     }

@@ -15,6 +15,7 @@ library;
 import 'dart:async';
 
 import 'package:flame/game.dart' hide Matrix4;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -106,11 +107,12 @@ class _GameScreenState extends ConsumerState<GameScreen> {
           GameWidget(key: _boardKey, game: _game),
 
           // ── Badge debug ───────────────────────────────────────────────────
-          const Positioned(
-            top: 48,
-            left: 16,
-            child: _DebugBadge(label: 'Story 1.8b — écran résultats'),
-          ),
+          if (kDebugMode)
+            const Positioned(
+              top: 48,
+              left: 16,
+              child: _DebugBadge(label: 'Story 1.8b — écran résultats'),
+            ),
 
           // ── Compteur de pièces (story 1.6b) + récompense pièces ────────
           Positioned(

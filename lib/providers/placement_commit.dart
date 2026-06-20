@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:drift/drift.dart' show InsertMode, Value;
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/app_database.dart';
@@ -34,63 +35,68 @@ final activeSessionProvider = FutureProvider<bool>((ref) async {
 /// À appeler avant de naviguer vers l'écran de jeu pour que les providers
 /// soient déjà initialisés lors de la création du [HexBoardGame].
 Future<void> restoreSession(WidgetRef ref) async {
-  final db = ref.read(appDatabaseProvider);
-  final rows = await (db.select(db.gameSession)
-        ..where((t) => t.isActive.equals(true))
-        ..limit(1))
-      .get();
-  if (rows.isEmpty) return;
+  try {
+    final db = ref.read(appDatabaseProvider);
+    final rows = await (db.select(db.gameSession)
+          ..where((t) => t.isActive.equals(true))
+          ..limit(1))
+        .get();
+    if (rows.isEmpty) return;
 
-  final row = rows.first;
+    final row = rows.first;
 
-  // Restaurer le plateau.
-  final gridJson =
-      jsonDecode(row.gridState) as Map<String, dynamic>;
-  final placedTiles = <HexCoords, HexTile>{};
-  for (final entry in gridJson.entries) {
-    final parts = entry.key.split(',');
-    final q = int.parse(parts[0]);
-    final r = int.parse(parts[1]);
-    final sides = (entry.value as List)
-        .map((s) => BiomeType.values.firstWhere((b) => b.name == s))
-        .toList();
-    placedTiles[HexCoords(q, r)] = HexTile(sides: sides);
-  }
-  ref.read(gridProvider.notifier).setState(placedTiles);
-
-  // Restaurer la pile de tuiles.
-  final stackJson = jsonDecode(row.tileStack);
-  final seed = stackJson['seed'] as int?;
-  final queueList = (stackJson['queue'] as List)
-      .map((t) => (t as List)
+    // Restaurer le plateau.
+    final gridJson =
+        jsonDecode(row.gridState) as Map<String, dynamic>;
+    final placedTiles = <HexCoords, HexTile>{};
+    for (final entry in gridJson.entries) {
+      final parts = entry.key.split(',');
+      final q = int.parse(parts[0]);
+      final r = int.parse(parts[1]);
+      final sides = (entry.value as List)
           .map((s) => BiomeType.values.firstWhere((b) => b.name == s))
-          .toList())
-      .map((sides) => HexTile(sides: sides))
-      .toList();
-  ref.read(tileStackProvider.notifier).restoreQueue(queueList, seed: seed);
+          .toList();
+      placedTiles[HexCoords(q, r)] = HexTile(sides: sides);
+    }
+    ref.read(gridProvider.notifier).setState(placedTiles);
 
-  // Restaurer la session (pièces, tuiles bonus).
-  ref.read(sessionProvider.notifier).restore(SessionState(
-        coins: row.coins,
-        totalBonusTiles: row.totalBonusTiles,
-      ));
-
-  // Restaurer le dernier placement (pour le bouton Annuler).
-  if (row.lastTilePlaced != null) {
-    final lastJson = jsonDecode(row.lastTilePlaced!);
-    final sides = (lastJson['sides'] as List)
-        .map((s) => BiomeType.values.firstWhere((b) => b.name == s))
+    // Restaurer la pile de tuiles.
+    final stackJson = jsonDecode(row.tileStack);
+    final seed = stackJson['seed'] as int?;
+    final queueList = (stackJson['queue'] as List)
+        .map((t) => (t as List)
+            .map((s) => BiomeType.values.firstWhere((b) => b.name == s))
+            .toList())
+        .map((sides) => HexTile(sides: sides))
         .toList();
-    final tile = HexTile(sides: sides);
-    final connectedSides = (lastJson['connectedSides'] as List?)
-            ?.cast<int>() ??
-        [];
-    ref.read(lastPlacementProvider.notifier).set(LastPlacement(
-          HexCoords(lastJson['q'], lastJson['r']),
-          tile,
-          bonusTiles: lastJson['bonusTiles'] ?? 0,
-          connectedSides: connectedSides,
+    ref.read(tileStackProvider.notifier).restoreQueue(queueList, seed: seed);
+
+    // Restaurer la session (pièces, tuiles bonus).
+    ref.read(sessionProvider.notifier).restore(SessionState(
+          coins: row.coins,
+          totalBonusTiles: row.totalBonusTiles,
         ));
+
+    // Restaurer le dernier placement (pour le bouton Annuler).
+    if (row.lastTilePlaced != null) {
+      final lastJson = jsonDecode(row.lastTilePlaced!);
+      final sides = (lastJson['sides'] as List)
+          .map((s) => BiomeType.values.firstWhere((b) => b.name == s))
+          .toList();
+      final tile = HexTile(sides: sides);
+      final connectedSides = (lastJson['connectedSides'] as List?)
+              ?.cast<int>() ??
+          [];
+      ref.read(lastPlacementProvider.notifier).set(LastPlacement(
+            HexCoords(lastJson['q'], lastJson['r']),
+            tile,
+            bonusTiles: lastJson['bonusTiles'] ?? 0,
+            connectedSides: connectedSides,
+          ));
+    }
+  } catch (e, stack) {
+    FirebaseCrashlytics.instance.recordError(e, stack);
+    startNewGame(ref);
   }
 }
 
@@ -173,56 +179,60 @@ final previewRewardProvider = Provider<PlacementReward>((ref) {
 /// Stocke l'intégralité de l'état nécessaire à une restauration fidèle :
 /// plateau, pile, pièces, tuiles bonus, dernier placement (pour annuler).
 class SessionSaver {
-  static void save(WidgetRef ref) async {
-    final db = ref.read(appDatabaseProvider);
-    final grid = ref.read(gridProvider);
-    final stack = ref.read(tileStackProvider);
-    final session = ref.read(sessionProvider);
-    final lastPlacement = ref.read(lastPlacementProvider);
+  static Future<void> save(WidgetRef ref) async {
+    try {
+      final db = ref.read(appDatabaseProvider);
+      final grid = ref.read(gridProvider);
+      final stack = ref.read(tileStackProvider);
+      final session = ref.read(sessionProvider);
+      final lastPlacement = ref.read(lastPlacementProvider);
 
-    final gridJson = jsonEncode(
-      grid.placedTiles.map(
-        (k, v) => MapEntry('${k.q},${k.r}', v.sides.map((b) => b.name).toList()),
-      ),
-    );
+      final gridJson = jsonEncode(
+        grid.placedTiles.map(
+          (k, v) => MapEntry('${k.q},${k.r}', v.sides.map((b) => b.name).toList()),
+        ),
+      );
 
-    final queue = ref.read(tileStackProvider.notifier).queue;
-    final queueJson =
-        queue.map((t) => t.sides.map((b) => b.name).toList()).toList();
-    final stackJson = jsonEncode({
-      'seed': stack.seed,
-      'remaining': stack.remaining,
-      'visible':
-          stack.visible.map((t) => t.sides.map((b) => b.name).toList()).toList(),
-      'queue': queueJson,
-    });
-
-    String? lastTileJson;
-    if (lastPlacement != null) {
-      lastTileJson = jsonEncode({
-        'q': lastPlacement.coords.q,
-        'r': lastPlacement.coords.r,
-        'sides': lastPlacement.tile.sides.map((b) => b.name).toList(),
-        'bonusTiles': lastPlacement.bonusTiles,
-        'connectedSides': lastPlacement.connectedSides,
+      final queue = ref.read(tileStackProvider.notifier).queue;
+      final queueJson =
+          queue.map((t) => t.sides.map((b) => b.name).toList()).toList();
+      final stackJson = jsonEncode({
+        'seed': stack.seed,
+        'remaining': stack.remaining,
+        'visible':
+            stack.visible.map((t) => t.sides.map((b) => b.name).toList()).toList(),
+        'queue': queueJson,
       });
-    }
 
-    await db.into(db.gameSession).insert(
-          GameSessionRow(
-            id: 1, // Session unique pour le MVP
-            gridState: gridJson,
-            tileStack: stackJson,
-            coins: session.coins,
-            totalBonusTiles: session.totalBonusTiles,
-            lastTilePlaced: lastTileJson,
-            placedTilesCount: grid.placedTiles.length,
-            isActive: true,
-            createdAt: DateTime.now(),
-            updatedAt: DateTime.now(),
-          ),
-          mode: InsertMode.replace,
-        );
+      String? lastTileJson;
+      if (lastPlacement != null) {
+        lastTileJson = jsonEncode({
+          'q': lastPlacement.coords.q,
+          'r': lastPlacement.coords.r,
+          'sides': lastPlacement.tile.sides.map((b) => b.name).toList(),
+          'bonusTiles': lastPlacement.bonusTiles,
+          'connectedSides': lastPlacement.connectedSides,
+        });
+      }
+
+      await db.into(db.gameSession).insert(
+            GameSessionRow(
+              id: 1, // Session unique pour le MVP
+              gridState: gridJson,
+              tileStack: stackJson,
+              coins: session.coins,
+              totalBonusTiles: session.totalBonusTiles,
+              lastTilePlaced: lastTileJson,
+              placedTilesCount: grid.placedTiles.length,
+              isActive: true,
+              createdAt: DateTime.now(),
+              updatedAt: DateTime.now(),
+            ),
+            mode: InsertMode.replace,
+          );
+    } catch (e, stack) {
+      FirebaseCrashlytics.instance.recordError(e, stack);
+    }
   }
 
   /// Marque la session active comme terminée (fin de partie ou abandon).
@@ -239,10 +249,10 @@ class SessionSaver {
 /// des côtés connectés et le nombre de tuiles bonus pour mettre à jour le
 /// rendu Flame (HexGridComponent).
 /// Découplé du provider pour éviter une dépendance circulaire providers → Flame.
-void confirmPlacement(
+Future<void> confirmPlacement(
   WidgetRef ref, {
   required void Function(HexCoords coords, HexTile tile, List<int> connectedSides, int bonusTiles) onConfirm,
-}) {
+}) async {
   final p = ref.read(placementProvider);
   final tile = ref.read(placementProvider.notifier).previewTile;
   if (p.selected == null || tile == null) return;
@@ -294,7 +304,7 @@ void confirmPlacement(
   ref.read(placementProvider.notifier).clearSelection();
 
   // 7. Sauvegarde de session.
-  SessionSaver.save(ref);
+  await SessionSaver.save(ref);
 
   // 8. Détection de fin de partie (Story 1.8a / 1.8b / 2.2b).
   final remaining = ref.read(tileStackProvider).remaining;

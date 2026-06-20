@@ -19,9 +19,19 @@ import '../game/hex_coords.dart';
 import 'grid_state_provider.dart';
 
 /// Provider Riverpod streamant la ligne unique de [PlayerStats].
+/// Retourne une ligne à zéro si aucune statistique n'existe encore.
 final playerStatsProvider = StreamProvider<PlayerStatsRow>((ref) {
   final db = ref.watch(appDatabaseProvider);
-  return (db.select(db.playerStats)..where((t) => t.id.equals(1))).watchSingle();
+  return (db.select(db.playerStats)..where((t) => t.id.equals(1)))
+      .watchSingleOrNull()
+      .map((row) => row ?? const PlayerStatsRow(
+            id: 1,
+            totalTilesPlaced: 0,
+            totalGamesPlayed: 0,
+            totalCoinsEarned: 0,
+            bestScore: 0,
+            maxBiomeSizes: '{}',
+          ));
 });
 
 Future<void> _ensureStatsExist(AppDatabase db) async {
