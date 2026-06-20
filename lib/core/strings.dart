@@ -125,4 +125,36 @@ abstract class Str {
       _isFr ? 'Sélection des améliorations' : 'Upgrade selection';
   static String get home_quests => _isFr ? 'Quêtes' : 'Quests';
   static String get home_stats => _isFr ? 'Statistiques' : 'Statistics';
+
+  // Story 2.9b — Statistics screen
+  static String get stats_title => _isFr ? 'Statistiques' : 'Statistics';
+  static String get stats_totalTiles =>
+      _isFr ? 'Tuiles totales placées' : 'Total tiles placed';
+  static String get stats_bestScore =>
+      _isFr ? 'Meilleur score' : 'Best score';
+  static String get stats_gamesPlayed =>
+      _isFr ? 'Parties jouées' : 'Games played';
+  static String get stats_totalCoins =>
+      _isFr ? 'Pièces totales gagnées' : 'Total coins earned';
+  static String stats_biomeMax(String biome, int value) =>
+      _isFr ? '$biome max : $value tuiles' : '$biome max: $value tiles';
+
+  // Noms des biomes localisés pour les stats.
+  static String biomeName(String biome) {
+    if (!_isFr) return biome;
+    switch (biome) {
+      case 'forest':
+        return 'Forêt';
+      case 'village':
+        return 'Village';
+      case 'plain':
+        return 'Plaine';
+      case 'water':
+        return 'Eau';
+      case 'mountain':
+        return 'Montagne';
+      default:
+        return biome;
+    }
+  }
 }

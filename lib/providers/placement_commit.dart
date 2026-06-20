@@ -7,8 +7,9 @@ import '../data/app_database.dart';
 import '../game/hex_cell.dart';
 import '../game/hex_coords.dart';
 import '../game/hex_tile.dart';
-import 'build_provider.dart';
+import '../services/cloud_save_service.dart';
 import 'end_game_provider.dart';
+import 'game_effects_service.dart';
 import 'grid_state_provider.dart';
 import 'placement_provider.dart';
 import 'player_profile_provider.dart';
@@ -110,10 +111,11 @@ void startNewGame(WidgetRef ref) {
   ref.read(placementProvider.notifier).clearSelection();
   resetEndGame(ref);
 
-  // Appliquer le bonus de tuiles de départ (Story 2.7b).
-  final effects = ref.read(activeUpgradeEffectsProvider);
-  if (effects.startingTilesBonus > 0) {
-    ref.read(tileStackProvider.notifier).addBonusTiles(effects.startingTilesBonus);
+  // Appliquer le bonus de tuiles de départ (Story 2.8a).
+  final effects = ref.read(gameEffectsServiceProvider);
+  final bonus = effects.getStartingTilesBonus();
+  if (bonus > 0) {
+    ref.read(tileStackProvider.notifier).addBonusTiles(bonus);
   }
 
   // Pose automatique de la tuile centrale de départ.
@@ -157,8 +159,13 @@ final previewRewardProvider = Provider<PlacementReward>((ref) {
     }
   }
   final c = sides.length;
-  final bonus = c >= 6 ? 10 : c == 5 ? 5 : c == 4 ? 2 : c == 3 ? 1 : 0;
-  return PlacementReward(connectedSides: sides, bonusTiles: bonus);
+  final baseBonus = c >= 6 ? 10 : c == 5 ? 5 : c == 4 ? 2 : c == 3 ? 1 : 0;
+
+  // Appliquer le multiplicateur de tuiles bonus (Story 2.8a).
+  final effects = ref.read(gameEffectsServiceProvider);
+  final multipliedBonus = effects.applyConnectionMultiplier(baseBonus);
+
+  return PlacementReward(connectedSides: sides, bonusTiles: multipliedBonus);
 });
 
 /// Persiste l'état de session dans Drift après chaque placement (Story 1.7a).
@@ -258,16 +265,21 @@ void confirmPlacement(
   );
 
   // 4. Attribuer les récompenses (story 1.6b / 1.7c).
-  // Appliquer les bonus d'améliorations (Story 2.7b) : multiplicateur de
-  // connexions et pourcentage de pièces supplémentaires.
-  final effects = ref.read(activeUpgradeEffectsProvider);
-  final baseCoins = reward.connectedSides.length + reward.bonusTiles;
-  final multiplied = (baseCoins * effects.connectionMultiplier).round();
-  final totalCoinsGained =
-      (multiplied * (1.0 + effects.coinsPercentBonus)).round();
-
-  ref.read(sessionProvider.notifier).addReward(reward,
-      forcedCoins: totalCoinsGained);
+  // Les tuiles bonus tiennent déjà compte du multiplicateur de connexions
+  // (Story 2.8a, [previewRewardProvider]).
+  if (reward.connectedSides.isEmpty && reward.bonusTiles == 0) {
+    ref.read(sessionProvider.notifier).addReward(reward);
+  } else {
+    final effects = ref.read(gameEffectsServiceProvider);
+    final villageSides = effects.countVillageSides(tile, reward.connectedSides);
+    final baseCoins = reward.connectedSides.length + reward.bonusTiles;
+    final totalCoins = effects.applyCoinBonuses(
+      baseCoins: baseCoins,
+      villageSides: villageSides,
+    );
+    ref.read(sessionProvider.notifier).addReward(reward,
+        forcedCoins: totalCoins);
+  }
   if (reward.bonusTiles > 0) {
     ref.read(tileStackProvider.notifier).addBonusTiles(reward.bonusTiles);
   }
@@ -296,15 +308,25 @@ void confirmPlacement(
 
     SessionSaver.endSession(ref);
 
-    // Persistance fin de partie (Story 2.2b) : les pièces de session
+    // Persistance fin de partie (Story 2.2b / 2.9a) : les pièces de session
     // sont ajoutées au solde total, et les stats cumulées sont mises à
     // jour. Le score retenu pour best_score = pièces gagnées dans la run.
     final db = ref.read(appDatabaseProvider);
     addCoinsToProfile(db, session.coins);
-    recordGameEnd(db, coinsEarned: session.coins, score: session.coins);
+    final biomeSizes = computeMaxBiomeSizes(grid);
+    recordGameEnd(
+      db,
+      coinsEarned: session.coins,
+      score: session.coins,
+      tilesPlacedInGame: grid.placedTiles.length,
+      maxBiomeSizes: biomeSizes,
+    );
 
     // Mise à jour des quêtes village_size & biomes_closed (Story 2.3a).
     ref.read(questServiceProvider).onGameEnd(grid);
+
+    // Sync cloud après chaque partie (Story 2.10a) — no-op si non connecté.
+    ref.read(cloudSaveServiceProvider).syncAfterGame();
   }
 }
 
