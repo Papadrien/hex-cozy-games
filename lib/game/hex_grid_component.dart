@@ -250,6 +250,7 @@ class HexGridComponent extends PositionComponent {
       position: Vector2(center.x, center.y),
       highlightedSides: const {},
     );
+    component.updateDepthPriority();
 
     if (connectedSides != null && connectedSides.isNotEmpty) {
       component.startGlow(connectedSides);
@@ -330,6 +331,7 @@ class HexGridComponent extends PositionComponent {
       final center = layout.hexToPixel(entry.key, isoScaleY: kIsoScaleY);
       entry.value.position = Vector2(center.x, center.y);
       entry.value.hexSize = kBaseHexSize * zoom;
+      entry.value.updateDepthPriority();
     }
     _syncPreviewComponent();
   }

@@ -53,6 +53,12 @@ const double kTileSize = 44.0;
 /// ni le layout de la grille (qui restent basés sur hexSize / kIsoScaleY).
 const double kTileDepth = 10.0;
 
+/// Offset de base pour la priorité de rendu calculée depuis la profondeur
+/// iso (voir [TileComponent.updateDepthPriority]). Suffisamment grand pour
+/// rester toujours au-dessus des priorités HUD fixes du plateau (preview,
+/// pièces, bonus : 2 à 12) même avec un `position.y` négatif important.
+const int kTileDepthPriorityBase = 100000;
+
 /// Composant Flame représentant une tuile hexagonale colorée.
 ///
 /// La projection isométrique est appliquée DANS le rendu (Y *= kIsoScaleY) :
@@ -83,6 +89,25 @@ class TileComponent extends PositionComponent {
   set hexSize(double value) {
     _hexSize = value;
     size = Vector2(sqrt(3) * value, 2 * value * kIsoScaleY);
+  }
+
+  /// Recalcule la priorité de rendu Flame en fonction de la profondeur iso.
+  ///
+  /// En vue isométrique, une tuile plus basse à l'écran (Y plus grand) est
+  /// visuellement plus proche de la caméra et doit donc être dessinée
+  /// PAR-DESSUS les tuiles plus hautes (Y plus petit) — sinon les faces
+  /// latérales du bloc 3D d'une tuile du fond peuvent apparaître devant une
+  /// tuile du premier plan (cf. retour utilisateur, story 1.8b).
+  ///
+  /// On utilise `position.y` (centre écran de la tuile, déjà en coordonnées
+  /// projetées iso) comme clé de tri, par tranche de 1px → 1 rang de priorité.
+  /// Un offset de [kTileDepthPriorityBase] garde toujours ce rang largement
+  /// au-dessus des priorités HUD fixes utilisées ailleurs sur le plateau
+  /// (preview = 2, pièces/bonus = 10-12), même si position.y est négatif
+  /// (tuile au-dessus de l'origine caméra) — sans quoi une tuile pourrait
+  /// accidentellement passer devant des éléments de HUD de prévisualisation.
+  void updateDepthPriority() {
+    priority = kTileDepthPriorityBase + position.y.round();
   }
 
   double _alpha;
