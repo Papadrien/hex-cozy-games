@@ -1,13 +1,19 @@
-/// Suivi des quêtes permanentes — Story 2.3a.
+/// Suivi des quêtes permanentes et quotidiennes — Story 2.3a / 2.4a.
 ///
 /// [permanentQuestsProvider] expose un stream de toutes les quêtes
 /// permanentes. [activeQuestsProvider] filtre les quêtes non terminées
-/// (pour l'affichage UI).
+/// (pour l'affichage UI). [dailyQuestsProvider] expose les quêtes
+/// du jour avec tirage automatique au premier lancement.
 library;
 
+import 'dart:convert';
+import 'dart:math';
+
+import 'package:drift/drift.dart' show InsertMode, Value;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/app_database.dart';
+import '../data/seed_data.dart';
 import '../game/hex_cell.dart';
 import '../game/hex_coords.dart';
 import 'grid_state_provider.dart';
@@ -33,6 +39,84 @@ final questServiceProvider = Provider<QuestService>((ref) {
   return QuestService(ref);
 });
 
+// ── Daily quests (Story 2.4a) ─────────────────────────────────────────────
+
+/// Quêtes quotidiennes brutes depuis la base Drift.
+///
+/// S'assure à chaque souscription qu'un tirage existe pour le jour courant.
+/// Le tirage est reproductible (seed = hash("playerId" + date)).
+final dailyQuestsProvider = StreamProvider<DailyQuestRow?>((ref) async* {
+  final db = ref.watch(appDatabaseProvider);
+  await _ensureDailyQuestsExist(db);
+  yield* db.select(db.dailyQuests).watch().map(
+        (rows) => rows.isEmpty ? null : rows.first,
+      );
+});
+
+// ── Helpers ───────────────────────────────────────────────────────────────
+
+/// Hachage déterministe d'une chaîne (Java String.hashCode).
+int _stringHash(String s) {
+  var hash = 0;
+  for (var i = 0; i < s.length; i++) {
+    hash = 31 * hash + s.codeUnitAt(i);
+  }
+  return hash;
+}
+
+bool _isSameDay(DateTime a, DateTime b) {
+  return a.year == b.year && a.month == b.month && a.day == b.day;
+}
+
+/// Tire 3 quêtes quotidiennes depuis [kDailyQuestPool] avec un seed
+/// reproductible basé sur l'ID du joueur et la date du jour.
+List<String> _drawDailyQuestIds() {
+  final now = DateTime.now();
+  final dateStr =
+      '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+  final seed = _stringHash('1$dateStr'); // playerId=1 + date
+  final rng = Random(seed);
+
+  final pool = List<DailyQuestDef>.from(kDailyQuestPool);
+  for (var i = pool.length - 1; i > 0; i--) {
+    final j = rng.nextInt(i + 1);
+    final tmp = pool[i];
+    pool[i] = pool[j];
+    pool[j] = tmp;
+  }
+  return pool.take(3).map((d) => d.id).toList();
+}
+
+/// Vérifie si les quêtes quotidiennes du jour existent en base.
+/// Si la date stockée ≠ date actuelle, tire un nouveau lot et remet
+/// la progression à zéro.
+Future<void> _ensureDailyQuestsExist(AppDatabase db) async {
+  final now = DateTime.now();
+  final today = DateTime(now.year, now.month, now.day);
+
+  final existing =
+      await (db.select(db.dailyQuests)..where((t) => t.id.equals(1)))
+          .getSingleOrNull();
+
+  if (existing != null && _isSameDay(existing.date, today)) {
+    return;
+  }
+
+  final drawnIds = _drawDailyQuestIds();
+  final initialProgress = {for (final id in drawnIds) id: 0};
+
+  await db.into(db.dailyQuests).insert(
+        DailyQuestsCompanion.insert(
+          id: const Value(1),
+          date: today,
+          questPoolIds: jsonEncode(drawnIds),
+          completedIds: jsonEncode(<String>[]),
+          progressByQuestId: jsonEncode(initialProgress),
+        ),
+        mode: InsertMode.replace,
+      );
+}
+
 // ── Quest Service ────────────────────────────────────────────────────────
 
 /// Service de mise à jour des quêtes permanentes — Story 2.3a.
@@ -50,6 +134,7 @@ class QuestService {
   /// Appelé après chaque placement de tuile validé.
   Future<void> onTilePlaced() async {
     await _updateTilesPlaced();
+    await _updateDailyTilesPlaced();
     _ref.invalidate(permanentQuestsProvider);
   }
 
@@ -57,6 +142,8 @@ class QuestService {
   Future<void> onGameEnd(GridState grid) async {
     await _updateVillageSize(grid);
     await _updateBiomesClosed(grid);
+    await _updateDailyVillageSize(grid);
+    await _updateDailyBiomesClosed(grid);
     _ref.invalidate(permanentQuestsProvider);
   }
 
@@ -251,5 +338,103 @@ class QuestService {
     // La quête suivante existe déjà dans la table (seedée).
     // Rien à faire : elle devient visible car isCompleted == false.
     // L'UI l'affichera via [activeQuestsProvider].
+  }
+
+  // ─── Daily quests (Story 2.4a) ──────────────────────────────────────────
+
+  Future<void> _updateDailyTilesPlaced() async {
+    final db = _ref.read(appDatabaseProvider);
+    final rows =
+        await (db.select(db.dailyQuests)..where((t) => t.id.equals(1))).get();
+    if (rows.isEmpty) return;
+    await _applyDailyDelta(rows.first, db, 'tiles_placed', increment: 1);
+  }
+
+  Future<void> _updateDailyVillageSize(GridState grid) async {
+    final largest = _findLargestVillage(grid);
+    if (largest == 0) return;
+
+    final db = _ref.read(appDatabaseProvider);
+    final rows =
+        await (db.select(db.dailyQuests)..where((t) => t.id.equals(1))).get();
+    if (rows.isEmpty) return;
+    await _applyDailyDelta(rows.first, db, 'village_size',
+        absoluteValue: largest);
+  }
+
+  Future<void> _updateDailyBiomesClosed(GridState grid) async {
+    final closed = _countClosedBiomes(grid);
+    if (closed == 0) return;
+
+    final db = _ref.read(appDatabaseProvider);
+    final rows =
+        await (db.select(db.dailyQuests)..where((t) => t.id.equals(1))).get();
+    if (rows.isEmpty) return;
+    await _applyDailyDelta(rows.first, db, 'biomes_closed', increment: closed);
+  }
+
+  /// Applique une progression aux quêtes quotidiennes d'une catégorie.
+  ///
+  /// [increment] : valeur ajoutée à chaque quête (ex: +1 tuile posée).
+  /// [absoluteValue] : valeur absolue à utiliser si > currentValue
+  /// (ex: plus grand village trouvé). Un seul des deux doit être fourni.
+  Future<void> _applyDailyDelta(
+    DailyQuestRow row,
+    AppDatabase db,
+    String category, {
+    int increment = 0,
+    int? absoluteValue,
+  }) async {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    if (!_isSameDay(row.date, today)) return;
+
+    final progress = Map<String, int>.from(
+      (jsonDecode(row.progressByQuestId) as Map)
+          .map((k, v) => MapEntry(k as String, v as int)),
+    );
+    final completed = List<String>.from(
+      (jsonDecode(row.completedIds) as List).cast<String>(),
+    );
+    final poolIds = List<String>.from(
+      (jsonDecode(row.questPoolIds) as List).cast<String>(),
+    );
+
+    var changed = false;
+    for (final id in poolIds) {
+      if (completed.contains(id)) continue;
+      final def = kDailyQuestDefMap[id];
+      if (def == null || def.category != category) continue;
+
+      int newValue;
+      if (absoluteValue != null) {
+        final current = progress[id] ?? 0;
+        if (absoluteValue <= current) continue;
+        newValue = absoluteValue;
+      } else {
+        newValue = (progress[id] ?? 0) + increment;
+      }
+
+      progress[id] = newValue;
+      if (newValue >= def.targetValue) {
+        completed.add(id);
+        await _grantDailyReward(def);
+      }
+      changed = true;
+    }
+
+    if (changed) {
+      await db.update(db.dailyQuests).replace(row.copyWith(
+            progressByQuestId: jsonEncode(progress),
+            completedIds: jsonEncode(completed),
+          ));
+    }
+  }
+
+  Future<void> _grantDailyReward(DailyQuestDef def) async {
+    if (def.rewardType == 'coins') {
+      final db = _ref.read(appDatabaseProvider);
+      await addCoinsToProfile(db, def.rewardValue);
+    }
   }
 }
