@@ -266,7 +266,19 @@ void confirmPlacement(
   // 4. Attribuer les récompenses (story 1.6b / 1.7c).
   // Les tuiles bonus tiennent déjà compte du multiplicateur de connexions
   // (Story 2.8a, [previewRewardProvider]).
-  ref.read(sessionProvider.notifier).addReward(reward);
+  if (reward.connectedSides.isEmpty && reward.bonusTiles == 0) {
+    ref.read(sessionProvider.notifier).addReward(reward);
+  } else {
+    final effects = ref.read(gameEffectsServiceProvider);
+    final villageSides = effects.countVillageSides(tile, reward.connectedSides);
+    final baseCoins = reward.connectedSides.length + reward.bonusTiles;
+    final totalCoins = effects.applyCoinBonuses(
+      baseCoins: baseCoins,
+      villageSides: villageSides,
+    );
+    ref.read(sessionProvider.notifier).addReward(reward,
+        forcedCoins: totalCoins);
+  }
   if (reward.bonusTiles > 0) {
     ref.read(tileStackProvider.notifier).addBonusTiles(reward.bonusTiles);
   }

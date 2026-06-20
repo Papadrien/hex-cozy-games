@@ -49,6 +49,8 @@ class ActiveUpgradeEffects {
   const ActiveUpgradeEffects({
     this.startingTilesBonus = 0,
     this.connectionMultiplier = 1.0,
+    this.coinsMultiplier = 0.0,
+    this.villageCoinsBonus = 0.0,
   });
 
   /// Nombre de tuiles supplémentaires au début de la partie.
@@ -56,12 +58,21 @@ class ActiveUpgradeEffects {
 
   /// Multiplicateur des tuiles bonus gagnées par connexions (≥3 côtés).
   final double connectionMultiplier;
+
+  /// Multiplicateur de toutes les pièces générées (ex: 0.10 = +10%).
+  final double coinsMultiplier;
+
+  /// Bonus de pièces pour chaque côté connecté de type village
+  /// (ex: 0.33 = +33% sur la pièce de base du côté).
+  final double villageCoinsBonus;
 }
 
 final activeUpgradeEffectsProvider = Provider<ActiveUpgradeEffects>((ref) {
   final selected = ref.watch(selectedUpgradesProvider);
   int startingBonus = 0;
   double connectionMult = 1.0;
+  double coinsMult = 0.0;
+  double villageBonus = 0.0;
 
   for (final u in selected) {
     final val = upgradeEffectValue(u.effectType, u.currentLevel);
@@ -70,12 +81,18 @@ final activeUpgradeEffectsProvider = Provider<ActiveUpgradeEffects>((ref) {
         startingBonus += val.toInt();
       case 'connection_bonus_multiplier':
         connectionMult *= val;
+      case 'coins_percent_bonus':
+        coinsMult += val;
+      case 'village_coins_percent_bonus':
+        villageBonus += val;
     }
   }
 
   return ActiveUpgradeEffects(
     startingTilesBonus: startingBonus,
     connectionMultiplier: connectionMult,
+    coinsMultiplier: coinsMult,
+    villageCoinsBonus: villageBonus,
   );
 });
 
