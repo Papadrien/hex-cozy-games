@@ -11,6 +11,7 @@ import '../providers/player_profile_provider.dart';
 import '../providers/progression_provider.dart';
 import 'build_screen.dart';
 import 'quests_screen.dart';
+import 'stats_screen.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -266,8 +267,14 @@ class _CenterContent extends ConsumerWidget {
             const SizedBox(width: 16),
             _NavButton(
               icon: Icons.bar_chart_outlined,
-              label: Str.home_stats,
-              onTap: () => _notYet(context, Str.home_stats),
+                  label: Str.home_stats,
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const StatsScreen(),
+                      ),
+                    );
+                  },
             ),
           ],
         ),

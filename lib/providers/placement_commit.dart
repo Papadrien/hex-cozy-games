@@ -307,12 +307,19 @@ void confirmPlacement(
 
     SessionSaver.endSession(ref);
 
-    // Persistance fin de partie (Story 2.2b) : les pièces de session
+    // Persistance fin de partie (Story 2.2b / 2.9a) : les pièces de session
     // sont ajoutées au solde total, et les stats cumulées sont mises à
     // jour. Le score retenu pour best_score = pièces gagnées dans la run.
     final db = ref.read(appDatabaseProvider);
     addCoinsToProfile(db, session.coins);
-    recordGameEnd(db, coinsEarned: session.coins, score: session.coins);
+    final biomeSizes = computeMaxBiomeSizes(grid);
+    recordGameEnd(
+      db,
+      coinsEarned: session.coins,
+      score: session.coins,
+      tilesPlacedInGame: grid.placedTiles.length,
+      maxBiomeSizes: biomeSizes,
+    );
 
     // Mise à jour des quêtes village_size & biomes_closed (Story 2.3a).
     ref.read(questServiceProvider).onGameEnd(grid);
