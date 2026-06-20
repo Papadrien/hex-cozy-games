@@ -1,6 +1,7 @@
 /// État de session : pièces et tuiles bonus accumulées — Story 1.6b / 1.7a.
 library;
 
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import 'reward_model.dart';
@@ -74,3 +75,13 @@ class Session extends _$Session {
     state = restored;
   }
 }
+
+/// Compteur de pièces de la session en cours — Story 2.2a.
+///
+/// Simple projection de [sessionProvider] : expose uniquement le total de
+/// pièces, mis à jour en temps réel à chaque [Session.addReward] /
+/// [Session.removeReward] / [Session.reset] / [Session.restore]. L'affichage
+/// UI dédié et la persistance de fin de partie sont traités en story 2.2b.
+final sessionCoinsProvider = Provider<int>((ref) {
+  return ref.watch(sessionProvider.select((s) => s.coins));
+});

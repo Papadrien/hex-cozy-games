@@ -83,6 +83,17 @@ class TileStack extends _$TileStack {
     );
   }
 
+  /// Consomme et retourne la première tuile de la pile (sans avancer la
+  /// pile "visible" pour le joueur — utilisé une seule fois en tout début
+  /// de partie pour poser automatiquement la tuile centrale, story du
+  /// démarrage avec tuile initiale).
+  HexTile? drawInitialTile() {
+    if (_queue.isEmpty) return null;
+    final tile = _queue.removeAt(0);
+    state = _buildState();
+    return tile;
+  }
+
   /// Consomme la tuile active (première de la pile) et fait avancer la pile.
   ///
   /// Si la pile est épuisée après consommation, le jeu s'arrête

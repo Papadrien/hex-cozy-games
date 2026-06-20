@@ -121,6 +121,13 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  Text(
+                    Str.game_sessionCoins,
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.6),
+                      fontSize: 11,
+                    ),
+                  ),
                   Row(children: [
                     const Icon(Icons.monetization_on, color: Colors.amber, size: 20),
                     const SizedBox(width: 4),

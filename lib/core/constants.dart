@@ -7,7 +7,7 @@ library;
 
 /// Nombre de tuiles données au joueur au départ d'une partie (avant bonus
 /// d'amélioration "Tuiles de départ+"). Valeur à équilibrer via playtests.
-const int kStartingTiles = 10;
+const int kStartingTiles = 21;
 
 /// Nombre de tuiles visibles dans la pile (story 1.4).
 const int kVisibleStackSize = 3;

@@ -10,10 +10,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/strings.dart';
 import '../providers/end_game_provider.dart';
-import '../providers/grid_state_provider.dart';
 import '../providers/placement_commit.dart';
-import '../providers/session_provider.dart';
-import '../providers/tile_stack_provider.dart';
 
 class ResultsModal extends ConsumerWidget {
   const ResultsModal({super.key});
@@ -146,10 +143,7 @@ class _ResultsCard extends ConsumerWidget {
 
   void _replay(BuildContext context, WidgetRef ref) {
     SessionSaver.endSession(ref);
-    ref.invalidate(gridProvider);
-    ref.invalidate(tileStackProvider);
-    ref.read(sessionProvider.notifier).reset();
-    resetEndGame(ref);
+    startNewGame(ref);
     Navigator.pushReplacementNamed(context, '/game');
   }
 }

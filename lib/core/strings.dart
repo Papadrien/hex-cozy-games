@@ -60,6 +60,11 @@ abstract class Str {
   static String get results_connections6 => _isFr ? '6 côtés' : '6 sides';
   static String get results_replay => _isFr ? 'Rejouer' : 'Replay';
 
+  // Story 2.2b — Double compteur pièces (session vs total)
+  static String get game_sessionCoins =>
+      _isFr ? 'Pièces de la partie' : 'Game coins';
+  static String get home_totalCoins => _isFr ? 'Pièces totales' : 'Total coins';
+
   // Story 1.10b — Tutoriel first-launch
   static String get tutorial_step1 =>
       _isFr ? 'Les cases brillantes sont les endroits où tu peux poser ta tuile'

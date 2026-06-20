@@ -2,12 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/strings.dart';
-import '../providers/end_game_provider.dart';
-import '../providers/grid_state_provider.dart';
 import '../providers/placement_commit.dart';
-import '../providers/placement_provider.dart';
-import '../providers/session_provider.dart';
-import '../providers/tile_stack_provider.dart';
+import '../providers/player_profile_provider.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -15,23 +11,59 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final activeSession = ref.watch(activeSessionProvider);
+    final totalCoins = ref.watch(totalCoinsProvider);
 
     return Scaffold(
       backgroundColor: const Color(0xFF1A2332),
-      body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              'Hex Cozy Games',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
+      body: Stack(
+        children: [
+          Positioned(
+            top: 48,
+            right: 16,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.monetization_on, color: Colors.amber, size: 18),
+                  const SizedBox(width: 6),
+                  Text(
+                    '$totalCoins',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 48),
-            SizedBox(
+          ),
+          Center(
+            child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Hex Cozy Games',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                Str.home_totalCoins,
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.5),
+                  fontSize: 12,
+                ),
+              ),
+              const SizedBox(height: 48),
+              SizedBox(
               width: 200,
               child: TextButton(
                 style: TextButton.styleFrom(
@@ -77,21 +109,18 @@ class HomeScreen extends ConsumerWidget {
                   ),
                 ),
               ),
+              ),
+            ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
   void _startNewGame(BuildContext context, WidgetRef ref) {
     SessionSaver.endSession(ref);
-    ref.read(gridProvider.notifier).setState({});
-    ref.invalidate(tileStackProvider);
-    ref.read(sessionProvider.notifier).reset();
-    ref.read(lastPlacementProvider.notifier).set(null);
-    ref.read(placementProvider.notifier).clearSelection();
-    resetEndGame(ref);
+    startNewGame(ref);
     Navigator.pushReplacementNamed(context, '/game');
   }
 

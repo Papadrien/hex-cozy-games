@@ -24,6 +24,7 @@ import '../providers/options_provider.dart';
 import '../providers/pause_provider.dart';
 import '../providers/placement_commit.dart';
 import '../providers/session_provider.dart';
+import '../providers/tile_stack_provider.dart';
 
 class PauseModal extends ConsumerWidget {
   const PauseModal({super.key});
@@ -353,6 +354,8 @@ Future<void> _showAbandonConfirmDialog(
 void _abandonGame(BuildContext context, WidgetRef ref) {
   SessionSaver.endSession(ref);
   ref.read(sessionProvider.notifier).reset();
+  ref.read(lastPlacementProvider.notifier).set(null);
   ref.invalidate(gridProvider);
+  ref.invalidate(tileStackProvider);
   Navigator.pushReplacementNamed(context, '/');
 }

@@ -10,6 +10,8 @@ import '../game/hex_tile.dart';
 import 'end_game_provider.dart';
 import 'grid_state_provider.dart';
 import 'placement_provider.dart';
+import 'player_profile_provider.dart';
+import 'player_stats_provider.dart';
 import 'reward_model.dart';
 import 'session_provider.dart';
 import 'tile_stack_provider.dart';
@@ -86,6 +88,30 @@ Future<void> restoreSession(WidgetRef ref) async {
           bonusTiles: lastJson['bonusTiles'] ?? 0,
           connectedSides: connectedSides,
         ));
+  }
+}
+
+/// Initialise une nouvelle partie : remet à zéro tous les providers de jeu
+/// (grille, pile, session, dernier placement, prévisualisation, fin de
+/// partie), puis pioche et pose automatiquement une tuile aléatoire au
+/// centre du plateau (0, 0), laissant [kStartingTiles] - 1 tuiles en pile.
+///
+/// Centralisé ici pour être appelé identiquement depuis l'écran d'accueil
+/// (nouvelle partie) et l'écran de résultats (rejouer) — évite que l'un des
+/// deux flux oublie de vider le dernier placement (bug du bouton Annuler
+/// permettant de regagner une tuile gratuite après une nouvelle partie).
+void startNewGame(WidgetRef ref) {
+  ref.invalidate(gridProvider);
+  ref.invalidate(tileStackProvider);
+  ref.read(sessionProvider.notifier).reset();
+  ref.read(lastPlacementProvider.notifier).set(null);
+  ref.read(placementProvider.notifier).clearSelection();
+  resetEndGame(ref);
+
+  // Pose automatique de la tuile centrale de départ.
+  final initialTile = ref.read(tileStackProvider.notifier).drawInitialTile();
+  if (initialTile != null) {
+    ref.read(gridProvider.notifier).placeTile(const HexCoords(0, 0), initialTile);
   }
 }
 
@@ -238,7 +264,7 @@ void confirmPlacement(
   // 7. Sauvegarde de session.
   SessionSaver.save(ref);
 
-  // 8. Détection de fin de partie (Story 1.8a).
+  // 8. Détection de fin de partie (Story 1.8a / 1.8b / 2.2b).
   final remaining = ref.read(tileStackProvider).remaining;
   if (remaining == 0) {
     final grid = ref.read(gridProvider);
@@ -249,6 +275,13 @@ void confirmPlacement(
     ref.read(endGameStatsProvider.notifier).set(stats);
 
     SessionSaver.endSession(ref);
+
+    // Persistance fin de partie (Story 2.2b) : les pièces de session
+    // sont ajoutées au solde total, et les stats cumulées sont mises à
+    // jour. Le score retenu pour best_score = pièces gagnées dans la run.
+    final db = ref.read(appDatabaseProvider);
+    addCoinsToProfile(db, session.coins);
+    recordGameEnd(db, coinsEarned: session.coins, score: session.coins);
   }
 }
 
