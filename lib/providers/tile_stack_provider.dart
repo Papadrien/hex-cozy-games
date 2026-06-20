@@ -6,6 +6,7 @@
 /// la pile) est celle que le joueur va poser.
 library;
 
+import 'dart:collection';
 import 'dart:math';
 
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -42,27 +43,28 @@ class TileStack extends _$TileStack {
   /// File complète des tuiles restant à tirer, dans l'ordre de tirage.
   /// `visible` est toujours égal aux [kVisibleStackSize] premiers éléments
   /// de cette file (ou moins si la pile est presque épuisée).
-  final List<HexTile> _queue = [];
+  final ListQueue<HexTile> _queue = ListQueue();
 
   @override
   TileStackState build() {
     final seed = Random().nextInt(1 << 31);
     final rng = Random(seed);
+    final pool = generateTilePool(kStartingTiles, rng);
+    _shuffle(pool, rng);
     _queue
       ..clear()
-      ..addAll(generateTilePool(kStartingTiles, rng));
-    _shuffleQueue(rng);
+      ..addAll(pool);
     return _buildState(seed: seed);
   }
 
   /// Mélange la file avec Fisher-Yates.
-  void _shuffleQueue([Random? random]) {
+  void _shuffle(List<HexTile> list, [Random? random]) {
     final rng = random ?? Random();
-    for (var i = _queue.length - 1; i > 0; i--) {
+    for (var i = list.length - 1; i > 0; i--) {
       final j = rng.nextInt(i + 1);
-      final tmp = _queue[i];
-      _queue[i] = _queue[j];
-      _queue[j] = tmp;
+      final tmp = list[i];
+      list[i] = list[j];
+      list[j] = tmp;
     }
   }
 
@@ -77,7 +79,7 @@ class TileStack extends _$TileStack {
     return TileStackState(
       remaining: _queue.length,
       visible: List.unmodifiable(
-        _queue.take(kVisibleStackSize),
+        _queue.take(kVisibleStackSize).toList(),
       ),
       seed: seed ?? state.seed,
     );
@@ -89,7 +91,7 @@ class TileStack extends _$TileStack {
   /// démarrage avec tuile initiale).
   HexTile? drawInitialTile() {
     if (_queue.isEmpty) return null;
-    final tile = _queue.removeAt(0);
+    final tile = _queue.removeFirst();
     state = _buildState();
     return tile;
   }
@@ -101,7 +103,7 @@ class TileStack extends _$TileStack {
   /// automatique.
   void consumeActiveTile() {
     if (_queue.isEmpty) return;
-    _queue.removeAt(0);
+    _queue.removeFirst();
     state = _buildState();
   }
 
@@ -110,7 +112,7 @@ class TileStack extends _$TileStack {
   /// Utilisé par le bouton Annuler pour remettre la dernière tuile posée
   /// en tête de la file _queue, restaurant la pile à l'état précédent.
   void returnTile(HexTile tile) {
-    _queue.insert(0, tile);
+    _queue.addFirst(tile);
     state = _buildState();
   }
 
@@ -130,7 +132,9 @@ class TileStack extends _$TileStack {
   /// [addBonusTiles] — utilisé par le bouton Annuler, story 1.6b).
   void removeLastBonusTiles(int count) {
     if (count <= 0 || _queue.length < count) return;
-    _queue.removeRange(_queue.length - count, _queue.length);
+    for (var i = 0; i < count; i++) {
+      _queue.removeLast();
+    }
     state = _buildState();
   }
 
@@ -144,5 +148,5 @@ class TileStack extends _$TileStack {
   }
 
   /// Retourne la file complète (pour sérialisation).
-  List<HexTile> get queue => List.unmodifiable(_queue);
+  List<HexTile> get queue => List.unmodifiable(_queue.toList());
 }

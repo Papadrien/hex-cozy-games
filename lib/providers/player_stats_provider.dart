@@ -14,8 +14,6 @@ import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/app_database.dart';
-import '../game/hex_cell.dart';
-import '../game/hex_coords.dart';
 import 'grid_state_provider.dart';
 
 /// Provider Riverpod streamant la ligne unique de [PlayerStats].
@@ -84,52 +82,7 @@ Future<void> recordGameEnd(
 }
 
 /// Calcule la taille du plus grand groupe connexe pour chaque biome sur le
-/// plateau [grid].
-///
-/// Deux tuiles sont connectées si leur côté en regard partage le même biome.
-/// Retourne une map biome_name → taille_max.
+/// plateau [grid]. Délègue à [GridState.maxBiomeSizes].
 Map<String, int> computeMaxBiomeSizes(GridState grid) {
-  final result = <String, int>{};
-  for (final biome in BiomeType.values) {
-    result[biome.name] = _maxClusterSizeFor(grid, biome);
-  }
-  return result;
-}
-
-int _maxClusterSizeFor(GridState grid, BiomeType biome) {
-  final visited = <HexCoords>{};
-  var maxSize = 0;
-  for (final entry in grid.placedTiles.entries) {
-    if (visited.contains(entry.key)) continue;
-    if (!entry.value.sides.contains(biome)) continue;
-    final cluster = _floodBiome(grid, entry.key, biome, visited);
-    if (cluster.length > maxSize) maxSize = cluster.length;
-  }
-  return maxSize;
-}
-
-Set<HexCoords> _floodBiome(
-  GridState grid,
-  HexCoords start,
-  BiomeType biome,
-  Set<HexCoords> visited,
-) {
-  final cluster = <HexCoords>{};
-  final queue = [start];
-  while (queue.isNotEmpty) {
-    final current = queue.removeAt(0);
-    if (!visited.add(current)) continue;
-    final tile = grid.tileAt(current);
-    if (tile == null || !tile.sides.contains(biome)) continue;
-    cluster.add(current);
-    for (var side = 0; side < 6; side++) {
-      if (tile.sides[side] != biome) continue;
-      final neighbor = current.neighbor(side);
-      final nTile = grid.tileAt(neighbor);
-      if (nTile != null && nTile.sides[(side + 3) % 6] == biome) {
-        queue.add(neighbor);
-      }
-    }
-  }
-  return cluster;
+  return grid.maxBiomeSizes;
 }

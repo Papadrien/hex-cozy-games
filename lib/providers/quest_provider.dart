@@ -14,9 +14,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/app_database.dart';
 import '../data/seed_data.dart';
-import '../game/hex_cell.dart';
-import '../game/hex_coords.dart';
-import 'grid_state_provider.dart';
 import 'player_profile_provider.dart';
 import 'progression_provider.dart';
 
@@ -184,12 +181,13 @@ class QuestService {
   }
 
   /// Appelé à la fin d'une partie (pile épuisée).
-  Future<void> onGameEnd(GridState grid) async {
-    await _updateVillageSize(grid);
-    await _updateBiomesClosed(grid);
-    await _updateDailyVillageSize(grid);
-    await _updateDailyBiomesClosed(grid);
-    await _ref.read(progressionServiceProvider).checkUnlocks();
+  /// [largestVillage] et [closedBiomes] sont pré-calculés par [BoardAnalysis]
+  /// pour éviter les traversées redondantes du plateau.
+  Future<void> onGameEnd({required int largestVillage, required int closedBiomes}) async {
+    await _updateVillageSize(largestVillage);
+    await _updateBiomesClosed(closedBiomes);
+    await _updateDailyVillageSize(largestVillage);
+    await _updateDailyBiomesClosed(closedBiomes);
     _ref.invalidate(permanentQuestsProvider);
   }
 
@@ -214,8 +212,7 @@ class QuestService {
 
   // ─── village_size ───────────────────────────────────────────────────────
 
-  Future<void> _updateVillageSize(GridState grid) async {
-    final largest = _findLargestVillage(grid);
+  Future<void> _updateVillageSize(int largest) async {
     if (largest == 0) return;
     final db = _ref.read(appDatabaseProvider);
     final rows = await (db.select(db.permanentQuests)
@@ -233,47 +230,9 @@ class QuestService {
     }
   }
 
-  int _findLargestVillage(GridState grid) {
-    final visited = <HexCoords>{};
-    var maxSize = 0;
-    for (final entry in grid.placedTiles.entries) {
-      if (visited.contains(entry.key)) continue;
-      if (!entry.value.sides.contains(BiomeType.village)) continue;
-      final cluster = _floodVillage(grid, entry.key, visited);
-      if (cluster.length > maxSize) maxSize = cluster.length;
-    }
-    return maxSize;
-  }
-
-  Set<HexCoords> _floodVillage(
-    GridState grid,
-    HexCoords start,
-    Set<HexCoords> visited,
-  ) {
-    final cluster = <HexCoords>{};
-    final queue = [start];
-    while (queue.isNotEmpty) {
-      final current = queue.removeAt(0);
-      if (!visited.add(current)) continue;
-      final tile = grid.tileAt(current);
-      if (tile == null) continue;
-      cluster.add(current);
-      for (var side = 0; side < 6; side++) {
-        if (tile.sides[side] != BiomeType.village) continue;
-        final neighbor = current.neighbor(side);
-        final nTile = grid.tileAt(neighbor);
-        if (nTile != null && nTile.sides[(side + 3) % 6] == BiomeType.village) {
-          queue.add(neighbor);
-        }
-      }
-    }
-    return cluster;
-  }
-
   // ─── biomes_closed ──────────────────────────────────────────────────────
 
-  Future<void> _updateBiomesClosed(GridState grid) async {
-    final closed = _countClosedBiomes(grid);
+  Future<void> _updateBiomesClosed(int closed) async {
     if (closed == 0) return;
     final db = _ref.read(appDatabaseProvider);
     final rows = await (db.select(db.permanentQuests)
@@ -289,63 +248,6 @@ class QuestService {
           ));
       if (completed) await _handleCompletion(quest);
     }
-  }
-
-  /// Compte le nombre de biomes complètement fermés sur le plateau.
-  ///
-  /// Un biome = groupe connexe de tuiles liées par des côtés de même type.
-  /// Un biome est fermé quand chaque tuile du groupe a ses 6 voisins
-  /// occupés (par n'importe quelle tuile).
-  int _countClosedBiomes(GridState grid) {
-    final globalVisited = <HexCoords>{};
-    var closedCount = 0;
-    for (final entry in grid.placedTiles.entries) {
-      if (globalVisited.contains(entry.key)) continue;
-      final uniqueBiomes = entry.value.sides.toSet();
-      for (final biome in uniqueBiomes) {
-        if (biome == BiomeType.village) continue;
-        final cluster = _floodBiome(grid, entry.key, biome);
-        if (cluster.isEmpty) continue;
-        globalVisited.addAll(cluster);
-        if (_isClosed(grid, cluster)) closedCount++;
-      }
-    }
-    return closedCount;
-  }
-
-  Set<HexCoords> _floodBiome(
-    GridState grid,
-    HexCoords start,
-    BiomeType biome,
-  ) {
-    final visited = <HexCoords>{};
-    final cluster = <HexCoords>{};
-    final queue = [start];
-    while (queue.isNotEmpty) {
-      final current = queue.removeAt(0);
-      if (!visited.add(current)) continue;
-      final tile = grid.tileAt(current);
-      if (tile == null || !tile.sides.contains(biome)) continue;
-      cluster.add(current);
-      for (var side = 0; side < 6; side++) {
-        if (tile.sides[side] != biome) continue;
-        final neighbor = current.neighbor(side);
-        final nTile = grid.tileAt(neighbor);
-        if (nTile != null && nTile.sides[(side + 3) % 6] == biome) {
-          queue.add(neighbor);
-        }
-      }
-    }
-    return cluster;
-  }
-
-  bool _isClosed(GridState grid, Set<HexCoords> cluster) {
-    for (final coords in cluster) {
-      for (var side = 0; side < 6; side++) {
-        if (grid.tileAt(coords.neighbor(side)) == null) return false;
-      }
-    }
-    return true;
   }
 
   // ─── Completion & rewards ───────────────────────────────────────────────
@@ -382,8 +284,7 @@ class QuestService {
     await _applyDailyDelta(rows.first, db, 'tiles_placed', increment: 1);
   }
 
-  Future<void> _updateDailyVillageSize(GridState grid) async {
-    final largest = _findLargestVillage(grid);
+  Future<void> _updateDailyVillageSize(int largest) async {
     if (largest == 0) return;
 
     final db = _ref.read(appDatabaseProvider);
@@ -394,9 +295,7 @@ class QuestService {
         absoluteValue: largest);
   }
 
-  Future<void> _updateDailyBiomesClosed(GridState grid) async {
-    final closed = _countClosedBiomes(grid);
-    if (closed == 0) return;
+  Future<void> _updateDailyBiomesClosed(int closed) async {
 
     final db = _ref.read(appDatabaseProvider);
     final rows =

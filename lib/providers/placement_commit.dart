@@ -174,6 +174,19 @@ final previewRewardProvider = Provider<PlacementReward>((ref) {
   return PlacementReward(connectedSides: sides, bonusTiles: multipliedBonus);
 });
 
+/// Analyse unique du plateau calculée en fin de partie pour éviter les
+/// traversées redondantes (Item 6).
+class BoardAnalysis {
+  final int largestVillage;
+  final int closedBiomes;
+  final Map<String, int> maxBiomeSizes;
+
+  BoardAnalysis.fromGrid(GridState grid)
+      : largestVillage = grid.largestVillage,
+        closedBiomes = grid.closedBiomes,
+        maxBiomeSizes = grid.maxBiomeSizes;
+}
+
 /// Persiste l'état de session dans Drift après chaque placement (Story 1.7a).
 ///
 /// Stocke l'intégralité de l'état nécessaire à une restauration fidèle :
@@ -258,25 +271,35 @@ Future<void> confirmPlacement(
   if (p.selected == null || tile == null) return;
 
   final coords = p.selected!;
-
   final reward = ref.read(previewRewardProvider);
 
-  // 1. Mettre à jour le provider de grille (logique pure).
-  ref.read(gridProvider.notifier).placeTile(coords, tile);
-
-  // 2. Mettre à jour le rendu Flame via le callback (avec les connexions).
+  _placeTileOnGrid(ref, coords, tile);
   onConfirm(coords, tile, reward.connectedSides, reward.bonusTiles);
+  _recordPlacement(ref, coords, tile, reward);
+  _applyReward(ref, tile, reward);
+  _advanceStack(ref);
+  await SessionSaver.save(ref);
+  _checkGameOver(ref);
+}
 
-  // 3. Mémoriser pour le bouton Annuler (avec les récompenses pour l'undo).
+void _placeTileOnGrid(WidgetRef ref, HexCoords coords, HexTile tile) {
+  ref.read(gridProvider.notifier).placeTile(coords, tile);
+}
+
+void _recordPlacement(
+  WidgetRef ref,
+  HexCoords coords,
+  HexTile tile,
+  PlacementReward reward,
+) {
   ref.read(lastPlacementProvider.notifier).set(
     LastPlacement(coords, tile,
         bonusTiles: reward.bonusTiles,
         connectedSides: List.of(reward.connectedSides)),
   );
+}
 
-  // 4. Attribuer les récompenses (story 1.6b / 1.7c).
-  // Les tuiles bonus tiennent déjà compte du multiplicateur de connexions
-  // (Story 2.8a, [previewRewardProvider]).
+void _applyReward(WidgetRef ref, HexTile tile, PlacementReward reward) {
   if (reward.connectedSides.isEmpty && reward.bonusTiles == 0) {
     ref.read(sessionProvider.notifier).addReward(reward);
   } else {
@@ -293,51 +316,43 @@ Future<void> confirmPlacement(
   if (reward.bonusTiles > 0) {
     ref.read(tileStackProvider.notifier).addBonusTiles(reward.bonusTiles);
   }
+}
 
-  // 5. Avancer la pile de tuiles.
+void _advanceStack(WidgetRef ref) {
   ref.read(tileStackProvider.notifier).consumeActiveTile();
-
-  // 5b. Mettre à jour la progression des quêtes (Story 2.3a).
   ref.read(questServiceProvider).onTilePlaced();
-
-  // 6. Effacer la prévisualisation.
   ref.read(placementProvider.notifier).clearSelection();
+}
 
-  // 7. Sauvegarde de session.
-  await SessionSaver.save(ref);
-
-  // 8. Détection de fin de partie (Story 1.8a / 1.8b / 2.2b).
+void _checkGameOver(WidgetRef ref) {
   final remaining = ref.read(tileStackProvider).remaining;
-  if (remaining == 0) {
-    final grid = ref.read(gridProvider);
-    final session = ref.read(sessionProvider);
-    final stats = computeEndGameStats(grid, session.coins);
+  if (remaining > 0) return;
 
-    ref.read(isGameOverProvider.notifier).set(true);
-    ref.read(endGameStatsProvider.notifier).set(stats);
+  final grid = ref.read(gridProvider);
+  final session = ref.read(sessionProvider);
+  final stats = computeEndGameStats(grid, session.coins);
+  final analysis = BoardAnalysis.fromGrid(grid);
 
-    SessionSaver.endSession(ref);
+  ref.read(isGameOverProvider.notifier).set(true);
+  ref.read(endGameStatsProvider.notifier).set(stats);
 
-    // Persistance fin de partie (Story 2.2b / 2.9a) : les pièces de session
-    // sont ajoutées au solde total, et les stats cumulées sont mises à
-    // jour. Le score retenu pour best_score = pièces gagnées dans la run.
-    final db = ref.read(appDatabaseProvider);
-    addCoinsToProfile(db, session.coins);
-    final biomeSizes = computeMaxBiomeSizes(grid);
-    recordGameEnd(
-      db,
-      coinsEarned: session.coins,
-      score: session.coins,
-      tilesPlacedInGame: grid.placedTiles.length,
-      maxBiomeSizes: biomeSizes,
-    );
+  SessionSaver.endSession(ref);
 
-    // Mise à jour des quêtes village_size & biomes_closed (Story 2.3a).
-    ref.read(questServiceProvider).onGameEnd(grid);
+  final db = ref.read(appDatabaseProvider);
+  addCoinsToProfile(db, session.coins);
+  recordGameEnd(
+    db,
+    coinsEarned: session.coins,
+    score: session.coins,
+    tilesPlacedInGame: grid.placedTiles.length,
+    maxBiomeSizes: analysis.maxBiomeSizes,
+  );
 
-    // Sync cloud après chaque partie (Story 2.10a) — no-op si non connecté.
-    ref.read(cloudSaveServiceProvider).syncAfterGame();
-  }
+  ref.read(questServiceProvider).onGameEnd(
+    largestVillage: analysis.largestVillage,
+    closedBiomes: analysis.closedBiomes,
+  );
+  ref.read(cloudSaveServiceProvider).syncAfterGame();
 }
 
 /// Annule le dernier placement.

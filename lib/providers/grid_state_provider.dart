@@ -15,6 +15,8 @@
 /// voisine (côté en regard).
 library;
 
+import 'dart:collection';
+
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../game/hex_cell.dart';
@@ -110,6 +112,99 @@ class GridState {
       }
     }
     return count;
+  }
+
+  // ── BFS commun pour tous les parcours de plateau ──────────────────────────
+
+  /// Parcours en largeur (BFS) depuis [start] en suivant les arêtes contiguës
+  /// du biome [biome]. Retourne l'ensemble des [HexCoords] formant le groupe
+  /// connexe.
+  ///
+  /// Utilise une [Queue] pour garantir O(n) au lieu du O(n²) d'une List avec
+  /// removeAt(0).
+  Set<HexCoords> clusterAt(HexCoords start, BiomeType biome) {
+    final visited = <HexCoords>{};
+    final cluster = <HexCoords>{};
+    final queue = Queue<HexCoords>()..add(start);
+
+    while (queue.isNotEmpty) {
+      final current = queue.removeFirst();
+      if (!visited.add(current)) continue;
+      final tile = placedTiles[current];
+      if (tile == null || !tile.sides.contains(biome)) continue;
+      cluster.add(current);
+      for (var side = 0; side < 6; side++) {
+        if (tile.sides[side] != biome) continue;
+        final neighbor = current.neighbor(side);
+        final nTile = placedTiles[neighbor];
+        if (nTile != null && nTile.sides[(side + 3) % 6] == biome) {
+          queue.add(neighbor);
+        }
+      }
+    }
+    return cluster;
+  }
+
+  /// Taille du plus grand village (cluster de [BiomeType.village]).
+  int get largestVillage {
+    final visited = <HexCoords>{};
+    var maxSize = 0;
+    for (final entry in placedTiles.entries) {
+      if (visited.contains(entry.key)) continue;
+      if (!entry.value.sides.contains(BiomeType.village)) continue;
+      final cluster = clusterAt(entry.key, BiomeType.village);
+      visited.addAll(cluster);
+      if (cluster.length > maxSize) maxSize = cluster.length;
+    }
+    return maxSize;
+  }
+
+  /// Nombre de biomes fermés (groupes connexes dont chaque tuile a ses 6
+  /// voisins occupés). [BiomeType.village] est exclu.
+  int get closedBiomes {
+    final globalVisited = <HexCoords>{};
+    var closedCount = 0;
+    for (final entry in placedTiles.entries) {
+      if (globalVisited.contains(entry.key)) continue;
+      final uniqueBiomes = entry.value.sides.toSet();
+      for (final biome in uniqueBiomes) {
+        if (biome == BiomeType.village) continue;
+        final cluster = clusterAt(entry.key, biome);
+        if (cluster.isEmpty) continue;
+        globalVisited.addAll(cluster);
+        if (_isClosed(cluster)) closedCount++;
+      }
+    }
+    return closedCount;
+  }
+
+  bool _isClosed(Set<HexCoords> cluster) {
+    for (final coords in cluster) {
+      for (var side = 0; side < 6; side++) {
+        if (!placedTiles.containsKey(coords.neighbor(side))) return false;
+      }
+    }
+    return true;
+  }
+
+  /// Taille maximale de cluster pour chaque [BiomeType] (sous forme de Map
+  /// nom → taille). Équivalent à [computeMaxBiomeSizes] mais utilisant le
+  /// BFS partagé.
+  Map<String, int> get maxBiomeSizes {
+    final result = <String, int>{};
+    for (final biome in BiomeType.values) {
+      final visited = <HexCoords>{};
+      var maxSize = 0;
+      for (final entry in placedTiles.entries) {
+        if (visited.contains(entry.key)) continue;
+        if (!entry.value.sides.contains(biome)) continue;
+        final cluster = clusterAt(entry.key, biome);
+        visited.addAll(cluster);
+        if (cluster.length > maxSize) maxSize = cluster.length;
+      }
+      result[biome.name] = maxSize;
+    }
+    return result;
   }
 }
 
