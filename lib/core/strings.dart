@@ -115,4 +115,8 @@ abstract class Str {
   static String get upgrades_level => _isFr ? 'Niveau' : 'Level';
   static String get upgrades_cost => _isFr ? 'Coût' : 'Cost';
   static String get upgrades_max => _isFr ? 'MAX' : 'MAX';
+
+  // Story 2.7a — Home header bar
+  static String get home_settings => _isFr ? 'Réglages' : 'Settings';
+  static String get home_shop => _isFr ? 'Boutique' : 'Shop';
 }
