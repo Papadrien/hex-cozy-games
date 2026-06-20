@@ -5,8 +5,7 @@
 /// gagnées dans une partie) en fin de partie.
 library;
 
-import 'package:drift/drift.dart' show Value, Variable;
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:drift/drift.dart';
 
 import '../data/app_database.dart';
 

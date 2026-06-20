@@ -5,7 +5,7 @@
 /// à la première lecture si elle n'existe pas encore (DB pré-2.2b).
 library;
 
-import 'package:drift/drift.dart' show Value, Variable;
+import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/app_database.dart';
@@ -50,4 +50,40 @@ Future<void> addCoinsToProfile(AppDatabase db, int coins) async {
       coins: table.coins + Variable(coins),
     ),
   );
+}
+
+/// Incrémente le compteur global de tuiles posées (Story 2.5a).
+///
+/// Utilisé pour la condition de déblocage `TILES_PLACED` dans
+/// [ProgressionService].
+Future<void> incrementTotalTilesPlaced(AppDatabase db) async {
+  await _ensureProfileExists(db);
+  final table = db.playerProfile;
+  await (db.update(table)..where((t) => t.id.equals(1))).write(
+    PlayerProfileCompanion.custom(
+      totalTilesPlaced: table.totalTilesPlaced + const Variable(1),
+    ),
+  );
+}
+
+/// Débite [amount] pièces du solde persisté — Story 2.6a.
+///
+/// Retourne `false` si le solde est insuffisant, `true` si le débit a
+/// été effectué. L'appelant doit idéalement encapsuler cette opération
+/// dans une transaction Drift pour garantir l'atomicité avec d'autres
+/// écritures (ex: montée en niveau).
+Future<bool> spendCoins(AppDatabase db, int amount) async {
+  await _ensureProfileExists(db);
+  final profile =
+      await (db.select(db.playerProfile)..where((t) => t.id.equals(1)))
+          .getSingleOrNull();
+  if (profile == null || profile.coins < amount) return false;
+
+  final table = db.playerProfile;
+  await (db.update(table)..where((t) => t.id.equals(1))).write(
+    PlayerProfileCompanion.custom(
+      coins: table.coins - Variable(amount),
+    ),
+  );
+  return true;
 }

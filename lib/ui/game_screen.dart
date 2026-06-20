@@ -19,9 +19,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/strings.dart';
+import '../data/app_database.dart';
 import '../game/hex_board_game.dart';
 import '../providers/pause_provider.dart';
 import '../providers/placement_commit.dart';
+import '../providers/quest_provider.dart';
 import '../providers/session_provider.dart';
 import '../providers/tutorial_provider.dart';
 import 'pause_button.dart';
@@ -195,6 +197,14 @@ class _GameScreenState extends ConsumerState<GameScreen> {
           // ── Écran de résultats (Story 1.8b) ──────────────────────────────
           const ResultsModal(),
 
+          // ── Encart progression quêtes (Story 2.3b) ───────────────────────
+          const Positioned(
+            bottom: 96,
+            left: 16,
+            right: 16,
+            child: _QuestProgressBanner(),
+          ),
+
           // ── Tutoriel premier lancement (Story 1.10a / 1.10b) ────────────
           TutorialOverlay(
             targetKeys: {
@@ -277,6 +287,126 @@ class _CoinRewardTag extends ConsumerWidget {
 }
 
 /// Tag tuiles bonus — affiché sous la pile de tuiles. Disparaît en fade out.
+/// Bannette de progression des quêtes — Story 2.3b.
+///
+/// Affiche la quête active la plus proche de la complétion
+/// (toutes catégories confondues).
+class _QuestProgressBanner extends ConsumerWidget {
+  const _QuestProgressBanner();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final questsAsync = ref.watch(permanentQuestsProvider);
+    return questsAsync.when(
+      loading: () => const SizedBox.shrink(),
+      error: (_, _) => const SizedBox.shrink(),
+      data: (quests) {
+        final active = quests
+            .where((q) => !q.isCompleted)
+            .where((q) => !_hasIncompletePredecessor(q, quests))
+            .toList();
+        if (active.isEmpty) return const SizedBox.shrink();
+
+        // Prendre la quête la plus proche de la complétion.
+        active.sort(
+          (a, b) => (b.currentValue / b.targetValue)
+              .compareTo(a.currentValue / a.targetValue),
+        );
+        final quest = active.first;
+        final progress = (quest.currentValue / quest.targetValue).clamp(0.0, 1.0);
+
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.55),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                _iconForCategory(quest.category),
+                color: _colorForCategory(quest.category),
+                size: 16,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      quest.description,
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.8),
+                        fontSize: 11,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(3),
+                      child: LinearProgressIndicator(
+                        value: progress,
+                        backgroundColor: Colors.white.withValues(alpha: 0.1),
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          _colorForCategory(quest.category),
+                        ),
+                        minHeight: 4,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '${quest.currentValue}/${quest.targetValue}',
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.6),
+                  fontSize: 11,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  bool _hasIncompletePredecessor(
+    PermanentQuestRow quest,
+    List<PermanentQuestRow> all,
+  ) {
+    return all.any((q) => q.nextQuestId == quest.id && !q.isCompleted);
+  }
+
+  Color _colorForCategory(String category) {
+    switch (category) {
+      case 'tiles_placed':
+        return const Color(0xFF4CAF50);
+      case 'village_size':
+        return const Color(0xFFE57373);
+      case 'biomes_closed':
+        return const Color(0xFF64B5F6);
+      default:
+        return Colors.white;
+    }
+  }
+
+  IconData _iconForCategory(String category) {
+    switch (category) {
+      case 'tiles_placed':
+        return Icons.grid_on;
+      case 'village_size':
+        return Icons.home;
+      case 'biomes_closed':
+        return Icons.water_drop;
+      default:
+        return Icons.flag;
+    }
+  }
+}
+
 class _BonusTileTag extends ConsumerWidget {
   const _BonusTileTag({required this.opacity});
 

@@ -7,11 +7,13 @@ import '../data/app_database.dart';
 import '../game/hex_cell.dart';
 import '../game/hex_coords.dart';
 import '../game/hex_tile.dart';
+import 'build_provider.dart';
 import 'end_game_provider.dart';
 import 'grid_state_provider.dart';
 import 'placement_provider.dart';
 import 'player_profile_provider.dart';
 import 'player_stats_provider.dart';
+import 'quest_provider.dart';
 import 'reward_model.dart';
 import 'session_provider.dart';
 import 'tile_stack_provider.dart';
@@ -107,6 +109,12 @@ void startNewGame(WidgetRef ref) {
   ref.read(lastPlacementProvider.notifier).set(null);
   ref.read(placementProvider.notifier).clearSelection();
   resetEndGame(ref);
+
+  // Appliquer le bonus de tuiles de départ (Story 2.7b).
+  final effects = ref.read(activeUpgradeEffectsProvider);
+  if (effects.startingTilesBonus > 0) {
+    ref.read(tileStackProvider.notifier).addBonusTiles(effects.startingTilesBonus);
+  }
 
   // Pose automatique de la tuile centrale de départ.
   final initialTile = ref.read(tileStackProvider.notifier).drawInitialTile();
@@ -250,13 +258,25 @@ void confirmPlacement(
   );
 
   // 4. Attribuer les récompenses (story 1.6b / 1.7c).
-  ref.read(sessionProvider.notifier).addReward(reward);
+  // Appliquer les bonus d'améliorations (Story 2.7b) : multiplicateur de
+  // connexions et pourcentage de pièces supplémentaires.
+  final effects = ref.read(activeUpgradeEffectsProvider);
+  final baseCoins = reward.connectedSides.length + reward.bonusTiles;
+  final multiplied = (baseCoins * effects.connectionMultiplier).round();
+  final totalCoinsGained =
+      (multiplied * (1.0 + effects.coinsPercentBonus)).round();
+
+  ref.read(sessionProvider.notifier).addReward(reward,
+      forcedCoins: totalCoinsGained);
   if (reward.bonusTiles > 0) {
     ref.read(tileStackProvider.notifier).addBonusTiles(reward.bonusTiles);
   }
 
   // 5. Avancer la pile de tuiles.
   ref.read(tileStackProvider.notifier).consumeActiveTile();
+
+  // 5b. Mettre à jour la progression des quêtes (Story 2.3a).
+  ref.read(questServiceProvider).onTilePlaced();
 
   // 6. Effacer la prévisualisation.
   ref.read(placementProvider.notifier).clearSelection();
@@ -282,6 +302,9 @@ void confirmPlacement(
     final db = ref.read(appDatabaseProvider);
     addCoinsToProfile(db, session.coins);
     recordGameEnd(db, coinsEarned: session.coins, score: session.coins);
+
+    // Mise à jour des quêtes village_size & biomes_closed (Story 2.3a).
+    ref.read(questServiceProvider).onGameEnd(grid);
   }
 }
 

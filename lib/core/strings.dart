@@ -82,4 +82,47 @@ abstract class Str {
       _isFr ? 'Connecte les côtés identiques pour gagner des tuiles et des pièces bonus'
             : 'Match identical sides to earn bonus tiles and coins';
   static String get tutorial_skip => _isFr ? 'Passer' : 'Skip';
+
+  // Story 2.3b — Écran Quêtes
+  static String get quests_title => _isFr ? 'Quêtes' : 'Quests';
+  static String get quests_category_tiles =>
+      _isFr ? 'Tuiles posées' : 'Tiles placed';
+  static String get quests_category_village =>
+      _isFr ? 'Village' : 'Village';
+  static String get quests_category_biomes =>
+      _isFr ? 'Biomes fermés' : 'Closed biomes';
+  static String get quests_status_active => _isFr ? 'En cours' : 'Active';
+  static String get quests_status_completed => _isFr ? 'Terminée' : 'Completed';
+  static String get quests_status_locked => _isFr ? 'Verrouillée' : 'Locked';
+  static String get quests_reward_coins => _isFr ? 'Récompense' : 'Reward';
+  static String get quests_reward_upgrade =>
+      _isFr ? 'Débloque amélioration' : 'Unlocks upgrade';
+  static String get quests_progress => _isFr ? 'Progression' : 'Progress';
+  static String get quests_empty =>
+      _isFr ? 'Aucune quête disponible' : 'No quests available';
+  static String get quests_close => _isFr ? 'Fermer' : 'Close';
+  static String get quests_next_reward =>
+      _isFr ? 'Prochaine récompense' : 'Next reward';
+
+  // Story 2.5b — Écran Améliorations
+  static String get upgrades_title => _isFr ? 'Améliorations' : 'Upgrades';
+  static String get upgrades_locked => _isFr ? 'Verrouillée' : 'Locked';
+  static String get upgrades_hiddenEffect => _isFr ? '???' : '???';
+  static String get upgrades_unlockCondition =>
+      _isFr ? 'Condition de déblocage' : 'Unlock condition';
+  static String get upgrades_upgradeButton =>
+      _isFr ? 'Améliorer' : 'Upgrade';
+  static String get upgrades_level => _isFr ? 'Niveau' : 'Level';
+  static String get upgrades_cost => _isFr ? 'Coût' : 'Cost';
+  static String get upgrades_max => _isFr ? 'MAX' : 'MAX';
+
+  // Story 2.7a — Home header bar
+  static String get home_settings => _isFr ? 'Réglages' : 'Settings';
+  static String get home_shop => _isFr ? 'Boutique' : 'Shop';
+
+  // Story 2.7b — Build, quests and stats on home
+  static String get home_buildSelection =>
+      _isFr ? 'Sélection des améliorations' : 'Upgrade selection';
+  static String get home_quests => _isFr ? 'Quêtes' : 'Quests';
+  static String get home_stats => _isFr ? 'Statistiques' : 'Statistics';
 }

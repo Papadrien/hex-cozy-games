@@ -32,7 +32,7 @@ Future<void> seedDatabase(AppDatabase db) async {
 // ou ignoré si rewardType == upgrade_unlock (le déblocage cible est porté
 // par `upgrades.unlockConditionValue`, la quête sert de palier déclencheur).
 
-const _permanentQuests = [
+final _permanentQuests = [
   // Chaîne "tiles_placed" — débloque pièces puis améliorations aux seuils
   // définis en 5.1 (200 → A, 300 → B...).
   PermanentQuestsCompanion.insert(
@@ -117,7 +117,113 @@ const _permanentQuests = [
 // le déblocage réel est piloté par l'achèvement de la quête liée (voir
 // mapping ci-dessous, par cohérence de nommage avec id de quête).
 
-const _upgrades = [
+// ── Quêtes quotidiennes (pool de tirage) ────────────────────────────────
+//
+// Variantes des quêtes permanentes, valeurs plus petites.
+// 3 quêtes tirées aléatoirement chaque jour dans ce pool.
+
+/// Définition d'une quête quotidienne (variante d'une quête permanente).
+class DailyQuestDef {
+  final String id;
+  final String category;
+  final String description;
+  final int targetValue;
+  final String rewardType;
+  final int rewardValue;
+
+  const DailyQuestDef({
+    required this.id,
+    required this.category,
+    required this.description,
+    required this.targetValue,
+    required this.rewardType,
+    required this.rewardValue,
+  });
+}
+
+/// Pool de toutes les quêtes quotidiennes disponibles.
+/// Le tirage quotidien en sélectionne 3 via un seed reproductible.
+final kDailyQuestPool = [
+  DailyQuestDef(
+    id: 'daily_tiles_10',
+    category: 'tiles_placed',
+    description: 'Poser 10 tuiles',
+    targetValue: 10,
+    rewardType: 'coins',
+    rewardValue: 10,
+  ),
+  DailyQuestDef(
+    id: 'daily_tiles_20',
+    category: 'tiles_placed',
+    description: 'Poser 20 tuiles',
+    targetValue: 20,
+    rewardType: 'coins',
+    rewardValue: 12,
+  ),
+  DailyQuestDef(
+    id: 'daily_tiles_30',
+    category: 'tiles_placed',
+    description: 'Poser 30 tuiles',
+    targetValue: 30,
+    rewardType: 'coins',
+    rewardValue: 15,
+  ),
+  DailyQuestDef(
+    id: 'daily_village_3',
+    category: 'village_size',
+    description: 'Faire un village de 3 maisons',
+    targetValue: 3,
+    rewardType: 'coins',
+    rewardValue: 8,
+  ),
+  DailyQuestDef(
+    id: 'daily_village_5',
+    category: 'village_size',
+    description: 'Faire un village de 5 maisons',
+    targetValue: 5,
+    rewardType: 'coins',
+    rewardValue: 10,
+  ),
+  DailyQuestDef(
+    id: 'daily_village_8',
+    category: 'village_size',
+    description: 'Faire un village de 8 maisons',
+    targetValue: 8,
+    rewardType: 'coins',
+    rewardValue: 12,
+  ),
+  DailyQuestDef(
+    id: 'daily_biomes_2',
+    category: 'biomes_closed',
+    description: 'Fermer 2 biomes',
+    targetValue: 2,
+    rewardType: 'coins',
+    rewardValue: 6,
+  ),
+  DailyQuestDef(
+    id: 'daily_biomes_3',
+    category: 'biomes_closed',
+    description: 'Fermer 3 biomes',
+    targetValue: 3,
+    rewardType: 'coins',
+    rewardValue: 8,
+  ),
+  DailyQuestDef(
+    id: 'daily_biomes_5',
+    category: 'biomes_closed',
+    description: 'Fermer 5 biomes',
+    targetValue: 5,
+    rewardType: 'coins',
+    rewardValue: 10,
+  ),
+];
+
+/// Lookup map id → DailyQuestDef pour un accès rapide.
+final Map<String, DailyQuestDef> kDailyQuestDefMap = {
+  for (final def in kDailyQuestPool) def.id: def,
+};
+
+final _upgrades = [
   UpgradesCompanion.insert(
     id: 'starting_tiles_plus',
     name: 'Tuiles de départ+',

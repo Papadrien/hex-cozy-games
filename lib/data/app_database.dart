@@ -125,6 +125,10 @@ class PlayerStats extends Table {
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
+  /// Constructeur pour les tests — accepte un [QueryExecutor] personnalisé
+  /// (ex: `NativeDatabase.memory()`).
+  AppDatabase.forTesting(super.e);
+
   @override
   int get schemaVersion => 3;
 

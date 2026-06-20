@@ -48,6 +48,11 @@ extension BiomeColor on BiomeType {
 /// Rayon circumscrit par défaut d'une tuile (centre → sommet), en px logiques.
 const double kTileSize = 44.0;
 
+/// Épaisseur du "bloc" 3D des tuiles (effet pavé/palet), en px logiques.
+/// Purement visuel : n'affecte ni la taille du composant, ni le hit-testing,
+/// ni le layout de la grille (qui restent basés sur hexSize / kIsoScaleY).
+const double kTileDepth = 10.0;
+
 /// Composant Flame représentant une tuile hexagonale colorée.
 ///
 /// La projection isométrique est appliquée DANS le rendu (Y *= kIsoScaleY) :
@@ -104,18 +109,62 @@ class TileComponent extends PositionComponent {
   @override
   void render(Canvas canvas) {
     // L'ancrage center translate le canvas de sorte que (0,0) corresponde au
-    // coin haut-gauche du composant. Le centre de la tuile dans ce repère est
-    // donc à (size.x/2, size.y/2) — on l'utilise comme origine du tracé.
+    // coin haut-gauche du composant. Le centre logique de la tuile (utilisé
+    // par le placement/hit-testing via `position`) reste à (size.x/2,
+    // size.y/2). On dessine la face du dessus légèrement remontée et on
+    // ajoute des faces latérales en dessous pour l'effet "bloc 3D" — ceci est
+    // purement visuel et ne modifie ni size, ni anchor, ni position.
     final cx = size.x / 2;
-    final cy = size.y / 2;
-    final corners = _isoCorners(cx, cy);
+    final cyTop = size.y / 2 - kTileDepth / 2;
+    final topCorners = _isoCorners(cx, cyTop);
 
+    // ── Faces latérales (côtés "bas" du bloc) ────────────────────────────
+    // On ne dessine que les côtés dont le segment va globalement vers le bas
+    // de l'écran (sommet de départ plus haut que le sommet d'arrivée n'étant
+    // pas le bon critère ici : on regarde plutôt si le côté est sur la
+    // moitié inférieure de l'hexagone, où l'épaisseur du bloc est visible).
     for (var i = 0; i < 6; i++) {
-      final c0 = corners[i];
-      final c1 = corners[(i + 1) % 6];
+      final t0 = topCorners[i];
+      final t1 = topCorners[(i + 1) % 6];
+      // Un côté est "visible" (face latérale apparente) s'il est orienté
+      // vers le bas, c'est-à-dire si ses deux sommets sont à une hauteur
+      // moyenne supérieure ou égale au centre (>= cyTop).
+      final midY = (t0.dy + t1.dy) / 2;
+      if (midY < cyTop - 0.01) continue; // côté du dessus uniquement visible
+
+      final b0 = Offset(t0.dx, t0.dy + kTileDepth);
+      final b1 = Offset(t1.dx, t1.dy + kTileDepth);
+
+      final sidePath = Path()
+        ..moveTo(t0.dx, t0.dy)
+        ..lineTo(t1.dx, t1.dy)
+        ..lineTo(b1.dx, b1.dy)
+        ..lineTo(b0.dx, b0.dy)
+        ..close();
+
+      final baseColor = tile.sides[i].color;
+      final shaded = Color.from(
+        alpha: baseColor.a,
+        red: baseColor.r * 0.62,
+        green: baseColor.g * 0.62,
+        blue: baseColor.b * 0.62,
+      );
+
+      canvas.drawPath(
+        sidePath,
+        Paint()
+          ..color = shaded.withValues(alpha: _alpha)
+          ..style = PaintingStyle.fill,
+      );
+    }
+
+    // ── Face du dessus (couleurs des biomes, inchangées) ─────────────────
+    for (var i = 0; i < 6; i++) {
+      final c0 = topCorners[i];
+      final c1 = topCorners[(i + 1) % 6];
 
       final path = Path()
-        ..moveTo(cx, cy)
+        ..moveTo(cx, cyTop)
         ..lineTo(c0.dx, c0.dy)
         ..lineTo(c1.dx, c1.dy)
         ..close();
