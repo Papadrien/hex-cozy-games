@@ -62,30 +62,30 @@ class _QuestsList extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       children: [
-        if (grouped.containsKey('tiles_placed'))
+        if (grouped.containsKey(QuestCategory.tilesPlaced.dbValue))
           _CategorySection(
             icon: Icons.grid_on,
             color: kSuccessGreen,
             label: context.tr.quests_category_tiles,
-            quests: grouped['tiles_placed']!,
+            quests: grouped[QuestCategory.tilesPlaced.dbValue]!,
             allQuests: quests,
           ),
         const SizedBox(height: 24),
-        if (grouped.containsKey('village_size'))
+        if (grouped.containsKey(QuestCategory.villageSize.dbValue))
           _CategorySection(
             icon: Icons.home,
             color: kDestructiveRed,
             label: context.tr.quests_category_village,
-            quests: grouped['village_size']!,
+            quests: grouped[QuestCategory.villageSize.dbValue]!,
             allQuests: quests,
           ),
         const SizedBox(height: 24),
-        if (grouped.containsKey('biomes_closed'))
+        if (grouped.containsKey(QuestCategory.biomesClosed.dbValue))
           _CategorySection(
             icon: Icons.water_drop,
             color: kQuestBlue,
             label: context.tr.quests_category_biomes,
-            quests: grouped['biomes_closed']!,
+            quests: grouped[QuestCategory.biomesClosed.dbValue]!,
             allQuests: quests,
           ),
         const SizedBox(height: 32),

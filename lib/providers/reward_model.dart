@@ -12,8 +12,10 @@ class PlacementReward {
   const PlacementReward({
     required this.connectedSides,
     required this.bonusTiles,
+    this.bonusCoins = 0,
   });
 
   final List<int> connectedSides;
   final int bonusTiles;
+  final int bonusCoins;
 }

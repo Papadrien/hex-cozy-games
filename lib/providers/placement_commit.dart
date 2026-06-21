@@ -58,10 +58,23 @@ Future<void> restoreSession(WidgetRef ref) async {
         .toList();
     ref.read(tileStackProvider.notifier).restoreQueue(queueList, seed: seed);
 
-    // Restaurer la session (pièces, tuiles bonus).
+    // Restaurer la session (pièces, tuiles bonus, connexions).
+    final grid = ref.read(gridProvider);
+    int c3 = 0, c4 = 0, c5 = 0, c6 = 0;
+    for (final entry in grid.placedTiles.entries) {
+      final connected = grid.countConnectedSides(entry.key, entry.value);
+      if (connected == 3) c3++;
+      if (connected == 4) c4++;
+      if (connected == 5) c5++;
+      if (connected == 6) c6++;
+    }
     ref.read(sessionProvider.notifier).restore(SessionState(
           coins: row.coins,
           totalBonusTiles: row.totalBonusTiles,
+          connections3: c3,
+          connections4: c4,
+          connections5: c5,
+          connections6: c6,
         ));
 
     // Restaurer le dernier placement (pour le bouton Annuler).
@@ -75,6 +88,7 @@ Future<void> restoreSession(WidgetRef ref) async {
             tile,
             bonusTiles: lastJson['bonusTiles'] as int? ?? 0,
             connectedSides: connectedSides,
+            coins: lastJson['coins'] as int? ?? 0,
           ));
     }
   } catch (e, stack) {
@@ -116,11 +130,12 @@ void startNewGame(WidgetRef ref) {
 
 class LastPlacement {
   LastPlacement(this.coords, this.tile,
-      {this.bonusTiles = 0, this.connectedSides = const []});
+      {this.bonusTiles = 0, this.connectedSides = const [], this.coins = 0});
   final HexCoords coords;
   final HexTile tile;
   final int bonusTiles;
   final List<int> connectedSides;
+  final int coins;
 }
 
 class LastPlacementNotifier extends Notifier<LastPlacement?> {
@@ -202,6 +217,7 @@ class SessionSaver {
           ...lastPlacement.tile.toJson(),
           'bonusTiles': lastPlacement.bonusTiles,
           'connectedSides': lastPlacement.connectedSides,
+          'coins': lastPlacement.coins,
         });
       }
 
@@ -252,8 +268,8 @@ Future<void> confirmPlacement(
 
   _placeTileOnGrid(ref, coords, tile);
   onConfirm(coords, tile, reward.connectedSides, reward.bonusTiles);
-  _recordPlacement(ref, coords, tile, reward);
-  _applyReward(ref, tile, reward);
+  final appliedReward = _applyReward(ref, tile, reward);
+  _recordPlacement(ref, coords, tile, appliedReward);
   _advanceStack(ref);
   await SessionSaver.save(ref);
   _checkGameOver(ref);
@@ -269,14 +285,16 @@ void _recordPlacement(
   HexTile tile,
   PlacementReward reward,
 ) {
+  final coins = reward.connectedSides.length + reward.bonusTiles + reward.bonusCoins;
   ref.read(lastPlacementProvider.notifier).set(
     LastPlacement(coords, tile,
         bonusTiles: reward.bonusTiles,
-        connectedSides: List.of(reward.connectedSides)),
+        connectedSides: List.of(reward.connectedSides),
+        coins: coins),
   );
 }
 
-void _applyReward(WidgetRef ref, HexTile tile, PlacementReward reward) {
+PlacementReward _applyReward(WidgetRef ref, HexTile tile, PlacementReward reward) {
   if (reward.connectedSides.isEmpty && reward.bonusTiles == 0) {
     ref.read(sessionProvider.notifier).addReward(reward);
   } else {
@@ -287,12 +305,22 @@ void _applyReward(WidgetRef ref, HexTile tile, PlacementReward reward) {
       baseCoins: baseCoins,
       villageSides: villageSides,
     );
-    ref.read(sessionProvider.notifier).addReward(reward,
-        forcedCoins: totalCoins);
+    final bonusCoins = totalCoins - baseCoins;
+    final applied = PlacementReward(
+      connectedSides: reward.connectedSides,
+      bonusTiles: reward.bonusTiles,
+      bonusCoins: bonusCoins,
+    );
+    ref.read(sessionProvider.notifier).addReward(applied, forcedCoins: totalCoins);
+    if (reward.bonusTiles > 0) {
+      ref.read(tileStackProvider.notifier).addBonusTiles(reward.bonusTiles);
+    }
+    return applied;
   }
   if (reward.bonusTiles > 0) {
     ref.read(tileStackProvider.notifier).addBonusTiles(reward.bonusTiles);
   }
+  return reward;
 }
 
 void _advanceStack(WidgetRef ref) {
@@ -307,7 +335,14 @@ void _checkGameOver(WidgetRef ref) {
 
   final grid = ref.read(gridProvider);
   final session = ref.read(sessionProvider);
-  final stats = computeEndGameStats(grid, session.coins);
+  final stats = computeEndGameStats(
+    placedTilesCount: grid.placedTiles.length,
+    coins: session.coins,
+    connections3: session.connections3,
+    connections4: session.connections4,
+    connections5: session.connections5,
+    connections6: session.connections6,
+  );
   final analysis = BoardAnalysis.fromGrid(grid);
 
   ref.read(isGameOverProvider.notifier).set(true);
@@ -353,7 +388,10 @@ void undoPlacement(
 
   // 4. Annuler les récompenses (story 1.6b / 1.7c).
   ref.read(sessionProvider.notifier).removeReward(
-      last.connectedSides.length + last.bonusTiles, last.bonusTiles);
+    last.coins,
+    last.bonusTiles,
+    connectedCount: last.connectedSides.length,
+  );
   if (last.bonusTiles > 0) {
     ref.read(tileStackProvider.notifier).removeLastBonusTiles(last.bonusTiles);
   }

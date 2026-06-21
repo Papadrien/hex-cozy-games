@@ -80,6 +80,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get results_replay => 'Replay';
 
   @override
+  String get results_home => 'Home';
+
+  @override
   String get game_sessionCoins => 'Game coins';
 
   @override

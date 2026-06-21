@@ -247,7 +247,8 @@ class _DebugBadge extends StatelessWidget {
   }
 }
 
-/// Tag pièces — affiché sous le compteur de pièces. Disparaît en fade out.
+/// Tag pièces bonus — affiché sous le compteur de pièces. Disparaît en fade
+/// out. N'affiche que les pièces bonus (améliorations), pas le total de base.
 class _CoinRewardTag extends ConsumerWidget {
   const _CoinRewardTag({required this.opacity});
 
@@ -257,9 +258,9 @@ class _CoinRewardTag extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final session = ref.watch(sessionProvider);
     final reward = session.lastReward;
-    if (reward == null) return const SizedBox.shrink();
-
-    final coins = reward.connectedSides.length + reward.bonusTiles;
+    if (reward == null || reward.bonusCoins <= 0) {
+      return const SizedBox.shrink();
+    }
 
     return Opacity(
       opacity: opacity,
@@ -276,7 +277,7 @@ class _CoinRewardTag extends ConsumerWidget {
             const Icon(Icons.monetization_on, color: Colors.amber, size: 16),
             const SizedBox(width: 4),
             Text(
-               '+$coins${context.tr.reward_coins}',
+              '+${reward.bonusCoins}${context.tr.reward_coins}',
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 13,

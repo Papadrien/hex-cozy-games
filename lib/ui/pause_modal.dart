@@ -277,6 +277,7 @@ class _SaveAndQuitButton extends ConsumerWidget {
         ),
         onPressed: () async {
           await SessionSaver.save(ref);
+          ref.invalidate(activeSessionProvider);
           if (context.mounted) {
             Navigator.pushReplacementNamed(context, '/');
           }

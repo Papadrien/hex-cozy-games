@@ -7,8 +7,6 @@ library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'grid_state_provider.dart';
-
 /// Statistiques finales d'une partie terminée.
 class EndGameStats {
   const EndGameStats({
@@ -31,28 +29,22 @@ class EndGameStats {
       connections3 + connections4 + connections5 + connections6;
 }
 
-/// Calcule les statistiques finales à partir de l'état du plateau et
-/// des pièces accumulées.
-EndGameStats computeEndGameStats(
-  GridState grid,
-  int coins,
-) {
-  int c3 = 0, c4 = 0, c5 = 0, c6 = 0;
-
-  for (final entry in grid.placedTiles.entries) {
-    final connected = grid.countConnectedSides(entry.key, entry.value);
-    if (connected == 3) c3++;
-    if (connected == 4) c4++;
-    if (connected == 5) c5++;
-    if (connected == 6) c6++;
-  }
-
+/// Calcule les statistiques finales à partir des compteurs de session et
+/// du nombre de tuiles posées.
+EndGameStats computeEndGameStats({
+  required int placedTilesCount,
+  required int coins,
+  required int connections3,
+  required int connections4,
+  required int connections5,
+  required int connections6,
+}) {
   return EndGameStats(
-    placedTilesCount: grid.placedTiles.length,
-    connections3: c3,
-    connections4: c4,
-    connections5: c5,
-    connections6: c6,
+    placedTilesCount: placedTilesCount,
+    connections3: connections3,
+    connections4: connections4,
+    connections5: connections5,
+    connections6: connections6,
     coins: coins,
   );
 }

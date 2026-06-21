@@ -137,6 +137,28 @@ class _ResultsCard extends ConsumerWidget {
               ),
             ),
           ),
+          const SizedBox(height: 12),
+          // Bouton Retour à l'accueil
+          SizedBox(
+            width: double.infinity,
+            child: TextButton(
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                foregroundColor: Colors.white.withValues(alpha: 0.8),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  side: BorderSide(
+                    color: Colors.white.withValues(alpha: 0.2),
+                  ),
+                ),
+              ),
+              onPressed: () => _goHome(context, ref),
+              child: Text(
+                context.tr.results_home,
+                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -146,6 +168,11 @@ class _ResultsCard extends ConsumerWidget {
     SessionSaver.endSession(ref);
     startNewGame(ref);
     Navigator.pushReplacementNamed(context, '/game');
+  }
+
+  void _goHome(BuildContext context, WidgetRef ref) {
+    SessionSaver.endSession(ref);
+    Navigator.pushReplacementNamed(context, '/');
   }
 }
 

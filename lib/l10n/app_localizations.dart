@@ -236,6 +236,12 @@ abstract class AppLocalizations {
   /// **'Replay'**
   String get results_replay;
 
+  /// No description provided for @results_home.
+  ///
+  /// In en, this message translates to:
+  /// **'Home'**
+  String get results_home;
+
   /// No description provided for @game_sessionCoins.
   ///
   /// In en, this message translates to:

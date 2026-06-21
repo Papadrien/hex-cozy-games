@@ -47,6 +47,8 @@
   "@results_connections6": {},
   "results_replay": "Replay",
   "@results_replay": {},
+  "results_home": "Home",
+  "@results_home": {},
   "game_sessionCoins": "Game coins",
   "@game_sessionCoins": {},
   "home_totalCoins": "Total coins",
