@@ -180,7 +180,7 @@ class HexBoardGame extends FlameGame
     while (_rotationAccumulator.abs() >= _kRotationThreshold) {
       final step = _rotationAccumulator > 0 ? 1 : -1; // haut = anti-horaire
       _ref.read(placementProvider.notifier).rotate(step);
-      _rotationAccumulator += step.sign * _kRotationThreshold;
+      _rotationAccumulator -= step.sign * _kRotationThreshold;
     }
     _previewDirty = true;
   }
