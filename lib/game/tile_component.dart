@@ -64,10 +64,24 @@ extension BiomeColor on BiomeType {
   }
 }
 
-/// Épaisseur du "bloc" 3D des tuiles (effet pavé/palet), en px logiques.
-/// Purement visuel : n'affecte ni la taille du composant, ni le hit-testing,
-/// ni le layout de la grille (qui restent basés sur hexSize / kIsoScaleY).
-const double kTileDepth = 10.0;
+/// Épaisseur de base du "bloc" 3D des tuiles, en px logiques.
+/// La hauteur réelle varie selon le biome dominant (relief).
+const double kTileDepthBase = 8.0;
+
+/// Facteur de relief par biome. Montagne > village > plage.
+const Map<BiomeType, double> kReliefFactors = {
+  BiomeType.mountain: 2.2,
+  BiomeType.village: 1.6,
+  BiomeType.forest: 1.3,
+  BiomeType.plain: 1.0,
+  BiomeType.flowerField: 0.8,
+  BiomeType.beach: 0.6,
+  BiomeType.water: 0.4,
+};
+
+/// Amplitude maximale des offsets aléatoires des sommets (px) pour l'aspect
+/// "terrain naturel".
+const double kMaxVertexJitter = 2.5;
 
 /// Offset de base pour la priorité de rendu calculée depuis la profondeur
 /// iso (voir [TileComponent.updateDepthPriority]). Suffisamment grand pour
@@ -139,6 +153,21 @@ class TileComponent extends PositionComponent {
   double get alpha => _alpha;
   set alpha(double value) => _alpha = value.clamp(0.0, 1.0);
 
+  /// Hauteur d'extrusion 3D basée sur le biome dominant de la tuile.
+  double get _reliefDepth {
+    final dominant = _dominantBiome();
+    final factor = kReliefFactors[dominant] ?? 1.0;
+    return kTileDepthBase * factor;
+  }
+
+  BiomeType _dominantBiome() {
+    final counts = <BiomeType, int>{};
+    for (final side in tile.sides) {
+      counts[side] = (counts[side] ?? 0) + 1;
+    }
+    return counts.entries.reduce((a, b) => a.value >= b.value ? a : b).key;
+  }
+
   /// Côtés à surligner en permanence (prévisualisation des connexions).
   Set<int> highlightedSides;
 
@@ -158,32 +187,42 @@ class TileComponent extends PositionComponent {
 
   @override
   void render(Canvas canvas) {
-    // L'ancrage center translate le canvas de sorte que (0,0) corresponde au
-    // coin haut-gauche du composant. Le centre logique de la tuile (utilisé
-    // par le placement/hit-testing via `position`) reste à (size.x/2,
-    // size.y/2). On dessine la face du dessus légèrement remontée et on
-    // ajoute des faces latérales en dessous pour l'effet "bloc 3D" — ceci est
-    // purement visuel et ne modifie ni size, ni anchor, ni position.
+    final depth = _reliefDepth;
+    // Petit hash déterministe pour les offsets des sommets.
+    final seed = _coords.q * 31 + _coords.r * 17;
+    final rng = Random(seed);
+
     final cx = size.x / 2;
-    final cyTop = size.y / 2 - kTileDepth / 2;
-    final topCorners = _isoCorners(cx, cyTop);
+    final cyTop = size.y / 2 - depth / 2;
+    final flatCorners = _isoCorners(cx, cyTop);
+    final jittered = flatCorners.map((c) {
+      final dx = (rng.nextDouble() - 0.5) * kMaxVertexJitter;
+      final dy = (rng.nextDouble() - 0.5) * kMaxVertexJitter * kIsoScaleY;
+      return Offset(c.dx + dx, c.dy + dy);
+    }).toList();
+
+    // ── Ombre portée au sol ───────────────────────────────────────────────
+    final shadowPaint = Paint()
+      ..color = const Color(0xFF000000).withValues(alpha: 0.15 * _alpha)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6);
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: Offset(cx, size.y / 2 + depth * 0.6),
+        width: _hexSize * 1.6,
+        height: _hexSize * kIsoScaleY * 0.6,
+      ),
+      shadowPaint,
+    );
 
     // ── Faces latérales (côtés "bas" du bloc) ────────────────────────────
-    // On ne dessine que les côtés dont le segment va globalement vers le bas
-    // de l'écran (sommet de départ plus haut que le sommet d'arrivée n'étant
-    // pas le bon critère ici : on regarde plutôt si le côté est sur la
-    // moitié inférieure de l'hexagone, où l'épaisseur du bloc est visible).
     for (var i = 0; i < 6; i++) {
-      final t0 = topCorners[i];
-      final t1 = topCorners[(i + 1) % 6];
-      // Un côté est "visible" (face latérale apparente) s'il est orienté
-      // vers le bas, c'est-à-dire si ses deux sommets sont à une hauteur
-      // moyenne supérieure ou égale au centre (>= cyTop).
+      final t0 = jittered[i];
+      final t1 = jittered[(i + 1) % 6];
       final midY = (t0.dy + t1.dy) / 2;
-      if (midY < cyTop - 0.01) continue; // côté du dessus uniquement visible
+      if (midY < cyTop - 0.01) continue;
 
-      final b0 = Offset(t0.dx, t0.dy + kTileDepth);
-      final b1 = Offset(t1.dx, t1.dy + kTileDepth);
+      final b0 = Offset(t0.dx, t0.dy + depth);
+      final b1 = Offset(t1.dx, t1.dy + depth);
 
       final sidePath = Path()
         ..moveTo(t0.dx, t0.dy)
@@ -195,25 +234,27 @@ class TileComponent extends PositionComponent {
       final baseColor = tile.sides[i].color;
       final shaded = Color.from(
         alpha: baseColor.a,
-        red: baseColor.r * 0.62,
-        green: baseColor.g * 0.62,
-        blue: baseColor.b * 0.62,
+        red: baseColor.r * 0.55,
+        green: baseColor.g * 0.55,
+        blue: baseColor.b * 0.55,
       );
-
+      // Dégradé vertical sur la face latérale (plus clair en haut).
       canvas.drawPath(
         sidePath,
         Paint()
-          ..color = shaded.withValues(alpha: _alpha)
+          ..shader = Gradient.linear(
+            Offset(0, t0.dy),
+            Offset(0, b0.dy),
+            [shaded.withValues(alpha: _alpha), shaded.withValues(alpha: _alpha * 0.7)],
+          )
           ..style = PaintingStyle.fill,
       );
     }
 
     // ── Face du dessus avec dégradé lumineux ────────────────────────────
-    // Remplir chaque segment avec la couleur de base, puis ajouter un
-    // dégradé radial centre → bord pour l'effet "terrain organique".
     for (var i = 0; i < 6; i++) {
-      final c0 = topCorners[i];
-      final c1 = topCorners[(i + 1) % 6];
+      final c0 = jittered[i];
+      final c1 = jittered[(i + 1) % 6];
 
       final path = Path()
         ..moveTo(cx, cyTop)
@@ -235,6 +276,18 @@ class TileComponent extends PositionComponent {
           )
           ..style = PaintingStyle.fill,
       );
+
+      // Liseré de transition entre biomes différents
+      final nextColor = tile.sides[(i + 1) % 6].color;
+      if (tile.sides[i].color != nextColor) {
+        canvas.drawLine(
+          Offset(c0.dx, c0.dy),
+          Offset(cx, cyTop),
+          Paint()
+            ..color = const Color(0xFFFFFFFF).withValues(alpha: 0.08)
+            ..strokeWidth = 1.5,
+        );
+      }
 
       // Glow sur les côtés connectés (story 1.6b).
       if (_glowSides != null && _glowSides!.contains(i) && _glowAlpha > 0.01) {
