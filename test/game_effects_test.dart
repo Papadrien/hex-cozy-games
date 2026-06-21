@@ -37,6 +37,70 @@ void main() {
     });
   });
 
+  group('GameEffectsService.getStartingTilesBonus', () {
+    test('aucune amélioration → 0 tuile bonus', () {
+      final container = _makeContainer();
+      final service = container.read(gameEffectsServiceProvider);
+      expect(service.getStartingTilesBonus(), 0);
+    });
+
+    test('niveau 1 → +2 tuiles', () {
+      final container = _makeContainer(
+        const ActiveUpgradeEffects(startingTilesBonus: 2),
+      );
+      final service = container.read(gameEffectsServiceProvider);
+      expect(service.getStartingTilesBonus(), 2);
+    });
+
+    test('niveau 2 → +5 tuiles', () {
+      final container = _makeContainer(
+        const ActiveUpgradeEffects(startingTilesBonus: 5),
+      );
+      final service = container.read(gameEffectsServiceProvider);
+      expect(service.getStartingTilesBonus(), 5);
+    });
+
+    test('niveau d amélioration max → +10 tuiles', () {
+      final container = _makeContainer(
+        const ActiveUpgradeEffects(startingTilesBonus: 10),
+      );
+      final service = container.read(gameEffectsServiceProvider);
+      expect(service.getStartingTilesBonus(), 10);
+    });
+  });
+
+  group('GameEffectsService.applyConnectionMultiplier', () {
+    test('aucune amélioration → facteur 1.0 (inchangé)', () {
+      final container = _makeContainer();
+      final service = container.read(gameEffectsServiceProvider);
+      expect(service.applyConnectionMultiplier(5), 5);
+    });
+
+    test('multiplicateur 2.0 → double les tuiles bonus', () {
+      final container = _makeContainer(
+        const ActiveUpgradeEffects(connectionMultiplier: 2.0),
+      );
+      final service = container.read(gameEffectsServiceProvider);
+      expect(service.applyConnectionMultiplier(3), 6);
+    });
+
+    test('multiplicateur 2.0 → 1 tuile → 2', () {
+      final container = _makeContainer(
+        const ActiveUpgradeEffects(connectionMultiplier: 2.0),
+      );
+      final service = container.read(gameEffectsServiceProvider);
+      expect(service.applyConnectionMultiplier(1), 2);
+    });
+
+    test('multiplicateur 2.0 → 0 tuile → 0', () {
+      final container = _makeContainer(
+        const ActiveUpgradeEffects(connectionMultiplier: 2.0),
+      );
+      final service = container.read(gameEffectsServiceProvider);
+      expect(service.applyConnectionMultiplier(0), 0);
+    });
+  });
+
   group('GameEffectsService.applyCoinBonuses', () {
     test('aucun effet → baseCoins inchangé', () {
       final container = _makeContainer();

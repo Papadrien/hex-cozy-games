@@ -114,11 +114,12 @@ void startNewGame(WidgetRef ref) {
   ref.read(placementProvider.notifier).clearSelection();
   resetEndGame(ref);
 
-  // Appliquer le bonus de tuiles de départ (Story 2.8a).
+  // Appliquer le bonus de tuiles de départ (Story 2.8a) en tête de file
+  // pour que le joueur les voie immédiatement.
   final effects = ref.read(gameEffectsServiceProvider);
   final bonus = effects.getStartingTilesBonus();
   if (bonus > 0) {
-    ref.read(tileStackProvider.notifier).addBonusTiles(bonus);
+    ref.read(tileStackProvider.notifier).addStartingBonusTiles(bonus);
   }
 
   // Pose automatique de la tuile centrale de départ.
@@ -297,30 +298,26 @@ void _recordPlacement(
 PlacementReward _applyReward(WidgetRef ref, HexTile tile, PlacementReward reward) {
   if (reward.connectedSides.isEmpty && reward.bonusTiles == 0) {
     ref.read(sessionProvider.notifier).addReward(reward);
-  } else {
-    final effects = ref.read(gameEffectsServiceProvider);
-    final villageSides = effects.countVillageSides(tile, reward.connectedSides);
-    final baseCoins = reward.connectedSides.length + reward.bonusTiles;
-    final totalCoins = effects.applyCoinBonuses(
-      baseCoins: baseCoins,
-      villageSides: villageSides,
-    );
-    final bonusCoins = totalCoins - baseCoins;
-    final applied = PlacementReward(
-      connectedSides: reward.connectedSides,
-      bonusTiles: reward.bonusTiles,
-      bonusCoins: bonusCoins,
-    );
-    ref.read(sessionProvider.notifier).addReward(applied, forcedCoins: totalCoins);
-    if (reward.bonusTiles > 0) {
-      ref.read(tileStackProvider.notifier).addBonusTiles(reward.bonusTiles);
-    }
-    return applied;
+    return reward;
   }
+  final effects = ref.read(gameEffectsServiceProvider);
+  final villageSides = effects.countVillageSides(tile, reward.connectedSides);
+  final baseCoins = reward.connectedSides.length + reward.bonusTiles;
+  final totalCoins = effects.applyCoinBonuses(
+    baseCoins: baseCoins,
+    villageSides: villageSides,
+  );
+  final bonusCoins = totalCoins - baseCoins;
+  final applied = PlacementReward(
+    connectedSides: reward.connectedSides,
+    bonusTiles: reward.bonusTiles,
+    bonusCoins: bonusCoins,
+  );
+  ref.read(sessionProvider.notifier).addReward(applied, forcedCoins: totalCoins);
   if (reward.bonusTiles > 0) {
     ref.read(tileStackProvider.notifier).addBonusTiles(reward.bonusTiles);
   }
-  return reward;
+  return applied;
 }
 
 void _advanceStack(WidgetRef ref) {

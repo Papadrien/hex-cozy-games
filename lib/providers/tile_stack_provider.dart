@@ -116,6 +116,21 @@ class TileStack extends _$TileStack {
     state = _buildState();
   }
 
+  /// Ajoute [count] tuiles bonus au début de la file (générées depuis un seed
+  /// dérivé).
+  ///
+  /// Utilisé par le bonus de tuiles de départ de l'amélioration "Tuiles de
+  /// départ+" (story 2.8a) : les tuiles sont insérées en tête de file pour
+  /// que le joueur les voie immédiatement.
+  void addStartingBonusTiles(int count) {
+    if (count <= 0) return;
+    final pool = _bonusPool(count);
+    for (final tile in pool.reversed) {
+      _queue.addFirst(tile);
+    }
+    state = _buildState();
+  }
+
   /// Ajoute [count] tuiles bonus en fin de file (générées depuis un seed
   /// dérivé).
   ///
