@@ -13,6 +13,8 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import '../core/constants.dart';
 
+// ── Helpers ────────────────────────────────────────────────────────────────
+
 /// ID de bannière AdMob selon la plateforme (test en debug, production
 /// en release). À configurer avec les vrais IDs avant release.
 String get _bannerAdUnitId {
@@ -27,11 +29,21 @@ String get _bannerAdUnitId {
   return kAdMobBannerTestIdAndroid;
 }
 
+String get _interstitialAdUnitId {
+  if (kReleaseMode) {
+    // TODO(story-3.1b): Remplacer par les IDs de production avant release.
+    if (Platform.isAndroid) return kAdMobInterstitialTestIdAndroid;
+    if (Platform.isIOS) return kAdMobInterstitialTestIdIOS;
+    return kAdMobInterstitialTestIdAndroid;
+  }
+  if (Platform.isAndroid) return kAdMobInterstitialTestIdAndroid;
+  if (Platform.isIOS) return kAdMobInterstitialTestIdIOS;
+  return kAdMobInterstitialTestIdAndroid;
+}
+
+// ── Bannière (3.1a) ────────────────────────────────────────────────────────
+
 /// Provider qui crée, charge et maintient la bannière AdMob en vie.
-///
-/// La bannière est chargée au premier accès et automatiquement disposée
-/// quand le provider est détruit. Retourne `null` si le chargement a
-/// échoué (le widget affichera un espace vide à la place).
 final bannerAdProvider = Provider<BannerAd?>((ref) {
   final banner = BannerAd(
     adUnitId: _bannerAdUnitId,
@@ -53,3 +65,44 @@ final bannerAdProvider = Provider<BannerAd?>((ref) {
 
   return banner;
 });
+
+// ── Interstitielle (3.1b) ──────────────────────────────────────────────────
+
+/// Compteur cumulatif de tuiles posées pour le déclenchement des
+/// interstitielles. Persiste entre les parties (pas de reset dans
+/// [startNewGame]).
+class AdTilesPlacedNotifier extends Notifier<int> {
+  @override
+  int build() => 0;
+
+  void increment() => state++;
+}
+
+final adTilesPlacedProvider =
+    NotifierProvider<AdTilesPlacedNotifier, int>(AdTilesPlacedNotifier.new);
+
+/// Charge et affiche une interstitielle AdMob. Retourne immédiatement
+/// si le chargement échoue (pas de crash).
+Future<void> showInterstitialAd() async {
+  await InterstitialAd.load(
+    adUnitId: _interstitialAdUnitId,
+    request: const AdRequest(),
+    adLoadCallback: InterstitialAdLoadCallback(
+      onAdLoaded: (ad) {
+        ad.fullScreenContentCallback = FullScreenContentCallback(
+          onAdDismissedFullScreenContent: (ad) {
+            ad.dispose();
+          },
+          onAdFailedToShowFullScreenContent: (ad, error) {
+            debugPrint('[AdMob] Interstitial show failed: $error');
+            ad.dispose();
+          },
+        );
+        ad.show();
+      },
+      onAdFailedToLoad: (error) {
+        debugPrint('[AdMob] Interstitial load failed: $error');
+      },
+    ),
+  );
+}

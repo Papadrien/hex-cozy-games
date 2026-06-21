@@ -54,3 +54,6 @@ const String kAdMobInterstitialTestIdIOS =
 
 /// Hauteur standard d'une bannière AdMob en dp.
 const double kAdBannerHeight = 50.0;
+
+/// Nombre de tuiles posées entre chaque interstitielle AdMob (Story 3.1b).
+const int kAdInterstitialFrequency = 20;

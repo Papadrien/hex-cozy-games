@@ -10,6 +10,7 @@ import '../game/hex_coords.dart';
 import '../game/hex_tile.dart';
 import '../services/cloud_save_service.dart';
 import 'end_game_provider.dart';
+import '../services/ad_service.dart';
 import 'game_effects_service.dart';
 import 'grid_state_provider.dart';
 import 'placement_provider.dart';
@@ -323,6 +324,7 @@ PlacementReward _applyReward(WidgetRef ref, HexTile tile, PlacementReward reward
 void _advanceStack(WidgetRef ref) {
   ref.read(tileStackProvider.notifier).consumeActiveTile();
   ref.read(questServiceProvider).onTilePlaced();
+  ref.read(adTilesPlacedProvider.notifier).increment();
   ref.read(placementProvider.notifier).clearSelection();
 }
 

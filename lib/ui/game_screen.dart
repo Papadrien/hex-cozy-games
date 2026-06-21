@@ -86,6 +86,14 @@ class _GameScreenState extends ConsumerState<GameScreen> {
       }
     });
 
+    // Interstitielle AdMob toutes les [kAdInterstitialFrequency] tuiles
+    // (Story 3.1b). Le compteur est cumulatif sur la session.
+    ref.listen<int>(adTilesPlacedProvider, (prev, next) {
+      if (prev != null && next > 0 && next % kAdInterstitialFrequency == 0) {
+        showInterstitialAd();
+      }
+    });
+
     // Auto-effacement de la dernière récompense affichée après le délai.
     // Fade out sur 500ms après 1.5s de visibilité.
     ref.listen<SessionState>(sessionProvider, (prev, next) {
