@@ -309,6 +309,11 @@ class TileComponent extends PositionComponent {
         );
       }
     }
+
+    // ── Décoration HD2D (30% des tuiles) ─────────────────────────────────
+    if (rng.nextDouble() < 0.3) {
+      _drawDecoration(canvas, cx, cyTop, _hexSize, rng);
+    }
   }
 
   @override
@@ -321,6 +326,208 @@ class TileComponent extends PositionComponent {
         _glowSides = null;
       }
     }
+  }
+
+  // ── Décoration HD2D ───────────────────────────────────────────────────────
+
+  /// Dessine une décoration procédurale sur la tuile selon le biome dominant.
+  void _drawDecoration(Canvas canvas, double cx, double cy, double hx, Random rng) {
+    final dominant = _dominantBiome();
+    final s = hx / 48; // facteur d'échelle
+
+    switch (dominant) {
+      case BiomeType.plain:
+        _drawPalm(canvas, cx, cy, s, rng);
+      case BiomeType.flowerField:
+        _drawFlowers(canvas, cx, cy, s, rng);
+      case BiomeType.forest:
+        _drawMangrove(canvas, cx, cy, s, rng);
+      case BiomeType.mountain:
+        _drawVolcano(canvas, cx, cy, s, rng);
+      case BiomeType.beach:
+        _drawShell(canvas, cx, cy, s, rng);
+      case BiomeType.water:
+        _drawRipples(canvas, cx, cy, s, rng);
+      case BiomeType.village:
+        _drawStiltHouse(canvas, cx, cy, s, rng);
+    }
+  }
+
+  void _drawPalm(Canvas canvas, double cx, double cy, double s, Random rng) {
+    final baseX = cx + (rng.nextDouble() - 0.5) * 16 * s;
+    final baseY = cy + (rng.nextDouble() - 0.5) * 10 * s;
+    final h = 14 * s;
+    // Tronc courbe
+    final trunk = Path()
+      ..moveTo(baseX - 1.5 * s, baseY)
+      ..quadraticBezierTo(baseX + 1 * s, baseY - h * 0.5, baseX - 1 * s, baseY - h);
+    canvas.drawPath(
+      trunk,
+      Paint()
+        ..color = const Color(0xFF6D4C41)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.5 * s,
+    );
+    // Feuilles (3-4 lignes)
+    for (var i = 0; i < 3; i++) {
+      final angle = rng.nextDouble() * pi * 0.6 - pi * 0.3 - pi / 2;
+      final len = (6 + rng.nextDouble() * 8) * s;
+      final leaf = Path()
+        ..moveTo(baseX - 1 * s, baseY - h)
+        ..quadraticBezierTo(
+          baseX - 1 * s + cos(angle) * len * 0.5,
+          baseY - h + sin(angle) * len * 0.5,
+          baseX - 1 * s + cos(angle) * len,
+          baseY - h + sin(angle) * len,
+        );
+      canvas.drawPath(
+        leaf,
+        Paint()
+          ..color = const Color(0xFF4CAF50)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2 * s,
+      );
+    }
+  }
+
+  void _drawFlowers(Canvas canvas, double cx, double cy, double s, Random rng) {
+    for (var i = 0; i < 4; i++) {
+      final fx = cx + (rng.nextDouble() - 0.5) * 20 * s;
+      final fy = cy + (rng.nextDouble() - 0.5) * 14 * s;
+      final r = (2 + rng.nextDouble() * 2) * s;
+      canvas.drawCircle(
+        Offset(fx, fy),
+        r,
+        Paint()
+          ..color = const Color(0xFFF48FB1).withValues(alpha: 0.7),
+      );
+      canvas.drawCircle(
+        Offset(fx, fy),
+        r * 0.5,
+        Paint()..color = const Color(0xFFFFF176),
+      );
+    }
+  }
+
+  void _drawMangrove(Canvas canvas, double cx, double cy, double s, Random rng) {
+    final bx = cx + (rng.nextDouble() - 0.5) * 12 * s;
+    final by = cy + 4 * s;
+    // Racines en V
+    for (var side = -1; side <= 1; side += 2) {
+      final root = Path()
+        ..moveTo(bx + side * 2 * s, by)
+        ..quadraticBezierTo(
+          bx + side * 6 * s, by - 6 * s,
+          bx + side * 4 * s, by - 12 * s,
+        );
+      canvas.drawPath(
+        root,
+        Paint()
+          ..color = const Color(0xFF5D4037)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2.5 * s,
+      );
+    }
+    // Feuillage (couronne arrondie)
+    canvas.drawCircle(
+      Offset(bx, by - 14 * s),
+      6 * s,
+      Paint()
+        ..color = const Color(0xFF388E3C).withValues(alpha: 0.9),
+    );
+  }
+
+  void _drawVolcano(Canvas canvas, double cx, double cy, double s, Random rng) {
+    final vx = cx + (rng.nextDouble() - 0.5) * 8 * s;
+    final vy = cy + 6 * s;
+    // Cône volcanique
+    final cone = Path()
+      ..moveTo(vx - 8 * s, vy)
+      ..lineTo(vx, vy - 14 * s)
+      ..lineTo(vx + 8 * s, vy)
+      ..close();
+    canvas.drawPath(
+      cone,
+      Paint()..color = const Color(0xFF616161),
+    );
+    // Lueur orangée au sommet
+    canvas.drawCircle(
+      Offset(vx, vy - 13 * s),
+      2.5 * s,
+      Paint()..color = const Color(0xFFFF6F00),
+    );
+  }
+
+  void _drawShell(Canvas canvas, double cx, double cy, double s, Random rng) {
+    final sx = cx + (rng.nextDouble() - 0.5) * 14 * s;
+    final sy = cy + (rng.nextDouble() - 0.5) * 10 * s;
+    // Étoile de mer à 5 branches (polygone simple)
+    final shell = Path();
+    for (var i = 0; i < 5; i++) {
+      final angle = i * 2 * pi / 5 - pi / 2;
+      final r = (i.isEven ? 4.0 : 2.0) * s;
+      if (i == 0) {
+        shell.moveTo(sx + cos(angle) * r, sy + sin(angle) * r);
+      } else {
+        shell.lineTo(sx + cos(angle) * r, sy + sin(angle) * r);
+      }
+    }
+    shell.close();
+    canvas.drawPath(
+      shell,
+      Paint()
+        ..color = const Color(0xFFFFCC80).withValues(alpha: 0.8),
+    );
+  }
+
+  void _drawRipples(Canvas canvas, double cx, double cy, double s, Random rng) {
+    for (var i = 0; i < 2; i++) {
+      final rx = cx + (rng.nextDouble() - 0.5) * 18 * s;
+      final ry = cy + (rng.nextDouble() - 0.5) * 12 * s;
+      final ripple = Path()
+        ..addOval(Rect.fromCenter(
+          center: Offset(rx, ry),
+          width: (6 + rng.nextDouble() * 4) * s,
+          height: (2 + rng.nextDouble()) * s,
+        ));
+      canvas.drawPath(
+        ripple,
+        Paint()
+          ..color = const Color(0xFFFFFFFF).withValues(alpha: 0.25)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.0,
+      );
+    }
+  }
+
+  void _drawStiltHouse(Canvas canvas, double cx, double cy, double s, Random rng) {
+    final hx2 = cx + (rng.nextDouble() - 0.5) * 6 * s;
+    final hy = cy + 6 * s;
+    // Pilotis
+    for (var i = -1; i <= 1; i += 1) {
+      canvas.drawLine(
+        Offset(hx2 + i * 3 * s, hy),
+        Offset(hx2 + i * 3 * s, hy - 8 * s),
+        Paint()
+          ..color = const Color(0xFF5D4037)
+          ..strokeWidth = 1.5 * s,
+      );
+    }
+    // Plateforme
+    canvas.drawRect(
+      Rect.fromCenter(center: Offset(hx2, hy - 8 * s), width: 12 * s, height: 2 * s),
+      Paint()..color = const Color(0xFF8D6E63),
+    );
+    // Toit (triangle)
+    final roof = Path()
+      ..moveTo(hx2 - 7 * s, hy - 9 * s)
+      ..lineTo(hx2, hy - 16 * s)
+      ..lineTo(hx2 + 7 * s, hy - 9 * s)
+      ..close();
+    canvas.drawPath(
+      roof,
+      Paint()..color = const Color(0xFFD84315).withValues(alpha: 0.8),
+    );
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────────
