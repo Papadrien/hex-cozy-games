@@ -202,10 +202,12 @@ class _CenterContent extends ConsumerStatefulWidget {
 }
 
 class _CenterContentState extends ConsumerState<_CenterContent>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late final AnimationController _animController;
   late final Animation<double> _scaleAnim;
   late final Animation<double> _opacityAnim;
+  late final AnimationController _pulseController;
+  late final Animation<double> _pulseAnim;
 
   @override
   void initState() {
@@ -224,6 +226,14 @@ class _CenterContentState extends ConsumerState<_CenterContent>
         parent: _animController,
         curve: const Interval(0, 0.3, curve: Curves.easeOut),
       ),
+    );
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat(reverse: true);
+    _pulseAnim = CurvedAnimation(
+      parent: _pulseController,
+      curve: Curves.easeInOutSine,
     );
     _autoClaimPremium();
   }
@@ -245,6 +255,7 @@ class _CenterContentState extends ConsumerState<_CenterContent>
   @override
   void dispose() {
     _animController.dispose();
+    _pulseController.dispose();
     super.dispose();
   }
 
@@ -272,25 +283,34 @@ class _CenterContentState extends ConsumerState<_CenterContent>
             ),
             const SizedBox(height: 36),
             // ── Bouton Jouer / Reprendre ────────────────────────────────────
-            SizedBox(
-              width: 200,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(14),
-                  gradient: const LinearGradient(
-                    colors: [kBrandTurquoise, kSeaTurquoise],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: kBrandTurquoise.withValues(alpha: 0.4),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
+            AnimatedBuilder(
+              animation: _pulseAnim,
+              builder: (context, child) {
+                final pulse = 0.3 + _pulseAnim.value * 0.5;
+                return SizedBox(
+                  width: 200,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(14),
+                      gradient: const LinearGradient(
+                        colors: [kBrandTurquoise, kSeaTurquoise],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: kBrandTurquoise
+                              .withValues(alpha: 0.2 * pulse),
+                          blurRadius: 8 + _pulseAnim.value * 16,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-                child: TextButton(
+                    child: child!,
+                  ),
+                );
+              },
+              child: TextButton(
                   style: TextButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
@@ -327,7 +347,6 @@ class _CenterContentState extends ConsumerState<_CenterContent>
                   ),
                 ),
               ),
-            ),
             ),
             const SizedBox(height: 12),
             // ── Bouton Build (sélection des améliorations) ──────────────────
