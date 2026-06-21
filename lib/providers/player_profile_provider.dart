@@ -66,6 +66,16 @@ Future<void> incrementTotalTilesPlaced(AppDatabase db) async {
   );
 }
 
+/// Met à jour la date du dernier reward quotidien (Story 3.2a).
+Future<void> updateLastDailyRewardDate(AppDatabase db) async {
+  await _ensureProfileExists(db);
+  await (db.update(db.playerProfile)..where((t) => t.id.equals(1))).write(
+    PlayerProfileCompanion(
+      lastDailyRewardDate: Value(DateTime.now()),
+    ),
+  );
+}
+
 /// Débite [amount] pièces du solde persisté — Story 2.6a.
 ///
 /// Retourne `false` si le solde est insuffisant, `true` si le débit a

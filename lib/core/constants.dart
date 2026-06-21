@@ -57,3 +57,16 @@ const double kAdBannerHeight = 50.0;
 
 /// Nombre de tuiles posées entre chaque interstitielle AdMob (Story 3.1b).
 const int kAdInterstitialFrequency = 20;
+
+// ── AdMob — Story 3.2a ────────────────────────────────────────────────────
+
+/// ID de test AdMob pour les rewarded (Android).
+const String kAdMobRewardedTestIdAndroid =
+    'ca-app-pub-3940256099942544/5224354917';
+
+/// ID de test AdMob pour les rewarded (iOS).
+const String kAdMobRewardedTestIdIOS =
+    'ca-app-pub-3940256099942544/1712485313';
+
+/// Nombre de pièces créditées après visionnage de la pub rewarded quotidienne.
+const int kAdRewardedCoins = 50;
