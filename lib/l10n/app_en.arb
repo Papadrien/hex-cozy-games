@@ -110,6 +110,27 @@
   "upgrades_max": "MAX",
   "@upgrades_max": {},
 
+  "shop_title": "Shop",
+  "@shop_title": {},
+  "shop_coinPacks": "Coin packs",
+  "@shop_coinPacks": {},
+  "shop_comingSoon": "Coming soon",
+  "@shop_comingSoon": {},
+  "shop_coinCount": "{count} coins",
+  "@shop_coinCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "shop_premium": "Premium",
+  "@shop_premium": {},
+  "shop_premiumDescription": "Removes all ads + 50 coins/day automatically",
+  "@shop_premiumDescription": {},
+  "shop_buy": "Buy",
+  "@shop_buy": {},
+  "shop_alreadyPremium": "Already Premium",
+  "@shop_alreadyPremium": {},
+
   "home_settings": "Settings",
   "@home_settings": {},
   "home_shop": "Shop",
@@ -120,6 +141,11 @@
   "@home_quests": {},
   "home_stats": "Statistics",
   "@home_stats": {},
+
+  "ads_watchForCoins": "Watch an ad (+50 coins)",
+  "@ads_watchForCoins": {},
+  "ads_comeBackTomorrow": "Come back tomorrow",
+  "@ads_comeBackTomorrow": {},
 
   "stats_title": "Statistics",
   "@stats_title": {},

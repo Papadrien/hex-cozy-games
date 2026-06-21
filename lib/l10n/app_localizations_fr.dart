@@ -174,6 +174,31 @@ class AppLocalizationsFr extends AppLocalizations {
   String get upgrades_max => 'MAX';
 
   @override
+  String get shop_title => 'Boutique';
+
+  @override
+  String get shop_coinPacks => 'Packs de pièces';
+
+  @override
+  String get shop_comingSoon => 'Bientôt disponible';
+
+  @override
+  String shop_coinCount(Object count) => '$count pièces';
+
+  @override
+  String get shop_premium => 'Premium';
+
+  @override
+  String get shop_premiumDescription =>
+      'Supprime toutes les pubs + 50 pièces/jour automatiques';
+
+  @override
+  String get shop_buy => 'Acheter';
+
+  @override
+  String get shop_alreadyPremium => 'Déjà Premium';
+
+  @override
   String get home_settings => 'Réglages';
 
   @override
@@ -187,6 +212,12 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get home_stats => 'Statistiques';
+
+  @override
+  String get ads_watchForCoins => 'Regarder une pub (+50 pièces)';
+
+  @override
+  String get ads_comeBackTomorrow => 'Revenez demain';
 
   @override
   String get stats_title => 'Statistiques';

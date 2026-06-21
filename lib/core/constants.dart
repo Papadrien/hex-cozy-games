@@ -70,3 +70,19 @@ const String kAdMobRewardedTestIdIOS =
 
 /// Nombre de pièces créditées après visionnage de la pub rewarded quotidienne.
 const int kAdRewardedCoins = 50;
+
+// ── Boutique — Story 3.3a ───────────────────────────────────────────────────
+
+/// Packs de pièces (pièces, prix USD, bonus éventuel).
+const List<CoinPack> kCoinPacks = [
+  CoinPack(coins: 100, price: '\$0.99'),
+  CoinPack(coins: 500, price: '\$3.99'),
+  CoinPack(coins: 1200, price: '\$7.99'),
+];
+
+class CoinPack {
+  final int coins;
+  final String price;
+
+  const CoinPack({required this.coins, required this.price});
+}

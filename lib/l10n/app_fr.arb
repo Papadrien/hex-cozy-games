@@ -57,11 +57,37 @@
   "upgrades_cost": "Co\u00fbt",
   "upgrades_max": "MAX",
 
+  "shop_title": "Boutique",
+  "@shop_title": {},
+  "shop_coinPacks": "Packs de pi\u00e8ces",
+  "@shop_coinPacks": {},
+  "shop_comingSoon": "Bient\u00f4t disponible",
+  "@shop_comingSoon": {},
+  "shop_coinCount": "{count} pi\u00e8ces",
+  "@shop_coinCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "shop_premium": "Premium",
+  "@shop_premium": {},
+  "shop_premiumDescription": "Supprime toutes les pubs + 50 pi\u00e8ces/jour automatiques",
+  "@shop_premiumDescription": {},
+  "shop_buy": "Acheter",
+  "@shop_buy": {},
+  "shop_alreadyPremium": "D\u00e9j\u00e0 Premium",
+  "@shop_alreadyPremium": {},
+
   "home_settings": "R\u00e9glages",
   "home_shop": "Boutique",
   "home_buildSelection": "S\u00e9lection des am\u00e9liorations",
   "home_quests": "Qu\u00eates",
   "home_stats": "Statistiques",
+
+  "ads_watchForCoins": "Regarder une pub (+50 pi\u00e8ces)",
+  "@ads_watchForCoins": {},
+  "ads_comeBackTomorrow": "Revenez demain",
+  "@ads_comeBackTomorrow": {},
 
   "stats_title": "Statistiques",
   "stats_totalTiles": "Tuiles totales plac\u00e9es",

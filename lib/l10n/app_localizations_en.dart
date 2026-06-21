@@ -173,6 +173,31 @@ class AppLocalizationsEn extends AppLocalizations {
   String get upgrades_max => 'MAX';
 
   @override
+  String get shop_title => 'Shop';
+
+  @override
+  String get shop_coinPacks => 'Coin packs';
+
+  @override
+  String get shop_comingSoon => 'Coming soon';
+
+  @override
+  String shop_coinCount(Object count) => '$count coins';
+
+  @override
+  String get shop_premium => 'Premium';
+
+  @override
+  String get shop_premiumDescription =>
+      'Removes all ads + 50 coins/day automatically';
+
+  @override
+  String get shop_buy => 'Buy';
+
+  @override
+  String get shop_alreadyPremium => 'Already Premium';
+
+  @override
   String get home_settings => 'Settings';
 
   @override
@@ -186,6 +211,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get home_stats => 'Statistics';
+
+  @override
+  String get ads_watchForCoins => 'Watch an ad (+50 coins)';
+
+  @override
+  String get ads_comeBackTomorrow => 'Come back tomorrow';
 
   @override
   String get stats_title => 'Statistics';

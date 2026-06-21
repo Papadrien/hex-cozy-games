@@ -11,8 +11,10 @@ import '../providers/build_provider.dart';
 import '../providers/placement_commit.dart';
 import '../providers/player_profile_provider.dart';
 import '../providers/progression_provider.dart';
+import '../services/ad_service.dart';
 import 'build_screen.dart';
 import 'quests_screen.dart';
+import 'shop_screen.dart';
 import 'stats_screen.dart';
 
 class HomeScreen extends ConsumerWidget {
@@ -98,7 +100,9 @@ class _TopBar extends StatelessWidget {
           _IconButton(
             icon: Icons.store,
             tooltip: context.tr.home_shop,
-            onPressed: () => _notYet(context, context.tr.home_shop),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const ShopScreen()),
+            ),
           ),
         ],
       ),
@@ -195,6 +199,7 @@ class _CenterContent extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final selected = ref.watch(selectedUpgradesProvider);
+    final adAvailable = ref.watch(isDailyRewardAvailableProvider);
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -253,6 +258,56 @@ class _CenterContent extends ConsumerWidget {
         const SizedBox(height: 12),
         // ── Bouton Build (sélection des améliorations) ──────────────────
         _BuildButton(selected: selected),
+        const SizedBox(height: 16),
+        // ── Bouton Pub Rewarded ──────────────────────────────────────────
+        TextButton.icon(
+          style: TextButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            foregroundColor: Colors.white,
+            backgroundColor: adAvailable
+                ? Colors.amber.withValues(alpha: 0.2)
+                : Colors.white.withValues(alpha: 0.05),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: BorderSide(
+                color: adAvailable
+                    ? Colors.amber.withValues(alpha: 0.4)
+                    : Colors.white.withValues(alpha: 0.1),
+              ),
+            ),
+          ),
+          icon: Icon(
+            adAvailable ? Icons.play_circle_outline : Icons.check_circle_outline,
+            size: 20,
+            color: adAvailable
+                ? Colors.amber
+                : Colors.white.withValues(alpha: 0.4),
+          ),
+          label: Text(
+            adAvailable
+                ? context.tr.ads_watchForCoins
+                : context.tr.ads_comeBackTomorrow,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: adAvailable ? Colors.amber.shade200 : Colors.white.withValues(alpha: 0.4),
+            ),
+          ),
+          onPressed: adAvailable
+              ? () async {
+                  final rewarded = await claimDailyReward(ref);
+                  if (rewarded && context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('+$kAdRewardedCoins ${context.tr.reward_coins}'),
+                        backgroundColor: Colors.green.withValues(alpha: 0.3),
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                  }
+                }
+              : null,
+        ),
         const SizedBox(height: 24),
         // ── Accès Quêtes et Statistiques ─────────────────────────────────
         Row(

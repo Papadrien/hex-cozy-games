@@ -416,6 +416,54 @@ abstract class AppLocalizations {
   /// **'MAX'**
   String get upgrades_max;
 
+  /// No description provided for @shop_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Shop'**
+  String get shop_title;
+
+  /// No description provided for @shop_coinPacks.
+  ///
+  /// In en, this message translates to:
+  /// **'Coin packs'**
+  String get shop_coinPacks;
+
+  /// No description provided for @shop_comingSoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Coming soon'**
+  String get shop_comingSoon;
+
+  /// No description provided for @shop_coinCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} coins'**
+  String shop_coinCount(Object count);
+
+  /// No description provided for @shop_premium.
+  ///
+  /// In en, this message translates to:
+  /// **'Premium'**
+  String get shop_premium;
+
+  /// No description provided for @shop_premiumDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Removes all ads + 50 coins/day automatically'**
+  String get shop_premiumDescription;
+
+  /// No description provided for @shop_buy.
+  ///
+  /// In en, this message translates to:
+  /// **'Buy'**
+  String get shop_buy;
+
+  /// No description provided for @shop_alreadyPremium.
+  ///
+  /// In en, this message translates to:
+  /// **'Already Premium'**
+  String get shop_alreadyPremium;
+
   /// No description provided for @home_settings.
   ///
   /// In en, this message translates to:
@@ -445,6 +493,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Statistics'**
   String get home_stats;
+
+  /// No description provided for @ads_watchForCoins.
+  ///
+  /// In en, this message translates to:
+  /// **'Watch an ad (+50 coins)'**
+  String get ads_watchForCoins;
+
+  /// No description provided for @ads_comeBackTomorrow.
+  ///
+  /// In en, this message translates to:
+  /// **'Come back tomorrow'**
+  String get ads_comeBackTomorrow;
 
   /// No description provided for @stats_title.
   ///
