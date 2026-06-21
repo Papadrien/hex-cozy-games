@@ -26,7 +26,7 @@ jobs:
           flutter-version: 3.44.2
       - run: flutter pub get
       - run: flutter test --coverage --exclude-tags needs-plugin
-      - uses: coverallsapp/github-action@v2
+      - uses: coverallsapp/github-action@v2.3.6
         with:
           file: coverage/lcov.info
 
