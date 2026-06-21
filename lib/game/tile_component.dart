@@ -28,21 +28,39 @@ const double kGlowDurationSec = 0.6;
 /// Opacité initiale du glow.
 const double kGlowStartAlpha = 0.45;
 
-/// Correspondance [BiomeType] → couleur d'affichage MVP.
+/// Correspondance [BiomeType] → couleurs d'affichage île paradisiaque.
+///
+/// Chaque biome expose une [color] principale (face du dessus) et une [darkColor]
+/// pour les faces latérales extrudées (3D).
 extension BiomeColor on BiomeType {
   Color get color {
     switch (this) {
-      case BiomeType.forest:
-        return const Color(0xFF43A047); // vert
-      case BiomeType.village:
-        return const Color(0xFFE53935); // rouge
       case BiomeType.plain:
-        return const Color(0xFFFFD600); // jaune
-      case BiomeType.water:
-        return const Color(0xFF1E88E5); // bleu
+        return const Color(0xFF8BC34A); // vert prairie tropicale
+      case BiomeType.flowerField:
+        return const Color(0xFFEC407A); // rose champ de fleurs
+      case BiomeType.forest:
+        return const Color(0xFF2E7D32); // vert mangrove foncé
       case BiomeType.mountain:
-        return const Color(0xFF8E24AA); // violet
+        return const Color(0xFF424242); // gris basalte
+      case BiomeType.beach:
+        return const Color(0xFFFDD835); // sable doré
+      case BiomeType.water:
+        return const Color(0xFF26C6DA); // turquoise
+      case BiomeType.village:
+        return const Color(0xFF8D6E63); // bois brun chaud
     }
+  }
+
+  /// Teinte dégradée plus claire (pour le centre de la face).
+  Color get lightColor {
+    final c = color;
+    return Color.from(
+      alpha: c.a,
+      red: (c.r + 0.3).clamp(0.0, 1.0),
+      green: (c.g + 0.3).clamp(0.0, 1.0),
+      blue: (c.b + 0.3).clamp(0.0, 1.0),
+    );
   }
 }
 
@@ -190,7 +208,9 @@ class TileComponent extends PositionComponent {
       );
     }
 
-    // ── Face du dessus (couleurs des biomes, inchangées) ─────────────────
+    // ── Face du dessus avec dégradé lumineux ────────────────────────────
+    // Remplir chaque segment avec la couleur de base, puis ajouter un
+    // dégradé radial centre → bord pour l'effet "terrain organique".
     for (var i = 0; i < 6; i++) {
       final c0 = topCorners[i];
       final c1 = topCorners[(i + 1) % 6];
@@ -204,7 +224,15 @@ class TileComponent extends PositionComponent {
       canvas.drawPath(
         path,
         Paint()
-          ..color = tile.sides[i].color.withValues(alpha: _alpha)
+          ..shader = Gradient.radial(
+            Offset(cx, cyTop),
+            _hexSize * kIsoScaleY,
+            [
+              tile.sides[i].lightColor.withValues(alpha: _alpha),
+              tile.sides[i].color.withValues(alpha: _alpha),
+            ],
+            [0.0, 0.7],
+          )
           ..style = PaintingStyle.fill,
       );
 
