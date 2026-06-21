@@ -73,16 +73,21 @@ const int kAdRewardedCoins = 50;
 
 // ── Boutique — Story 3.3a ───────────────────────────────────────────────────
 
-/// Packs de pièces (pièces, prix USD, bonus éventuel).
+/// Packs de pièces (pièces, prix, ID produit IAP).
 const List<CoinPack> kCoinPacks = [
-  CoinPack(coins: 100, price: '\$0.99'),
-  CoinPack(coins: 500, price: '\$3.99'),
-  CoinPack(coins: 1200, price: '\$7.99'),
+  CoinPack(coins: 100, price: '\$0.99', productId: 'coins_small'),
+  CoinPack(coins: 500, price: '\$3.99', productId: 'coins_medium'),
+  CoinPack(coins: 1200, price: '\$7.99', productId: 'coins_large'),
 ];
 
 class CoinPack {
   final int coins;
   final String price;
+  final String productId;
 
-  const CoinPack({required this.coins, required this.price});
+  const CoinPack({
+    required this.coins,
+    required this.price,
+    required this.productId,
+  });
 }

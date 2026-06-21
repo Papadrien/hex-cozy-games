@@ -5,6 +5,7 @@ import '../core/colors.dart';
 import '../core/constants.dart';
 import '../core/strings.dart';
 import '../providers/player_profile_provider.dart';
+import '../services/iap_service.dart';
 
 class ShopScreen extends ConsumerWidget {
   const ShopScreen({super.key});
@@ -76,15 +77,23 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
-class _CoinPackCard extends StatelessWidget {
+class _CoinPackCard extends ConsumerStatefulWidget {
   const _CoinPackCard({required this.pack, required this.index});
 
   final CoinPack pack;
   final int index;
 
   @override
+  ConsumerState<_CoinPackCard> createState() => _CoinPackCardState();
+}
+
+class _CoinPackCardState extends ConsumerState<_CoinPackCard> {
+  bool _loading = false;
+
+  @override
   Widget build(BuildContext context) {
-    final isBestValue = index == kCoinPacks.length - 1;
+    final isBestValue = widget.index == kCoinPacks.length - 1;
+    final iapAvailable = ref.watch(iapAvailableProvider);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -103,14 +112,14 @@ class _CoinPackCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          _CoinStackIcon(index: index),
+          _CoinStackIcon(index: widget.index),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  context.tr.shop_coinCount(pack.coins.toString()),
+                  context.tr.shop_coinCount(widget.pack.coins.toString()),
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 17,
@@ -140,30 +149,66 @@ class _CoinPackCard extends StatelessWidget {
               ],
             ),
           ),
-          TextButton(
-            style: TextButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-              backgroundColor: kRewardGold,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(context.tr.shop_comingSoon),
-                  backgroundColor: Colors.white.withValues(alpha: 0.1),
-                  behavior: SnackBarBehavior.floating,
+          SizedBox(
+            height: 42,
+            child: TextButton(
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 18),
+                backgroundColor: _loading
+                    ? kRewardGold.withValues(alpha: 0.5)
+                    : iapAvailable
+                        ? kRewardGold
+                        : Colors.white.withValues(alpha: 0.1),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
                 ),
-              );
-            },
-            child: Text(
-              pack.price,
-              style: const TextStyle(
-                color: Colors.black,
-                fontSize: 15,
-                fontWeight: FontWeight.bold,
               ),
+              onPressed: (_loading || !iapAvailable)
+                  ? null
+                  : () async {
+                      setState(() => _loading = true);
+                      try {
+                        final ok = await purchaseCoinPack(ref, widget.index);
+                        if (!context.mounted) return;
+                        if (ok) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                  '+${widget.pack.coins} ${context.tr.reward_coins}'),
+                              backgroundColor: Colors.green.withValues(alpha: 0.3),
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(context.tr.shop_comingSoon),
+                              backgroundColor: Colors.white.withValues(alpha: 0.1),
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        }
+                      } finally {
+                        if (context.mounted) {
+                          setState(() => _loading = false);
+                        }
+                      }
+                    },
+              child: _loading
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.black),
+                    )
+                  : Text(
+                      widget.pack.price,
+                      style: TextStyle(
+                        color: iapAvailable ? Colors.black : Colors.white.withValues(alpha: 0.4),
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
             ),
           ),
         ],
