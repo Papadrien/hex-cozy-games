@@ -198,6 +198,24 @@ class AppLocalizationsEn extends AppLocalizations {
   String get shop_alreadyPremium => 'Already Premium';
 
   @override
+  String get shop_purchasePending => 'Purchase pending...';
+
+  @override
+  String get shop_purchaseError => 'Purchase failed. Please try again.';
+
+  @override
+  String get shop_purchaseCanceled => 'Purchase canceled';
+
+  @override
+  String get shop_restorePurchases => 'Restore purchases';
+
+  @override
+  String get shop_restoreCompleted => 'Purchases restored';
+
+  @override
+  String get shop_restoreError => 'Could not restore purchases';
+
+  @override
   String get home_settings => 'Settings';
 
   @override

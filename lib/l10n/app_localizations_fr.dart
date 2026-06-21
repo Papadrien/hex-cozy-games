@@ -199,6 +199,24 @@ class AppLocalizationsFr extends AppLocalizations {
   String get shop_alreadyPremium => 'Déjà Premium';
 
   @override
+  String get shop_purchasePending => 'Achat en attente...';
+
+  @override
+  String get shop_purchaseError => 'Achat échoué. Veuillez réessayer.';
+
+  @override
+  String get shop_purchaseCanceled => 'Achat annulé';
+
+  @override
+  String get shop_restorePurchases => 'Restaurer les achats';
+
+  @override
+  String get shop_restoreCompleted => 'Achats restaurés';
+
+  @override
+  String get shop_restoreError => 'Impossible de restaurer les achats';
+
+  @override
   String get home_settings => 'Réglages';
 
   @override

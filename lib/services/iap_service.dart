@@ -1,10 +1,12 @@
-/// Service d'achats in-app — Story 3.4a.
+/// Service d'achats in-app — Story 3.4a / 3.4b.
 ///
 /// Configure et orchestre le flux d'achat des packs de pièces via le
-/// plugin [in_app_purchase] (Flutter official).
+/// plugin [in_app_purchase]. Gère les achats pending (Android),
+/// le restore purchases (iOS) et les erreurs.
 library;
 
 import 'dart:async';
+import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -23,12 +25,33 @@ const Set<String> kCoinPackProductIds = {
   'coins_large',
 };
 
+// ── Résultat d'achat ────────────────────────────────────────────────────────
+
+/// Résultat d'une tentative d'achat ou de restore.
+enum IapResult {
+  /// Achat réussi, pièces créditées.
+  success,
+
+  /// Achat annulé par l'utilisateur.
+  canceled,
+
+  /// Achat en attente de validation (Android — paiement différé).
+  pending,
+
+  /// Acheté précédemment et restauré (iOS).
+  restored,
+
+  /// Erreur technique.
+  error,
+}
+
 // ── Service IAP ─────────────────────────────────────────────────────────────
 
 /// Provider du service IAP. Initialise la connexion au store et expose les
 /// produits. Se dispose automatiquement via [ref.onDispose].
 final iapServiceProvider = Provider<IapService>((ref) {
-  final service = IapService();
+  final db = ref.read(appDatabaseProvider);
+  final service = IapService(db: db);
   ref.onDispose(() => service.dispose());
   return service;
 });
@@ -44,12 +67,22 @@ final iapAvailableProvider = Provider<bool>((ref) {
   return ref.watch(iapServiceProvider).available;
 });
 
+/// Nombre d'achats en attente (pending Android).
+final pendingPurchaseCountProvider = Provider<int>((ref) {
+  return ref.watch(iapServiceProvider).pendingCount;
+});
+
 class IapService {
+  final AppDatabase _db;
   final InAppPurchase _iap = InAppPurchase.instance;
+
+  IapService({required AppDatabase db}) : _db = db {
+    _init();
+  }
   StreamSubscription<List<PurchaseDetails>>? _subscription;
 
-  final Map<String, Completer<PurchaseDetails?>> _pending = {};
-
+  final Map<String, Completer<IapResult>> _pendingCompleters = {};
+  int _pendingCount = 0;
   List<ProductDetails> _products = [];
   bool _available = false;
 
@@ -59,9 +92,8 @@ class IapService {
   /// true si le service IAP est disponible sur cet appareil.
   bool get available => _available;
 
-  IapService() {
-    _init();
-  }
+  /// Nombre d'achats pending en attente.
+  int get pendingCount => _pendingCount;
 
   Future<void> _init() async {
     final isAvailable = await _iap.isAvailable();
@@ -85,27 +117,82 @@ class IapService {
 
   void _onPurchaseUpdate(List<PurchaseDetails> purchases) {
     for (final purchase in purchases) {
-      final completer = _pending.remove(purchase.productID);
-      if (completer == null) continue;
+      debugPrint('[IAP] Purchase update: ${purchase.productID} '
+          '(status: ${purchase.status}, id: ${purchase.purchaseID})');
 
-      if (purchase.status == PurchaseStatus.purchased) {
-        debugPrint('[IAP] Purchase successful: ${purchase.productID}');
-        completer.complete(purchase);
-      } else {
-        debugPrint('[IAP] Purchase failed/canceled: ${purchase.productID} '
-            '(status: ${purchase.status})');
-        completer.complete(null);
+      switch (purchase.status) {
+        case PurchaseStatus.pending:
+          _handlePending(purchase);
+        case PurchaseStatus.purchased:
+          _handlePurchased(purchase);
+        case PurchaseStatus.restored:
+          _handleRestored(purchase);
+        case PurchaseStatus.error:
+          _handleError(purchase);
+        case PurchaseStatus.canceled:
+          _handleCanceled(purchase);
       }
+    }
+  }
+
+  void _handlePending(PurchaseDetails purchase) {
+    _pendingCount++;
+    // Ne pas résoudre le completer — attendre le statut purchased final.
+  }
+
+  Future<void> _handlePurchased(PurchaseDetails purchase) async {
+    _pendingCount = max(0, _pendingCount - 1);
+    await _deliver(purchase);
+  }
+
+  Future<void> _handleRestored(PurchaseDetails purchase) async {
+    _pendingCount = max(0, _pendingCount - 1);
+    await _deliver(purchase);
+  }
+
+  void _handleError(PurchaseDetails purchase) {
+    _pendingCount = max(0, _pendingCount - 1);
+    _resolveCompleter(purchase.productID, IapResult.error);
+  }
+
+  void _handleCanceled(PurchaseDetails purchase) {
+    _pendingCount = max(0, _pendingCount - 1);
+    _resolveCompleter(purchase.productID, IapResult.canceled);
+  }
+
+  /// Livre la récompense et finalise la transaction.
+  Future<void> _deliver(PurchaseDetails purchase) async {
+    final pack = kCoinPacks.where(
+      (p) => p.productId == purchase.productID,
+    ).firstOrNull;
+
+    if (pack != null) {
+      await addCoinsToProfile(_db, pack.coins);
+      debugPrint('[IAP] Delivered ${pack.coins} coins for ${pack.productId}');
+    }
+
+    if (purchase.pendingCompletePurchase) {
+      await _iap.completePurchase(purchase);
+    }
+
+    _resolveCompleter(purchase.productID,
+        pack != null ? IapResult.success : IapResult.error);
+  }
+
+  void _resolveCompleter(String productId, IapResult result) {
+    final completer = _pendingCompleters.remove(productId);
+    if (completer != null && !completer.isCompleted) {
+      completer.complete(result);
     }
   }
 
   /// Lance un achat consommable pour le produit [productId].
   ///
-  /// Retourne les [PurchaseDetails] si l'achat a réussi, `null` en cas
-  /// d'échec ou d'annulation. Le caller doit ensuite créditer la récompense
-  /// et appeler [completePurchase] sur les détails retournés.
-  Future<PurchaseDetails?> purchase(String productId) async {
-    if (!_available) return null;
+  /// Retourne [IapResult.success] si l'achat a réussi, [IapResult.canceled]
+  /// si l'utilisateur a annulé, [IapResult.pending] si le paiement est en
+  /// attente (Android), ou [IapResult.error] en cas d'échec.
+  Future<IapResult> purchase(String productId) async {
+    if (!_available) return IapResult.error;
 
     final product = _products.cast<ProductDetails?>().firstWhere(
           (p) => p?.id == productId,
@@ -113,11 +200,16 @@ class IapService {
         );
     if (product == null) {
       debugPrint('[IAP] Product not found: $productId');
-      return null;
+      return IapResult.error;
     }
 
-    final completer = Completer<PurchaseDetails?>();
-    _pending[productId] = completer;
+    if (_pendingCompleters.containsKey(productId)) {
+      debugPrint('[IAP] Purchase already in progress for $productId');
+      return IapResult.error;
+    }
+
+    final completer = Completer<IapResult>();
+    _pendingCompleters[productId] = completer;
 
     try {
       await _iap.buyConsumable(
@@ -125,42 +217,45 @@ class IapService {
       );
     } catch (e) {
       debugPrint('[IAP] Failed to initiate purchase: $e');
-      _pending.remove(productId);
-      return null;
+      _pendingCompleters.remove(productId);
+      return IapResult.error;
     }
 
     return completer.future;
   }
 
+  /// Restaure les achats précédents.
+  ///
+  /// Retourne `true` si la restauration a été initiée. Les produits
+  /// restaurés sont livrés automatiquement via le purchaseStream.
+  Future<bool> restorePurchases() async {
+    if (!_available) return false;
+    await _iap.restorePurchases();
+    return true;
+  }
+
   void dispose() {
     _subscription?.cancel();
-    _pending.clear();
+    _pendingCompleters.clear();
   }
 }
 
-// ── Fonction d'achat utilisable depuis l'UI ─────────────────────────────────
+// ── Fonctions utilisables depuis l'UI ───────────────────────────────────────
 
 /// Achète le pack de pièces à l'index [packIndex] dans [kCoinPacks].
 ///
-/// 1. Lance l'achat via le store natif.
-/// 2. Si réussi, crédite les pièces et finalise la transaction.
-/// 3. Retourne `true` si les pièces ont été créditées.
-Future<bool> purchaseCoinPack(WidgetRef ref, int packIndex) async {
-  if (packIndex < 0 || packIndex >= kCoinPacks.length) return false;
+/// Retourne le [IapResult] correspondant.
+Future<IapResult> purchaseCoinPack(WidgetRef ref, int packIndex) async {
+  if (packIndex < 0 || packIndex >= kCoinPacks.length) return IapResult.error;
 
   final pack = kCoinPacks[packIndex];
   final iap = ref.read(iapServiceProvider);
 
-  final purchase = await iap.purchase(pack.productId);
-  if (purchase == null) return false;
+  return iap.purchase(pack.productId);
+}
 
-  final db = ref.read(appDatabaseProvider);
-  await addCoinsToProfile(db, pack.coins);
-
-  if (purchase.pendingCompletePurchase) {
-    await InAppPurchase.instance.completePurchase(purchase);
-  }
-
-  debugPrint('[IAP] Delivered ${pack.coins} coins for ${pack.productId}');
-  return true;
+/// Restaure les achats précédents (bouton en bas de la boutique).
+Future<bool> restoreAllPurchases(WidgetRef ref) async {
+  final iap = ref.read(iapServiceProvider);
+  return iap.restorePurchases();
 }

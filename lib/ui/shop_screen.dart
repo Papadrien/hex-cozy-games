@@ -49,7 +49,79 @@ class ShopScreen extends ConsumerWidget {
           _SectionHeader(label: context.tr.shop_premium),
           const SizedBox(height: 12),
           _PremiumCard(isPremium: isPremium),
+          const SizedBox(height: 24),
+          _RestoreButton(),
         ],
+      ),
+    );
+  }
+}
+
+class _RestoreButton extends ConsumerStatefulWidget {
+  @override
+  ConsumerState<_RestoreButton> createState() => _RestoreButtonState();
+}
+
+class _RestoreButtonState extends ConsumerState<_RestoreButton> {
+  bool _loading = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: TextButton(
+        style: TextButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          foregroundColor: Colors.white.withValues(alpha: 0.5),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(color: Colors.white.withValues(alpha: 0.12)),
+          ),
+        ),
+        onPressed: _loading
+            ? null
+            : () async {
+                setState(() => _loading = true);
+                try {
+                  final ok = await restoreAllPurchases(ref);
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(ok
+                          ? context.tr.shop_restoreCompleted
+                          : context.tr.shop_restoreError),
+                      backgroundColor: ok
+                          ? Colors.green.withValues(alpha: 0.3)
+                          : Colors.red.withValues(alpha: 0.3),
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                } finally {
+                  if (context.mounted) {
+                    setState(() => _loading = false);
+                  }
+                }
+              },
+        child: _loading
+            ? const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                    strokeWidth: 2, color: Colors.white),
+              )
+            : Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.restore, size: 18,
+                      color: Colors.white.withValues(alpha: 0.5)),
+                  const SizedBox(width: 8),
+                  Text(
+                    context.tr.shop_restorePurchases,
+                    style: const TextStyle(
+                        fontSize: 13, fontWeight: FontWeight.w500),
+                  ),
+                ],
+              ),
       ),
     );
   }
@@ -89,6 +161,39 @@ class _CoinPackCard extends ConsumerStatefulWidget {
 
 class _CoinPackCardState extends ConsumerState<_CoinPackCard> {
   bool _loading = false;
+
+  void _showPurchaseResult(
+      BuildContext context, IapResult result, int coins) {
+    final (String message, Color color) = switch (result) {
+      IapResult.success => (
+          '+$coins ${context.tr.reward_coins}',
+          Colors.green.withValues(alpha: 0.3),
+        ),
+      IapResult.restored => (
+          '+$coins ${context.tr.reward_coins}',
+          Colors.green.withValues(alpha: 0.3),
+        ),
+      IapResult.canceled => (
+          context.tr.shop_purchaseCanceled,
+          Colors.white.withValues(alpha: 0.1),
+        ),
+      IapResult.pending => (
+          context.tr.shop_purchasePending,
+          Colors.amber.withValues(alpha: 0.3),
+        ),
+      IapResult.error => (
+          context.tr.shop_purchaseError,
+          Colors.red.withValues(alpha: 0.3),
+        ),
+    };
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: color,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -168,26 +273,9 @@ class _CoinPackCardState extends ConsumerState<_CoinPackCard> {
                   : () async {
                       setState(() => _loading = true);
                       try {
-                        final ok = await purchaseCoinPack(ref, widget.index);
+                        final result = await purchaseCoinPack(ref, widget.index);
                         if (!context.mounted) return;
-                        if (ok) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                  '+${widget.pack.coins} ${context.tr.reward_coins}'),
-                              backgroundColor: Colors.green.withValues(alpha: 0.3),
-                              behavior: SnackBarBehavior.floating,
-                            ),
-                          );
-                        } else {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(context.tr.shop_comingSoon),
-                              backgroundColor: Colors.white.withValues(alpha: 0.1),
-                              behavior: SnackBarBehavior.floating,
-                            ),
-                          );
-                        }
+                        _showPurchaseResult(context, result, widget.pack.coins);
                       } finally {
                         if (context.mounted) {
                           setState(() => _loading = false);

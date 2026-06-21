@@ -464,6 +464,42 @@ abstract class AppLocalizations {
   /// **'Already Premium'**
   String get shop_alreadyPremium;
 
+  /// No description provided for @shop_purchasePending.
+  ///
+  /// In en, this message translates to:
+  /// **'Purchase pending...'**
+  String get shop_purchasePending;
+
+  /// No description provided for @shop_purchaseError.
+  ///
+  /// In en, this message translates to:
+  /// **'Purchase failed. Please try again.'**
+  String get shop_purchaseError;
+
+  /// No description provided for @shop_purchaseCanceled.
+  ///
+  /// In en, this message translates to:
+  /// **'Purchase canceled'**
+  String get shop_purchaseCanceled;
+
+  /// No description provided for @shop_restorePurchases.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore purchases'**
+  String get shop_restorePurchases;
+
+  /// No description provided for @shop_restoreCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Purchases restored'**
+  String get shop_restoreCompleted;
+
+  /// No description provided for @shop_restoreError.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not restore purchases'**
+  String get shop_restoreError;
+
   /// No description provided for @home_settings.
   ///
   /// In en, this message translates to:
