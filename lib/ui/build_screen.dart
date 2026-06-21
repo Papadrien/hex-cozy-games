@@ -6,7 +6,6 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 import '../core/colors.dart';
 import '../core/game_enums.dart';
 import '../core/constants.dart';
@@ -105,9 +104,24 @@ class _BuildCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: isSelected
               ? kBrandBlue.withValues(alpha: 0.12)
-              : Colors.white.withValues(alpha: 0.06),
+              : kIslandCard.withValues(alpha: 0.06),
           borderRadius: BorderRadius.circular(14),
           border: Border.all(color: borderColor, width: isSelected ? 1.5 : 1),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: kBrandBlue.withValues(alpha: 0.2),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.1),
+                    blurRadius: 4,
+                    offset: const Offset(0, 1),
+                  ),
+                ],
         ),
         child: Row(
           children: [

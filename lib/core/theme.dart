@@ -14,6 +14,7 @@ class AppTheme {
         colorSchemeSeed: kBrandTurquoise,
         brightness: Brightness.light,
         textTheme: GoogleFonts.nunitoTextTheme(),
+        fontFamily: GoogleFonts.nunito().fontFamily,
         appBarTheme: AppBarTheme(
           backgroundColor: kBackgroundColor,
           foregroundColor: Colors.white,
@@ -22,6 +23,21 @@ class AppTheme {
             color: Colors.white,
             fontSize: 20,
             fontWeight: FontWeight.bold,
+          ),
+        ),
+        cardTheme: CardThemeData(
+          color: kIslandCard,
+          surfaceTintColor: Colors.transparent,
+          elevation: 4,
+          shadowColor: Colors.black.withValues(alpha: 0.3),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+        ),
+        dialogTheme: DialogThemeData(
+          backgroundColor: kBackgroundColor,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
           ),
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(

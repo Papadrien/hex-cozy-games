@@ -61,3 +61,9 @@ const Color kQuestBlue = Color(0xFF64B5F6);
 
 /// Jaune/ambre pour pièces.
 const Color kCoinAmber = Color(0xFFFFC107);
+
+/// Fond de carte île (sable chaud semi-transparent).
+const Color kIslandCard = Color(0xC0F5E6CA);
+
+/// Variante foncée de carte île (bois tropical).
+const Color kIslandCardDark = Color(0xB08D6E63);

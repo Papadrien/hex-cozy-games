@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../core/colors.dart';
 import '../core/game_enums.dart';
@@ -261,9 +262,9 @@ class _CenterContentState extends ConsumerState<_CenterContent>
         Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
+            Text(
               'Hex Cozy Games',
-              style: TextStyle(
+              style: GoogleFonts.nunito(
                 color: Colors.white,
                 fontSize: 28,
                 fontWeight: FontWeight.bold,
@@ -273,14 +274,29 @@ class _CenterContentState extends ConsumerState<_CenterContent>
             // ── Bouton Jouer / Reprendre ────────────────────────────────────
             SizedBox(
               width: 200,
-              child: TextButton(
-                style: TextButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  backgroundColor: kBrandBlue,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(14),
+                  gradient: const LinearGradient(
+                    colors: [kBrandTurquoise, kSeaTurquoise],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: kBrandTurquoise.withValues(alpha: 0.4),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
+                child: TextButton(
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
                 onPressed: widget.activeSession.when(
                   loading: () => null,
                   data: (active) => active ? widget.onResume : widget.onPlay,
@@ -295,7 +311,7 @@ class _CenterContentState extends ConsumerState<_CenterContent>
                   ),
                   data: (active) => Text(
                     active ? context.tr.home_resume : context.tr.home_play,
-                    style: const TextStyle(
+                    style: GoogleFonts.nunito(
                       color: Colors.white,
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
@@ -303,7 +319,7 @@ class _CenterContentState extends ConsumerState<_CenterContent>
                   ),
                   error: (_, _) => Text(
                     context.tr.home_play,
-                    style: const TextStyle(
+                    style: GoogleFonts.nunito(
                       color: Colors.white,
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
@@ -311,6 +327,7 @@ class _CenterContentState extends ConsumerState<_CenterContent>
                   ),
                 ),
               ),
+            ),
             ),
             const SizedBox(height: 12),
             // ── Bouton Build (sélection des améliorations) ──────────────────
@@ -598,7 +615,7 @@ class _BuildButton extends StatelessWidget {
             selected.isEmpty
                 ? context.tr.home_buildSelection
                 : '${selected.length} / $kMaxSelectedUpgrades',
-            style: const TextStyle(fontSize: 13),
+            style: GoogleFonts.nunito(fontSize: 13),
           ),
         ],
       ),

@@ -18,6 +18,7 @@ import 'package:flame/game.dart' hide Matrix4;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
@@ -151,7 +152,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                 children: [
                   Text(
                     context.tr.game_sessionCoins,
-                    style: TextStyle(
+                    style: GoogleFonts.nunito(
                       color: Colors.white.withValues(alpha: 0.6),
                       fontSize: 11,
                     ),
