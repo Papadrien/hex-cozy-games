@@ -19,7 +19,10 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:google_mobile_ads/google_mobile_ads.dart';
+
 import '../core/colors.dart';
+import '../core/constants.dart';
 import '../core/game_enums.dart';
 import '../core/strings.dart';
 import '../data/app_database.dart';
@@ -29,6 +32,7 @@ import '../providers/placement_commit.dart';
 import '../providers/quest_provider.dart';
 import '../providers/session_provider.dart';
 import '../providers/tutorial_provider.dart';
+import '../services/ad_service.dart';
 import 'pause_button.dart';
 import 'pause_modal.dart';
 import 'results_modal.dart';
@@ -103,6 +107,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
 
     return Scaffold(
       backgroundColor: kBackgroundColor,
+      bottomNavigationBar: _BannerAdWidget(),
       body: Stack(
         children: [
           // ── Jeu Flame — reçoit TOUS les gestes directement ────────────────
@@ -440,6 +445,28 @@ class _BonusTileTag extends ConsumerWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Bannière publicitaire AdMob en bas de l'écran de jeu (Story 3.1a).
+///
+/// Affiche une bannière [AdSize.banner] (320×50 dp) centrée en bas.
+/// Si la bannière n'est pas chargée ou si le chargement échoue, un espace
+/// vide de la même hauteur est affiché pour éviter le sautillement du layout.
+class _BannerAdWidget extends ConsumerWidget {
+  const _BannerAdWidget();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final banner = ref.watch(bannerAdProvider);
+    return Container(
+      color: kBackgroundColor,
+      height: kAdBannerHeight,
+      alignment: Alignment.center,
+      child: banner != null
+          ? AdWidget(ad: banner)
+          : const SizedBox.shrink(),
     );
   }
 }

@@ -31,3 +31,26 @@ const Map<int, int> kBonusScale = {
 /// Source unique : utilisée par [HexGridComponent] pour le layout de la grille
 /// et par [TileComponent] comme valeur par défaut du paramètre hexSize.
 const double kHexSize = 48.0;
+
+// ── AdMob — Story 3.1a / 3.1b ────────────────────────────────────────────
+
+/// ID de test AdMob pour les bannières (Android).
+/// Remplacer par l'ID production avant release.
+const String kAdMobBannerTestIdAndroid =
+    'ca-app-pub-3940256099942544/6300978111';
+
+/// ID de test AdMob pour les bannières (iOS).
+const String kAdMobBannerTestIdIOS =
+    'ca-app-pub-3940256099942544/2934735716';
+
+/// ID de test AdMob pour les interstitielles (Android).
+/// Remplacer par l'ID production avant release.
+const String kAdMobInterstitialTestIdAndroid =
+    'ca-app-pub-3940256099942544/1033173712';
+
+/// ID de test AdMob pour les interstitielles (iOS).
+const String kAdMobInterstitialTestIdIOS =
+    'ca-app-pub-3940256099942544/4411468910';
+
+/// Hauteur standard d'une bannière AdMob en dp.
+const double kAdBannerHeight = 50.0;
