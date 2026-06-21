@@ -25,7 +25,6 @@ import 'dart:ui' show Color;
 
 import 'package:flame/events.dart';
 
-import '../core/colors.dart';
 import 'package:flame/game.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -34,6 +33,7 @@ import '../providers/grid_state_provider.dart';
 import '../providers/pause_provider.dart';
 import '../providers/placement_provider.dart';
 import '../providers/placement_commit.dart';
+import 'background_component.dart';
 import 'hex_coords.dart';
 import 'hex_grid_component.dart';
 import 'hex_tile.dart';
@@ -55,11 +55,14 @@ class HexBoardGame extends FlameGame
   final Map<int, Offset> _tapDownPositions = {};
 
   @override
-  Color backgroundColor() => kBackgroundColor;
+  Color backgroundColor() => const Color(0xFF4FC3F7); // = haut du ciel
 
   @override
   Future<void> onLoad() async {
     await super.onLoad();
+    final bg = BackgroundComponent();
+    bg.size.setFrom(size);
+    add(bg);
     _grid = HexGridComponent(screenSize: size.clone());
     add(_grid!);
     _initBoard();
@@ -91,6 +94,11 @@ class HexBoardGame extends FlameGame
   @override
   void onGameResize(Vector2 size) {
     super.onGameResize(size);
+    for (final child in children) {
+      if (child is BackgroundComponent) {
+        child.size.setFrom(size);
+      }
+    }
     _grid?.screenSize.setFrom(size);
     _grid?.size.setFrom(size);
     _cameraDirty = true;
