@@ -238,6 +238,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get ads_comeBackTomorrow => 'Revenez demain';
 
   @override
+  String get premium_dailyCoinsButton => 'Vos pièces quotidiennes';
+
+  @override
   String get stats_title => 'Statistiques';
 
   @override

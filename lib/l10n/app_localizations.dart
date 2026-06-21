@@ -542,6 +542,12 @@ abstract class AppLocalizations {
   /// **'Come back tomorrow'**
   String get ads_comeBackTomorrow;
 
+  /// No description provided for @premium_dailyCoinsButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Your daily coins'**
+  String get premium_dailyCoinsButton;
+
   /// No description provided for @stats_title.
   ///
   /// In en, this message translates to:

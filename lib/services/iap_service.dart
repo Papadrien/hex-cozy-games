@@ -25,6 +25,12 @@ const Set<String> kCoinPackProductIds = {
   'coins_large',
 };
 
+/// Ensemble de tous les IDs IAP (consommables + non-consommable premium).
+const Set<String> kAllProductIds = {
+  ...kCoinPackProductIds,
+  kPremiumProductId,
+};
+
 // ── Résultat d'achat ────────────────────────────────────────────────────────
 
 /// Résultat d'une tentative d'achat ou de restore.
@@ -72,6 +78,12 @@ final pendingPurchaseCountProvider = Provider<int>((ref) {
   return ref.watch(iapServiceProvider).pendingCount;
 });
 
+/// Provider exposant les [ProductDetails] du produit premium, ou null si
+/// non chargé.
+final premiumProductProvider = Provider<ProductDetails?>((ref) {
+  return ref.watch(iapServiceProvider).premiumProduct;
+});
+
 class IapService {
   final AppDatabase _db;
   final InAppPurchase _iap = InAppPurchase.instance;
@@ -95,6 +107,13 @@ class IapService {
   /// Nombre d'achats pending en attente.
   int get pendingCount => _pendingCount;
 
+  /// Produit premium (non-consommable), ou null si pas encore chargé.
+  ProductDetails? get premiumProduct =>
+      _products.cast<ProductDetails?>().firstWhere(
+            (p) => p?.id == kPremiumProductId,
+            orElse: () => null,
+          );
+
   Future<void> _init() async {
     final isAvailable = await _iap.isAvailable();
     if (!isAvailable) {
@@ -106,7 +125,7 @@ class IapService {
 
     _subscription = _iap.purchaseStream.listen(_onPurchaseUpdate);
 
-    final response = await _iap.queryProductDetails(kCoinPackProductIds);
+    final response = await _iap.queryProductDetails(kAllProductIds);
     _products = response.productDetails;
 
     debugPrint('[IAP] Products loaded: ${_products.length}');
@@ -162,21 +181,31 @@ class IapService {
 
   /// Livre la récompense et finalise la transaction.
   Future<void> _deliver(PurchaseDetails purchase) async {
+    bool success = false;
+
+    // Packs de pièces consommables
     final pack = kCoinPacks.where(
       (p) => p.productId == purchase.productID,
     ).firstOrNull;
-
     if (pack != null) {
       await addCoinsToProfile(_db, pack.coins);
       debugPrint('[IAP] Delivered ${pack.coins} coins for ${pack.productId}');
+      success = true;
+    }
+
+    // Premium non-consommable
+    if (purchase.productID == kPremiumProductId) {
+      await setPremiumStatus(_db, true);
+      debugPrint('[IAP] Delivered premium status');
+      success = true;
     }
 
     if (purchase.pendingCompletePurchase) {
       await _iap.completePurchase(purchase);
     }
 
-    _resolveCompleter(purchase.productID,
-        pack != null ? IapResult.success : IapResult.error);
+    _resolveCompleter(
+        purchase.productID, success ? IapResult.success : IapResult.error);
   }
 
   void _resolveCompleter(String productId, IapResult result) {
@@ -186,12 +215,23 @@ class IapService {
     }
   }
 
-  /// Lance un achat consommable pour le produit [productId].
+  /// Lance un achat non-consommable du premium.
+  ///
+  /// Retourne le même [IapResult] que [purchase].
+  Future<IapResult> buyPremium() async {
+    return purchase(kPremiumProductId, isConsumable: false);
+  }
+
+  /// Lance un achat pour le produit [productId].
+  ///
+  /// Si [isConsumable] est `true` (défaut), utilise [InAppPurchase.buyConsumable] ;
+  /// sinon utilise [InAppPurchase.buyNonConsumable] pour les achats
+  /// non-consommables (premium).
   ///
   /// Retourne [IapResult.success] si l'achat a réussi, [IapResult.canceled]
   /// si l'utilisateur a annulé, [IapResult.pending] si le paiement est en
   /// attente (Android), ou [IapResult.error] en cas d'échec.
-  Future<IapResult> purchase(String productId) async {
+  Future<IapResult> purchase(String productId, {bool isConsumable = true}) async {
     if (!_available) return IapResult.error;
 
     final product = _products.cast<ProductDetails?>().firstWhere(
@@ -212,9 +252,15 @@ class IapService {
     _pendingCompleters[productId] = completer;
 
     try {
-      await _iap.buyConsumable(
-        purchaseParam: PurchaseParam(productDetails: product),
-      );
+      if (isConsumable) {
+        await _iap.buyConsumable(
+          purchaseParam: PurchaseParam(productDetails: product),
+        );
+      } else {
+        await _iap.buyNonConsumable(
+          purchaseParam: PurchaseParam(productDetails: product),
+        );
+      }
     } catch (e) {
       debugPrint('[IAP] Failed to initiate purchase: $e');
       _pendingCompleters.remove(productId);
@@ -258,4 +304,12 @@ Future<IapResult> purchaseCoinPack(WidgetRef ref, int packIndex) async {
 Future<bool> restoreAllPurchases(WidgetRef ref) async {
   final iap = ref.read(iapServiceProvider);
   return iap.restorePurchases();
+}
+
+/// Achète le premium (non-consommable).
+///
+/// Retourne le [IapResult] correspondant.
+Future<IapResult> purchasePremium(WidgetRef ref) async {
+  final iap = ref.read(iapServiceProvider);
+  return iap.buyPremium();
 }

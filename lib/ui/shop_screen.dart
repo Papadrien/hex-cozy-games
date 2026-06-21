@@ -330,22 +330,31 @@ class _CoinStackIcon extends StatelessWidget {
   }
 }
 
-class _PremiumCard extends StatelessWidget {
+class _PremiumCard extends ConsumerStatefulWidget {
   const _PremiumCard({required this.isPremium});
 
   final bool isPremium;
 
   @override
+  ConsumerState<_PremiumCard> createState() => _PremiumCardState();
+}
+
+class _PremiumCardState extends ConsumerState<_PremiumCard> {
+  bool _loading = false;
+
+  @override
   Widget build(BuildContext context) {
+    final iapAvailable = ref.watch(iapAvailableProvider);
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isPremium
+        color: widget.isPremium
             ? kUpgradePurple.withValues(alpha: 0.1)
             : Colors.white.withValues(alpha: 0.06),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isPremium
+          color: widget.isPremium
               ? kUpgradePurple.withValues(alpha: 0.3)
               : Colors.white.withValues(alpha: 0.08),
         ),
@@ -399,38 +408,92 @@ class _PremiumCard extends StatelessWidget {
             child: TextButton(
               style: TextButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 14),
-                backgroundColor:
-                    isPremium ? Colors.white.withValues(alpha: 0.08) : kUpgradePurple,
+                backgroundColor: _loading
+                    ? kUpgradePurple.withValues(alpha: 0.6)
+                    : widget.isPremium
+                        ? Colors.white.withValues(alpha: 0.08)
+                        : iapAvailable
+                            ? kUpgradePurple
+                            : Colors.white.withValues(alpha: 0.1),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              onPressed: isPremium
+              onPressed: (widget.isPremium || _loading || !iapAvailable)
                   ? null
-                  : () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(context.tr.shop_comingSoon),
-                          backgroundColor: Colors.white.withValues(alpha: 0.1),
-                          behavior: SnackBarBehavior.floating,
-                        ),
-                      );
+                  : () async {
+                      setState(() => _loading = true);
+                      try {
+                        final result = await purchasePremium(ref);
+                        if (!context.mounted) return;
+                        if (result == IapResult.success) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(context.tr.shop_premium),
+                              backgroundColor:
+                                  Colors.green.withValues(alpha: 0.3),
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        } else {
+                          _showPremiumResult(context, result);
+                        }
+                      } finally {
+                        if (context.mounted) {
+                          setState(() => _loading = false);
+                        }
+                      }
                     },
-              child: Text(
-                isPremium
-                    ? context.tr.shop_alreadyPremium
-                    : context.tr.shop_buy,
-                style: TextStyle(
-                  color: isPremium
-                      ? Colors.white.withValues(alpha: 0.4)
-                      : Colors.white,
-                  fontSize: 15,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+              child: _loading
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white),
+                    )
+                  : Text(
+                      widget.isPremium
+                          ? context.tr.shop_alreadyPremium
+                          : context.tr.shop_buy,
+                      style: TextStyle(
+                        color: widget.isPremium
+                            ? Colors.white.withValues(alpha: 0.4)
+                            : Colors.white,
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showPremiumResult(BuildContext context, IapResult result) {
+    final (String message, Color color) = switch (result) {
+      IapResult.canceled => (
+          context.tr.shop_purchaseCanceled,
+          Colors.white.withValues(alpha: 0.1),
+        ),
+      IapResult.pending => (
+          context.tr.shop_purchasePending,
+          Colors.amber.withValues(alpha: 0.3),
+        ),
+      IapResult.error => (
+          context.tr.shop_purchaseError,
+          Colors.red.withValues(alpha: 0.3),
+        ),
+      _ => (
+          context.tr.shop_purchaseError,
+          Colors.red.withValues(alpha: 0.3),
+        ),
+    };
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: color,
+        behavior: SnackBarBehavior.floating,
       ),
     );
   }

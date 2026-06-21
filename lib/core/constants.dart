@@ -71,7 +71,10 @@ const String kAdMobRewardedTestIdIOS =
 /// Nombre de pièces créditées après visionnage de la pub rewarded quotidienne.
 const int kAdRewardedCoins = 50;
 
-// ── Boutique — Story 3.3a ───────────────────────────────────────────────────
+// ── Boutique — Story 3.3a / 3.5a ─────────────────────────────────────────────
+
+/// ID produit IAP non-consommable pour le premium (Story 3.5a).
+const String kPremiumProductId = 'premium';
 
 /// Packs de pièces (pièces, prix, ID produit IAP).
 const List<CoinPack> kCoinPacks = [

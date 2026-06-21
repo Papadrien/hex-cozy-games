@@ -28,6 +28,7 @@ import '../core/strings.dart';
 import '../data/app_database.dart';
 import '../game/hex_board_game.dart';
 import '../providers/pause_provider.dart';
+import '../providers/player_profile_provider.dart';
 import '../providers/placement_commit.dart';
 import '../providers/quest_provider.dart';
 import '../providers/session_provider.dart';
@@ -88,9 +89,17 @@ class _GameScreenState extends ConsumerState<GameScreen> {
 
     // Interstitielle AdMob toutes les [kAdInterstitialFrequency] tuiles
     // (Story 3.1b). Le compteur est cumulatif sur la session.
+    // Désactivée si le joueur est premium (Story 3.5a).
     ref.listen<int>(adTilesPlacedProvider, (prev, next) {
       if (prev != null && next > 0 && next % kAdInterstitialFrequency == 0) {
-        showInterstitialAd();
+        final isPremium =
+            ref.read(playerProfileProvider).maybeWhen(
+                  data: (row) => row.isPremium,
+                  orElse: () => false,
+                );
+        if (!isPremium) {
+          showInterstitialAd();
+        }
       }
     });
 
@@ -459,14 +468,21 @@ class _BonusTileTag extends ConsumerWidget {
 
 /// Bannière publicitaire AdMob en bas de l'écran de jeu (Story 3.1a).
 ///
-/// Affiche une bannière [AdSize.banner] (320×50 dp) centrée en bas.
-/// Si la bannière n'est pas chargée ou si le chargement échoue, un espace
-/// vide de la même hauteur est affiché pour éviter le sautillement du layout.
+/// N'apparaît que si [isPremium] est faux (Story 3.5a). Affiche une bannière
+/// [AdSize.banner] (320×50 dp) centrée en bas. Si la bannière n'est pas
+/// chargée ou si le chargement échoue, un espace vide de la même hauteur est
+/// affiché pour éviter le sautillement du layout.
 class _BannerAdWidget extends ConsumerWidget {
   const _BannerAdWidget();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isPremium = ref.watch(playerProfileProvider).maybeWhen(
+          data: (row) => row.isPremium,
+          orElse: () => false,
+        );
+    if (isPremium) return const SizedBox.shrink();
+
     final banner = ref.watch(bannerAdProvider);
     return Container(
       color: kBackgroundColor,

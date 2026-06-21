@@ -205,3 +205,34 @@ Future<bool> claimDailyReward(WidgetRef ref) async {
   await updateLastDailyRewardDate(db);
   return true;
 }
+
+// ── Récompense quotidienne premium (3.5b) ────────────────────────────────────
+
+/// true si la récompense quotidienne premium est disponible aujourd'hui
+/// (joueur premium ET pas encore crédité aujourd'hui).
+final isPremiumDailyCoinsAvailableProvider = Provider<bool>((ref) {
+  final profile = ref.watch(playerProfileProvider);
+  final row = profile.maybeWhen(data: (r) => r, orElse: () => null);
+  if (row == null || !row.isPremium) return false;
+
+  final lastDate = row.lastDailyRewardDate;
+  if (lastDate == null) return true;
+  final now = DateTime.now();
+  return now.year != lastDate.year ||
+      now.month != lastDate.month ||
+      now.day != lastDate.day;
+});
+
+/// Crédite les 50 pièces quotidiennes premium et met à jour la date.
+///
+/// Retourne `true` si les pièces ont été créditées, `false` si déjà fait
+/// aujourd'hui ou si l'utilisateur n'est pas premium.
+Future<bool> claimPremiumDailyCoins(WidgetRef ref) async {
+  final available = ref.read(isPremiumDailyCoinsAvailableProvider);
+  if (!available) return false;
+
+  final db = ref.read(appDatabaseProvider);
+  await addCoinsToProfile(db, kAdRewardedCoins);
+  await updateLastDailyRewardDate(db);
+  return true;
+}

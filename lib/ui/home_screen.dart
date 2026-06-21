@@ -185,7 +185,7 @@ class _IconButton extends StatelessWidget {
 }
 
 /// Contenu central : titre + bouton Jouer/Reprendre + build + accès.
-class _CenterContent extends ConsumerWidget {
+class _CenterContent extends ConsumerStatefulWidget {
   const _CenterContent({
     required this.activeSession,
     required this.onPlay,
@@ -197,133 +197,148 @@ class _CenterContent extends ConsumerWidget {
   final Future<void> Function() onResume;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final selected = ref.watch(selectedUpgradesProvider);
-    final adAvailable = ref.watch(isDailyRewardAvailableProvider);
+  ConsumerState<_CenterContent> createState() => _CenterContentState();
+}
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
+class _CenterContentState extends ConsumerState<_CenterContent>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _animController;
+  late final Animation<double> _scaleAnim;
+  late final Animation<double> _opacityAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    _animController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 400),
+      reverseDuration: const Duration(milliseconds: 600),
+    );
+    _scaleAnim = CurvedAnimation(
+      parent: _animController,
+      curve: const ElasticOutCurve(0.8),
+    );
+    _opacityAnim = Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(
+        parent: _animController,
+        curve: const Interval(0, 0.3, curve: Curves.easeOut),
+      ),
+    );
+    _autoClaimPremium();
+  }
+
+  Future<void> _autoClaimPremium() async {
+    // Attendre le premier frame pour que le contexte soit monté
+    await Future<void>.delayed(Duration.zero);
+    if (!mounted) return;
+    final claimed = await claimPremiumDailyCoins(ref);
+    if (claimed && mounted) {
+      _animController.forward().then((_) {
+        Future.delayed(const Duration(seconds: 2), () {
+          if (mounted) _animController.reverse();
+        });
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _animController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final selected = ref.watch(selectedUpgradesProvider);
+    final isPremium = ref.watch(playerProfileProvider).maybeWhen(
+          data: (r) => r.isPremium,
+          orElse: () => false,
+        );
+
+    return Stack(
+      clipBehavior: Clip.none,
       children: [
-        const Text(
-          'Hex Cozy Games',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 28,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 36),
-        // ── Bouton Jouer / Reprendre ────────────────────────────────────
-        SizedBox(
-          width: 200,
-          child: TextButton(
-            style: TextButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              backgroundColor: kBrandBlue,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-              ),
-            ),
-            onPressed: activeSession.when(
-              loading: () => null,
-              data: (active) => active ? onResume : onPlay,
-              error: (_, _) => onPlay,
-            ),
-            child: activeSession.when(
-              loading: () => const SizedBox(
-                width: 18,
-                height: 18,
-                child: CircularProgressIndicator(
-                    strokeWidth: 2, color: Colors.white),
-              ),
-              data: (active) => Text(
-                active ? context.tr.home_resume : context.tr.home_play,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              error: (_, _) => Text(
-                context.tr.home_play,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(height: 12),
-        // ── Bouton Build (sélection des améliorations) ──────────────────
-        _BuildButton(selected: selected),
-        const SizedBox(height: 16),
-        // ── Bouton Pub Rewarded ──────────────────────────────────────────
-        TextButton.icon(
-          style: TextButton.styleFrom(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-            foregroundColor: Colors.white,
-            backgroundColor: adAvailable
-                ? Colors.amber.withValues(alpha: 0.2)
-                : Colors.white.withValues(alpha: 0.05),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-              side: BorderSide(
-                color: adAvailable
-                    ? Colors.amber.withValues(alpha: 0.4)
-                    : Colors.white.withValues(alpha: 0.1),
-              ),
-            ),
-          ),
-          icon: Icon(
-            adAvailable ? Icons.play_circle_outline : Icons.check_circle_outline,
-            size: 20,
-            color: adAvailable
-                ? Colors.amber
-                : Colors.white.withValues(alpha: 0.4),
-          ),
-          label: Text(
-            adAvailable
-                ? context.tr.ads_watchForCoins
-                : context.tr.ads_comeBackTomorrow,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-              color: adAvailable ? Colors.amber.shade200 : Colors.white.withValues(alpha: 0.4),
-            ),
-          ),
-          onPressed: adAvailable
-              ? () async {
-                  final rewarded = await claimDailyReward(ref);
-                  if (rewarded && context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('+$kAdRewardedCoins ${context.tr.reward_coins}'),
-                        backgroundColor: Colors.green.withValues(alpha: 0.3),
-                        behavior: SnackBarBehavior.floating,
-                      ),
-                    );
-                  }
-                }
-              : null,
-        ),
-        const SizedBox(height: 24),
-        // ── Accès Quêtes et Statistiques ─────────────────────────────────
-        Row(
+        Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _NavButton(
-              icon: Icons.flag_outlined,
-              label: context.tr.quests_title,
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                    builder: (_) => const QuestsScreen()),
+            const Text(
+              'Hex Cozy Games',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
               ),
             ),
-            const SizedBox(width: 16),
-            _NavButton(
-              icon: Icons.bar_chart_outlined,
+            const SizedBox(height: 36),
+            // ── Bouton Jouer / Reprendre ────────────────────────────────────
+            SizedBox(
+              width: 200,
+              child: TextButton(
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  backgroundColor: kBrandBlue,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                onPressed: widget.activeSession.when(
+                  loading: () => null,
+                  data: (active) => active ? widget.onResume : widget.onPlay,
+                  error: (_, _) => widget.onPlay,
+                ),
+                child: widget.activeSession.when(
+                  loading: () => const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2, color: Colors.white),
+                  ),
+                  data: (active) => Text(
+                    active ? context.tr.home_resume : context.tr.home_play,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  error: (_, _) => Text(
+                    context.tr.home_play,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            // ── Bouton Build (sélection des améliorations) ──────────────────
+            _BuildButton(selected: selected),
+            const SizedBox(height: 16),
+            // ── Bouton Pub Rewarded ou Pièces Quotidiennes Premium ─────────
+            if (isPremium)
+              _PremiumDailyCoinsButton(
+                animController: _animController,
+              )
+            else
+              _RewardedAdButton(),
+            const SizedBox(height: 24),
+            // ── Accès Quêtes et Statistiques ─────────────────────────────────
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _NavButton(
+                  icon: Icons.flag_outlined,
+                  label: context.tr.quests_title,
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                        builder: (_) => const QuestsScreen()),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                _NavButton(
+                  icon: Icons.bar_chart_outlined,
                   label: context.tr.home_stats,
                   onTap: () {
                     Navigator.of(context).push(
@@ -332,10 +347,169 @@ class _CenterContent extends ConsumerWidget {
                       ),
                     );
                   },
+                ),
+              ],
             ),
           ],
         ),
+        // ── Animation pièces créditées ──────────────────────────────────────
+        if (_animController.isAnimating || _animController.value > 0)
+          Positioned(
+            top: -60,
+            left: 0,
+            right: 0,
+            child: AnimatedBuilder(
+              animation: _animController,
+              builder: (context, child) {
+                return Opacity(
+                  opacity: _opacityAnim.value * (1 - _animController.value),
+                  child: Transform.scale(
+                    scale: 1 + (1 - _scaleAnim.value) * 0.5,
+                    child: child,
+                  ),
+                );
+              },
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.monetization_on,
+                      color: Colors.amber, size: 28),
+                  SizedBox(width: 6),
+                  Text(
+                    '+50',
+                    style: TextStyle(
+                      color: Colors.amber,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
       ],
+    );
+  }
+}
+
+/// Bouton pub rewarded (non-premium).
+class _RewardedAdButton extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final adAvailable = ref.watch(isDailyRewardAvailableProvider);
+
+    return TextButton.icon(
+      style: TextButton.styleFrom(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        foregroundColor: Colors.white,
+        backgroundColor: adAvailable
+            ? Colors.amber.withValues(alpha: 0.2)
+            : Colors.white.withValues(alpha: 0.05),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(
+            color: adAvailable
+                ? Colors.amber.withValues(alpha: 0.4)
+                : Colors.white.withValues(alpha: 0.1),
+          ),
+        ),
+      ),
+      icon: Icon(
+        adAvailable ? Icons.play_circle_outline : Icons.check_circle_outline,
+        size: 20,
+        color: adAvailable
+            ? Colors.amber
+            : Colors.white.withValues(alpha: 0.4),
+      ),
+      label: Text(
+        adAvailable
+            ? context.tr.ads_watchForCoins
+            : context.tr.ads_comeBackTomorrow,
+        style: TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w500,
+          color: adAvailable
+              ? Colors.amber.shade200
+              : Colors.white.withValues(alpha: 0.4),
+        ),
+      ),
+      onPressed: adAvailable
+          ? () async {
+              final rewarded = await claimDailyReward(ref);
+              if (rewarded && context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                        '+$kAdRewardedCoins ${context.tr.reward_coins}'),
+                    backgroundColor: Colors.green.withValues(alpha: 0.3),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              }
+            }
+          : null,
+    );
+  }
+}
+
+/// Bouton pièces quotidiennes premium (remplace la pub pour les premium).
+class _PremiumDailyCoinsButton extends ConsumerWidget {
+  const _PremiumDailyCoinsButton({required this.animController});
+
+  final AnimationController animController;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final available = ref.watch(isPremiumDailyCoinsAvailableProvider);
+
+    return TextButton.icon(
+      style: TextButton.styleFrom(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        foregroundColor: Colors.white,
+        backgroundColor: available
+            ? kUpgradePurple.withValues(alpha: 0.2)
+            : Colors.white.withValues(alpha: 0.05),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(
+            color: available
+                ? kUpgradePurple.withValues(alpha: 0.4)
+                : Colors.white.withValues(alpha: 0.1),
+          ),
+        ),
+      ),
+      icon: Icon(
+        available ? Icons.monetization_on : Icons.check_circle_outline,
+        size: 20,
+        color: available
+            ? Colors.amber
+            : Colors.white.withValues(alpha: 0.4),
+      ),
+      label: Text(
+        available
+            ? context.tr.premium_dailyCoinsButton
+            : context.tr.ads_comeBackTomorrow,
+        style: TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w500,
+          color: available
+              ? Colors.amber.shade200
+              : Colors.white.withValues(alpha: 0.4),
+        ),
+      ),
+      onPressed: available
+          ? () async {
+              final claimed = await claimPremiumDailyCoins(ref);
+              if (claimed && context.mounted) {
+                animController.forward().then((_) {
+                  Future.delayed(const Duration(seconds: 2), () {
+                    if (context.mounted) animController.reverse();
+                  });
+                });
+              }
+            }
+          : null,
     );
   }
 }

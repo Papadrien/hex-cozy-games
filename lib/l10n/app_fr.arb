@@ -100,6 +100,8 @@
   "@ads_watchForCoins": {},
   "ads_comeBackTomorrow": "Revenez demain",
   "@ads_comeBackTomorrow": {},
+  "premium_dailyCoinsButton": "Vos pi\u00e8ces quotidiennes",
+  "@premium_dailyCoinsButton": {},
 
   "stats_title": "Statistiques",
   "stats_totalTiles": "Tuiles totales plac\u00e9es",

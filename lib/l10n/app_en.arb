@@ -158,6 +158,8 @@
   "@ads_watchForCoins": {},
   "ads_comeBackTomorrow": "Come back tomorrow",
   "@ads_comeBackTomorrow": {},
+  "premium_dailyCoinsButton": "Your daily coins",
+  "@premium_dailyCoinsButton": {},
 
   "stats_title": "Statistics",
   "@stats_title": {},

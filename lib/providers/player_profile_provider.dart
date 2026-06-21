@@ -76,6 +76,14 @@ Future<void> updateLastDailyRewardDate(AppDatabase db) async {
   );
 }
 
+/// Persiste le statut premium du joueur — Story 3.5a.
+Future<void> setPremiumStatus(AppDatabase db, bool premium) async {
+  await _ensureProfileExists(db);
+  await (db.update(db.playerProfile)..where((t) => t.id.equals(1))).write(
+    PlayerProfileCompanion(isPremium: Value(premium)),
+  );
+}
+
 /// Débite [amount] pièces du solde persisté — Story 2.6a.
 ///
 /// Retourne `false` si le solde est insuffisant, `true` si le débit a
