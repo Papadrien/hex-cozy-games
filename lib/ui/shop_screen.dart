@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 import '../core/colors.dart';
 import '../core/constants.dart';
 import '../core/strings.dart';
@@ -205,15 +204,22 @@ class _CoinPackCardState extends ConsumerState<_CoinPackCard> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: isBestValue
-            ? Colors.amber.withValues(alpha: 0.08)
-            : Colors.white.withValues(alpha: 0.06),
+            ? kRewardGold.withValues(alpha: 0.10)
+            : kIslandCard.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: isBestValue
-              ? Colors.amber.withValues(alpha: 0.3)
+              ? kRewardGold.withValues(alpha: 0.3)
               : Colors.white.withValues(alpha: 0.08),
           width: isBestValue ? 1.5 : 1,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.15),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Row(
         children: [
@@ -351,13 +357,20 @@ class _PremiumCardState extends ConsumerState<_PremiumCard> {
       decoration: BoxDecoration(
         color: widget.isPremium
             ? kUpgradePurple.withValues(alpha: 0.1)
-            : Colors.white.withValues(alpha: 0.06),
+            : kIslandCard.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: widget.isPremium
               ? kUpgradePurple.withValues(alpha: 0.3)
               : Colors.white.withValues(alpha: 0.08),
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.15),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         children: [

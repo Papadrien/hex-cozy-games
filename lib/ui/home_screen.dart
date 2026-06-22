@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../core/colors.dart';
 import '../core/game_enums.dart';
@@ -201,10 +202,12 @@ class _CenterContent extends ConsumerStatefulWidget {
 }
 
 class _CenterContentState extends ConsumerState<_CenterContent>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late final AnimationController _animController;
   late final Animation<double> _scaleAnim;
   late final Animation<double> _opacityAnim;
+  late final AnimationController _pulseController;
+  late final Animation<double> _pulseAnim;
 
   @override
   void initState() {
@@ -223,6 +226,14 @@ class _CenterContentState extends ConsumerState<_CenterContent>
         parent: _animController,
         curve: const Interval(0, 0.3, curve: Curves.easeOut),
       ),
+    );
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat(reverse: true);
+    _pulseAnim = CurvedAnimation(
+      parent: _pulseController,
+      curve: Curves.easeInOutSine,
     );
     _autoClaimPremium();
   }
@@ -244,6 +255,7 @@ class _CenterContentState extends ConsumerState<_CenterContent>
   @override
   void dispose() {
     _animController.dispose();
+    _pulseController.dispose();
     super.dispose();
   }
 
@@ -261,9 +273,9 @@ class _CenterContentState extends ConsumerState<_CenterContent>
         Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
+            Text(
               'Hex Cozy Games',
-              style: TextStyle(
+              style: GoogleFonts.nunito(
                 color: Colors.white,
                 fontSize: 28,
                 fontWeight: FontWeight.bold,
@@ -271,16 +283,40 @@ class _CenterContentState extends ConsumerState<_CenterContent>
             ),
             const SizedBox(height: 36),
             // ── Bouton Jouer / Reprendre ────────────────────────────────────
-            SizedBox(
-              width: 200,
-              child: TextButton(
-                style: TextButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  backgroundColor: kBrandBlue,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
+            AnimatedBuilder(
+              animation: _pulseAnim,
+              builder: (context, child) {
+                final pulse = 0.3 + _pulseAnim.value * 0.5;
+                return SizedBox(
+                  width: 200,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(14),
+                      gradient: const LinearGradient(
+                        colors: [kBrandTurquoise, kSeaTurquoise],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: kBrandTurquoise
+                              .withValues(alpha: 0.2 * pulse),
+                          blurRadius: 8 + _pulseAnim.value * 16,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: child!,
                   ),
-                ),
+                );
+              },
+              child: TextButton(
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
                 onPressed: widget.activeSession.when(
                   loading: () => null,
                   data: (active) => active ? widget.onResume : widget.onPlay,
@@ -295,7 +331,7 @@ class _CenterContentState extends ConsumerState<_CenterContent>
                   ),
                   data: (active) => Text(
                     active ? context.tr.home_resume : context.tr.home_play,
-                    style: const TextStyle(
+                    style: GoogleFonts.nunito(
                       color: Colors.white,
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
@@ -303,7 +339,7 @@ class _CenterContentState extends ConsumerState<_CenterContent>
                   ),
                   error: (_, _) => Text(
                     context.tr.home_play,
-                    style: const TextStyle(
+                    style: GoogleFonts.nunito(
                       color: Colors.white,
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
@@ -598,7 +634,7 @@ class _BuildButton extends StatelessWidget {
             selected.isEmpty
                 ? context.tr.home_buildSelection
                 : '${selected.length} / $kMaxSelectedUpgrades',
-            style: const TextStyle(fontSize: 13),
+            style: GoogleFonts.nunito(fontSize: 13),
           ),
         ],
       ),

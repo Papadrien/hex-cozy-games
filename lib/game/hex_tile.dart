@@ -51,11 +51,25 @@ class HexTile {
 ///  - max 3 [BiomeType] différents par tuile (contrainte kMaxBiomeTypesPerTile)
 ///  - biomes en arcs contigus (pas de confetti)
 ///  - distribution équilibrée des biomes sur l'ensemble du pool
+///
+/// Poids par biome (île paradisiaque) :
+///  - plaine 25 %, mer 20 %, plage 15 %, champ fleurs 15 %,
+///    mangrove 12 %, montagne 8 %, village 5 %
 List<HexTile> generateTilePool(int count, Random rng) {
   final biomeUsage = {for (final b in BiomeType.values) b: 0};
   final pool = List.generate(count, (_) => _generateTile(biomeUsage, rng));
   return pool;
 }
+
+Map<BiomeType, double> get _kBiomeWeights => const {
+      BiomeType.plain: 25.0,
+      BiomeType.water: 20.0,
+      BiomeType.beach: 15.0,
+      BiomeType.flowerField: 15.0,
+      BiomeType.forest: 12.0,
+      BiomeType.mountain: 8.0,
+      BiomeType.village: 5.0,
+    };
 
 /// Distribution des types de tuiles : 20 % 1-biome, 60 % 2-biomes, 20 % 3-biomes
 /// (favorise les amas organiques — Story 1.9b).
@@ -96,8 +110,17 @@ List<BiomeType> _pickWeightedBiomes(
   Random rng,
 ) {
   final all = BiomeType.values;
+  // Poids fixes inspirés de la répartition naturelle d'une île.
+  final baseWeights = all.map((b) => _kBiomeWeights[b]!).toList();
+
+  // Booster léger pour les biomes sous-utilisés (évite la famine).
   final minUsage = usage.values.reduce(min);
-  final weights = all.map((b) => 1.0 / (1 + usage[b]! - minUsage)).toList();
+  final boost = all.map((b) => 1.0 / (1 + usage[b]! - minUsage)).toList();
+
+  final weights = List<double>.generate(
+    all.length,
+    (i) => baseWeights[i] * boost[i],
+  );
 
   final selected = <BiomeType>[];
   for (var i = 0; i < count; i++) {

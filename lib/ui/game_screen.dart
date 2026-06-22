@@ -18,6 +18,7 @@ import 'package:flame/game.dart' hide Matrix4;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
@@ -140,36 +141,43 @@ class _GameScreenState extends ConsumerState<GameScreen> {
 
           // ── Compteur de pièces (story 1.6b) + récompense pièces ────────
           Positioned(
-            top: 80,
-            left: 16,
+            top: 56,
+            left: 12,
             child: Consumer(builder: (context, ref, _) {
               final session = ref.watch(sessionProvider);
-              return Column(
-                key: _coinsKey,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    context.tr.game_sessionCoins,
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.6),
-                      fontSize: 11,
-                    ),
-                  ),
-                  Row(children: [
-                    const Icon(Icons.monetization_on, color: Colors.amber, size: 20),
-                    const SizedBox(width: 4),
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.45),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  key: _coinsKey,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
                     Text(
-                      '${session.coins}',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
+                      context.tr.game_sessionCoins,
+                      style: GoogleFonts.nunito(
+                        color: Colors.white.withValues(alpha: 0.6),
+                        fontSize: 11,
                       ),
                     ),
-                  ]),
-                  _CoinRewardTag(opacity: _rewardOpacity),
-                ],
+                    Row(children: [
+                      const Icon(Icons.monetization_on, color: Colors.amber, size: 20),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${session.coins}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ]),
+                    _CoinRewardTag(opacity: _rewardOpacity),
+                  ],
+                ),
               );
             }),
           ),

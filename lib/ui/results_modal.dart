@@ -7,7 +7,6 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 import '../core/colors.dart';
 import '../core/strings.dart';
 import '../providers/end_game_provider.dart';
@@ -57,6 +56,13 @@ class _ResultsCard extends ConsumerWidget {
           color: Colors.white.withValues(alpha: 0.12),
           width: 1,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.3),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
