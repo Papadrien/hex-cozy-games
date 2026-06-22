@@ -1,7 +1,13 @@
-/// Rendu procédural des textures de tuiles hexagonales — DA Story refonte.
+/// Rendu procédural des textures de tuiles hexagonales.
 ///
-/// Voronoï seedé → biome dominant au centre, biomes minoritaires en périphérie.
-/// Cache : chaque combinaison de biomes est rasterisée une seule fois.
+/// Voronoï "structuré" : les graines minoritaires sont placées en arc régulier
+/// sur leur bord, le biome dominant couvre proprement le centre.
+/// Bruit de luminosité réduit (±10%) pour garder la lisibilité des zones.
+///
+/// Jointure inter-tuiles : [paintBiomeTexture] accepte [neighborBiomes] (6
+/// entrées, null = pas de voisin). Si le voisin sur le côté i partage le même
+/// biome, on pousse la graine de ce côté vers le bord pour créer une
+/// continuité visuelle.
 library;
 
 import 'dart:math';
@@ -11,7 +17,7 @@ import 'package:flutter/painting.dart';
 
 import 'hex_cell.dart';
 
-// ── Résolution de rasterisation ───────────────────────────────────────────
+// ── Résolution ────────────────────────────────────────────────────────────
 
 const int kTextureSize = 96;
 
@@ -49,26 +55,39 @@ extension BiomeBaseColor on BiomeType {
   }
 }
 
-// ── Cache global ──────────────────────────────────────────────────────────
+// ── Cache ─────────────────────────────────────────────────────────────────
 
 final Map<String, ui.Picture> _textureCache = {};
 
 void clearTextureCache() => _textureCache.clear();
 
+/// Invalide le cache d'une tuile spécifique (et ses 6 variantes voisines).
+/// À appeler après placement d'une tuile pour forcer le recalcul des jointures.
+void invalidateTileCache(List<BiomeType> sides, double hexSize) {
+  final prefix = '${sides.map((b) => b.index).join('_')}_${hexSize.round()}';
+  _textureCache.removeWhere((key, _) => key.startsWith(prefix));
+}
+
 // ── Point d'entrée public ─────────────────────────────────────────────────
 
+/// [neighborBiomes] : liste de 6 entrées, chacune est le biome dominant du
+/// voisin sur ce côté (null = pas de voisin posé).
+/// Quand le voisin i partage le biome du côté i de cette tuile, on le prend
+/// en compte dans la clé de cache ET dans le placement des graines Voronoï
+/// pour créer une continuité visuelle entre les deux tuiles.
 void paintBiomeTexture({
   required ui.Canvas canvas,
   required ui.Path hexPath,
   required List<BiomeType> sides,
   required double hexSize,
   required int seed,
+  List<BiomeType?> neighborBiomes = const [null, null, null, null, null, null],
   double alpha = 1.0,
 }) {
-  final cacheKey = _cacheKey(sides, hexSize);
+  final cacheKey = _cacheKey(sides, neighborBiomes, hexSize);
   final picture = _textureCache.putIfAbsent(
     cacheKey,
-    () => _buildPicture(sides),
+    () => _buildPicture(sides, neighborBiomes),
   );
 
   final tileW = sqrt(3) * hexSize;
@@ -82,7 +101,7 @@ void paintBiomeTexture({
   canvas.drawPicture(picture);
   canvas.restore();
 
-  // Détails de surface (non cachés, seedés par position).
+  // Détails de surface (seedés par coords, non cachés).
   canvas.save();
   canvas.clipPath(hexPath);
   _paintSurfaceDetails(canvas, sides, hexSize, seed, alpha);
@@ -91,14 +110,21 @@ void paintBiomeTexture({
 
 // ── Clé de cache ──────────────────────────────────────────────────────────
 
-String _cacheKey(List<BiomeType> sides, double hexSize) =>
-    '${sides.map((b) => b.index).join('_')}_${hexSize.round()}';
+String _cacheKey(List<BiomeType> sides, List<BiomeType?> neighbors, double hexSize) {
+  final sPart = sides.map((b) => b.index).join('_');
+  // On encode uniquement les côtés où le voisin match le biome local.
+  final nPart = List.generate(6, (i) {
+    final n = neighbors.length > i ? neighbors[i] : null;
+    return (n != null && n == sides[i]) ? '1' : '0';
+  }).join();
+  return '${sPart}_${hexSize.round()}_$nPart';
+}
 
-// ── Construction du Picture Voronoï (batch rectangles RLE) ───────────────
+// ── Construction du Picture Voronoï ──────────────────────────────────────
 
-ui.Picture _buildPicture(List<BiomeType> sides) {
+ui.Picture _buildPicture(List<BiomeType> sides, List<BiomeType?> neighbors) {
   final rng = Random(_sidesHash(sides));
-  final seeds = _generateSeeds(sides, rng);
+  final seeds = _generateSeeds(sides, neighbors, rng);
   final hash = _sidesHash(sides);
 
   final recorder = ui.PictureRecorder();
@@ -108,7 +134,6 @@ ui.Picture _buildPicture(List<BiomeType> sides) {
   final half = kTextureSize / 2.0;
 
   for (var py = 0; py < kTextureSize; py++) {
-    // RLE horizontal : on regroupe les pixels consécutifs de même biome+bruit.
     var runStart = 0;
     var runBiome = _nearest(0, py, half, seeds, sides[0]);
     var runNoise = _noise(0, py, hash);
@@ -117,7 +142,8 @@ ui.Picture _buildPicture(List<BiomeType> sides) {
       final biome = px < kTextureSize ? _nearest(px, py, half, seeds, sides[0]) : null;
       final noise = px < kTextureSize ? _noise(px, py, hash) : 0.0;
 
-      if (biome != runBiome || (noise - runNoise).abs() > 0.15 || px == kTextureSize) {
+      // Seuil RLE plus large → moins de variation, zones plus homogènes.
+      if (biome != runBiome || (noise - runNoise).abs() > 0.25 || px == kTextureSize) {
         c.drawRect(
           ui.Rect.fromLTWH(runStart.toDouble(), py.toDouble(), (px - runStart).toDouble(), 1),
           ui.Paint()..color = _lerpColor(runBiome, runNoise),
@@ -139,34 +165,71 @@ class _Seed {
   final BiomeType biome;
 }
 
-List<_Seed> _generateSeeds(List<BiomeType> sides, Random rng) {
+List<_Seed> _generateSeeds(
+  List<BiomeType> sides,
+  List<BiomeType?> neighbors,
+  Random rng,
+) {
   final freq = <BiomeType, int>{};
-  for (final b in sides) { freq[b] = (freq[b] ?? 0) + 1; }
+  for (final b in sides) freq[b] = (freq[b] ?? 0) + 1;
   final maxFreq = freq.values.reduce(max);
 
   final seeds = <_Seed>[];
+
   freq.forEach((biome, count) {
     final dominant = count == maxFreq;
-    final n = dominant ? max(5, count * 2) : count + 1;
-    for (var i = 0; i < n; i++) {
-      if (dominant) {
+
+    if (dominant) {
+      // Biome dominant : graines serrées au centre, rayon max 0.35.
+      // Beaucoup de graines → il écrase les minoritaires.
+      final n = max(6, count * 2);
+      for (var i = 0; i < n; i++) {
         seeds.add(_Seed(
-          (rng.nextDouble() - 0.5) * 0.8,
-          (rng.nextDouble() - 0.5) * 0.8,
-          biome,
-        ));
-      } else {
-        final arc = _arcAngle(biome, sides);
-        final r = 0.5 + rng.nextDouble() * 0.4;
-        seeds.add(_Seed(
-          cos(arc) * r + (rng.nextDouble() - 0.5) * 0.25,
-          sin(arc) * r + (rng.nextDouble() - 0.5) * 0.25,
+          (rng.nextDouble() - 0.5) * 0.70,
+          (rng.nextDouble() - 0.5) * 0.70,
           biome,
         ));
       }
+    } else {
+      // Biome minoritaire : graines en arc régulier sur leur bord, peu
+      // dispersées → frontière nette côté bord, lisse côté centre.
+      final arc = _arcAngle(biome, sides);
+
+      // Rayon fixe vers le bord (0.75), faible dispersion angulaire.
+      final n = count + 1;
+      for (var i = 0; i < n; i++) {
+        final spread = (rng.nextDouble() - 0.5) * 0.20; // ±0.10 rad
+        final r = 0.72 + rng.nextDouble() * 0.18;        // 0.72–0.90
+        seeds.add(_Seed(
+          cos(arc + spread) * r,
+          sin(arc + spread) * r,
+          biome,
+        ));
+      }
+
+      // Jointure : si le voisin sur ce côté a le même biome, on ajoute une
+      // graine "ancrée" juste au-delà du bord (r=1.0) pour que la zone de ce
+      // biome touche proprement le bord → continuité avec la tuile voisine.
+      final sideIdx = _firstSideOf(biome, sides);
+      if (sideIdx >= 0) {
+        final n = neighbors.length > sideIdx ? neighbors[sideIdx] : null;
+        if (n == biome) {
+          final edgeAngle = (60.0 * sideIdx - 90.0) * pi / 180.0;
+          seeds.add(_Seed(cos(edgeAngle) * 0.95, sin(edgeAngle) * 0.95, biome));
+        }
+      }
     }
   });
+
   return seeds;
+}
+
+/// Index du premier côté appartenant à [biome].
+int _firstSideOf(BiomeType biome, List<BiomeType> sides) {
+  for (var i = 0; i < 6; i++) {
+    if (sides[i] == biome) return i;
+  }
+  return -1;
 }
 
 double _arcAngle(BiomeType biome, List<BiomeType> sides) {
@@ -193,7 +256,7 @@ BiomeType _nearest(int px, int py, double half, List<_Seed> seeds, BiomeType fal
   return biome;
 }
 
-// ── Bruit + couleur ───────────────────────────────────────────────────────
+// ── Bruit réduit (±10% de luminosité) ────────────────────────────────────
 
 double _noise(int px, int py, int seed) {
   var h = seed ^ (px * 374761393) ^ (py * 668265263);
@@ -202,16 +265,17 @@ double _noise(int px, int py, int seed) {
   return ((h & 0x7FFFFFFF) % 1000) / 1000.0;
 }
 
+/// Bruit réduit : plage 0.47–0.57 (±5%) au lieu de 0.40–0.70.
 Color _lerpColor(BiomeType b, double t) =>
-    Color.lerp(b._dark, b._light, 0.40 + t * 0.30)!;
+    Color.lerp(b._dark, b._light, 0.47 + t * 0.10)!;
 
 int _sidesHash(List<BiomeType> sides) {
   var h = 0;
-  for (var i = 0; i < sides.length; i++) { h ^= (sides[i].index + 1) * (i * 1000003 + 1); }
+  for (var i = 0; i < sides.length; i++) h ^= (sides[i].index + 1) * (i * 1000003 + 1);
   return h.abs();
 }
 
-// ── Détails de surface par biome ─────────────────────────────────────────
+// ── Détails de surface ────────────────────────────────────────────────────
 
 void _paintSurfaceDetails(
   ui.Canvas canvas,
@@ -247,23 +311,18 @@ void _water(ui.Canvas c, double w, double h, Random rng, double alpha) {
     var first   = true;
     for (var px = -w / 2; px <= w / 2; px += 2) {
       final y = baseY + sin(px * freq + phase) * amp;
-      if (first) { path.moveTo(px, y); first = false; } else { path.lineTo(px, y); }
+      if (first) { path.moveTo(px, y); first = false; } else path.lineTo(px, y);
     }
     c.drawPath(path, p);
   }
 }
 
 void _forest(ui.Canvas c, double r, Random rng, double alpha) {
-  final p = ui.Paint()
-    ..color = const Color(0xFF1B5E20).withValues(alpha: alpha * 0.55);
+  final p = ui.Paint()..color = const Color(0xFF1B5E20).withValues(alpha: alpha * 0.55);
   for (var i = 0; i < 4 + rng.nextInt(3); i++) {
     final angle = rng.nextDouble() * pi * 2;
     final dist  = rng.nextDouble() * r * 0.55;
-    c.drawCircle(
-      ui.Offset(cos(angle) * dist, sin(angle) * dist),
-      3.5 + rng.nextDouble() * 2.5,
-      p,
-    );
+    c.drawCircle(ui.Offset(cos(angle) * dist, sin(angle) * dist), 3.5 + rng.nextDouble() * 2.5, p);
   }
 }
 
@@ -292,11 +351,7 @@ void _village(ui.Canvas c, double r, Random rng, double alpha) {
       ui.Paint()..color = const Color(0xFFBF8C50).withValues(alpha: alpha * 0.70),
     );
     c.drawPath(
-      ui.Path()
-        ..moveTo(x - 3.5, y - 2)
-        ..lineTo(x, y - 5.5)
-        ..lineTo(x + 3.5, y - 2)
-        ..close(),
+      ui.Path()..moveTo(x - 3.5, y - 2)..lineTo(x, y - 5.5)..lineTo(x + 3.5, y - 2)..close(),
       ui.Paint()..color = const Color(0xFF8D4E2A).withValues(alpha: alpha * 0.75),
     );
   }
@@ -313,20 +368,15 @@ void _mountain(ui.Canvas c, double r, Random rng, double alpha) {
     final lean = (rng.nextDouble() - 0.5) * 3.0;
     c.drawPath(
       ui.Path()
-        ..moveTo(bx - w / 2, by)
-        ..lineTo(bx - w / 4 + lean, by - h)
-        ..lineTo(bx + w / 4 + lean, by - h * 0.85)
-        ..lineTo(bx + w / 2, by - h * 0.4)
-        ..lineTo(bx + w / 2, by)
-        ..close(),
+        ..moveTo(bx - w / 2, by)..lineTo(bx - w / 4 + lean, by - h)
+        ..lineTo(bx + w / 4 + lean, by - h * 0.85)..lineTo(bx + w / 2, by - h * 0.4)
+        ..lineTo(bx + w / 2, by)..close(),
       ui.Paint()..color = const Color(0xFF455A64).withValues(alpha: alpha * 0.65),
     );
     c.drawLine(
       ui.Offset(bx - w / 4 + lean - 1, by - h + 1),
       ui.Offset(bx + w / 4 + lean + 1, by - h * 0.80),
-      ui.Paint()
-        ..color = const Color(0xFFFFFFFF).withValues(alpha: alpha * 0.55)
-        ..strokeWidth = 1.2,
+      ui.Paint()..color = Colors.white.withValues(alpha: alpha * 0.55)..strokeWidth = 1.2,
     );
   }
 }

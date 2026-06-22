@@ -88,6 +88,10 @@ class TileComponent extends PositionComponent {
 
   Set<int> highlightedSides;
 
+  /// Biomes dominants des 6 tuiles voisines (null = pas encore posée).
+  /// Mis à jour par [HexGridComponent.placeTile] pour recalculer les jointures.
+  List<BiomeType?> neighborBiomes = List.filled(6, null);
+
   // ── Glow ─────────────────────────────────────────────────────────────────
 
   Set<int>? _glowSides;
@@ -164,6 +168,7 @@ class TileComponent extends PositionComponent {
       sides: tile.sides,
       hexSize: _hexSize,
       seed: _coords.q * 73856093 ^ _coords.r * 19349663,
+      neighborBiomes: neighborBiomes,
       alpha: _alpha,
     );
 
