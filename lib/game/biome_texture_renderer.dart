@@ -141,7 +141,7 @@ class _Seed {
 
 List<_Seed> _generateSeeds(List<BiomeType> sides, Random rng) {
   final freq = <BiomeType, int>{};
-  for (final b in sides) freq[b] = (freq[b] ?? 0) + 1;
+  for (final b in sides) { freq[b] = (freq[b] ?? 0) + 1; }
   final maxFreq = freq.values.reduce(max);
 
   final seeds = <_Seed>[];
@@ -207,7 +207,7 @@ Color _lerpColor(BiomeType b, double t) =>
 
 int _sidesHash(List<BiomeType> sides) {
   var h = 0;
-  for (var i = 0; i < sides.length; i++) h ^= (sides[i].index + 1) * (i * 1000003 + 1);
+  for (var i = 0; i < sides.length; i++) { h ^= (sides[i].index + 1) * (i * 1000003 + 1); }
   return h.abs();
 }
 
@@ -247,7 +247,7 @@ void _water(ui.Canvas c, double w, double h, Random rng, double alpha) {
     var first   = true;
     for (var px = -w / 2; px <= w / 2; px += 2) {
       final y = baseY + sin(px * freq + phase) * amp;
-      if (first) { path.moveTo(px, y); first = false; } else path.lineTo(px, y);
+      if (first) { path.moveTo(px, y); first = false; } else { path.lineTo(px, y); }
     }
     c.drawPath(path, p);
   }
@@ -325,7 +325,7 @@ void _mountain(ui.Canvas c, double r, Random rng, double alpha) {
       ui.Offset(bx - w / 4 + lean - 1, by - h + 1),
       ui.Offset(bx + w / 4 + lean + 1, by - h * 0.80),
       ui.Paint()
-        ..color = Colors.white.withValues(alpha: alpha * 0.55)
+        ..color = const Color(0xFFFFFFFF).withValues(alpha: alpha * 0.55)
         ..strokeWidth = 1.2,
     );
   }

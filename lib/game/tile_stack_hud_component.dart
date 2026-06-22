@@ -12,7 +12,6 @@ import 'package:flame/components.dart';
 
 import '../core/constants.dart';
 import 'biome_texture_renderer.dart';
-import 'hex_cell.dart';
 import 'hex_tile.dart';
 import 'tile_component.dart' show kIsoScaleY;
 
@@ -112,7 +111,7 @@ class TileStackHudComponent extends PositionComponent {
 
     // Path hexagonal.
     final hexPath = Path()..moveTo(corners[0].dx, corners[0].dy);
-    for (var i = 1; i < 6; i++) hexPath.lineTo(corners[i].dx, corners[i].dy);
+    for (var i = 1; i < 6; i++) { hexPath.lineTo(corners[i].dx, corners[i].dy); }
     hexPath.close();
 
     // Texture Voronoï (même renderer que les tuiles posées).
@@ -122,8 +121,8 @@ class TileStackHudComponent extends PositionComponent {
     final centeredPath = Path();
     for (var i = 0; i < 6; i++) {
       final p = Offset(corners[i].dx - cx, corners[i].dy - cy);
-      if (i == 0) centeredPath.moveTo(p.dx, p.dy);
-      else centeredPath.lineTo(p.dx, p.dy);
+      if (i == 0) { centeredPath.moveTo(p.dx, p.dy); }
+      else { centeredPath.lineTo(p.dx, p.dy); }
     }
     centeredPath.close();
 
