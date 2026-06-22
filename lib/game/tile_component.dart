@@ -356,8 +356,8 @@ class TileComponent extends PositionComponent {
     final count = 1 + rng.nextInt(2);
     for (var e = 0; e < count; e++) {
       final roll = rng.nextDouble();
-      final ex = cx + (rng.nextDouble() - 0.5) * 16 * s;
-      final ey = cy + (rng.nextDouble() - 0.5) * 10 * s;
+      final ex = cx + (rng.nextDouble() - 0.5) * 30 * s;
+      final ey = cy + (rng.nextDouble() - 0.5) * 18 * s;
       if (roll < 0.4) {
         _drawPalm(canvas, ex, ey, s, rng);
       } else if (roll < 0.7) {
@@ -369,8 +369,8 @@ class TileComponent extends PositionComponent {
   }
 
   void _drawPalm(Canvas canvas, double cx, double cy, double s, Random rng) {
-    final baseX = cx + (rng.nextDouble() - 0.5) * 8 * s;
-    final baseY = cy + (rng.nextDouble() - 0.5) * 6 * s;
+    final baseX = cx + (rng.nextDouble() - 0.5) * 24 * s;
+    final baseY = cy + (rng.nextDouble() - 0.5) * 14 * s;
     final h = 10 * s;
     final trunk = Path()
       ..moveTo(baseX - 1.5 * s, baseY)
@@ -426,8 +426,8 @@ class TileComponent extends PositionComponent {
   void _drawBush(Canvas canvas, double cx, double cy, double s, Random rng) {
     final count = 2 + rng.nextInt(3);
     for (var i = 0; i < count; i++) {
-      final bx = cx + (rng.nextDouble() - 0.5) * 5 * s;
-      final by = cy + (rng.nextDouble() - 0.5) * 4 * s;
+      final bx = cx + (rng.nextDouble() - 0.5) * 16 * s;
+      final by = cy + (rng.nextDouble() - 0.5) * 10 * s;
       final br = (1.5 + rng.nextDouble() * 2) * s;
       canvas.drawCircle(
         Offset(bx, by),
@@ -455,8 +455,8 @@ class TileComponent extends PositionComponent {
   void _drawFlowerDecoration(Canvas canvas, double cx, double cy, double s, Random rng) {
     final count = 5 + rng.nextInt(3);
     for (var i = 0; i < count; i++) {
-      final fx = cx + (rng.nextDouble() - 0.5) * 18 * s;
-      final fy = cy + (rng.nextDouble() - 0.5) * 12 * s;
+      final fx = cx + (rng.nextDouble() - 0.5) * 30 * s;
+      final fy = cy + (rng.nextDouble() - 0.5) * 18 * s;
       final r = (1.5 + rng.nextDouble() * 2) * s;
       canvas.drawCircle(
         Offset(fx, fy),
@@ -476,8 +476,8 @@ class TileComponent extends PositionComponent {
   void _drawMountainDecoration(Canvas canvas, double cx, double cy, double s, Random rng) {
     final count = 1 + rng.nextInt(2);
     for (var i = 0; i < count; i++) {
-      final rx = cx + (rng.nextDouble() - 0.5) * 14 * s;
-      final ry = cy + (rng.nextDouble() - 0.5) * 8 * s;
+      final rx = cx + (rng.nextDouble() - 0.5) * 28 * s;
+      final ry = cy + (rng.nextDouble() - 0.5) * 16 * s;
       _drawRock(canvas, rx, ry, s * (0.6 + rng.nextDouble() * 0.4), rng);
     }
   }
@@ -520,16 +520,16 @@ class TileComponent extends PositionComponent {
   // ── Rocher (pour plage aussi) ─────────────────────────────────────────────
 
   void _drawRockDecoration(Canvas canvas, double cx, double cy, double s, Random rng) {
-    final rx = cx + (rng.nextDouble() - 0.5) * 14 * s;
-    final ry = cy + (rng.nextDouble() - 0.5) * 8 * s;
+    final rx = cx + (rng.nextDouble() - 0.5) * 28 * s;
+    final ry = cy + (rng.nextDouble() - 0.5) * 16 * s;
     _drawRock(canvas, rx, ry, s * (0.5 + rng.nextDouble() * 0.3), rng);
   }
 
   // ── Plage (étoile de mer) ─────────────────────────────────────────────────
 
   void _drawShell(Canvas canvas, double cx, double cy, double s, Random rng) {
-    final sx = cx + (rng.nextDouble() - 0.5) * 14 * s;
-    final sy = cy + (rng.nextDouble() - 0.5) * 10 * s;
+    final sx = cx + (rng.nextDouble() - 0.5) * 28 * s;
+    final sy = cy + (rng.nextDouble() - 0.5) * 16 * s;
     final scale = 0.5 + rng.nextDouble() * 0.8;
     final rotation = rng.nextDouble() * 2 * pi;
     final shell = Path();
@@ -554,8 +554,8 @@ class TileComponent extends PositionComponent {
 
   void _drawRipples(Canvas canvas, double cx, double cy, double s, Random rng) {
     for (var i = 0; i < 2; i++) {
-      final rx = cx + (rng.nextDouble() - 0.5) * 18 * s;
-      final ry = cy + (rng.nextDouble() - 0.5) * 12 * s;
+      final rx = cx + (rng.nextDouble() - 0.5) * 30 * s;
+      final ry = cy + (rng.nextDouble() - 0.5) * 16 * s;
       final ripple = Path()
         ..addOval(Rect.fromCenter(
           center: Offset(rx, ry),
@@ -575,8 +575,8 @@ class TileComponent extends PositionComponent {
   // ── Village (maison sur pilotis) ──────────────────────────────────────────
 
   void _drawStiltHouse(Canvas canvas, double cx, double cy, double s, Random rng) {
-    final hx2 = cx + (rng.nextDouble() - 0.5) * 8 * s;
-    final hy = cy + 4 * s;
+    final hx2 = cx + (rng.nextDouble() - 0.5) * 24 * s;
+    final hy = cy + 4 * s + (rng.nextDouble() - 0.5) * 10 * s;
     for (var i = -1; i <= 1; i += 1) {
       canvas.drawLine(
         Offset(hx2 + i * 3 * s, hy),
