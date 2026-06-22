@@ -136,7 +136,7 @@ jobs:
         run: |
           VERSION=${{ needs.analyze.outputs.app_version }}
           mkdir -p dist
-          cp build/app/outputs/flutter-apk/app-debug.apk "dist/HexCozyGames-${VERSION}-debug.apk"
+          cp build/app/outputs/flutter-apk/app-debug.apk "dist/HexHaven-${VERSION}-debug.apk"
           echo "📦 Debug artifact:"
           ls -lh dist/
 
@@ -197,8 +197,8 @@ jobs:
             echo "$KEY_PROPERTIES" > android/key.properties
             echo "✅ Signing release (secrets)"
           else
-            keytool -genkey -v -keystore android/app/keystore.jks -alias hexcozygames-debug -keyalg RSA -keysize 2048 -validity 10000 -storepass hexcozygames-debug-pwd -keypass hexcozygames-debug-pwd -dname "CN=HexCozyGames Debug, OU=Dev, O=HexCozyGames, L=Paris, C=FR" 2>/dev/null
-            printf 'storePassword=hexcozygames-debug-pwd\nkeyPassword=hexcozygames-debug-pwd\nkeyAlias=hexcozygames-debug\nstoreFile=keystore.jks\n' > android/key.properties
+            keytool -genkey -v -keystore android/app/keystore.jks -alias hexhaven-debug -keyalg RSA -keysize 2048 -validity 10000 -storepass hexhaven-debug-pwd -keypass hexhaven-debug-pwd -dname "CN=HexHaven Debug, OU=Dev, O=HexHaven, L=Paris, C=FR" 2>/dev/null
+            printf 'storePassword=hexhaven-debug-pwd\nkeyPassword=hexhaven-debug-pwd\nkeyAlias=hexhaven-debug\nstoreFile=keystore.jks\n' > android/key.properties
             echo "✅ Signing debug stable (sans secrets)"
           fi
 
@@ -226,8 +226,8 @@ jobs:
         run: |
           VERSION=${{ needs.analyze.outputs.app_version }}
           mkdir -p dist
-          cp build/app/outputs/flutter-apk/app-release.apk "dist/HexCozyGames-${VERSION}.apk"
-          cp build/app/outputs/bundle/release/app-release.aab "dist/HexCozyGames-${VERSION}.aab"
+          cp build/app/outputs/flutter-apk/app-release.apk "dist/HexHaven-${VERSION}.apk"
+          cp build/app/outputs/bundle/release/app-release.aab "dist/HexHaven-${VERSION}.aab"
           echo "📦 Release artifacts:"
           ls -lh dist/
 
@@ -291,9 +291,9 @@ jobs:
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.TAG_NAME }}
-          name: "HexCozyGames ${{ env.TAG_NAME }}"
+          name: "HexHaven ${{ env.TAG_NAME }}"
           body: |
-            ## HexCozyGames ${{ env.TAG_NAME }}
+            ## HexHaven ${{ env.TAG_NAME }}
 
             **Version** : `${{ needs.analyze.outputs.app_version }}` | **Build** : `${{ needs.analyze.outputs.app_build }}`
 
