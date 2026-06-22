@@ -29,6 +29,7 @@ import 'package:flame/game.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/colors.dart';
 import '../providers/grid_state_provider.dart';
 import '../providers/pause_provider.dart';
 import '../providers/placement_provider.dart';
@@ -55,7 +56,7 @@ class HexBoardGame extends FlameGame
   final Map<int, Offset> _tapDownPositions = {};
 
   @override
-  Color backgroundColor() => const Color(0xFF4FC3F7); // = haut du ciel
+  Color backgroundColor() => kGameBackground;
 
   @override
   Future<void> onLoad() async {

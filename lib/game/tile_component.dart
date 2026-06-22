@@ -1,12 +1,3 @@
-/// Composant Flame pour le rendu d'une tuile hexagonale colorée — Story 1.3.
-///
-/// Rendu : chaque côté i est un trapèze (ou triangle) allant du centre de
-/// l'hexagone vers les deux sommets qui encadrent ce côté.
-///
-/// Projection isométrique : les coins sont calculés en espace "monde plat"
-/// puis la coordonnée Y est multipliée par [kIsoScaleY] avant dessin —
-/// c'est la SEULE transformation iso appliquée, ce qui garantit que le rendu
-/// interne de chaque tuile est cohérent avec sa position sur le plateau.
 library;
 
 import 'dart:math';
@@ -19,56 +10,34 @@ import 'hex_cell.dart';
 import 'hex_coords.dart';
 import 'hex_tile.dart';
 
-/// Facteur d'écrasement vertical isométrique (identique à hex_grid_component).
-const double kIsoScaleY = 0.57; // ~tan(30°) → vue à ~30° du plan
+const double kIsoScaleY = 0.57;
 
-/// Durée de l'effet de glow sur les côtés connectés (story 1.6b).
 const double kGlowDurationSec = 0.6;
-
-/// Opacité initiale du glow.
 const double kGlowStartAlpha = 0.45;
 
-/// Correspondance [BiomeType] → couleurs d'affichage île paradisiaque.
-///
-/// Chaque biome expose une [color] principale (face du dessus) et une [darkColor]
-/// pour les faces latérales extrudées (3D).
 extension BiomeColor on BiomeType {
   Color get color {
     switch (this) {
       case BiomeType.plain:
-        return const Color(0xFF8BC34A); // vert prairie tropicale
+        return const Color(0xFF8BC34A);
       case BiomeType.flowerField:
-        return const Color(0xFFEC407A); // rose champ de fleurs
+        return const Color(0xFFEC407A);
       case BiomeType.forest:
-        return const Color(0xFF2E7D32); // vert mangrove foncé
+        return const Color(0xFF2E7D32);
       case BiomeType.mountain:
-        return const Color(0xFF424242); // gris basalte
+        return const Color(0xFF424242);
       case BiomeType.beach:
-        return const Color(0xFFFDD835); // sable doré
+        return const Color(0xFFFDD835);
       case BiomeType.water:
-        return const Color(0xFF26C6DA); // turquoise
+        return const Color(0xFF26C6DA);
       case BiomeType.village:
-        return const Color(0xFF8D6E63); // bois brun chaud
+        return const Color(0xFF8D6E63);
     }
-  }
-
-  /// Teinte dégradée plus claire (pour le centre de la face).
-  Color get lightColor {
-    final c = color;
-    return Color.from(
-      alpha: c.a,
-      red: (c.r + 0.3).clamp(0.0, 1.0),
-      green: (c.g + 0.3).clamp(0.0, 1.0),
-      blue: (c.b + 0.3).clamp(0.0, 1.0),
-    );
   }
 }
 
-/// Épaisseur de base du "bloc" 3D des tuiles, en px logiques.
-/// La hauteur réelle varie selon le biome dominant (relief).
 const double kTileDepthBase = 8.0;
 
-/// Facteur de relief par biome. Montagne > village > plage.
 const Map<BiomeType, double> kReliefFactors = {
   BiomeType.mountain: 2.2,
   BiomeType.village: 1.6,
@@ -79,30 +48,14 @@ const Map<BiomeType, double> kReliefFactors = {
   BiomeType.water: 0.4,
 };
 
-/// Amplitude maximale des offsets aléatoires des sommets (px) pour l'aspect
-/// "terrain naturel".
 const double kMaxVertexJitter = 2.5;
 
-/// Offset de base pour la priorité de rendu calculée depuis la profondeur
-/// iso (voir [TileComponent.updateDepthPriority]). Suffisamment grand pour
-/// rester toujours au-dessus des priorités HUD fixes du plateau (preview,
-/// pièces, bonus : 2 à 12) même avec un `position.y` négatif important.
 const int kTileDepthPriorityBase = 100000;
-
-/// Priorité de rendu de la tuile en prévisualisation (celle qui flotte
-/// au-dessus du plateau avant validation du placement, cf. [kPreviewLiftPx]
-/// dans hex_grid_component.dart).
-///
-/// Elle doit toujours être dessinée AU-DESSUS de toutes les tuiles posées,
-/// quelle que soit leur profondeur — d'où une marge large par rapport à
-/// [kTileDepthPriorityBase] + le plus grand `position.y` raisonnable.
 const int kTileDepthPriorityPreview = kTileDepthPriorityBase + 1000000;
 
-/// Composant Flame représentant une tuile hexagonale colorée.
-///
-/// La projection isométrique est appliquée DANS le rendu (Y *= kIsoScaleY) :
-/// le [PositionComponent] est positionné en coordonnées écran "plat", et les
-/// coins de l'hexagone sont écrasés au moment du dessin.
+/// Facteur de réduction pour le polygone intérieur (biome dominant).
+const double _kInnerFactor = 0.35;
+
 class TileComponent extends PositionComponent {
   TileComponent({
     required this.tile,
@@ -130,21 +83,6 @@ class TileComponent extends PositionComponent {
     size = Vector2(sqrt(3) * value, 2 * value * kIsoScaleY);
   }
 
-  /// Recalcule la priorité de rendu Flame en fonction de la profondeur iso.
-  ///
-  /// En vue isométrique, une tuile plus basse à l'écran (Y plus grand) est
-  /// visuellement plus proche de la caméra et doit donc être dessinée
-  /// PAR-DESSUS les tuiles plus hautes (Y plus petit) — sinon les faces
-  /// latérales du bloc 3D d'une tuile du fond peuvent apparaître devant une
-  /// tuile du premier plan (cf. retour utilisateur, story 1.8b).
-  ///
-  /// On utilise `position.y` (centre écran de la tuile, déjà en coordonnées
-  /// projetées iso) comme clé de tri, par tranche de 1px → 1 rang de priorité.
-  /// Un offset de [kTileDepthPriorityBase] garde toujours ce rang largement
-  /// au-dessus des priorités HUD fixes utilisées ailleurs sur le plateau
-  /// (preview = 2, pièces/bonus = 10-12), même si position.y est négatif
-  /// (tuile au-dessus de l'origine caméra) — sans quoi une tuile pourrait
-  /// accidentellement passer devant des éléments de HUD de prévisualisation.
   void updateDepthPriority() {
     priority = kTileDepthPriorityBase + position.y.round();
   }
@@ -153,7 +91,6 @@ class TileComponent extends PositionComponent {
   double get alpha => _alpha;
   set alpha(double value) => _alpha = value.clamp(0.0, 1.0);
 
-  /// Hauteur d'extrusion 3D basée sur le biome dominant de la tuile.
   double get _reliefDepth {
     final dominant = _dominantBiome();
     final factor = kReliefFactors[dominant] ?? 1.0;
@@ -168,16 +105,11 @@ class TileComponent extends PositionComponent {
     return counts.entries.reduce((a, b) => a.value >= b.value ? a : b).key;
   }
 
-  /// Côtés à surligner en permanence (prévisualisation des connexions).
   Set<int> highlightedSides;
-
-  // ── Glow (story 1.6b) ──────────────────────────────────────────────────────
 
   Set<int>? _glowSides;
   double _glowAlpha = 0.0;
 
-  /// Déclenche un effet de glow sur les [sides] (liste d'indices 0-5).
-  /// Le glow s'estompe sur [kGlowDurationSec] secondes.
   void startGlow(List<int> sides) {
     _glowSides = sides.toSet();
     _glowAlpha = kGlowStartAlpha;
@@ -188,18 +120,23 @@ class TileComponent extends PositionComponent {
   @override
   void render(Canvas canvas) {
     final depth = _reliefDepth;
-    // Petit hash déterministe pour les offsets des sommets.
-    final seed = _coords.q * 31 + _coords.r * 17;
-    final rng = Random(seed);
-
     final cx = size.x / 2;
     final cyTop = size.y / 2 - depth / 2;
+
+    // Corners non-jittered pour le hash des sommets partagés.
     final flatCorners = _isoCorners(cx, cyTop);
-    final jittered = flatCorners.map((c) {
+
+    // Jitter déterministe basé sur la position absolue de chaque sommet.
+    // Deux tuiles adjacentes partagent les mêmes sommets → même hash → même
+    // jitter → plus d'espace visible entre les tuiles.
+    final jittered = List<Offset>.generate(6, (i) {
+      final c = flatCorners[i];
+      final seed = Object.hash(c.dx.toStringAsFixed(2), c.dy.toStringAsFixed(2));
+      final rng = Random(seed);
       final dx = (rng.nextDouble() - 0.5) * kMaxVertexJitter;
       final dy = (rng.nextDouble() - 0.5) * kMaxVertexJitter * kIsoScaleY;
       return Offset(c.dx + dx, c.dy + dy);
-    }).toList();
+    });
 
     // ── Ombre portée au sol ───────────────────────────────────────────────
     final shadowPaint = Paint()
@@ -212,6 +149,20 @@ class TileComponent extends PositionComponent {
         height: _hexSize * kIsoScaleY * 0.6,
       ),
       shadowPaint,
+    );
+
+    // ── Halo lumineux (dégradé blanc autour de la tuile) ──────────────────
+    final haloPath = Path()..moveTo(jittered[0].dx, jittered[0].dy);
+    for (var i = 1; i < 6; i++) {
+      haloPath.lineTo(jittered[i].dx, jittered[i].dy);
+    }
+    haloPath.close();
+    canvas.drawPath(
+      haloPath,
+      Paint()
+        ..color = const Color(0xFFFFFFFF).withValues(alpha: 0.07)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8)
+        ..style = PaintingStyle.fill,
     );
 
     // ── Faces latérales (côtés "bas" du bloc) ────────────────────────────
@@ -238,7 +189,6 @@ class TileComponent extends PositionComponent {
         green: baseColor.g * 0.55,
         blue: baseColor.b * 0.55,
       );
-      // Dégradé vertical sur la face latérale (plus clair en haut).
       canvas.drawPath(
         sidePath,
         Paint()
@@ -251,45 +201,91 @@ class TileComponent extends PositionComponent {
       );
     }
 
-    // ── Face du dessus avec dégradé lumineux ────────────────────────────
+    // ── Face du dessus avec polygone intérieur (biome dominant) ──────────
+    final dominantColor = _dominantBiome().color;
+
+    // Polygone intérieur (hexagone réduit centré).
+    final innerCorners = List.generate(6, (i) {
+      final outer = jittered[i];
+      return Offset(
+        cx + (outer.dx - cx) * _kInnerFactor,
+        cyTop + (outer.dy - cyTop) * _kInnerFactor,
+      );
+    });
+
+    // Dessiner la couronne extérieure (trapèzes par côté).
+    for (var i = 0; i < 6; i++) {
+      final j0 = jittered[i];
+      final j1 = jittered[(i + 1) % 6];
+      final ii0 = innerCorners[i];
+      final ii1 = innerCorners[(i + 1) % 6];
+
+      final outerPath = Path()
+        ..moveTo(j0.dx, j0.dy)
+        ..lineTo(j1.dx, j1.dy)
+        ..lineTo(ii1.dx, ii1.dy)
+        ..lineTo(ii0.dx, ii0.dy)
+        ..close();
+
+      canvas.drawPath(
+        outerPath,
+        Paint()
+          ..color = tile.sides[i].color.withValues(alpha: _alpha)
+          ..style = PaintingStyle.fill,
+      );
+    }
+
+    // Liserés de transition entre biomes (sur la couronne extérieure).
+    for (var i = 0; i < 6; i++) {
+      final next = (i + 1) % 6;
+      if (tile.sides[i].color != tile.sides[next].color) {
+        canvas.drawLine(
+          jittered[next],
+          innerCorners[next],
+          Paint()
+            ..color = const Color(0xFFFFFFFF).withValues(alpha: 0.08)
+            ..strokeWidth = 1.5,
+        );
+      }
+    }
+
+    // Polygone intérieur (biome dominant).
+    final innerPath = Path()..moveTo(innerCorners[0].dx, innerCorners[0].dy);
+    for (var i = 1; i < 6; i++) {
+      innerPath.lineTo(innerCorners[i].dx, innerCorners[i].dy);
+    }
+    innerPath.close();
+    canvas.drawPath(
+      innerPath,
+      Paint()
+        ..color = dominantColor.withValues(alpha: _alpha)
+        ..style = PaintingStyle.fill,
+    );
+
+    // ── Écume (contour blanc fin sur le pourtour extérieur) ──────────────
+    final foamPath = Path()..moveTo(jittered[0].dx, jittered[0].dy);
+    for (var i = 1; i < 6; i++) {
+      foamPath.lineTo(jittered[i].dx, jittered[i].dy);
+    }
+    foamPath.close();
+    canvas.drawPath(
+      foamPath,
+      Paint()
+        ..color = const Color(0xFFFFFFFF).withValues(alpha: 0.25 * _alpha)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.2,
+    );
+
+    // ── Glow ──────────────────────────────────────────────────────────────
     for (var i = 0; i < 6; i++) {
       final c0 = jittered[i];
       final c1 = jittered[(i + 1) % 6];
-
       final path = Path()
         ..moveTo(cx, cyTop)
         ..lineTo(c0.dx, c0.dy)
         ..lineTo(c1.dx, c1.dy)
         ..close();
 
-      canvas.drawPath(
-        path,
-        Paint()
-          ..shader = Gradient.radial(
-            Offset(cx, cyTop),
-            _hexSize * kIsoScaleY,
-            [
-              tile.sides[i].lightColor.withValues(alpha: _alpha),
-              tile.sides[i].color.withValues(alpha: _alpha),
-            ],
-            [0.0, 0.7],
-          )
-          ..style = PaintingStyle.fill,
-      );
-
-      // Liseré de transition entre biomes différents
-      final nextColor = tile.sides[(i + 1) % 6].color;
-      if (tile.sides[i].color != nextColor) {
-        canvas.drawLine(
-          Offset(c0.dx, c0.dy),
-          Offset(cx, cyTop),
-          Paint()
-            ..color = const Color(0xFFFFFFFF).withValues(alpha: 0.08)
-            ..strokeWidth = 1.5,
-        );
-      }
-
-      // Glow sur les côtés connectés (story 1.6b).
       if (_glowSides != null && _glowSides!.contains(i) && _glowAlpha > 0.01) {
         canvas.drawPath(
           path,
@@ -299,7 +295,6 @@ class TileComponent extends PositionComponent {
         );
       }
 
-      // Surbrillance persistante des côtés bien connectés (story 1.7a).
       if (highlightedSides.contains(i)) {
         canvas.drawPath(
           path,
@@ -310,10 +305,10 @@ class TileComponent extends PositionComponent {
       }
     }
 
-    // ── Décoration HD2D (30% des tuiles) ─────────────────────────────────
-    if (rng.nextDouble() < 0.3) {
-      _drawDecoration(canvas, cx, cyTop, _hexSize, rng);
-    }
+    // ── Décoration HD2D (sur le polygone intérieur) ──────────────────────
+    final decorationSeed = _coords.q * 31 + _coords.r * 17;
+    final decorationRng = Random(decorationSeed);
+    _drawDecoration(canvas, cx, cyTop, _hexSize, decorationRng);
   }
 
   @override
@@ -330,34 +325,53 @@ class TileComponent extends PositionComponent {
 
   // ── Décoration HD2D ───────────────────────────────────────────────────────
 
-  /// Dessine une décoration procédurale sur la tuile selon le biome dominant.
   void _drawDecoration(Canvas canvas, double cx, double cy, double hx, Random rng) {
     final dominant = _dominantBiome();
-    final s = hx / 48; // facteur d'échelle
+    final s = hx / 48;
 
     switch (dominant) {
       case BiomeType.plain:
-        _drawPalm(canvas, cx, cy, s, rng);
+        if (rng.nextDouble() < 0.3) {
+          _drawPlainDecoration(canvas, cx, cy, s, rng);
+        }
       case BiomeType.flowerField:
-        _drawFlowers(canvas, cx, cy, s, rng);
+        _drawFlowerDecoration(canvas, cx, cy, s, rng);
       case BiomeType.forest:
-        _drawMangrove(canvas, cx, cy, s, rng);
+        _drawForestDecoration(canvas, cx, cy, s, rng);
       case BiomeType.mountain:
-        _drawVolcano(canvas, cx, cy, s, rng);
+        _drawMountainDecoration(canvas, cx, cy, s, rng);
       case BiomeType.beach:
-        _drawShell(canvas, cx, cy, s, rng);
+        if (rng.nextDouble() < 0.3) _drawRockDecoration(canvas, cx, cy, s, rng);
+        if (rng.nextDouble() < 0.3) _drawShell(canvas, cx, cy, s, rng);
       case BiomeType.water:
-        _drawRipples(canvas, cx, cy, s, rng);
+        if (rng.nextDouble() < 0.3) _drawRipples(canvas, cx, cy, s, rng);
       case BiomeType.village:
         _drawStiltHouse(canvas, cx, cy, s, rng);
     }
   }
 
+  // ── Plaine ────────────────────────────────────────────────────────────────
+
+  void _drawPlainDecoration(Canvas canvas, double cx, double cy, double s, Random rng) {
+    final count = 1 + rng.nextInt(2);
+    for (var e = 0; e < count; e++) {
+      final roll = rng.nextDouble();
+      final ex = cx + (rng.nextDouble() - 0.5) * 16 * s;
+      final ey = cy + (rng.nextDouble() - 0.5) * 10 * s;
+      if (roll < 0.4) {
+        _drawPalm(canvas, ex, ey, s, rng);
+      } else if (roll < 0.7) {
+        _drawStick(canvas, ex, ey, s, rng);
+      } else {
+        _drawBush(canvas, ex, ey, s, rng);
+      }
+    }
+  }
+
   void _drawPalm(Canvas canvas, double cx, double cy, double s, Random rng) {
-    final baseX = cx + (rng.nextDouble() - 0.5) * 16 * s;
-    final baseY = cy + (rng.nextDouble() - 0.5) * 10 * s;
-    final h = 14 * s;
-    // Tronc courbe
+    final baseX = cx + (rng.nextDouble() - 0.5) * 8 * s;
+    final baseY = cy + (rng.nextDouble() - 0.5) * 6 * s;
+    final h = 10 * s;
     final trunk = Path()
       ..moveTo(baseX - 1.5 * s, baseY)
       ..quadraticBezierTo(baseX + 1 * s, baseY - h * 0.5, baseX - 1 * s, baseY - h);
@@ -368,10 +382,9 @@ class TileComponent extends PositionComponent {
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2.5 * s,
     );
-    // Feuilles (3-4 lignes)
     for (var i = 0; i < 3; i++) {
       final angle = rng.nextDouble() * pi * 0.6 - pi * 0.3 - pi / 2;
-      final len = (6 + rng.nextDouble() * 8) * s;
+      final len = (4 + rng.nextDouble() * 6) * s;
       final leaf = Path()
         ..moveTo(baseX - 1 * s, baseY - h)
         ..quadraticBezierTo(
@@ -390,16 +403,65 @@ class TileComponent extends PositionComponent {
     }
   }
 
-  void _drawFlowers(Canvas canvas, double cx, double cy, double s, Random rng) {
-    for (var i = 0; i < 4; i++) {
-      final fx = cx + (rng.nextDouble() - 0.5) * 20 * s;
-      final fy = cy + (rng.nextDouble() - 0.5) * 14 * s;
-      final r = (2 + rng.nextDouble() * 2) * s;
+  void _drawStick(Canvas canvas, double cx, double cy, double s, Random rng) {
+    final angle = rng.nextDouble() * pi;
+    final len = (4 + rng.nextDouble() * 4) * s;
+    canvas.drawLine(
+      Offset(cx - cos(angle) * len * 0.5, cy - sin(angle) * len * 0.5),
+      Offset(cx + cos(angle) * len * 0.5, cy + sin(angle) * len * 0.5),
+      Paint()
+        ..color = const Color(0xFF6D4C41)
+        ..strokeWidth = 1.5 * s,
+    );
+    final branchAngle = angle + (rng.nextDouble() - 0.5) * 0.8;
+    canvas.drawLine(
+      Offset(cx, cy),
+      Offset(cx + cos(branchAngle) * len * 0.3, cy + sin(branchAngle) * len * 0.3),
+      Paint()
+        ..color = const Color(0xFF6D4C41)
+        ..strokeWidth = 1.0 * s,
+    );
+  }
+
+  void _drawBush(Canvas canvas, double cx, double cy, double s, Random rng) {
+    final count = 2 + rng.nextInt(3);
+    for (var i = 0; i < count; i++) {
+      final bx = cx + (rng.nextDouble() - 0.5) * 5 * s;
+      final by = cy + (rng.nextDouble() - 0.5) * 4 * s;
+      final br = (1.5 + rng.nextDouble() * 2) * s;
+      canvas.drawCircle(
+        Offset(bx, by),
+        br,
+        Paint()..color = const Color(0xFF4CAF50).withValues(alpha: 0.8),
+      );
+    }
+  }
+
+  // ── Forêt ─────────────────────────────────────────────────────────────────
+
+  void _drawForestDecoration(Canvas canvas, double cx, double cy, double s, Random rng) {
+    final treeCount = 3 + rng.nextInt(2);
+    for (var i = 0; i < treeCount; i++) {
+      _drawPalm(canvas, cx, cy, s * (0.7 + rng.nextDouble() * 0.4), rng);
+    }
+    final bushCount = 2 + rng.nextInt(2);
+    for (var i = 0; i < bushCount; i++) {
+      _drawBush(canvas, cx, cy, s * (0.7 + rng.nextDouble() * 0.3), rng);
+    }
+  }
+
+  // ── Fleurs ────────────────────────────────────────────────────────────────
+
+  void _drawFlowerDecoration(Canvas canvas, double cx, double cy, double s, Random rng) {
+    final count = 5 + rng.nextInt(3);
+    for (var i = 0; i < count; i++) {
+      final fx = cx + (rng.nextDouble() - 0.5) * 18 * s;
+      final fy = cy + (rng.nextDouble() - 0.5) * 12 * s;
+      final r = (1.5 + rng.nextDouble() * 2) * s;
       canvas.drawCircle(
         Offset(fx, fy),
         r,
-        Paint()
-          ..color = const Color(0xFFF48FB1).withValues(alpha: 0.7),
+        Paint()..color = const Color(0xFFF48FB1).withValues(alpha: 0.7),
       );
       canvas.drawCircle(
         Offset(fx, fy),
@@ -409,63 +471,71 @@ class TileComponent extends PositionComponent {
     }
   }
 
-  void _drawMangrove(Canvas canvas, double cx, double cy, double s, Random rng) {
-    final bx = cx + (rng.nextDouble() - 0.5) * 12 * s;
-    final by = cy + 4 * s;
-    // Racines en V
-    for (var side = -1; side <= 1; side += 2) {
-      final root = Path()
-        ..moveTo(bx + side * 2 * s, by)
-        ..quadraticBezierTo(
-          bx + side * 6 * s, by - 6 * s,
-          bx + side * 4 * s, by - 12 * s,
-        );
-      canvas.drawPath(
-        root,
-        Paint()
-          ..color = const Color(0xFF5D4037)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 2.5 * s,
-      );
+  // ── Montagne (rochers 3D) ─────────────────────────────────────────────────
+
+  void _drawMountainDecoration(Canvas canvas, double cx, double cy, double s, Random rng) {
+    final count = 1 + rng.nextInt(2);
+    for (var i = 0; i < count; i++) {
+      final rx = cx + (rng.nextDouble() - 0.5) * 14 * s;
+      final ry = cy + (rng.nextDouble() - 0.5) * 8 * s;
+      _drawRock(canvas, rx, ry, s * (0.6 + rng.nextDouble() * 0.4), rng);
     }
-    // Feuillage (couronne arrondie)
-    canvas.drawCircle(
-      Offset(bx, by - 14 * s),
-      6 * s,
-      Paint()
-        ..color = const Color(0xFF388E3C).withValues(alpha: 0.9),
-    );
   }
 
-  void _drawVolcano(Canvas canvas, double cx, double cy, double s, Random rng) {
-    final vx = cx + (rng.nextDouble() - 0.5) * 8 * s;
-    final vy = cy + 6 * s;
-    // Cône volcanique
-    final cone = Path()
-      ..moveTo(vx - 8 * s, vy)
-      ..lineTo(vx, vy - 14 * s)
-      ..lineTo(vx + 8 * s, vy)
-      ..close();
-    canvas.drawPath(
-      cone,
-      Paint()..color = const Color(0xFF616161),
-    );
-    // Lueur orangée au sommet
-    canvas.drawCircle(
-      Offset(vx, vy - 13 * s),
-      2.5 * s,
-      Paint()..color = const Color(0xFFFF6F00),
-    );
+  void _drawRock(Canvas canvas, double cx, double cy, double s, Random rng) {
+    final vertices = 5 + rng.nextInt(3);
+    final rockPath = Path();
+    for (var i = 0; i < vertices; i++) {
+      final angle = 2 * pi * i / vertices + (rng.nextDouble() - 0.5) * 0.4;
+      final radius = (2 + rng.nextDouble() * 3) * s;
+      final x = cx + cos(angle) * radius;
+      final y = cy + sin(angle) * radius * 0.7;
+      if (i == 0) {
+        rockPath.moveTo(x, y);
+      } else {
+        rockPath.lineTo(x, y);
+      }
+    }
+    rockPath.close();
+
+    // Base plus sombre.
+    canvas.drawPath(rockPath, Paint()..color = const Color(0xFF616161));
+    // Highlight pour le volume (décalé vers le haut).
+    final highPath = Path();
+    for (var i = 0; i < vertices; i++) {
+      final angle = 2 * pi * i / vertices + (rng.nextDouble() - 0.5) * 0.4;
+      final radius = (1.5 + rng.nextDouble() * 2.5) * s;
+      final x = cx + cos(angle) * radius - 1 * s;
+      final y = cy + sin(angle) * radius * 0.7 - 1 * s;
+      if (i == 0) {
+        highPath.moveTo(x, y);
+      } else {
+        highPath.lineTo(x, y);
+      }
+    }
+    highPath.close();
+    canvas.drawPath(highPath, Paint()..color = const Color(0xFF9E9E9E));
   }
+
+  // ── Rocher (pour plage aussi) ─────────────────────────────────────────────
+
+  void _drawRockDecoration(Canvas canvas, double cx, double cy, double s, Random rng) {
+    final rx = cx + (rng.nextDouble() - 0.5) * 14 * s;
+    final ry = cy + (rng.nextDouble() - 0.5) * 8 * s;
+    _drawRock(canvas, rx, ry, s * (0.5 + rng.nextDouble() * 0.3), rng);
+  }
+
+  // ── Plage (étoile de mer) ─────────────────────────────────────────────────
 
   void _drawShell(Canvas canvas, double cx, double cy, double s, Random rng) {
     final sx = cx + (rng.nextDouble() - 0.5) * 14 * s;
     final sy = cy + (rng.nextDouble() - 0.5) * 10 * s;
-    // Étoile de mer à 5 branches (polygone simple)
+    final scale = 0.5 + rng.nextDouble() * 0.8;
+    final rotation = rng.nextDouble() * 2 * pi;
     final shell = Path();
     for (var i = 0; i < 5; i++) {
-      final angle = i * 2 * pi / 5 - pi / 2;
-      final r = (i.isEven ? 4.0 : 2.0) * s;
+      final angle = i * 2 * pi / 5 - pi / 2 + rotation;
+      final r = (i.isEven ? 4.0 : 2.0) * s * scale;
       if (i == 0) {
         shell.moveTo(sx + cos(angle) * r, sy + sin(angle) * r);
       } else {
@@ -479,6 +549,8 @@ class TileComponent extends PositionComponent {
         ..color = const Color(0xFFFFCC80).withValues(alpha: 0.8),
     );
   }
+
+  // ── Eau (ripples) ─────────────────────────────────────────────────────────
 
   void _drawRipples(Canvas canvas, double cx, double cy, double s, Random rng) {
     for (var i = 0; i < 2; i++) {
@@ -500,10 +572,11 @@ class TileComponent extends PositionComponent {
     }
   }
 
+  // ── Village (maison sur pilotis) ──────────────────────────────────────────
+
   void _drawStiltHouse(Canvas canvas, double cx, double cy, double s, Random rng) {
-    final hx2 = cx + (rng.nextDouble() - 0.5) * 6 * s;
-    final hy = cy + 6 * s;
-    // Pilotis
+    final hx2 = cx + (rng.nextDouble() - 0.5) * 8 * s;
+    final hy = cy + 4 * s;
     for (var i = -1; i <= 1; i += 1) {
       canvas.drawLine(
         Offset(hx2 + i * 3 * s, hy),
@@ -513,12 +586,10 @@ class TileComponent extends PositionComponent {
           ..strokeWidth = 1.5 * s,
       );
     }
-    // Plateforme
     canvas.drawRect(
       Rect.fromCenter(center: Offset(hx2, hy - 8 * s), width: 12 * s, height: 2 * s),
       Paint()..color = const Color(0xFF8D6E63),
     );
-    // Toit (triangle)
     final roof = Path()
       ..moveTo(hx2 - 7 * s, hy - 9 * s)
       ..lineTo(hx2, hy - 16 * s)
@@ -532,8 +603,6 @@ class TileComponent extends PositionComponent {
 
   // ── Helpers ───────────────────────────────────────────────────────────────
 
-  /// Calcule les 6 sommets de l'hexagone pointy-top avec projection iso,
-  /// décalés de (cx, cy) pour compenser l'offset d'ancrage centre.
   List<Offset> _isoCorners(double cx, double cy) {
     return List.generate(6, (i) {
       final angleDeg = 60.0 * i - 90.0;

@@ -9,6 +9,9 @@ import 'dart:ui' show Color;
 /// Fond principal — dégradé sable/chaleur (clair, ou version foncée adaptée).
 const Color kBackgroundColor = Color(0xFF1A2A32); // bleu-nuit tropical
 
+/// Fond du jeu — eau turquoise claire.
+const Color kGameBackground = Color(0xFF00F2E8);
+
 /// Fond secondaire — sable clair pour cartes et modales.
 const Color kIslandSand = Color(0xFFF5E6CA);
 
