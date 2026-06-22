@@ -38,17 +38,7 @@ extension BiomeColor on BiomeType {
 
 const double kTileDepthBase = 8.0;
 
-const Map<BiomeType, double> kReliefFactors = {
-  BiomeType.mountain: 2.2,
-  BiomeType.village: 1.6,
-  BiomeType.forest: 1.3,
-  BiomeType.plain: 1.0,
-  BiomeType.flowerField: 0.8,
-  BiomeType.beach: 0.6,
-  BiomeType.water: 0.4,
-};
-
-const double kMaxVertexJitter = 2.5;
+const double kMaxVertexJitter = 0.0;
 
 const int kTileDepthPriorityBase = 100000;
 const int kTileDepthPriorityPreview = kTileDepthPriorityBase + 1000000;
@@ -91,11 +81,7 @@ class TileComponent extends PositionComponent {
   double get alpha => _alpha;
   set alpha(double value) => _alpha = value.clamp(0.0, 1.0);
 
-  double get _reliefDepth {
-    final dominant = _dominantBiome();
-    final factor = kReliefFactors[dominant] ?? 1.0;
-    return kTileDepthBase * factor;
-  }
+  double get _reliefDepth => kTileDepthBase;
 
   BiomeType _dominantBiome() {
     final counts = <BiomeType, int>{};
