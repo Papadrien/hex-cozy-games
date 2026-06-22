@@ -34,9 +34,11 @@ import '../providers/grid_state_provider.dart';
 import '../providers/pause_provider.dart';
 import '../providers/placement_provider.dart';
 import '../providers/placement_commit.dart';
+import '../providers/tile_stack_provider.dart';
 import 'hex_coords.dart';
 import 'hex_grid_component.dart';
 import 'hex_tile.dart';
+import 'tile_stack_hud_component.dart';
 
 class HexBoardGame extends FlameGame
     with MultiTouchTapDetector {
@@ -45,9 +47,11 @@ class HexBoardGame extends FlameGame
   final WidgetRef _ref;
 
   HexGridComponent? _grid;
+  TileStackHudComponent? _stackHud;
 
   bool _cameraDirty = false;
   bool _previewDirty = true;
+  bool _stackDirty = true;
 
   /// Stocke la position du onTapDown par pointerId, pour mesurer la distance
   /// parcourue dans onTapUp : si le doigt a bougé > 5 px, c'était un swipe
@@ -62,6 +66,11 @@ class HexBoardGame extends FlameGame
     await super.onLoad();
     _grid = HexGridComponent(screenSize: size.clone());
     add(_grid!);
+
+    // Pile HUD — rendu dans le viewport (coords écran fixes, haut-droite).
+    _stackHud = TileStackHudComponent(screenSize: size);
+    camera.viewport.add(_stackHud!);
+
     _initBoard();
     _syncPlacementPreview();
 
@@ -93,6 +102,7 @@ class HexBoardGame extends FlameGame
     super.onGameResize(size);
     _grid?.screenSize.setFrom(size);
     _grid?.size.setFrom(size);
+    _stackHud?.onScreenResize(size);
     _cameraDirty = true;
   }
 
@@ -107,6 +117,16 @@ class HexBoardGame extends FlameGame
       _syncPlacementPreview();
       _previewDirty = false;
     }
+    if (_stackDirty) {
+      _syncStackHud();
+      _stackDirty = false;
+    }
+  }
+
+  void _syncStackHud() {
+    final hud = _stackHud;
+    if (hud == null) return;
+    hud.visibleTiles = _ref.read(tileStackProvider).visible;
   }
 
   /// Lit l'état courant des providers de placement/pile et met à jour le
@@ -153,12 +173,12 @@ class HexBoardGame extends FlameGame
     List<int> connectedSides,
     int bonusTiles,
   ) {
-    _grid?.placeTile(coords, tile,
-        connectedSides: connectedSides);
+    _grid?.placeTile(coords, tile, connectedSides: connectedSides);
     if (connectedSides.isNotEmpty || bonusTiles > 0) {
       _grid?.showRewardIndicators(coords, connectedSides, bonusTiles: bonusTiles);
     }
     _previewDirty = true;
+    _stackDirty = true;
   }
 
   /// Retire une tuile du rendu Flame (appelé depuis le bouton Annuler).
