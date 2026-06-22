@@ -259,14 +259,6 @@ class HexGridComponent extends PositionComponent {
     placedTiles[coords] = component;
     add(component);
 
-    // Particules à l'emplacement (Phase 6)
-    final biome = _dominantBiome(tile);
-    add(_PlacementParticles(
-      position: Vector2(center.x, center.y),
-      biome: biome,
-      hexSize: kHexSize * zoom,
-    ));
-
     placedCells[coords] = HexCell(
       q: coords.q,
       r: coords.r,
@@ -479,89 +471,6 @@ class _CoinComponent extends PositionComponent {
         ..style = PaintingStyle.fill,
     );
   }
-}
-
-/// Particules de placement — burst de petits hexagones aux couleurs du biome.
-class _PlacementParticles extends PositionComponent {
-  _PlacementParticles({
-    required super.position,
-    required BiomeType biome,
-    required double hexSize,
-  }) : _particles = List.generate(
-          10 + (hexSize ~/ 10).toInt().clamp(0, 6),
-          (i) => _Particle(
-            angle: 2 * pi * i / (10 + (hexSize ~/ 10).toInt().clamp(0, 6)) +
-                Random(i).nextDouble() * 0.5,
-            speed: (40 + Random(i).nextDouble() * 60) * (hexSize / 48),
-            color: biome.color,
-            size: (2.5 + Random(i).nextDouble() * 2) * (hexSize / 48),
-          ),
-        ),
-        super(priority: kTileDepthPriorityPreview + 1);
-
-  final List<_Particle> _particles;
-  double _life = 0.0;
-  static const double _kDuration = 0.8;
-
-  @override
-  void update(double dt) {
-    super.update(dt);
-    _life += dt;
-    if (_life >= _kDuration) {
-      removeFromParent();
-      return;
-    }
-    for (final p in _particles) {
-      p.x += cos(p.angle) * p.speed * dt;
-      p.y += sin(p.angle) * p.speed * dt;
-      p.speed *= 0.96;
-    }
-  }
-
-  @override
-  void render(Canvas canvas) {
-    final progress = (_life / _kDuration).clamp(0.0, 1.0);
-    final alpha = 1.0 - progress;
-    final scale = 1.0 - progress * 0.5;
-    for (final p in _particles) {
-      final r = p.size * scale;
-      canvas.drawCircle(
-        Offset(p.x, p.y),
-        r,
-        Paint()
-          ..color = p.color.withValues(alpha: alpha)
-          ..style = PaintingStyle.fill,
-      );
-      // Petit centre plus clair
-      final cr = (p.color.r + (255 - p.color.r) * 0.4).round().clamp(0, 255);
-      final cg = (p.color.g + (255 - p.color.g) * 0.4).round().clamp(0, 255);
-      final cb = (p.color.b + (255 - p.color.b) * 0.4).round().clamp(0, 255);
-      canvas.drawCircle(
-        Offset(p.x, p.y),
-        r * 0.5,
-        Paint()
-          ..color = Color.fromARGB(
-            (alpha * 255).round().clamp(0, 255),
-            cr, cg, cb,
-          )
-          ..style = PaintingStyle.fill,
-      );
-    }
-  }
-}
-
-class _Particle {
-  _Particle({
-    required this.angle,
-    required this.speed,
-    required this.color,
-    required this.size,
-  });
-  double x = 0, y = 0;
-  double angle;
-  double speed;
-  final Color color;
-  final double size;
 }
 
 /// Icône de tuile bonus centrée sur la prévisualisation (story 1.7e).

@@ -65,9 +65,6 @@ dependencies:
   # Achats in-app
   in_app_purchase: ^3.2.4
 
-  # Polices Google Fonts (Nunito — refonte graphique île)
-  google_fonts: ^6.1.0
-
   # Firebase
   firebase_core: ^4.1.1
   firebase_analytics: ^12.1.0

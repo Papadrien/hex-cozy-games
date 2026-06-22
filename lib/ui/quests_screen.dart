@@ -6,6 +6,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../core/colors.dart';
 import '../core/game_enums.dart';
 import '../core/strings.dart';
@@ -187,9 +188,7 @@ class _QuestCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: isLocked
-            ? Colors.white.withValues(alpha: 0.03)
-            : kIslandCard.withValues(alpha: 0.06),
+        color: Colors.white.withValues(alpha: isLocked ? 0.03 : 0.06),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: status == _QuestStatus.completed
@@ -197,13 +196,6 @@ class _QuestCard extends StatelessWidget {
               : Colors.white.withValues(alpha: 0.08),
           width: 1,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 4,
-            offset: const Offset(0, 1),
-          ),
-        ],
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,

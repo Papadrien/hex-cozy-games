@@ -1,15 +1,14 @@
 /// Modèle de données d'une cellule hexagonale sur le plateau.
 library;
 
-/// Type de biome — thème île paradisiaque (refonte graphique).
+/// Type de biome (utilisé pour la story 1.3 — null pour l'instant).
+/// Défini ici pour que le modèle `HexCell` soit complet dès la story 1.2.
 enum BiomeType {
-  plain,        // plaine : herbe claire tropicale
-  flowerField,  // champ de fleurs : rose/mauve
-  forest,       // mangrove : vert foncé
-  mountain,     // montagne volcanique : roche noire + lave
-  beach,        // plage : sable blanc
-  water,        // mer : turquoise
-  village,      // village sur pilotis : bois chaud
+  forest,   // vert
+  village,  // rouge
+  plain,    // jaune
+  water,    // bleu
+  mountain, // violet
 }
 
 /// Cellule hexagonale du plateau.

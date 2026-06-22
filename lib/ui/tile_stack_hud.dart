@@ -14,9 +14,8 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../game/hex_cell.dart';
 import '../game/hex_tile.dart';
-import '../game/tile_component.dart' show BiomeColor, kIsoScaleY;
+import '../game/tile_component.dart' show BiomeColor;
 import '../providers/placement_provider.dart';
 import '../providers/tile_stack_provider.dart';
 
@@ -27,9 +26,10 @@ import '../providers/tile_stack_provider.dart';
 const double _kActiveTileRadius = 34.0;
 const double _kUpcomingTileRadius = 26.0;
 
-/// Écrasement vertical de l'aperçu hex dans le HUD (projection isométrique,
-/// identique à celle du plateau pour une cohérence visuelle).
-const double _kHudHexFlattenY = kIsoScaleY;
+/// Écrasement vertical de l'aperçu hex dans le HUD (purement décoratif,
+/// indépendant de la projection iso du plateau — ici on veut un hexagone
+/// "à plat", bien lisible, pas une perspective).
+const double _kHudHexFlattenY = 1.0;
 
 class TileStackHud extends ConsumerWidget {
   const TileStackHud({super.key});
@@ -211,9 +211,6 @@ class _HexTilePainter extends CustomPainter {
       );
     }
 
-    // Décoration selon le biome dominant.
-    _drawHudDecoration(canvas, center, radius);
-
     // Contour sobre — discret pour les tuiles en attente, un peu plus marqué
     // (avec halo clair) pour la tuile active afin de l'identifier clairement.
     final outline = Path()..moveTo(corners[0].dx, corners[0].dy);
@@ -239,142 +236,6 @@ class _HexTilePainter extends CustomPainter {
           ..strokeWidth = 2.0,
       );
     }
-  }
-
-  void _drawHudDecoration(Canvas canvas, Offset center, double radius) {
-    final counts = <BiomeType, int>{};
-    for (final side in tile.sides) {
-      counts[side] = (counts[side] ?? 0) + 1;
-    }
-    final dominant = counts.entries.reduce((a, b) => a.value >= b.value ? a : b).key;
-
-    final seed = Object.hashAll(tile.sides);
-    final rng = Random(seed);
-    final s = radius / 24;
-
-    switch (dominant) {
-      case BiomeType.plain:
-        if (rng.nextDouble() < 0.3) {
-          _drawHudPalm(canvas, center.dx, center.dy, s, rng);
-        }
-      case BiomeType.flowerField:
-        for (var i = 0; i < 3; i++) {
-          final fx = center.dx + (rng.nextDouble() - 0.5) * 8 * s;
-          final fy = center.dy + (rng.nextDouble() - 0.5) * 5 * s;
-          final r = (1.5 + rng.nextDouble() * 1.5) * s;
-          canvas.drawCircle(Offset(fx, fy), r,
-              Paint()..color = const Color(0xFFF48FB1).withValues(alpha: 0.7));
-          canvas.drawCircle(Offset(fx, fy), r * 0.5,
-              Paint()..color = const Color(0xFFFFF176));
-        }
-      case BiomeType.forest:
-        final count = 2 + rng.nextInt(2);
-        for (var i = 0; i < count; i++) {
-          _drawHudPalm(canvas, center.dx, center.dy, s * 0.6, rng);
-        }
-      case BiomeType.mountain:
-        _drawHudRock(canvas, center.dx, center.dy, s * 0.5, rng);
-      case BiomeType.beach:
-        if (rng.nextDouble() < 0.3) {
-          _drawHudRock(canvas, center.dx, center.dy, s * 0.3, rng);
-        }
-      case BiomeType.water:
-        final ripple = Path()
-          ..addOval(Rect.fromCenter(
-              center: center, width: 4 * s, height: 1.5 * s));
-        canvas.drawPath(
-          ripple,
-          Paint()
-            ..color = const Color(0xFFFFFFFF).withValues(alpha: 0.25)
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = 1.0,
-        );
-      case BiomeType.village:
-        _drawHudHouse(canvas, center.dx, center.dy, s * 0.6, rng);
-    }
-  }
-
-  void _drawHudPalm(Canvas canvas, double cx, double cy, double s, Random rng) {
-    final baseX = cx + (rng.nextDouble() - 0.5) * 6 * s;
-    final baseY = cy + (rng.nextDouble() - 0.5) * 4 * s;
-    final h = 6 * s;
-    final trunk = Path()
-      ..moveTo(baseX - 1 * s, baseY)
-      ..quadraticBezierTo(baseX + 0.5 * s, baseY - h * 0.5, baseX - 0.5 * s, baseY - h);
-    canvas.drawPath(
-      trunk,
-      Paint()
-        ..color = const Color(0xFF6D4C41)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.5 * s,
-    );
-    for (var i = 0; i < 2; i++) {
-      final angle = rng.nextDouble() * pi * 0.6 - pi * 0.3 - pi / 2;
-      final len = (3 + rng.nextDouble() * 3) * s;
-      final leaf = Path()
-        ..moveTo(baseX - 0.5 * s, baseY - h)
-        ..quadraticBezierTo(
-          baseX - 0.5 * s + cos(angle) * len * 0.5,
-          baseY - h + sin(angle) * len * 0.5,
-          baseX - 0.5 * s + cos(angle) * len,
-          baseY - h + sin(angle) * len,
-        );
-      canvas.drawPath(
-        leaf,
-        Paint()
-          ..color = const Color(0xFF4CAF50)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 1.5 * s,
-      );
-    }
-  }
-
-  void _drawHudRock(Canvas canvas, double cx, double cy, double s, Random rng) {
-    final vertices = 4 + rng.nextInt(3);
-    final rockPath = Path();
-    for (var i = 0; i < vertices; i++) {
-      final angle = 2 * pi * i / vertices + (rng.nextDouble() - 0.5) * 0.4;
-      final r = (1.5 + rng.nextDouble() * 2) * s;
-      final x = cx + cos(angle) * r;
-      final y = cy + sin(angle) * r * 0.7;
-      if (i == 0) { rockPath.moveTo(x, y); } else { rockPath.lineTo(x, y); }
-    }
-    rockPath.close();
-    canvas.drawPath(rockPath, Paint()..color = const Color(0xFF616161));
-    final highPath = Path();
-    for (var i = 0; i < vertices; i++) {
-      final angle = 2 * pi * i / vertices + (rng.nextDouble() - 0.5) * 0.4;
-      final r = (1 + rng.nextDouble() * 1.5) * s;
-      final x = cx + cos(angle) * r - 0.5 * s;
-      final y = cy + sin(angle) * r * 0.7 - 0.5 * s;
-      if (i == 0) { highPath.moveTo(x, y); } else { highPath.lineTo(x, y); }
-    }
-    highPath.close();
-    canvas.drawPath(highPath, Paint()..color = const Color(0xFF9E9E9E));
-  }
-
-  void _drawHudHouse(Canvas canvas, double cx, double cy, double s, Random rng) {
-    final hx2 = cx + (rng.nextDouble() - 0.5) * 6 * s;
-    final hy = cy + 2 * s;
-    for (var i = -1; i <= 1; i += 1) {
-      canvas.drawLine(
-        Offset(hx2 + i * 2 * s, hy), Offset(hx2 + i * 2 * s, hy - 5 * s),
-        Paint()..color = const Color(0xFF5D4037)..strokeWidth = 1.0 * s,
-      );
-    }
-    canvas.drawRect(
-      Rect.fromCenter(center: Offset(hx2, hy - 5 * s), width: 8 * s, height: 1.5 * s),
-      Paint()..color = const Color(0xFF8D6E63),
-    );
-    final roof = Path()
-      ..moveTo(hx2 - 5 * s, hy - 6 * s)
-      ..lineTo(hx2, hy - 11 * s)
-      ..lineTo(hx2 + 5 * s, hy - 6 * s)
-      ..close();
-    canvas.drawPath(
-      roof,
-      Paint()..color = const Color(0xFFD84315).withValues(alpha: 0.8),
-    );
   }
 
   List<Offset> _corners(Offset center, double radius) {
