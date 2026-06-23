@@ -37,7 +37,7 @@ import '../services/ad_service.dart';
 import 'pause_button.dart';
 import 'pause_modal.dart';
 import 'results_modal.dart';
-// TileStackHud supprimé — pile rendue par TileStackHudComponent dans Flame
+import 'tile_stack_hud.dart';
 import 'tutorial_overlay.dart';
 
 /// Durée d'affichage de l'animation de confirmation de récompense (story 1.6b).
@@ -62,6 +62,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
   // taille effectives du widget, plutôt que des coordonnées arbitraires.
   final GlobalKey _boardKey = GlobalKey();
   final GlobalKey _coinsKey = GlobalKey();
+  final GlobalKey _tileStackKey = GlobalKey();
 
   @override
   void initState() {
@@ -202,12 +203,18 @@ class _GameScreenState extends ConsumerState<GameScreen> {
             child: PauseButton(),
           ),
 
-          // ── HUD pile de tuiles : rendu Flame (TileStackHudComponent) ─────
-          // ── Tag tuiles bonus (story 1.7g) ────────────────────────────────
+          // ── HUD pile de tuiles + tag tuiles bonus (story 1.7g) ──────────
           Positioned(
             top: 96,
             right: 12,
-            child: _BonusTileTag(opacity: _rewardOpacity),
+            child: Column(
+              key: _tileStackKey,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                const TileStackHud(),
+                _BonusTileTag(opacity: _rewardOpacity),
+              ],
+            ),
           ),
 
           // ── Modale Pause ──────────────────────────────────────────────────
@@ -228,6 +235,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
           TutorialOverlay(
             targetKeys: {
               'board': _boardKey,
+              'tileStack': _tileStackKey,
               'coins': _coinsKey,
             },
           ),

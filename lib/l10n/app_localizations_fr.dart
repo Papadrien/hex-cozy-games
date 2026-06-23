@@ -183,9 +183,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get shop_comingSoon => 'Bientôt disponible';
 
   @override
-  String shop_coinCount(Object count) {
-    return '$count pièces';
-  }
+  String shop_coinCount(Object count) => '$count pièces';
 
   @override
   String get shop_premium => 'Premium';

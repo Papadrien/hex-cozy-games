@@ -1,4 +1,4 @@
-package fr.junade.hexhaven
+package fr.junade.hex_cozy_games
 
 import io.flutter.embedding.android.FlutterActivity
 

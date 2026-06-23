@@ -187,7 +187,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   static QueryExecutor _openConnection() {
-    return driftDatabase(name: 'hex_haven');
+    return driftDatabase(name: 'hex_cozy_games');
   }
 }
 

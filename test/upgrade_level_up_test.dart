@@ -13,10 +13,10 @@ import 'package:drift/native.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:hex_haven/data/app_database.dart';
-import 'package:hex_haven/data/seed_data.dart';
-import 'package:hex_haven/providers/player_profile_provider.dart';
-import 'package:hex_haven/providers/progression_provider.dart';
+import 'package:hex_cozy_games/data/app_database.dart';
+import 'package:hex_cozy_games/data/seed_data.dart';
+import 'package:hex_cozy_games/providers/player_profile_provider.dart';
+import 'package:hex_cozy_games/providers/progression_provider.dart';
 
 /// Installe une base mémoire, seed les données, et retourne un
 /// [ProviderContainer] prêt à l'emploi.

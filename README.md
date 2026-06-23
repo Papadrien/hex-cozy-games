@@ -1,4 +1,4 @@
-# Hex Haven
+# Hex Cozy Games
 
 A relaxing hex-tile placement game built with Flutter & Flame.
 

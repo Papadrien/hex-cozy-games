@@ -12,12 +12,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:hex_haven/game/hex_cell.dart';
-import 'package:hex_haven/game/hex_coords.dart';
-import 'package:hex_haven/game/hex_tile.dart';
-import 'package:hex_haven/providers/grid_state_provider.dart';
-import 'package:hex_haven/providers/placement_provider.dart';
-import 'package:hex_haven/providers/tile_stack_provider.dart';
+import 'package:hex_cozy_games/game/hex_cell.dart';
+import 'package:hex_cozy_games/game/hex_coords.dart';
+import 'package:hex_cozy_games/game/hex_tile.dart';
+import 'package:hex_cozy_games/providers/grid_state_provider.dart';
+import 'package:hex_cozy_games/providers/placement_provider.dart';
+import 'package:hex_cozy_games/providers/tile_stack_provider.dart';
 
 import 'fixtures/tile_pool.dart';
 

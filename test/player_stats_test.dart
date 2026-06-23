@@ -8,13 +8,13 @@ library;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:hex_haven/data/app_database.dart';
-import 'package:hex_haven/data/seed_data.dart';
-import 'package:hex_haven/game/hex_cell.dart';
-import 'package:hex_haven/game/hex_coords.dart';
-import 'package:hex_haven/game/hex_tile.dart';
-import 'package:hex_haven/providers/grid_state_provider.dart';
-import 'package:hex_haven/providers/player_stats_provider.dart';
+import 'package:hex_cozy_games/data/app_database.dart';
+import 'package:hex_cozy_games/data/seed_data.dart';
+import 'package:hex_cozy_games/game/hex_cell.dart';
+import 'package:hex_cozy_games/game/hex_coords.dart';
+import 'package:hex_cozy_games/game/hex_tile.dart';
+import 'package:hex_cozy_games/providers/grid_state_provider.dart';
+import 'package:hex_cozy_games/providers/player_stats_provider.dart';
 
 /// Crée une tuile dont les 6 faces sont du même biome.
 HexTile _mono(BiomeType b) => HexTile(sides: List.filled(6, b));

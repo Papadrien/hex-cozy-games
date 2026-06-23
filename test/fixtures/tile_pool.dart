@@ -4,8 +4,8 @@
 /// à la place, story 1.9a).
 library;
 
-import 'package:hex_haven/game/hex_cell.dart';
-import 'package:hex_haven/game/hex_tile.dart';
+import 'package:hex_cozy_games/game/hex_cell.dart';
+import 'package:hex_cozy_games/game/hex_tile.dart';
 
 final List<HexTile> kTilePool = [
   // ── 1 biome (monochrome) ─────────────────────────────────────────────────

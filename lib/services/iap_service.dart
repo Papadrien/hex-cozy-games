@@ -88,7 +88,7 @@ class IapService {
   final AppDatabase _db;
   final InAppPurchase _iap = InAppPurchase.instance;
 
-  IapService({required this._db}) {
+  IapService({required AppDatabase db}) : _db = db {
     _init();
   }
   StreamSubscription<List<PurchaseDetails>>? _subscription;
