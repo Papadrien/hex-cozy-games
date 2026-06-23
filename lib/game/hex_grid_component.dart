@@ -26,6 +26,7 @@ import '../core/constants.dart';
 import 'hex_coords.dart';
 import 'hex_cell.dart';
 import 'hex_tile.dart';
+import 'palm_tree_3d_component.dart';
 import 'tile_component.dart'; // kIsoScaleY, TileComponent
 
 /// Décalage vertical (en pixels écran "plat", avant projection iso) de la
@@ -46,6 +47,11 @@ class HexGridComponent extends PositionComponent {
 
   final Map<HexCoords, HexCell> placedCells = {};
   final Map<HexCoords, TileComponent> placedTiles = {};
+
+  // ── Palmiers 3D (sur cases forêt) ─────────────────────────────────────────
+
+  final List<PalmTree3DComponent> _palmTreeComponents = [];
+  final Set<HexCoords> _treesOnCells = {};
 
   // ── Prévisualisation de placement (story 1.5a) ──────────────────────────
 
@@ -281,6 +287,61 @@ class HexGridComponent extends PositionComponent {
     placedCells.remove(coords);
   }
 
+  /// Place 1-2 palmiers 3D sur des cases forêt aléatoires.
+  void spawnPalmTrees() {
+    _clearPalmTrees();
+
+    final forestCells = <HexCoords>[];
+    for (final entry in placedCells.entries) {
+      if (entry.value.biome == BiomeType.forest) {
+        forestCells.add(entry.key);
+      }
+    }
+    if (forestCells.isEmpty) return;
+
+    final rng = Random();
+    forestCells.shuffle(rng);
+    final count = min(forestCells.length, 1 + rng.nextInt(2));
+
+    for (var i = 0; i < count; i++) {
+      _addPalmTree(forestCells[i], rng);
+    }
+  }
+
+  void _clearPalmTrees() {
+    for (final c in _palmTreeComponents) {
+      if (c.isMounted) remove(c);
+    }
+    _palmTreeComponents.clear();
+    _treesOnCells.clear();
+  }
+
+  void _addPalmTree(HexCoords coords, Random rng) {
+    if (_treesOnCells.contains(coords)) return;
+    if (_palmTreeComponents.length >= 2) return;
+
+    final layout = _layout;
+    final center = layout.hexToPixel(coords, isoScaleY: kIsoScaleY);
+    final size = kHexSize * (1.2 + rng.nextDouble() * 0.6);
+
+    final tree = PalmTree3DComponent(
+      position: Vector2(center.x, center.y),
+      treeSize: size,
+      randomSeed: rng.nextInt(10000),
+    );
+    tree.updateDepthPriority(center.y);
+    add(tree);
+    _palmTreeComponents.add(tree);
+    _treesOnCells.add(coords);
+  }
+
+  /// Ajoute un palmier 3D sur une case forêt si possible.
+  void tryAddPalmTree(HexCoords coords, Random rng) {
+    final cell = placedCells[coords];
+    if (cell == null || cell.biome != BiomeType.forest) return;
+    _addPalmTree(coords, rng);
+  }
+
   /// Affiche des pièces (pièces de monnaie) au niveau de chaque côté connecté
   /// sur la tuile placée en [coords], ainsi que les tuiles bonus au-dessus de
   /// la cellule. Les indicateurs disparaissent automatiquement après animation.
@@ -337,6 +398,15 @@ class HexGridComponent extends PositionComponent {
       entry.value.position = Vector2(center.x, center.y);
       entry.value.hexSize = kHexSize * zoom;
       entry.value.updateDepthPriority();
+    }
+    // Recalculer les positions des palmiers 3D
+    var ti = 0;
+    for (final coords in _treesOnCells) {
+      if (ti >= _palmTreeComponents.length) break;
+      final center = layout.hexToPixel(coords, isoScaleY: kIsoScaleY);
+      _palmTreeComponents[ti].position = Vector2(center.x, center.y);
+      _palmTreeComponents[ti].updateDepthPriority(center.y);
+      ti++;
     }
     _syncPreviewComponent();
   }
@@ -526,3 +596,5 @@ class _PreviewBonusComponent extends PositionComponent {
     );
   }
 }
+
+

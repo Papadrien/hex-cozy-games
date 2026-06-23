@@ -209,6 +209,7 @@ class _HexTilePainter extends CustomPainter {
           ..color = tile.sides[i].color.withValues(alpha: alpha)
           ..style = PaintingStyle.fill,
       );
+
     }
 
     // Contour sobre — discret pour les tuiles en attente, un peu plus marqué

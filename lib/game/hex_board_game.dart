@@ -21,6 +21,7 @@
 ///    pour filtrer les swipes (story 1.7d).
 library;
 
+import 'dart:math';
 import 'dart:ui' show Color;
 
 import 'package:flame/events.dart';
@@ -48,6 +49,7 @@ class HexBoardGame extends FlameGame
 
   bool _cameraDirty = false;
   bool _previewDirty = true;
+  bool _boardInitialized = false;
 
   /// Stocke la position du onTapDown par pointerId, pour mesurer la distance
   /// parcourue dans onTapUp : si le doigt a bougé > 5 px, c'était un swipe
@@ -60,10 +62,9 @@ class HexBoardGame extends FlameGame
   @override
   Future<void> onLoad() async {
     await super.onLoad();
-    _grid = HexGridComponent(screenSize: size.clone());
+    _grid = HexGridComponent(screenSize: Vector2.zero());
     add(_grid!);
-    _initBoard();
-    _syncPlacementPreview();
+    _boardInitialized = true;
 
     // Gesture pour pan (1 doigt) + zoom (pinch 2 doigts).
     gestureDetectors.add<ScaleGestureRecognizer>(
@@ -93,6 +94,12 @@ class HexBoardGame extends FlameGame
     super.onGameResize(size);
     _grid?.screenSize.setFrom(size);
     _grid?.size.setFrom(size);
+    if (_boardInitialized) {
+      _initBoard();
+      _grid?.spawnPalmTrees();
+      _syncPlacementPreview();
+      _boardInitialized = false;
+    }
     _cameraDirty = true;
   }
 
@@ -158,6 +165,9 @@ class HexBoardGame extends FlameGame
     if (connectedSides.isNotEmpty || bonusTiles > 0) {
       _grid?.showRewardIndicators(coords, connectedSides, bonusTiles: bonusTiles);
     }
+    // Ajouter un palmier 3D si la tuile est une forêt
+    final rng = Random();
+    _grid?.tryAddPalmTree(coords, rng);
     _previewDirty = true;
   }
 
