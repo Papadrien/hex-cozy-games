@@ -124,18 +124,11 @@ class _GameScreenState extends ConsumerState<GameScreen> {
 
     return Scaffold(
       backgroundColor: kBackgroundColor,
+      bottomNavigationBar: _BannerAdWidget(),
       body: Stack(
         children: [
           // ── Jeu Flame — reçoit TOUS les gestes directement ────────────────
           GameWidget(key: _boardKey, game: _game),
-
-          // ── Bannière AdMob en bas (overlayée sur le jeu) ──────────────────
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: const _BannerAdWidget(),
-          ),
 
           // ── Badge debug ───────────────────────────────────────────────────
           if (kDebugMode)
@@ -479,24 +472,11 @@ class _BonusTileTag extends ConsumerWidget {
 /// [AdSize.banner] (320×50 dp) centrée en bas. Si la bannière n'est pas
 /// chargée ou si le chargement échoue, un espace vide de la même hauteur est
 /// affiché pour éviter le sautillement du layout.
-class _BannerAdWidget extends ConsumerStatefulWidget {
+class _BannerAdWidget extends ConsumerWidget {
   const _BannerAdWidget();
 
   @override
-  ConsumerState<_BannerAdWidget> createState() => _BannerAdWidgetState();
-}
-
-class _BannerAdWidgetState extends ConsumerState<_BannerAdWidget> {
-  AdWidget? _cachedAdWidget;
-
-  @override
-  void dispose() {
-    _cachedAdWidget = null;
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final isPremium = ref.watch(playerProfileProvider).maybeWhen(
           data: (row) => row.isPremium,
           orElse: () => false,
@@ -504,22 +484,13 @@ class _BannerAdWidgetState extends ConsumerState<_BannerAdWidget> {
     if (isPremium) return const SizedBox.shrink();
 
     final banner = ref.watch(bannerAdProvider);
-    if (banner == null) {
-      _cachedAdWidget = null;
-      return Container(
-        color: kBackgroundColor,
-        height: kAdBannerHeight,
-        alignment: Alignment.center,
-        child: const SizedBox.shrink(),
-      );
-    }
-
-    _cachedAdWidget ??= AdWidget(ad: banner);
     return Container(
       color: kBackgroundColor,
       height: kAdBannerHeight,
       alignment: Alignment.center,
-      child: _cachedAdWidget,
+      child: banner != null
+          ? AdWidget(ad: banner)
+          : const SizedBox.shrink(),
     );
   }
 }
