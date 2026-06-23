@@ -27,6 +27,7 @@ import 'hex_coords.dart';
 import 'hex_cell.dart';
 import 'hex_tile.dart';
 import 'tile_component.dart'; // kIsoScaleY, TileComponent
+import 'biome_texture_renderer.dart' show invalidateTileCache;
 
 /// Décalage vertical (en pixels écran "plat", avant projection iso) de la
 /// tuile en prévisualisation pour la faire paraître "légèrement surélevée"
@@ -107,12 +108,20 @@ class HexGridComponent extends PositionComponent {
     _syncPreviewComponent();
   }
 
-  /// Tuile (déjà tournée) affichée en prévisualisation, ou null.
+  /// Tuile originale (non-rotée) affichée en prévisualisation, ou null.
   HexTile? get previewTile => _previewTile;
   set previewTile(HexTile? value) {
     if (_previewTile == value) return;
     _previewTile = value;
     _syncPreviewComponent();
+  }
+
+  int _previewRotationSteps = 0;
+  int get previewRotationSteps => _previewRotationSteps;
+  set previewRotationSteps(int value) {
+    if (_previewRotationSteps == value) return;
+    _previewRotationSteps = value;
+    _previewComponent?.rotationSteps = value;
   }
 
   /// Crée, met à jour ou retire le [TileComponent] de prévisualisation selon
@@ -149,6 +158,7 @@ class HexGridComponent extends PositionComponent {
       existing.hexSize = kHexSize * zoom;
       existing.position = liftedPosition;
       existing.highlightedSides = _previewHighlightedSides;
+      existing.rotationSteps = _previewRotationSteps;
       _syncPreviewCoinComponents();
       return;
     }
@@ -161,6 +171,7 @@ class HexGridComponent extends PositionComponent {
       highlightedSides: _previewHighlightedSides,
       position: liftedPosition,
     );
+    component.rotationSteps = _previewRotationSteps;
     component.priority = kTileDepthPriorityPreview;
     _previewComponent = component;
     add(component);
@@ -264,6 +275,9 @@ class HexGridComponent extends PositionComponent {
       r: coords.r,
       biome: _dominantBiome(tile),
     );
+
+    // Recalculer les jointures de la tuile posée ET de ses 6 voisins.
+    _refreshNeighborJoins(coords);
 
     // Nettoyer les surbrillances de prévisualisation.
     for (final entry in _previewNeighborHighlights.entries) {
@@ -400,6 +414,40 @@ class HexGridComponent extends PositionComponent {
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────────
+
+  /// Met à jour [TileComponent.neighborBiomes] de [coords] et de ses 6 voisins,
+  /// puis invalide les entrées de cache concernées pour forcer le re-rendu avec
+  /// les jointures correctes.
+  void _refreshNeighborJoins(HexCoords coords) {
+    // Liste des tuiles à mettre à jour : la tuile posée + ses voisins existants.
+    final toUpdate = <HexCoords>[coords, ...coords.neighbors];
+
+    for (final c in toUpdate) {
+      final comp = placedTiles[c];
+      if (comp == null) continue;
+
+      final newNeighbors = List<BiomeType?>.filled(6, null);
+      for (var i = 0; i < 6; i++) {
+        final neighborCoords = c.neighbor(i);
+        final neighborCell = placedCells[neighborCoords];
+        newNeighbors[i] = neighborCell?.biome;
+      }
+
+      // Invalider le cache seulement si les voisins ont changé.
+      if (!_listEquals(comp.neighborBiomes, newNeighbors)) {
+        invalidateTileCache(comp.tile.sides, comp.hexSize);
+        comp.neighborBiomes = newNeighbors;
+      }
+    }
+  }
+
+  static bool _listEquals(List<BiomeType?> a, List<BiomeType?> b) {
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
+  }
 
   static BiomeType _dominantBiome(HexTile tile) {
     final counts = <BiomeType, int>{};

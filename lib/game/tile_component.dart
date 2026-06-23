@@ -1,12 +1,8 @@
-/// Composant Flame pour le rendu d'une tuile hexagonale colorée — Story 1.3.
+/// Composant Flame pour le rendu d'une tuile hexagonale — DA procédurale.
 ///
-/// Rendu : chaque côté i est un trapèze (ou triangle) allant du centre de
-/// l'hexagone vers les deux sommets qui encadrent ce côté.
-///
-/// Projection isométrique : les coins sont calculés en espace "monde plat"
-/// puis la coordonnée Y est multipliée par [kIsoScaleY] avant dessin —
-/// c'est la SEULE transformation iso appliquée, ce qui garantit que le rendu
-/// interne de chaque tuile est cohérent avec sa position sur le plateau.
+/// Story 1.3 : rendu originel (aplats biome).
+/// DA refonte : texture Voronoï via BiomeTextureRenderer, éclairage
+/// directionnel sur les faces latérales.
 library;
 
 import 'dart:math';
@@ -15,62 +11,46 @@ import 'dart:ui';
 import 'package:flame/components.dart';
 
 import '../core/constants.dart';
+import 'biome_texture_renderer.dart';
 import 'hex_cell.dart';
 import 'hex_coords.dart';
 import 'hex_tile.dart';
 
-/// Facteur d'écrasement vertical isométrique (identique à hex_grid_component).
-const double kIsoScaleY = 0.57; // ~tan(30°) → vue à ~30° du plan
+export 'biome_texture_renderer.dart' show BiomeBaseColor;
+
+/// Facteur d'écrasement vertical isométrique.
+const double kIsoScaleY = 0.57;
 
 /// Durée de l'effet de glow sur les côtés connectés (story 1.6b).
 const double kGlowDurationSec = 0.6;
-
-/// Opacité initiale du glow.
 const double kGlowStartAlpha = 0.45;
 
-/// Correspondance [BiomeType] → couleur d'affichage MVP.
+/// Correspondance [BiomeType] → couleur d'affichage (conservée pour
+/// compatibilité avec tile_stack_hud.dart et autres usages).
 extension BiomeColor on BiomeType {
   Color get color {
     switch (this) {
       case BiomeType.forest:
-        return const Color(0xFF43A047); // vert
+        return const Color(0xFF43A047);
       case BiomeType.village:
-        return const Color(0xFFE53935); // rouge
+        return const Color(0xFFE53935);
       case BiomeType.plain:
-        return const Color(0xFFFFD600); // jaune
+        return const Color(0xFFFFD600);
       case BiomeType.water:
-        return const Color(0xFF1E88E5); // bleu
+        return const Color(0xFF1E88E5);
       case BiomeType.mountain:
-        return const Color(0xFF8E24AA); // violet
+        return const Color(0xFF8E24AA);
     }
   }
 }
 
-/// Épaisseur du "bloc" 3D des tuiles (effet pavé/palet), en px logiques.
-/// Purement visuel : n'affecte ni la taille du composant, ni le hit-testing,
-/// ni le layout de la grille (qui restent basés sur hexSize / kIsoScaleY).
 const double kTileDepth = 10.0;
-
-/// Offset de base pour la priorité de rendu calculée depuis la profondeur
-/// iso (voir [TileComponent.updateDepthPriority]). Suffisamment grand pour
-/// rester toujours au-dessus des priorités HUD fixes du plateau (preview,
-/// pièces, bonus : 2 à 12) même avec un `position.y` négatif important.
 const int kTileDepthPriorityBase = 100000;
-
-/// Priorité de rendu de la tuile en prévisualisation (celle qui flotte
-/// au-dessus du plateau avant validation du placement, cf. [kPreviewLiftPx]
-/// dans hex_grid_component.dart).
-///
-/// Elle doit toujours être dessinée AU-DESSUS de toutes les tuiles posées,
-/// quelle que soit leur profondeur — d'où une marge large par rapport à
-/// [kTileDepthPriorityBase] + le plus grand `position.y` raisonnable.
 const int kTileDepthPriorityPreview = kTileDepthPriorityBase + 1000000;
 
-/// Composant Flame représentant une tuile hexagonale colorée.
-///
-/// La projection isométrique est appliquée DANS le rendu (Y *= kIsoScaleY) :
-/// le [PositionComponent] est positionné en coordonnées écran "plat", et les
-/// coins de l'hexagone sont écrasés au moment du dessin.
+/// Source de lumière fictive en NW (315°) — angle en radians.
+const double _kLightAngleRad = 315.0 * pi / 180.0;
+
 class TileComponent extends PositionComponent {
   TileComponent({
     required this.tile,
@@ -98,21 +78,6 @@ class TileComponent extends PositionComponent {
     size = Vector2(sqrt(3) * value, 2 * value * kIsoScaleY);
   }
 
-  /// Recalcule la priorité de rendu Flame en fonction de la profondeur iso.
-  ///
-  /// En vue isométrique, une tuile plus basse à l'écran (Y plus grand) est
-  /// visuellement plus proche de la caméra et doit donc être dessinée
-  /// PAR-DESSUS les tuiles plus hautes (Y plus petit) — sinon les faces
-  /// latérales du bloc 3D d'une tuile du fond peuvent apparaître devant une
-  /// tuile du premier plan (cf. retour utilisateur, story 1.8b).
-  ///
-  /// On utilise `position.y` (centre écran de la tuile, déjà en coordonnées
-  /// projetées iso) comme clé de tri, par tranche de 1px → 1 rang de priorité.
-  /// Un offset de [kTileDepthPriorityBase] garde toujours ce rang largement
-  /// au-dessus des priorités HUD fixes utilisées ailleurs sur le plateau
-  /// (preview = 2, pièces/bonus = 10-12), même si position.y est négatif
-  /// (tuile au-dessus de l'origine caméra) — sans quoi une tuile pourrait
-  /// accidentellement passer devant des éléments de HUD de prévisualisation.
   void updateDepthPriority() {
     priority = kTileDepthPriorityBase + position.y.round();
   }
@@ -121,16 +86,21 @@ class TileComponent extends PositionComponent {
   double get alpha => _alpha;
   set alpha(double value) => _alpha = value.clamp(0.0, 1.0);
 
-  /// Côtés à surligner en permanence (prévisualisation des connexions).
   Set<int> highlightedSides;
 
-  // ── Glow (story 1.6b) ──────────────────────────────────────────────────────
+  /// Biomes dominants des 6 tuiles voisines (null = pas encore posée).
+  /// Mis à jour par [HexGridComponent.placeTile] pour recalculer les jointures.
+  List<BiomeType?> neighborBiomes = List.filled(6, null);
+
+  /// Pas de rotation visuelle en cours (0–5). Utilisé pour la tuile preview
+  /// afin d'éviter de changer les sides → clé de cache stable.
+  int rotationSteps = 0;
+
+  // ── Glow ─────────────────────────────────────────────────────────────────
 
   Set<int>? _glowSides;
   double _glowAlpha = 0.0;
 
-  /// Déclenche un effet de glow sur les [sides] (liste d'indices 0-5).
-  /// Le glow s'estompe sur [kGlowDurationSec] secondes.
   void startGlow(List<int> sides) {
     _glowSides = sides.toSet();
     _glowAlpha = kGlowStartAlpha;
@@ -140,29 +110,16 @@ class TileComponent extends PositionComponent {
 
   @override
   void render(Canvas canvas) {
-    // L'ancrage center translate le canvas de sorte que (0,0) corresponde au
-    // coin haut-gauche du composant. Le centre logique de la tuile (utilisé
-    // par le placement/hit-testing via `position`) reste à (size.x/2,
-    // size.y/2). On dessine la face du dessus légèrement remontée et on
-    // ajoute des faces latérales en dessous pour l'effet "bloc 3D" — ceci est
-    // purement visuel et ne modifie ni size, ni anchor, ni position.
     final cx = size.x / 2;
     final cyTop = size.y / 2 - kTileDepth / 2;
     final topCorners = _isoCorners(cx, cyTop);
 
-    // ── Faces latérales (côtés "bas" du bloc) ────────────────────────────
-    // On ne dessine que les côtés dont le segment va globalement vers le bas
-    // de l'écran (sommet de départ plus haut que le sommet d'arrivée n'étant
-    // pas le bon critère ici : on regarde plutôt si le côté est sur la
-    // moitié inférieure de l'hexagone, où l'épaisseur du bloc est visible).
+    // ── 1. Faces latérales avec éclairage directionnel ────────────────────
     for (var i = 0; i < 6; i++) {
       final t0 = topCorners[i];
       final t1 = topCorners[(i + 1) % 6];
-      // Un côté est "visible" (face latérale apparente) s'il est orienté
-      // vers le bas, c'est-à-dire si ses deux sommets sont à une hauteur
-      // moyenne supérieure ou égale au centre (>= cyTop).
       final midY = (t0.dy + t1.dy) / 2;
-      if (midY < cyTop - 0.01) continue; // côté du dessus uniquement visible
+      if (midY < cyTop - 0.01) continue;
 
       final b0 = Offset(t0.dx, t0.dy + kTileDepth);
       final b1 = Offset(t1.dx, t1.dy + kTileDepth);
@@ -174,54 +131,77 @@ class TileComponent extends PositionComponent {
         ..lineTo(b0.dx, b0.dy)
         ..close();
 
-      final baseColor = tile.sides[i].color;
-      final shaded = Color.from(
-        alpha: baseColor.a,
-        red: baseColor.r * 0.62,
-        green: baseColor.g * 0.62,
-        blue: baseColor.b * 0.62,
-      );
+      final baseColor = tile.sides[i].baseColor;
+      final shadedColor = _directionalShade(baseColor, i);
 
       canvas.drawPath(
         sidePath,
         Paint()
-          ..color = shaded.withValues(alpha: _alpha)
+          ..color = shadedColor.withValues(alpha: _alpha)
           ..style = PaintingStyle.fill,
       );
     }
 
-    // ── Face du dessus (couleurs des biomes, inchangées) ─────────────────
+    // ── 2. Face du dessus : texture Voronoï ───────────────────────────────
+    final topPath = Path()..moveTo(topCorners[0].dx, topCorners[0].dy);
+    for (var i = 1; i < 6; i++) {
+      topPath.lineTo(topCorners[i].dx, topCorners[i].dy);
+    }
+    topPath.close();
+
+    // Translater le canvas au centre de la tuile pour que BiomeTextureRenderer
+    // dessine centré sur (0,0).
+    canvas.save();
+    canvas.translate(cx, cyTop);
+
+    // Reconstruire le path en coordonnées locales (centrées).
+    final centeredPath = Path();
+    for (var i = 0; i < 6; i++) {
+      final p = topCorners[i];
+      if (i == 0) {
+        centeredPath.moveTo(p.dx - cx, p.dy - cyTop);
+      } else {
+        centeredPath.lineTo(p.dx - cx, p.dy - cyTop);
+      }
+    }
+    centeredPath.close();
+
+    paintBiomeTexture(
+      canvas: canvas,
+      hexPath: centeredPath,
+      sides: tile.sides,
+      hexSize: _hexSize,
+      seed: _coords.q * 73856093 ^ _coords.r * 19349663,
+      rotationSteps: rotationSteps,
+      neighborBiomes: neighborBiomes,
+      alpha: _alpha,
+    );
+
+    canvas.restore();
+
+    // ── 3. Glow & surbrillances (par-dessus la texture) ───────────────────
     for (var i = 0; i < 6; i++) {
       final c0 = topCorners[i];
       final c1 = topCorners[(i + 1) % 6];
 
-      final path = Path()
+      final sectorPath = Path()
         ..moveTo(cx, cyTop)
         ..lineTo(c0.dx, c0.dy)
         ..lineTo(c1.dx, c1.dy)
         ..close();
 
-      canvas.drawPath(
-        path,
-        Paint()
-          ..color = tile.sides[i].color.withValues(alpha: _alpha)
-          ..style = PaintingStyle.fill,
-      );
-
-      // Glow sur les côtés connectés (story 1.6b).
       if (_glowSides != null && _glowSides!.contains(i) && _glowAlpha > 0.01) {
         canvas.drawPath(
-          path,
+          sectorPath,
           Paint()
             ..color = const Color(0xFFFFFFFF).withValues(alpha: _glowAlpha)
             ..style = PaintingStyle.fill,
         );
       }
 
-      // Surbrillance persistante des côtés bien connectés (story 1.7a).
       if (highlightedSides.contains(i)) {
         canvas.drawPath(
-          path,
+          sectorPath,
           Paint()
             ..color = const Color(0xFFFFFFFF).withValues(alpha: 0.20)
             ..style = PaintingStyle.fill,
@@ -244,8 +224,6 @@ class TileComponent extends PositionComponent {
 
   // ── Helpers ───────────────────────────────────────────────────────────────
 
-  /// Calcule les 6 sommets de l'hexagone pointy-top avec projection iso,
-  /// décalés de (cx, cy) pour compenser l'offset d'ancrage centre.
   List<Offset> _isoCorners(double cx, double cy) {
     return List.generate(6, (i) {
       final angleDeg = 60.0 * i - 90.0;
@@ -254,5 +232,27 @@ class TileComponent extends PositionComponent {
       final y = cy + _hexSize * sin(angleRad) * kIsoScaleY;
       return Offset(x, y);
     });
+  }
+
+  /// Calcule la couleur de la face latérale [i] avec un éclairage directionnel
+  /// depuis NW (315°). Les côtés face à la lumière sont plus clairs, les côtés
+  /// en ombre sont plus sombres.
+  Color _directionalShade(Color base, int sideIndex) {
+    // Angle du centre du côté (entre sommet i et i+1, orienté vers le côté).
+    final sideAngleDeg = 60.0 * sideIndex - 60.0; // angle normal au côté
+    final sideAngleRad = sideAngleDeg * pi / 180.0;
+
+    // Produit scalaire avec la direction lumière.
+    final dot = cos(sideAngleRad - _kLightAngleRad);
+
+    // Facteur lumineux : 0.35 (ombre max) → 0.75 (lumière max).
+    final factor = (0.55 + dot * 0.20).clamp(0.35, 0.75);
+
+    return Color.from(
+      alpha: base.a,
+      red: (base.r * factor).clamp(0.0, 1.0),
+      green: (base.g * factor).clamp(0.0, 1.0),
+      blue: (base.b * factor).clamp(0.0, 1.0),
+    );
   }
 }

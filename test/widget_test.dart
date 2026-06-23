@@ -4,13 +4,13 @@ import 'package:flame/game.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:hex_cozy_games/game/hex_board_game.dart';
-import 'package:hex_cozy_games/main.dart';
+import 'package:hex_haven/game/hex_board_game.dart';
+import 'package:hex_haven/main.dart';
 
 void main() {
   testWidgets('HomeScreen → Play → GameWidget', (WidgetTester tester) async {
     await tester.pumpWidget(
-      const ProviderScope(child: HexCozyGamesApp()),
+      const ProviderScope(child: HexHavenApp()),
     );
 
     await tester.pump();

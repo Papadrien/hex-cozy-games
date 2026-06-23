@@ -34,11 +34,11 @@ import '../providers/quest_provider.dart';
 import '../providers/session_provider.dart';
 import '../providers/tutorial_provider.dart';
 import '../services/ad_service.dart';
-import 'pause_button.dart';
-import 'pause_modal.dart';
-import 'results_modal.dart';
-// TileStackHud supprimé — pile rendue par TileStackHudComponent dans Flame
-import 'tutorial_overlay.dart';
+import '../ui/pause_button.dart';
+import '../ui/pause_modal.dart';
+import '../ui/results_modal.dart';
+// import supprimé — pile gérée par TileStackHudComponent dans Flame
+import '../ui/tutorial_overlay.dart';
 
 /// Durée d'affichage de l'animation de confirmation de récompense (story 1.6b).
 /// Le tag reste visible 1.5s puis disparaît en fade out sur 0.5s (total 2s).
@@ -202,8 +202,9 @@ class _GameScreenState extends ConsumerState<GameScreen> {
             child: PauseButton(),
           ),
 
-          // ── HUD pile de tuiles : rendu Flame (TileStackHudComponent) ─────
-          // ── Tag tuiles bonus (story 1.7g) ────────────────────────────────
+          // ── HUD pile de tuiles + tag tuiles bonus (story 1.7g) ──────────
+          // La pile est désormais rendue directement dans Flame (TileStackHudComponent).
+          // On conserve uniquement le tag bonus Flutter.
           Positioned(
             top: 96,
             right: 12,

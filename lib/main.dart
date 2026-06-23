@@ -15,16 +15,16 @@ Future<void> main() async {
   await AnalyticsService.initialize();
   await MobileAds.instance.initialize();
 
-  runApp(const ProviderScope(child: HexCozyGamesApp()));
+  runApp(const ProviderScope(child: HexHavenApp()));
 }
 
-class HexCozyGamesApp extends StatelessWidget {
-  const HexCozyGamesApp({super.key});
+class HexHavenApp extends StatelessWidget {
+  const HexHavenApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Hex Cozy Games',
+      title: 'Hex Haven',
       theme: AppTheme.light,
       debugShowCheckedModeBanner: false,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
