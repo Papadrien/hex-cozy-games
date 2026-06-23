@@ -10,11 +10,11 @@ part of 'placement_provider.dart';
 // ignore_for_file: type=lint, type=warning
 
 @ProviderFor(Placement)
-const placementProvider = PlacementProvider._();
+final placementProvider = PlacementProvider._();
 
 final class PlacementProvider
     extends $NotifierProvider<Placement, PlacementState> {
-  const PlacementProvider._()
+  PlacementProvider._()
     : super(
         from: null,
         argument: null,
@@ -47,8 +47,7 @@ abstract class _$Placement extends $Notifier<PlacementState> {
   PlacementState build();
   @$mustCallSuper
   @override
-  void runBuild() {
-    final created = build();
+  WhenComplete runBuild() {
     final ref = this.ref as $Ref<PlacementState, PlacementState>;
     final element =
         ref.element
@@ -58,6 +57,6 @@ abstract class _$Placement extends $Notifier<PlacementState> {
               Object?,
               Object?
             >;
-    element.handleValue(ref, created);
+    return element.handleCreate(ref, build);
   }
 }

@@ -10,11 +10,11 @@ part of 'tile_stack_provider.dart';
 // ignore_for_file: type=lint, type=warning
 
 @ProviderFor(TileStack)
-const tileStackProvider = TileStackProvider._();
+final tileStackProvider = TileStackProvider._();
 
 final class TileStackProvider
     extends $NotifierProvider<TileStack, TileStackState> {
-  const TileStackProvider._()
+  TileStackProvider._()
     : super(
         from: null,
         argument: null,
@@ -41,14 +41,13 @@ final class TileStackProvider
   }
 }
 
-String _$tileStackHash() => r'99077b041e4bdaee84f4c4e9e2f39a3903b91529';
+String _$tileStackHash() => r'4aecd9c0112f2d87d5c9d3fbb2427e9364f56fde';
 
 abstract class _$TileStack extends $Notifier<TileStackState> {
   TileStackState build();
   @$mustCallSuper
   @override
-  void runBuild() {
-    final created = build();
+  WhenComplete runBuild() {
     final ref = this.ref as $Ref<TileStackState, TileStackState>;
     final element =
         ref.element
@@ -58,6 +57,6 @@ abstract class _$TileStack extends $Notifier<TileStackState> {
               Object?,
               Object?
             >;
-    element.handleValue(ref, created);
+    return element.handleCreate(ref, build);
   }
 }

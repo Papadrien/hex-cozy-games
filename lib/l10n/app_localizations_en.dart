@@ -182,7 +182,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get shop_comingSoon => 'Coming soon';
 
   @override
-  String shop_coinCount(Object count) => '$count coins';
+  String shop_coinCount(Object count) {
+    return '$count coins';
+  }
 
   @override
   String get shop_premium => 'Premium';

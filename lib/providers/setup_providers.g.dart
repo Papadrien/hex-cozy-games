@@ -15,7 +15,7 @@ part of 'setup_providers.dart';
 /// Sera supprimé une fois les vrais providers de l'app en place.
 
 @ProviderFor(setupStatus)
-const setupStatusProvider = SetupStatusProvider._();
+final setupStatusProvider = SetupStatusProvider._();
 
 /// Provider de test — valide que Riverpod est correctement configuré
 /// (critère d'acceptance story 1.1 : "Riverpod est configuré et un
@@ -31,7 +31,7 @@ final class SetupStatusProvider
   /// provider de test fonctionne").
   ///
   /// Sera supprimé une fois les vrais providers de l'app en place.
-  const SetupStatusProvider._()
+  SetupStatusProvider._()
     : super(
         from: null,
         argument: null,

@@ -10,10 +10,10 @@ part of 'grid_state_provider.dart';
 // ignore_for_file: type=lint, type=warning
 
 @ProviderFor(Grid)
-const gridProvider = GridProvider._();
+final gridProvider = GridProvider._();
 
 final class GridProvider extends $NotifierProvider<Grid, GridState> {
-  const GridProvider._()
+  GridProvider._()
     : super(
         from: null,
         argument: null,
@@ -46,8 +46,7 @@ abstract class _$Grid extends $Notifier<GridState> {
   GridState build();
   @$mustCallSuper
   @override
-  void runBuild() {
-    final created = build();
+  WhenComplete runBuild() {
     final ref = this.ref as $Ref<GridState, GridState>;
     final element =
         ref.element
@@ -57,6 +56,6 @@ abstract class _$Grid extends $Notifier<GridState> {
               Object?,
               Object?
             >;
-    element.handleValue(ref, created);
+    return element.handleCreate(ref, build);
   }
 }

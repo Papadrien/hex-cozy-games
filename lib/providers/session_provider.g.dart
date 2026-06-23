@@ -10,10 +10,10 @@ part of 'session_provider.dart';
 // ignore_for_file: type=lint, type=warning
 
 @ProviderFor(Session)
-const sessionProvider = SessionProvider._();
+final sessionProvider = SessionProvider._();
 
 final class SessionProvider extends $NotifierProvider<Session, SessionState> {
-  const SessionProvider._()
+  SessionProvider._()
     : super(
         from: null,
         argument: null,
@@ -40,14 +40,13 @@ final class SessionProvider extends $NotifierProvider<Session, SessionState> {
   }
 }
 
-String _$sessionHash() => r'706993abca6619a308b31c4ea0a9a5f6d8270f29';
+String _$sessionHash() => r'cb0d865a370b3a8500a517961d2ee14351b0fd10';
 
 abstract class _$Session extends $Notifier<SessionState> {
   SessionState build();
   @$mustCallSuper
   @override
-  void runBuild() {
-    final created = build();
+  WhenComplete runBuild() {
     final ref = this.ref as $Ref<SessionState, SessionState>;
     final element =
         ref.element
@@ -57,6 +56,6 @@ abstract class _$Session extends $Notifier<SessionState> {
               Object?,
               Object?
             >;
-    element.handleValue(ref, created);
+    return element.handleCreate(ref, build);
   }
 }
