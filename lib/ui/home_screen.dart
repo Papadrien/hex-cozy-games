@@ -419,7 +419,12 @@ class _PlayButton extends StatelessWidget {
                 borderRadius: BorderRadius.circular(28),
                 child: InkWell(
                   borderRadius: BorderRadius.circular(28),
-                  onTap: onTap,
+                  onTap: onTap != null
+                      ? () {
+                          final result = onTap();
+                          if (result is Future) result;
+                        }
+                      : null,
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 18),
                     decoration: BoxDecoration(
@@ -559,7 +564,7 @@ class _BuildButton extends StatelessWidget {
               style: GoogleFonts.nunito(
                 color: Colors.white,
                 fontSize: 14,
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w800,
               ),
             ),
           ],
@@ -608,9 +613,9 @@ class _RewardedAdButton extends ConsumerWidget {
             Text(
               adAvailable ? context.tr.ads_watchForCoins : context.tr.ads_comeBackTomorrow,
               style: GoogleFonts.nunito(
-                color: adAvailable ? Colors.amber.shade200 : Colors.white.withValues(alpha: 0.4),
+                color: adAvailable ? Colors.white : Colors.white.withValues(alpha: 0.5),
                 fontSize: 14,
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w800,
               ),
             ),
           ],
@@ -661,9 +666,9 @@ class _PremiumDailyCoinsButton extends ConsumerWidget {
             Text(
               available ? context.tr.premium_dailyCoinsButton : context.tr.ads_comeBackTomorrow,
               style: GoogleFonts.nunito(
-                color: available ? Colors.amber.shade200 : Colors.white.withValues(alpha: 0.4),
+                color: available ? Colors.white : Colors.white.withValues(alpha: 0.5),
                 fontSize: 14,
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w800,
               ),
             ),
           ],
@@ -703,7 +708,7 @@ class _NavButton extends StatelessWidget {
             style: GoogleFonts.nunito(
               color: Colors.white,
               fontSize: 14,
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w800,
             ),
           ),
         ],
