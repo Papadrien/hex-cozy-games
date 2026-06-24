@@ -271,7 +271,57 @@ class TileComponent extends PositionComponent {
       }
     }
 
+    // ── Polygone central du biome majoritaire ────────────────────────────
+    final dominantColor = _dominantBiomeColor();
+    if (dominantColor != null) {
+      const double innerRatio = 0.32;
+      final innerCx = cx;
+      final innerCy = cyTop;
+      final innerPath = Path();
+      for (var i = 0; i < 6; i++) {
+        final angleDeg = 60.0 * i - 90.0;
+        final angleRad = angleDeg * pi / 180.0;
+        final x = innerCx + _hexSize * innerRatio * cos(angleRad);
+        final y = innerCy + _hexSize * innerRatio * sin(angleRad) * kIsoScaleY;
+        if (i == 0) {
+          innerPath.moveTo(x, y);
+        } else {
+          innerPath.lineTo(x, y);
+        }
+      }
+      innerPath.close();
+      canvas.drawPath(
+        innerPath,
+        Paint()
+          ..color = dominantColor.withValues(alpha: _alpha)
+          ..style = PaintingStyle.fill,
+      );
+    }
+
     // Les palmiers sont rendus par les PalmSpriteComponent enfants (pas ici).
+  }
+
+  /// Retourne la couleur du biome majoritaire sur la tuile, ou null en cas
+  /// d'égalité.
+  Color? _dominantBiomeColor() {
+    final counts = <BiomeType, int>{};
+    for (final b in tile.sides) {
+      counts[b] = (counts[b] ?? 0) + 1;
+    }
+    BiomeType? dominant;
+    int maxCount = 0;
+    bool tie = false;
+    for (final entry in counts.entries) {
+      if (entry.value > maxCount) {
+        maxCount = entry.value;
+        dominant = entry.key;
+        tie = false;
+      } else if (entry.value == maxCount) {
+        tie = true;
+      }
+    }
+    if (dominant == null || tie) return null;
+    return dominant.color;
   }
 
   @override

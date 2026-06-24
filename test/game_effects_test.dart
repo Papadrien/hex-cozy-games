@@ -9,10 +9,10 @@ library;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:hex_cozy_games/game/hex_cell.dart';
-import 'package:hex_cozy_games/game/hex_tile.dart';
-import 'package:hex_cozy_games/providers/build_provider.dart';
-import 'package:hex_cozy_games/providers/game_effects_service.dart';
+import 'package:hex_haven/game/hex_cell.dart';
+import 'package:hex_haven/game/hex_tile.dart';
+import 'package:hex_haven/providers/build_provider.dart';
+import 'package:hex_haven/providers/game_effects_service.dart';
 
 /// [activeUpgradeEffectsProvider] surchargé avec les valeurs passées.
 ProviderContainer _makeContainer([ActiveUpgradeEffects? effects]) {

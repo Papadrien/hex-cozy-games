@@ -19,7 +19,7 @@ if (googleServicesFile.exists()) {
 }
 
 android {
-    namespace = "fr.junade.hex_cozy_games"
+    namespace = "fr.junade.hex_haven"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -30,7 +30,7 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "fr.junade.hex_cozy_games"
+        applicationId = "fr.junade.hex_haven"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         // minSdk forcé à 23 : requis par google_mobile_ads et games_services
