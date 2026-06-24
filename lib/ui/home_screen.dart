@@ -20,6 +20,12 @@ import 'quests_screen.dart';
 import 'shop_screen.dart';
 import 'stats_screen.dart';
 
+// Bleu glacier pour les boutons secondaires — ni trop cyan (déjà pris par le
+// bouton Jouer en teal), ni trop violet (réservé au premium).
+// Ce bleu cobalt doux ressort bien sur le fond tropical chaud.
+const Color _kGlassBlue = Color(0xFF5BA4D4);
+const Color _kGlassBlueBorder = Color(0xFF7EC8E3);
+
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
@@ -70,7 +76,7 @@ class HomeScreen extends ConsumerWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// TOP BAR
+// TOP BAR  —  badge pièces · titre centré · icônes settings/shop
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _TopBar extends StatelessWidget {
@@ -81,15 +87,17 @@ class _TopBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           // Badge pièces
           _GlassPill(
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.monetization_on, color: Colors.amber, size: 18),
+                const Icon(Icons.monetization_on,
+                    color: Colors.amber, size: 18),
                 const SizedBox(width: 6),
                 Text(
                   '$totalCoins',
@@ -102,7 +110,11 @@ class _TopBar extends StatelessWidget {
               ],
             ),
           ),
-          const Spacer(),
+
+          // ── Titre centré ──────────────────────────────────────────────────
+          const Expanded(child: _HexHavenTitle()),
+
+          // ── Boutons icônes ────────────────────────────────────────────────
           _GlassIconButton(
             icon: Icons.settings,
             tooltip: context.tr.home_settings,
@@ -133,7 +145,7 @@ class _TopBar extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// TITRE HEX HAVEN
+// TITRE HEX HAVEN  —  maintenant dans la TopBar
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _HexHavenTitle extends StatelessWidget {
@@ -141,60 +153,53 @@ class _HexHavenTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      clipBehavior: Clip.none,
-      alignment: Alignment.center,
+    return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Column(
+        // "hex" + fleur
+        Row(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // "hex" avec petite fleur intégrée
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Text(
-                  'hex',
-                  style: GoogleFonts.nunito(
-                    fontSize: 38,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.white,
-                    height: 1,
-                    shadows: [
-                      Shadow(
-                        color: Colors.black.withValues(alpha: 0.3),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 4),
-                // Petite fleur dans le titre
-                Image.asset(
-                  'assets/images/hibiscus.png',
-                  width: 32,
-                  height: 32,
-                ),
-              ],
-            ),
-            // "Haven" en cursif teal
             Text(
-              'Haven',
-              style: GoogleFonts.pacifico(
-                fontSize: 48,
-                color: const Color(0xFF4EC9B8),
-                height: 0.9,
+              'hex',
+              style: GoogleFonts.nunito(
+                fontSize: 26,
+                fontWeight: FontWeight.w800,
+                color: Colors.white,
+                height: 1,
                 shadows: [
                   Shadow(
-                    color: Colors.black.withValues(alpha: 0.25),
-                    blurRadius: 10,
-                    offset: const Offset(0, 3),
+                    color: Colors.black.withValues(alpha: 0.35),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
                   ),
                 ],
               ),
             ),
+            const SizedBox(width: 3),
+            Image.asset(
+              'assets/images/hibiscus.png',
+              width: 22,
+              height: 22,
+            ),
           ],
+        ),
+        // "Haven" en cursif teal
+        Text(
+          'Haven',
+          style: GoogleFonts.pacifico(
+            fontSize: 30,
+            color: const Color(0xFF4EC9B8),
+            height: 0.85,
+            shadows: [
+              Shadow(
+                color: Colors.black.withValues(alpha: 0.25),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
         ),
       ],
     );
@@ -202,7 +207,7 @@ class _HexHavenTitle extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// CONTENU CENTRAL
+// CONTENU CENTRAL  —  sans titre, commence directement par le bouton Jouer
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _CenterContent extends ConsumerStatefulWidget {
@@ -282,10 +287,6 @@ class _CenterContentState extends ConsumerState<_CenterContent>
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // ── Titre ──────────────────────────────────────────────────────
-              const _HexHavenTitle(),
-              const SizedBox(height: 40),
-
               // ── Bouton Jouer principal ─────────────────────────────────────
               _PlayButton(
                 activeSession: widget.activeSession,
@@ -473,7 +474,7 @@ class _PlayButton extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// BOUTON GLASS RÉUTILISABLE
+// BOUTON GLASS RÉUTILISABLE  —  teinte bleu glacier
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _GlassButton extends StatelessWidget {
@@ -496,7 +497,8 @@ class _GlassButton extends StatelessWidget {
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
         child: Material(
-          color: Colors.white.withValues(alpha: 0.15),
+          // Fond bleu glacier de base — même quand tint = transparent
+          color: _kGlassBlue.withValues(alpha: 0.18),
           borderRadius: BorderRadius.circular(16),
           child: InkWell(
             borderRadius: BorderRadius.circular(16),
@@ -506,10 +508,13 @@ class _GlassButton extends StatelessWidget {
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.35),
+                  color: _kGlassBlueBorder.withValues(alpha: 0.38),
                   width: 1,
                 ),
-                color: tint.withValues(alpha: 0.12),
+                // Surcouche de teinte fonctionnelle (amber pub, purple premium…)
+                color: tint == Colors.transparent
+                    ? Colors.transparent
+                    : tint.withValues(alpha: 0.10),
               ),
               child: child,
             ),
@@ -534,7 +539,8 @@ class _BuildButton extends StatelessWidget {
     return SizedBox(
       width: double.infinity,
       child: _GlassButton(
-        tint: kBrandBlue,
+        // Pas de surcouche — le bleu de base suffit pour ce bouton
+        tint: Colors.transparent,
         onPressed: () => Navigator.of(context).push(
           MaterialPageRoute<void>(builder: (_) => const BuildScreen()),
         ),
@@ -543,7 +549,7 @@ class _BuildButton extends StatelessWidget {
           children: [
             if (selected.isEmpty)
               Icon(Icons.build_outlined,
-                  size: 18, color: Colors.white.withValues(alpha: 0.8))
+                  size: 18, color: Colors.white.withValues(alpha: 0.85))
             else
               ...selected.map((u) => Padding(
                     padding: const EdgeInsets.only(right: 4),
@@ -588,7 +594,8 @@ class _RewardedAdButton extends ConsumerWidget {
                 if (rewarded && context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('+$kAdRewardedCoins ${context.tr.reward_coins}'),
+                      content: Text(
+                          '+$kAdRewardedCoins ${context.tr.reward_coins}'),
                       backgroundColor: Colors.green.withValues(alpha: 0.3),
                       behavior: SnackBarBehavior.floating,
                     ),
@@ -600,15 +607,23 @@ class _RewardedAdButton extends ConsumerWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              adAvailable ? Icons.play_circle_outline : Icons.check_circle_outline,
+              adAvailable
+                  ? Icons.play_circle_outline
+                  : Icons.check_circle_outline,
               size: 20,
-              color: adAvailable ? Colors.amber : Colors.white.withValues(alpha: 0.4),
+              color: adAvailable
+                  ? Colors.amber
+                  : Colors.white.withValues(alpha: 0.4),
             ),
             const SizedBox(width: 8),
             Text(
-              adAvailable ? context.tr.ads_watchForCoins : context.tr.ads_comeBackTomorrow,
+              adAvailable
+                  ? context.tr.ads_watchForCoins
+                  : context.tr.ads_comeBackTomorrow,
               style: GoogleFonts.nunito(
-                color: adAvailable ? Colors.white : Colors.white.withValues(alpha: 0.5),
+                color: adAvailable
+                    ? Colors.white
+                    : Colors.white.withValues(alpha: 0.5),
                 fontSize: 14,
                 fontWeight: FontWeight.w800,
               ),
@@ -655,13 +670,19 @@ class _PremiumDailyCoinsButton extends ConsumerWidget {
             Icon(
               available ? Icons.monetization_on : Icons.check_circle_outline,
               size: 20,
-              color: available ? Colors.amber : Colors.white.withValues(alpha: 0.4),
+              color: available
+                  ? Colors.amber
+                  : Colors.white.withValues(alpha: 0.4),
             ),
             const SizedBox(width: 8),
             Text(
-              available ? context.tr.premium_dailyCoinsButton : context.tr.ads_comeBackTomorrow,
+              available
+                  ? context.tr.premium_dailyCoinsButton
+                  : context.tr.ads_comeBackTomorrow,
               style: GoogleFonts.nunito(
-                color: available ? Colors.white : Colors.white.withValues(alpha: 0.5),
+                color: available
+                    ? Colors.white
+                    : Colors.white.withValues(alpha: 0.5),
                 fontSize: 14,
                 fontWeight: FontWeight.w800,
               ),
@@ -716,7 +737,7 @@ class _NavButton extends StatelessWidget {
 // COMPOSANTS UTILITAIRES
 // ─────────────────────────────────────────────────────────────────────────────
 
-/// Pill glassmorphism (badge pièces, etc.)
+/// Pill glassmorphism (badge pièces)
 class _GlassPill extends StatelessWidget {
   const _GlassPill({required this.child});
 
@@ -731,9 +752,11 @@ class _GlassPill extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.15),
+            color: _kGlassBlue.withValues(alpha: 0.22),
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.35)),
+            border: Border.all(
+              color: _kGlassBlueBorder.withValues(alpha: 0.40),
+            ),
           ),
           child: child,
         ),
@@ -763,7 +786,7 @@ class _GlassIconButton extends StatelessWidget {
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
           child: Material(
-            color: Colors.white.withValues(alpha: 0.15),
+            color: _kGlassBlue.withValues(alpha: 0.22),
             borderRadius: BorderRadius.circular(14),
             child: InkWell(
               borderRadius: BorderRadius.circular(14),
@@ -772,7 +795,9 @@ class _GlassIconButton extends StatelessWidget {
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.35)),
+                  border: Border.all(
+                    color: _kGlassBlueBorder.withValues(alpha: 0.40),
+                  ),
                 ),
                 child: Icon(icon, color: Colors.white, size: 22),
               ),
@@ -828,7 +853,8 @@ class _DebugButton extends StatelessWidget {
           await ref.read(progressionServiceProvider).unlockAllUpgrades();
           if (context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Toutes les améliorations débloquées')),
+              const SnackBar(
+                  content: Text('Toutes les améliorations débloquées')),
             );
           }
         },
