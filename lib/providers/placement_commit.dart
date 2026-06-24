@@ -55,7 +55,7 @@ Future<void> restoreSession(WidgetRef ref) async {
     final stackJson = jsonDecode(row.tileStack);
     final seed = stackJson['seed'] as int?;
     final queueList = (stackJson['queue'] as List)
-        .map((t) => HexTile.fromJson({'sides': t}))
+        .map((t) => HexTile.fromJson(t as Map<String, dynamic>))
         .toList();
     ref.read(tileStackProvider.notifier).restoreQueue(queueList, seed: seed);
 
@@ -203,11 +203,11 @@ class SessionSaver {
       final gridJson = jsonEncode(grid.toJson());
 
       final queue = ref.read(tileStackProvider.notifier).queue;
-      final queueJson = queue.map((t) => t.toJson()['sides']).toList();
+      final queueJson = queue.map((t) => t.toJson()).toList();
       final stackJson = jsonEncode({
         'seed': stack.seed,
         'remaining': stack.remaining,
-        'visible': stack.visible.map((t) => t.toJson()['sides']).toList(),
+        'visible': stack.visible.map((t) => t.toJson()).toList(),
         'queue': queueJson,
       });
 

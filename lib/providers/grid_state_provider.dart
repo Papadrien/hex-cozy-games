@@ -40,7 +40,7 @@ class GridState {
 
   Map<String, dynamic> toJson() => {
         for (final entry in placedTiles.entries)
-          '${entry.key.q},${entry.key.r}': entry.value.toJson()['sides'],
+          '${entry.key.q},${entry.key.r}': entry.value.toJson(),
       };
 
   factory GridState.fromJson(Map<String, dynamic> json) => GridState(
@@ -49,7 +49,7 @@ class GridState {
             HexCoords(
               int.parse(entry.key.split(',')[0]),
               int.parse(entry.key.split(',')[1]),
-            ): HexTile.fromJson({'sides': entry.value}),
+            ): HexTile.fromJson(entry.value as Map<String, dynamic>),
         },
       );
 

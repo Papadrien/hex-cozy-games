@@ -58,17 +58,18 @@ const int kTileDepthPriorityPreview = kTileDepthPriorityBase + 1000000;
 
 /// Taille d'affichage de base du sprite palmier pour kHexSize normal.
 /// Le sprite fait 256px de haut ; on l'affiche à ~80px pour kHexSize=48.
-const double kPalmSpriteBaseHeight = 80.0;
+const double kPalmSpriteBaseHeight = 27.0;
 
 class TileComponent extends PositionComponent {
   TileComponent({
-    required this.tile,
+    required HexTile tile,
     required HexCoords coords,
     double hexSize = kHexSize,
     double alpha = 1.0,
     this.highlightedSides = const {},
     Vector2? position,
-  })  : _coords = coords,
+  })  : _tile = tile,
+        _coords = coords,
         _hexSize = hexSize,
         _alpha = alpha,
         super(
@@ -78,7 +79,13 @@ class TileComponent extends PositionComponent {
           priority: 1,
         );
 
-  HexTile tile;
+  HexTile _tile;
+  HexTile get tile => _tile;
+  set tile(HexTile value) {
+    _tile = value;
+    _rebuildPalmSprites();
+  }
+
   final HexCoords _coords;
   HexCoords get coords => _coords;
 
