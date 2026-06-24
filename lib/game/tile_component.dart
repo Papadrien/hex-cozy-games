@@ -157,7 +157,7 @@ class TileComponent extends PositionComponent {
   }
 
   /// Calcule l'offset local du pied du palmier (anchor: bottomCenter du sprite).
-  Vector2 _palmOffset(palm, double cx, double cyTop, List<Offset> topCorners) {
+  Vector2 _palmOffset(PalmPlacement palm, double cx, double cyTop, List<Offset> topCorners) {
     final c0 = topCorners[palm.sideIndex];
     final c1 = topCorners[(palm.sideIndex + 1) % 6];
 
@@ -175,7 +175,7 @@ class TileComponent extends PositionComponent {
   }
 
   /// Calcule la taille d'affichage du sprite selon hexSize et scaleFrac.
-  Vector2 _palmSpriteSize(palm) {
+  Vector2 _palmSpriteSize(PalmPlacement palm) {
     // Hauteur de base proportionnelle au hexSize courant.
     final h = kPalmSpriteBaseHeight * (_hexSize / kHexSize) * palm.scaleFrac;
     // Les deux variantes ont un ratio largeur/hauteur légèrement différent.
