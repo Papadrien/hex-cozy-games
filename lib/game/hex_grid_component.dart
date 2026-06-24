@@ -295,8 +295,9 @@ class HexGridComponent extends PositionComponent {
   }
 
   /// Affiche des pièces (pièces de monnaie) au niveau de chaque côté connecté
-  /// sur la tuile placée en [coords], ainsi que les tuiles bonus au-dessus de
-  /// la cellule. Les indicateurs disparaissent automatiquement après animation.
+  /// sur la tuile placée en [coords], les tuiles bonus au-dessus de la cellule,
+  /// et des particules pour les connexions parfaites.
+  /// Les indicateurs disparaissent automatiquement après animation.
   void showRewardIndicators(HexCoords coords, List<int> connectedSides,
       {int bonusTiles = 0}) {
     final layout = _layout;
@@ -304,7 +305,10 @@ class HexGridComponent extends PositionComponent {
     final centerVec = Vector2(center.x, center.y);
     final hexSize = kHexSize * zoom;
 
-    // Pièces au niveau de chaque côté connecté.
+    // Position du compteur de pièces en haut à gauche (coordonnées jeu).
+    final coinCounterTarget = Vector2(26, 85);
+
+    // Pièces volant vers le compteur depuis chaque côté connecté.
     for (final side in connectedSides) {
       final offset = _sideEdgeMidpoint(side, hexSize);
       final pos = Vector2(
@@ -315,12 +319,27 @@ class HexGridComponent extends PositionComponent {
         position: pos,
         hexSize: hexSize,
         animated: true,
+        flyTarget: coinCounterTarget,
         priority: kTileDepthPriorityPreview + 1,
       ));
     }
 
-    // Tuiles bonus : incrémentées dans le stock via addBonusTiles,
-    // pas d'icône visuelle ici.
+    // Icône de tuile bonus qui flotte et disparaît.
+    if (bonusTiles > 0) {
+      add(_BonusTileAnimComponent(
+        position: centerVec,
+        hexSize: hexSize,
+        bonusCount: bonusTiles,
+      ));
+    }
+
+    // Particules pour connexion parfaite (5-6 côtés).
+    if (connectedSides.length >= 5) {
+      add(_PerfectConnectionParticles(
+        position: centerVec,
+        hexSize: hexSize,
+      ));
+    }
   }
 
   /// Calcule le décalage (dx, dy) du point milieu du côté [side] (0-5) par
@@ -424,11 +443,13 @@ class HexGridComponent extends PositionComponent {
 }
 
 /// Pièce affichée au niveau d'un côté connecté — animée ou statique selon [animated].
+/// Si [flyTarget] est non-null, la pièce vole vers cette position.
 class _CoinComponent extends PositionComponent {
   _CoinComponent({
     required super.position,
     required double hexSize,
     this.animated = false,
+    this.flyTarget,
     int priority = 10,
   })  : _radius = hexSize * 0.18,
         _alpha = animated ? null : 0.85,
@@ -440,8 +461,22 @@ class _CoinComponent extends PositionComponent {
   /// Non-null en mode statique, null en mode animé.
   final double? _alpha;
 
+  /// Position cible pour le vol vers le compteur (null = pas de vol).
+  final Vector2? flyTarget;
+
   double _life = 0.0;
   static const double _kDuration = 1.2;
+
+  @override
+  Future<void> onLoad() async {
+    await super.onLoad();
+    if (flyTarget != null) {
+      add(MoveEffect.to(
+        flyTarget!,
+        EffectController(duration: 0.6, curve: Curves.easeInOut),
+      ));
+    }
+  }
 
   @override
   void update(double dt) {
@@ -538,4 +573,156 @@ class _PreviewBonusComponent extends PositionComponent {
       Offset(-textPainter.width / 2, -textPainter.height / 2),
     );
   }
+}
+
+/// Icône de tuile bonus animée après placement — flotte vers le haut
+/// puis disparaît (Story 4.2b).
+class _BonusTileAnimComponent extends PositionComponent {
+  _BonusTileAnimComponent({
+    required super.position,
+    required double hexSize,
+    required this.bonusCount,
+  })  : _radius = hexSize * 0.22,
+        super(priority: kTileDepthPriorityPreview + 1);
+
+  final double _radius;
+  final int bonusCount;
+
+  double _life = 0.0;
+  static const double _kDuration = 0.9;
+
+  @override
+  Future<void> onLoad() async {
+    await super.onLoad();
+    add(MoveEffect.by(
+      Vector2(0, -40),
+      EffectController(duration: _kDuration, curve: Curves.easeOut),
+    ));
+  }
+
+  @override
+  void update(double dt) {
+    super.update(dt);
+    _life += dt;
+    if (_life >= _kDuration) {
+      removeFromParent();
+    }
+  }
+
+  @override
+  void render(Canvas canvas) {
+    final progress = (_life / _kDuration).clamp(0.0, 1.0);
+    final alpha = 0.9 * (1.0 - progress);
+    final r = _radius;
+
+    // Cercle extérieur (fond).
+    canvas.drawCircle(
+      Offset.zero,
+      r,
+      Paint()
+        ..color = kBonusBlueLight.withValues(alpha: alpha)
+        ..style = PaintingStyle.fill,
+    );
+    canvas.drawCircle(
+      Offset.zero,
+      r * 0.75,
+      Paint()
+        ..color = kBonusBlueLighter.withValues(alpha: alpha * 0.7)
+        ..style = PaintingStyle.fill,
+    );
+
+    // Nombre de tuiles bonus (+N) centré en blanc.
+    final text = '+$bonusCount';
+    final textPainter = TextPainter(
+      text: TextSpan(
+        text: text,
+        style: TextStyle(
+          color: kRewardWhite.withValues(alpha: alpha),
+          fontSize: r * 1.0,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    );
+    textPainter.layout();
+    textPainter.paint(
+      canvas,
+      Offset(-textPainter.width / 2, -textPainter.height / 2),
+    );
+  }
+}
+
+/// Particules légères pour connexion parfaite (5-6 côtés — Story 4.2b).
+class _PerfectConnectionParticles extends PositionComponent {
+  _PerfectConnectionParticles({
+    required super.position,
+    required double hexSize,
+  }) : _particles = _generateParticles(hexSize),
+       super(priority: kTileDepthPriorityPreview + 1);
+
+  static List<_Particle> _generateParticles(double hexSize) {
+    final rng = Random();
+    final count = 10 + rng.nextInt(6);
+    return List.generate(count, (_) {
+      final angle = rng.nextDouble() * 2 * pi;
+      final speed = 50 + rng.nextDouble() * 60;
+      return _Particle(
+        position: Vector2.zero(),
+        velocity: Vector2(cos(angle) * speed, sin(angle) * speed),
+        radius: 1.5 + rng.nextDouble() * 2.0,
+        alpha: 0.9,
+      );
+    });
+  }
+
+  final List<_Particle> _particles;
+  double _life = 0;
+  static const double _kDuration = 0.7;
+
+  @override
+  void update(double dt) {
+    super.update(dt);
+    _life += dt;
+    if (_life >= _kDuration) {
+      removeFromParent();
+      return;
+    }
+    for (final p in _particles) {
+      p.position += p.velocity * dt;
+      p.velocity *= 0.93;
+      p.alpha = 0.9 * (1.0 - _life / _kDuration);
+      p.radius *= max(0.3, 1.0 - dt * 1.5);
+    }
+  }
+
+  @override
+  void render(Canvas canvas) {
+    for (final p in _particles) {
+      final color = p.alpha > 0.5
+          ? kRewardGold.withValues(alpha: p.alpha)
+          : kRewardWhite.withValues(alpha: p.alpha);
+      canvas.drawCircle(
+        Offset(p.position.x, p.position.y),
+        p.radius,
+        Paint()
+          ..color = color
+          ..style = PaintingStyle.fill,
+      );
+    }
+  }
+}
+
+/// Donnée d'une particule individuelle.
+class _Particle {
+  _Particle({
+    required this.position,
+    required this.velocity,
+    required this.radius,
+    required this.alpha,
+  });
+
+  Vector2 position;
+  Vector2 velocity;
+  double radius;
+  double alpha;
 }
