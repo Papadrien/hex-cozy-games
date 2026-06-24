@@ -419,12 +419,7 @@ class _PlayButton extends StatelessWidget {
                 borderRadius: BorderRadius.circular(28),
                 child: InkWell(
                   borderRadius: BorderRadius.circular(28),
-                  onTap: onTap != null
-                      ? () {
-                          final result = onTap();
-                          if (result is Future) result;
-                        }
-                      : null,
+                  onTap: onTap,
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 18),
                     decoration: BoxDecoration(
