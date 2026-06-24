@@ -40,3 +40,12 @@ const Color kQuestBlue = Color(0xFF64B5F6);
 
 /// Jaune/ambre pour les pièces et icônes de valeur.
 const Color kCoinAmber = Color(0xFFFFC107); // Colors.amber
+
+/// Teal tropical pour le bouton Jouer principal.
+const Color kTropicalTeal = Color(0xFF2A9D8F);
+
+/// Blanc glassmorphism pour les boutons secondaires.
+const Color kGlassWhite = Color(0x33FFFFFF);
+
+/// Bordure glassmorphism pour les boutons secondaires.
+const Color kGlassBorder = Color(0x4DFFFFFF);

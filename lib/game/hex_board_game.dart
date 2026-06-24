@@ -87,7 +87,7 @@ class HexBoardGame extends FlameGame
     // Partie reprise : placer toutes les tuiles restaurées sur Flame.
     final gridState = _ref.read(gridProvider);
     for (final entry in gridState.placedTiles.entries) {
-      grid.placeTile(entry.key, entry.value);
+      grid.placeTile(entry.key, entry.value, animated: false);
     }
   }
 
