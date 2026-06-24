@@ -40,8 +40,8 @@ class _PalmImageCache {
 
   Future<void> load() async {
     if (_loaded) return;
-    img1 = await _loadAssetImage('assets/palm_tree_1.png');
-    img2 = await _loadAssetImage('assets/palm_tree_2.png');
+    img1 = await _loadAssetImage('assets/images/palm_tree_1.png');
+    img2 = await _loadAssetImage('assets/images/palm_tree_2.png');
     _loaded = true;
   }
 

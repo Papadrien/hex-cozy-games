@@ -96,8 +96,8 @@ flutter:
   generate: true
 
   assets:
-    - assets/palm_tree_1.png
-    - assets/palm_tree_2.png
+    - assets/images/palm_tree_1.png
+    - assets/images/palm_tree_2.png
     - assets/Palm Tree.glb
 
   # An image asset can refer to one or more resolution-specific "variants", see
