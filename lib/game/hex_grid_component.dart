@@ -17,9 +17,11 @@ library;
 import 'dart:math';
 import 'dart:ui' show Canvas, Color, FontWeight, Offset, Paint, PaintingStyle, Path, TextDirection;
 
+import 'package:flutter/animation.dart' show Curves;
 import 'package:flutter/painting.dart' show TextPainter, TextSpan, TextStyle;
 
 import 'package:flame/components.dart';
+import 'package:flame/effects.dart';
 
 import '../core/colors.dart';
 import '../core/constants.dart';
@@ -237,7 +239,7 @@ class HexGridComponent extends PositionComponent {
   /// [connectedSides] : si fourni, les côtés correspondants s'illuminent
   /// brièvement (glow — story 1.6b).
   void placeTile(HexCoords coords, HexTile tile,
-      {List<int>? connectedSides, Set<int>? highlightedSides}) {
+      {List<int>? connectedSides, Set<int>? highlightedSides, bool animated = true}) {
     final existing = placedTiles.remove(coords);
     if (existing != null) remove(existing);
 
@@ -252,12 +254,23 @@ class HexGridComponent extends PositionComponent {
     );
     component.updateDepthPriority();
 
+    if (animated) {
+      component.scale = Vector2.all(0.3);
+    }
+
     if (connectedSides != null && connectedSides.isNotEmpty) {
       component.startGlow(connectedSides);
     }
 
     placedTiles[coords] = component;
     add(component);
+
+    if (animated) {
+      component.add(ScaleEffect.to(
+        Vector2.all(1.0),
+        EffectController(duration: 0.35, curve: Curves.easeInOut),
+      ));
+    }
 
     placedCells[coords] = HexCell(
       q: coords.q,
