@@ -10,7 +10,6 @@ import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../game/hex_cell.dart';
 import '../game/hex_tile.dart';
 import '../game/tile_component.dart' show BiomeColor;
 import '../providers/placement_provider.dart';

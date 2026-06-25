@@ -191,7 +191,7 @@ class _HexHavenTitle extends StatelessWidget {
                 const SizedBox(width: 4),
                 Transform(
                   alignment: Alignment.center,
-                  transform: Matrix4.identity()..scale(-1.0, 1.0, 1.0),
+                  transform: Matrix4.diagonal3Values(-1.0, 1.0, 1.0),
                   child: Image.asset(
                     'assets/images/hibiscus.png',
                     width: 64,

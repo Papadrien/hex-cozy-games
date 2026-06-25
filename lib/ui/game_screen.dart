@@ -13,8 +13,6 @@
 library;
 
 import 'dart:async';
-import 'dart:ui';
-
 import 'package:flame/game.dart' hide Matrix4;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -23,9 +21,7 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import '../core/colors.dart';
 import '../core/constants.dart';
-import '../core/game_enums.dart';
 import '../core/strings.dart';
-import '../data/app_database.dart';
 import '../game/hex_board_game.dart';
 import '../providers/pause_provider.dart';
 import '../providers/player_profile_provider.dart';

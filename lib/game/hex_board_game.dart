@@ -25,7 +25,6 @@ import 'dart:ui' show Color;
 
 import 'package:flame/events.dart';
 
-import '../core/colors.dart';
 import 'package:flame/game.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
