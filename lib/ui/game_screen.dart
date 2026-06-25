@@ -397,13 +397,12 @@ class _ParallaxBackground extends StatelessWidget {
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
     final scale = _baseBgScale * zoom;
-    // Centrage initial + décalage 1:1 avec la caméra.
-    // Le pivot de zoom correspond à l'origine du plateau (42 % largeur, 38 % hauteur)
-    // pour que fond et grille évoluent du même point.
+    // L'OverflowBox centre déjà l'image. On applique seulement le décalage
+    // caméra et le pivot de zoom (identique à celui du plateau : 42 % × 38 %).
     final pivotX = size.width * 0.42;
     final pivotY = size.height * 0.38;
-    final dx = offsetX + pivotX * (1 - zoom) - zoom * (size.width * _baseBgScale - size.width) / 2;
-    final dy = offsetY + pivotY * (1 - zoom) - zoom * (size.height * _baseBgScale - size.height) / 2;
+    final dx = offsetX + (size.width / 2 - pivotX) * (zoom - 1);
+    final dy = offsetY + (size.height / 2 - pivotY) * (zoom - 1);
 
     return OverflowBox(
       maxWidth: size.width * scale,
@@ -414,7 +413,7 @@ class _ParallaxBackground extends StatelessWidget {
           'assets/images/game_background.png',
           width: size.width * scale,
           height: size.height * scale,
-          fit: BoxFit.cover,
+          fit: BoxFit.contain,
           filterQuality: FilterQuality.medium,
         ),
       ),
