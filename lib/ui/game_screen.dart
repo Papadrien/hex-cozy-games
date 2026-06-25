@@ -13,6 +13,7 @@
 library;
 
 import 'dart:async';
+import 'dart:ui' show ImageFilter;
 import 'package:flame/game.dart' hide Matrix4;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -150,42 +151,48 @@ class _GameScreenState extends ConsumerState<GameScreen> {
             left: 16,
             child: Consumer(builder: (context, ref, _) {
               final session = ref.watch(sessionProvider);
-              return Container(
-                key: _coinsKey,
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.45),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.15),
-                    width: 1,
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      context.tr.game_sessionCoins,
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.6),
-                        fontSize: 11,
+              return ClipRRect(
+                borderRadius: BorderRadius.circular(14),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                  child: Container(
+                    key: _coinsKey,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: kGlassBlue.withValues(alpha: 0.18),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: kGlassBlueBorder.withValues(alpha: 0.38),
+                        width: 1,
                       ),
                     ),
-                    Row(children: [
-                      const Icon(Icons.monetization_on, color: Colors.amber, size: 20),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${session.coins}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          context.tr.game_sessionCoins,
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.6),
+                            fontSize: 11,
+                          ),
                         ),
-                      ),
-                    ]),
-                    _CoinRewardTag(opacity: _rewardOpacity),
-                  ],
+                        Row(children: [
+                          const Icon(Icons.monetization_on, color: Colors.amber, size: 20),
+                          const SizedBox(width: 4),
+                          Text(
+                            '${session.coins}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ]),
+                        _CoinRewardTag(opacity: _rewardOpacity),
+                      ],
+                    ),
+                  ),
                 ),
               );
             }),
@@ -199,23 +206,36 @@ class _GameScreenState extends ConsumerState<GameScreen> {
               Positioned(
                 bottom: 24,
                 left: 16,
-                child: FloatingActionButton.small(
-                  heroTag: 'undo',
-                  onPressed: canUndo
-                      ? () => undoPlacement(
-                            ref,
-                            onUndo: _game.removeTileFromFlame,
-                          )
-                      : null,
-                  backgroundColor: Colors.black.withValues(alpha: 0.55),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    side: BorderSide(
-                      color: Colors.white.withValues(alpha: 0.15),
-                      width: 1,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(14),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                    child: Material(
+                      color: kGlassBlue.withValues(alpha: 0.18),
+                      borderRadius: BorderRadius.circular(14),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(14),
+                        onTap: canUndo
+                            ? () => undoPlacement(
+                                  ref,
+                                  onUndo: _game.removeTileFromFlame,
+                                )
+                            : null,
+                        child: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: kGlassBlueBorder.withValues(alpha: 0.38),
+                              width: 1,
+                            ),
+                          ),
+                          child: const Icon(Icons.undo, color: Colors.white, size: 20),
+                        ),
+                      ),
                     ),
                   ),
-                  child: const Icon(Icons.undo, color: Colors.white),
                 ),
               ),
             ]);
@@ -279,27 +299,37 @@ class _CoinRewardTag extends ConsumerWidget {
 
     return Opacity(
       opacity: opacity,
-      child: Container(
-        margin: const EdgeInsets.only(top: 4),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.55),
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.monetization_on, color: Colors.amber, size: 16),
-            const SizedBox(width: 4),
-            Text(
-              '+${reward.bonusCoins}${context.tr.reward_coins}',
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(10),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          child: Container(
+            margin: const EdgeInsets.only(top: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: kGlassBlue.withValues(alpha: 0.18),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: kGlassBlueBorder.withValues(alpha: 0.38),
+                width: 1,
               ),
             ),
-          ],
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.monetization_on, color: Colors.amber, size: 16),
+                const SizedBox(width: 4),
+                Text(
+                  '+${reward.bonusCoins}${context.tr.reward_coins}',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -322,27 +352,37 @@ class _BonusTileTag extends ConsumerWidget {
 
     return Opacity(
       opacity: opacity,
-      child: Container(
-        margin: const EdgeInsets.only(top: 4),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.55),
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.hexagon, color: Colors.lightBlue, size: 14),
-            const SizedBox(width: 4),
-            Text(
-               '+${reward.bonusTiles}${context.tr.reward_bonusTiles}',
-              style: const TextStyle(
-                color: Colors.white70,
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(10),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          child: Container(
+            margin: const EdgeInsets.only(top: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: kGlassBlue.withValues(alpha: 0.18),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: kGlassBlueBorder.withValues(alpha: 0.38),
+                width: 1,
               ),
             ),
-          ],
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.hexagon, color: Colors.lightBlue, size: 14),
+                const SizedBox(width: 4),
+                Text(
+                   '+${reward.bonusTiles}${context.tr.reward_bonusTiles}',
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
