@@ -1,10 +1,8 @@
 /// Bouton Pause — Story 1.5bis-a.
 ///
-/// Positionné en haut à droite de l'écran de jeu, style glassmorphism homogène
-/// avec les autres éléments HUD.
+/// Positionné en haut à droite de l'écran de jeu, style semi-transparent
+/// homogène avec les autres éléments HUD.
 library;
-
-import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -23,27 +21,21 @@ class PauseButton extends ConsumerWidget {
       onTap: () {
         ref.read(pauseProvider.notifier).pause();
       },
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(10),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-          child: Container(
-            width: _kPauseButtonSize,
-            height: _kPauseButtonSize,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.10),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.18),
-                width: 1,
-              ),
-            ),
-            child: const Icon(
-              Icons.pause,
-              color: Colors.white,
-              size: 20,
-            ),
+      child: Container(
+        width: _kPauseButtonSize,
+        height: _kPauseButtonSize,
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.45),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.15),
+            width: 1,
           ),
+        ),
+        child: const Icon(
+          Icons.pause,
+          color: Colors.white,
+          size: 20,
         ),
       ),
     );

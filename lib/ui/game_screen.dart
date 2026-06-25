@@ -13,8 +13,6 @@
 library;
 
 import 'dart:async';
-import 'dart:ui' show ImageFilter;
-
 import 'package:flame/game.dart' hide Matrix4;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -152,54 +150,48 @@ class _GameScreenState extends ConsumerState<GameScreen> {
             left: 16,
             child: Consumer(builder: (context, ref, _) {
               final session = ref.watch(sessionProvider);
-              return ClipRRect(
-                borderRadius: BorderRadius.circular(14),
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                  child: Container(
-                    key: _coinsKey,
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.10),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.18),
-                        width: 1,
+              return Container(
+                key: _coinsKey,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.45),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.15),
+                    width: 1,
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      context.tr.game_sessionCoins,
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.6),
+                        fontSize: 11,
                       ),
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          context.tr.game_sessionCoins,
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.6),
-                            fontSize: 11,
-                          ),
+                    Row(children: [
+                      const Icon(Icons.monetization_on, color: Colors.amber, size: 20),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${session.coins}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
                         ),
-                        Row(children: [
-                          const Icon(Icons.monetization_on, color: Colors.amber, size: 20),
-                          const SizedBox(width: 4),
-                          Text(
-                            '${session.coins}',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ]),
-                        _CoinRewardTag(opacity: _rewardOpacity),
-                      ],
-                    ),
-                  ),
+                      ),
+                    ]),
+                    _CoinRewardTag(opacity: _rewardOpacity),
+                  ],
                 ),
               );
             }),
           ),
 
-          // ── Bouton Annuler (glassmorphism) ─────────────────────────────
+          // ── Bouton Annuler ─────────────────────────────────────────────
           Consumer(builder: (context, ref, _) {
             final canUndo = ref.watch(lastPlacementProvider) != null;
 
@@ -207,29 +199,23 @@ class _GameScreenState extends ConsumerState<GameScreen> {
               Positioned(
                 bottom: 24,
                 left: 16,
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(14),
-                  child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                    child: FloatingActionButton.small(
-                      heroTag: 'undo',
-                      onPressed: canUndo
-                          ? () => undoPlacement(
-                                ref,
-                                onUndo: _game.removeTileFromFlame,
-                              )
-                          : null,
-                      backgroundColor: Colors.white.withValues(alpha: 0.10),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                        side: BorderSide(
-                          color: Colors.white.withValues(alpha: 0.18),
-                          width: 1,
-                        ),
-                      ),
-                      child: const Icon(Icons.undo, color: Colors.white),
+                child: FloatingActionButton.small(
+                  heroTag: 'undo',
+                  onPressed: canUndo
+                      ? () => undoPlacement(
+                            ref,
+                            onUndo: _game.removeTileFromFlame,
+                          )
+                      : null,
+                  backgroundColor: Colors.black.withValues(alpha: 0.55),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    side: BorderSide(
+                      color: Colors.white.withValues(alpha: 0.15),
+                      width: 1,
                     ),
                   ),
+                  child: const Icon(Icons.undo, color: Colors.white),
                 ),
               ),
             ]);

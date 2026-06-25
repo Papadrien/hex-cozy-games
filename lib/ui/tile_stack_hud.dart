@@ -5,7 +5,6 @@
 library;
 
 import 'dart:math';
-import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -18,6 +17,10 @@ import '../providers/tile_stack_provider.dart';
 const double _kActiveTileRadius = 34.0;
 const double _kUpcomingTileRadius = 26.0;
 const double _kHudHexFlattenY = 1.0;
+
+// Hauteur totale pour 3 tuiles en diagonale.
+final double _kStackHeight = _kActiveTileRadius * 2 + _kUpcomingTileRadius * 1.1;
+final double _kStackWidth = _kActiveTileRadius * sqrt(3) + _kUpcomingTileRadius * sqrt(3) * 0.5 + 16;
 
 // ── Widget principal ─────────────────────────────────────────────────────────
 
@@ -39,81 +42,77 @@ class TileStackHud extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.end,
       mainAxisSize: MainAxisSize.min,
       children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(14),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.10),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.18),
-                  width: 1,
+        Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.45),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.15),
+              width: 1,
+            ),
+          ),
+          child: SizedBox(
+            width: _kStackWidth,
+            height: _kStackHeight,
+            child: Stack(
+              children: [
+                // Tuile active à gauche
+                Positioned(
+                  left: 0,
+                  top: 0,
+                  child: _HexTilePreview(
+                    tile: activeTile,
+                    radius: _kActiveTileRadius,
+                    highlighted: true,
+                    dim: false,
+                  ),
                 ),
-              ),
-              child: SizedBox(
-                width: _kActiveTileRadius * sqrt(3) + _kUpcomingTileRadius * sqrt(3) * 0.5 + 12,
-                child: Stack(
-                  children: [
-                    // Tuile active à gauche
-                    Positioned(
-                      left: 0,
-                      top: 0,
-                      child: _HexTilePreview(
-                        tile: activeTile,
-                        radius: _kActiveTileRadius,
-                        highlighted: true,
-                        dim: false,
+                // Tuiles suivantes en diagonale
+                if (nextTiles.isNotEmpty)
+                  Positioned(
+                    left: _kActiveTileRadius * sqrt(3) * 0.5 - 4,
+                    top: _kActiveTileRadius * 1.15,
+                    child: _HexTilePreview(
+                      tile: nextTiles[0],
+                      radius: _kUpcomingTileRadius,
+                      highlighted: false,
+                      dim: true,
+                    ),
+                  ),
+                if (nextTiles.length > 1)
+                  Positioned(
+                    left: _kActiveTileRadius * sqrt(3) * 0.5 + _kUpcomingTileRadius * sqrt(3) * 0.45 - 4,
+                    top: _kActiveTileRadius * 1.15 + _kUpcomingTileRadius * 1.1,
+                    child: _HexTilePreview(
+                      tile: nextTiles[1],
+                      radius: _kUpcomingTileRadius,
+                      highlighted: false,
+                      dim: true,
+                    ),
+                  ),
+                // Croix d'annulation de sélection
+                if (placement.hasSelection)
+                  Positioned(
+                    left: 0,
+                    top: 0,
+                    child: GestureDetector(
+                      onTap: () => ref
+                          .read(placementProvider.notifier)
+                          .clearSelection(),
+                      child: Container(
+                        width: 26,
+                        height: 26,
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.6),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.close,
+                            size: 16, color: Colors.white70),
                       ),
                     ),
-                    // Tuiles suivantes en diagonale
-                    if (nextTiles.isNotEmpty)
-                      Positioned(
-                        left: _kActiveTileRadius * sqrt(3) * 0.5 - 4,
-                        top: _kActiveTileRadius * 1.15,
-                        child: _HexTilePreview(
-                          tile: nextTiles[0],
-                          radius: _kUpcomingTileRadius,
-                          highlighted: false,
-                          dim: true,
-                        ),
-                      ),
-                    if (nextTiles.length > 1)
-                      Positioned(
-                        left: _kActiveTileRadius * sqrt(3) * 0.5 + _kUpcomingTileRadius * sqrt(3) * 0.45 - 4,
-                        top: _kActiveTileRadius * 1.15 + _kUpcomingTileRadius * 1.1,
-                        child: _HexTilePreview(
-                          tile: nextTiles[1],
-                          radius: _kUpcomingTileRadius,
-                          highlighted: false,
-                          dim: true,
-                        ),
-                      ),
-                    if (placement.hasSelection)
-                      Positioned(
-                        left: 0,
-                        top: 0,
-                        child: GestureDetector(
-                          onTap: () => ref
-                              .read(placementProvider.notifier)
-                              .clearSelection(),
-                          child: Container(
-                            width: 26,
-                            height: 26,
-                            decoration: BoxDecoration(
-                              color: Colors.black.withValues(alpha: 0.6),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(Icons.close,
-                                size: 16, color: Colors.white70),
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
+                  ),
+              ],
             ),
           ),
         ),
