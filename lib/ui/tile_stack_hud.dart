@@ -1,7 +1,7 @@
 /// UI de la pile de tuiles (HUD) — Story 1.4b.
 ///
-/// Affiche les 3 prochaines tuiles en disposition horizontale :
-/// tuile active à gauche, suivantes empilées à droite (75% visibles).
+/// Affiche les 3 prochaines tuiles en disposition diagonale :
+/// tuile active à gauche, suivantes décalées en bas à droite.
 library;
 
 import 'dart:math';
@@ -40,35 +40,62 @@ class TileStackHud extends ConsumerWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         ClipRRect(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(14),
           child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
             child: Container(
-              padding: const EdgeInsets.all(8),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               decoration: BoxDecoration(
-                color: const Color(0xFF5BA4D4).withValues(alpha: 0.18),
-                borderRadius: BorderRadius.circular(16),
+                color: Colors.white.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(14),
                 border: Border.all(
-                  color: const Color(0xFF7EC8E3).withValues(alpha: 0.38),
+                  color: Colors.white.withValues(alpha: 0.18),
                   width: 1,
                 ),
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  // Tuile active à gauche
-                  Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      _HexTilePreview(
+              child: SizedBox(
+                width: _kActiveTileRadius * sqrt(3) + _kUpcomingTileRadius * sqrt(3) * 0.5 + 12,
+                child: Stack(
+                  children: [
+                    // Tuile active à gauche
+                    Positioned(
+                      left: 0,
+                      top: 0,
+                      child: _HexTilePreview(
                         tile: activeTile,
                         radius: _kActiveTileRadius,
                         highlighted: true,
                         dim: false,
                       ),
-                      if (placement.hasSelection)
-                        GestureDetector(
+                    ),
+                    // Tuiles suivantes en diagonale
+                    if (nextTiles.isNotEmpty)
+                      Positioned(
+                        left: _kActiveTileRadius * sqrt(3) * 0.5 - 4,
+                        top: _kActiveTileRadius * 1.15,
+                        child: _HexTilePreview(
+                          tile: nextTiles[0],
+                          radius: _kUpcomingTileRadius,
+                          highlighted: false,
+                          dim: true,
+                        ),
+                      ),
+                    if (nextTiles.length > 1)
+                      Positioned(
+                        left: _kActiveTileRadius * sqrt(3) * 0.5 + _kUpcomingTileRadius * sqrt(3) * 0.45 - 4,
+                        top: _kActiveTileRadius * 1.15 + _kUpcomingTileRadius * 1.1,
+                        child: _HexTilePreview(
+                          tile: nextTiles[1],
+                          radius: _kUpcomingTileRadius,
+                          highlighted: false,
+                          dim: true,
+                        ),
+                      ),
+                    if (placement.hasSelection)
+                      Positioned(
+                        left: 0,
+                        top: 0,
+                        child: GestureDetector(
                           onTap: () => ref
                               .read(placementProvider.notifier)
                               .clearSelection(),
@@ -83,36 +110,9 @@ class TileStackHud extends ConsumerWidget {
                                 size: 16, color: Colors.white70),
                           ),
                         ),
-                    ],
-                  ),
-                  // Tuiles suivantes à droite, 75% visibles
-                  if (nextTiles.isNotEmpty) ...[
-                    const SizedBox(width: 6),
-                    SizedBox(
-                      width: _kUpcomingTileRadius * sqrt(3) * 0.75 + 4,
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          for (var i = 0; i < nextTiles.length; i++) ...[
-                            if (i > 0) const SizedBox(height: 4),
-                            ClipRect(
-                              child: Align(
-                                alignment: Alignment.centerLeft,
-                                widthFactor: 0.75,
-                                child: _HexTilePreview(
-                                  tile: nextTiles[i],
-                                  radius: _kUpcomingTileRadius,
-                                  highlighted: false,
-                                  dim: true,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ],
                       ),
-                    ),
                   ],
-                ],
+                ),
               ),
             ),
           ),

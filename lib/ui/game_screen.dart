@@ -13,6 +13,8 @@
 library;
 
 import 'dart:async';
+import 'dart:ui' show ImageFilter;
+
 import 'package:flame/game.dart' hide Matrix4;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -134,8 +136,12 @@ class _GameScreenState extends ConsumerState<GameScreen> {
       bottomNavigationBar: _BannerAdWidget(),
       body: Stack(
         children: [
-          // ── Fond parallax lié au plateau ──────────────────────────────────
-          _ParallaxBackground(offsetX: _bgOffsetX, offsetY: _bgOffsetY),
+          // ── Fond lié au plateau (dézoom 50 %, pas de parallax, synchro zoom) ─
+          _ParallaxBackground(
+            offsetX: _bgOffsetX,
+            offsetY: _bgOffsetY,
+            zoom: _game.zoom,
+          ),
 
           // ── Jeu Flame — reçoit TOUS les gestes directement ────────────────
           GameWidget(key: _boardKey, game: _game),
@@ -146,37 +152,54 @@ class _GameScreenState extends ConsumerState<GameScreen> {
             left: 16,
             child: Consumer(builder: (context, ref, _) {
               final session = ref.watch(sessionProvider);
-              return Column(
-                key: _coinsKey,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    context.tr.game_sessionCoins,
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.6),
-                      fontSize: 11,
-                    ),
-                  ),
-                  Row(children: [
-                    const Icon(Icons.monetization_on, color: Colors.amber, size: 20),
-                    const SizedBox(width: 4),
-                    Text(
-                      '${session.coins}',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
+              return ClipRRect(
+                borderRadius: BorderRadius.circular(14),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                  child: Container(
+                    key: _coinsKey,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.10),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.18),
+                        width: 1,
                       ),
                     ),
-                  ]),
-                  _CoinRewardTag(opacity: _rewardOpacity),
-                ],
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          context.tr.game_sessionCoins,
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.6),
+                            fontSize: 11,
+                          ),
+                        ),
+                        Row(children: [
+                          const Icon(Icons.monetization_on, color: Colors.amber, size: 20),
+                          const SizedBox(width: 4),
+                          Text(
+                            '${session.coins}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ]),
+                        _CoinRewardTag(opacity: _rewardOpacity),
+                      ],
+                    ),
+                  ),
+                ),
               );
             }),
           ),
 
-          // ── Bouton Annuler ──────────────────────────────────────────────
+          // ── Bouton Annuler (glassmorphism) ─────────────────────────────
           Consumer(builder: (context, ref, _) {
             final canUndo = ref.watch(lastPlacementProvider) != null;
 
@@ -184,15 +207,29 @@ class _GameScreenState extends ConsumerState<GameScreen> {
               Positioned(
                 bottom: 24,
                 left: 16,
-                child: FloatingActionButton.small(
-                  heroTag: 'undo',
-                  onPressed: canUndo
-                      ? () => undoPlacement(
-                            ref,
-                            onUndo: _game.removeTileFromFlame,
-                          )
-                      : null,
-                  child: const Icon(Icons.undo),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(14),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                    child: FloatingActionButton.small(
+                      heroTag: 'undo',
+                      onPressed: canUndo
+                          ? () => undoPlacement(
+                                ref,
+                                onUndo: _game.removeTileFromFlame,
+                              )
+                          : null,
+                      backgroundColor: Colors.white.withValues(alpha: 0.10),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        side: BorderSide(
+                          color: Colors.white.withValues(alpha: 0.18),
+                          width: 1,
+                        ),
+                      ),
+                      child: const Icon(Icons.undo, color: Colors.white),
+                    ),
+                  ),
                 ),
               ),
             ]);
@@ -355,35 +392,38 @@ class _BannerAdWidget extends ConsumerWidget {
   }
 }
 
-/// Fond de jeu parallax — même image que l'accueil, zoomée à 5× (20 % visible)
-/// et décalée en fonction du pan caméra pour suivre le plateau.
+/// Fond de jeu lié au plateau — zoom et déplacement 1:1 avec la caméra.
 class _ParallaxBackground extends StatelessWidget {
-  const _ParallaxBackground({required this.offsetX, required this.offsetY});
+  const _ParallaxBackground({
+    required this.offsetX,
+    required this.offsetY,
+    required this.zoom,
+  });
 
   final double offsetX;
   final double offsetY;
+  final double zoom;
 
-  // Facteur de parallax : le fond bouge 1 px pour 5 px de pan plateau.
-  static const double _parallaxFactor = 0.2;
-  // Zoom initial : seuls 20 % de l'image sont visibles à l'écran.
-  static const double _bgScale = 5.0;
+  // Échelle de base (dézoomée de 50% par rapport à l'ancienne valeur 5.0).
+  static const double _baseBgScale = 2.5;
 
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
-    // Décalage centré + parallax cumulatif.
-    final dx = offsetX * _parallaxFactor;
-    final dy = offsetY * _parallaxFactor;
+    final scale = _baseBgScale * zoom;
+    // Centrage initial de l'image + décalage 1:1 avec la caméra.
+    final dx = offsetX - (size.width * scale - size.width) / 2;
+    final dy = offsetY - (size.height * scale - size.height) / 2;
 
     return OverflowBox(
-      maxWidth: size.width * _bgScale,
-      maxHeight: size.height * _bgScale,
+      maxWidth: size.width * scale,
+      maxHeight: size.height * scale,
       child: Transform.translate(
         offset: Offset(dx, dy),
         child: Image.asset(
           'assets/images/game_background.png',
-          width: size.width * _bgScale,
-          height: size.height * _bgScale,
+          width: size.width * scale,
+          height: size.height * scale,
           fit: BoxFit.cover,
           filterQuality: FilterQuality.medium,
         ),

@@ -46,6 +46,8 @@ class HexBoardGame extends FlameGame
 
   final WidgetRef _ref;
 
+  double get zoom => _grid?.zoom ?? 1.0;
+
   HexGridComponent? _grid;
 
   bool _cameraDirty = false;
