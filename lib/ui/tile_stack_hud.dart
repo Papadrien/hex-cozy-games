@@ -5,10 +5,12 @@
 library;
 
 import 'dart:math';
+import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/colors.dart';
 import '../game/hex_tile.dart';
 import '../game/tile_component.dart' show BiomeColor;
 import '../providers/placement_provider.dart';
@@ -48,78 +50,94 @@ class TileStackHud extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.end,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.45),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: Colors.white.withValues(alpha: 0.15),
-              width: 1,
-            ),
-          ),
-          child: SizedBox(
-            width: _kStackWidth,
-            height: _kStackHeight,
-            child: Stack(
-              children: [
-                // 3e tuile (fond / 3e plan) — rendue en premier
-                if (nextTiles.length > 1)
-                  Positioned(
-                    left: _kActiveTileWidth + _kUpcomingTileWidth - _kTileOverlap * 2,
-                    top: (_kStackHeight - _kUpcomingTileRadius * 2) / 2,
-                    child: _HexTilePreview(
-                      tile: nextTiles[1],
-                      radius: _kUpcomingTileRadius,
-                      highlighted: false,
-                      dim: true,
-                    ),
-                  ),
-                // 2e tuile (milieu / 2d plan)
-                if (nextTiles.isNotEmpty)
-                  Positioned(
-                    left: _kActiveTileWidth - _kTileOverlap,
-                    top: (_kStackHeight - _kUpcomingTileRadius * 2) / 2,
-                    child: _HexTilePreview(
-                      tile: nextTiles[0],
-                      radius: _kUpcomingTileRadius,
-                      highlighted: false,
-                      dim: true,
-                    ),
-                  ),
-                // Tuile active (1er plan) — rendue en dernier, par-dessus
-                Positioned(
-                  left: 0,
-                  top: 0,
-                  child: _HexTilePreview(
-                    tile: activeTile,
-                    radius: _kActiveTileRadius,
-                    highlighted: true,
-                    dim: false,
-                  ),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(14),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+            child: Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: kGlassBlue.withValues(alpha: 0.18),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: kGlassBlueBorder.withValues(alpha: 0.38),
+                  width: 1,
                 ),
-                // Croix d'annulation de sélection
-                if (placement.hasSelection)
-                  Positioned(
-                    left: 0,
-                    top: 0,
-                    child: GestureDetector(
-                      onTap: () => ref
-                          .read(placementProvider.notifier)
-                          .clearSelection(),
-                      child: Container(
-                        width: 26,
-                        height: 26,
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.6),
-                          shape: BoxShape.circle,
+              ),
+              child: SizedBox(
+                width: _kStackWidth,
+                height: _kStackHeight,
+                child: Stack(
+                  children: [
+                    // 3e tuile (fond / 3e plan) — rendue en premier
+                    if (nextTiles.length > 1)
+                      Positioned(
+                        left: _kActiveTileWidth + _kUpcomingTileWidth - _kTileOverlap * 2,
+                        top: (_kStackHeight - _kUpcomingTileRadius * 2) / 2,
+                        child: _HexTilePreview(
+                          tile: nextTiles[1],
+                          radius: _kUpcomingTileRadius,
+                          highlighted: false,
+                          dim: true,
                         ),
-                        child: const Icon(Icons.close,
-                            size: 16, color: Colors.white70),
+                      ),
+                    // 2e tuile (milieu / 2d plan)
+                    if (nextTiles.isNotEmpty)
+                      Positioned(
+                        left: _kActiveTileWidth - _kTileOverlap,
+                        top: (_kStackHeight - _kUpcomingTileRadius * 2) / 2,
+                        child: _HexTilePreview(
+                          tile: nextTiles[0],
+                          radius: _kUpcomingTileRadius,
+                          highlighted: false,
+                          dim: true,
+                        ),
+                      ),
+                    // Tuile active (1er plan) — rendue en dernier, par-dessus
+                    Positioned(
+                      left: 0,
+                      top: 0,
+                      child: _HexTilePreview(
+                        tile: activeTile,
+                        radius: _kActiveTileRadius,
+                        highlighted: true,
+                        dim: false,
                       ),
                     ),
-                  ),
-              ],
+                    // Croix d'annulation de sélection
+                    if (placement.hasSelection)
+                      Positioned(
+                        left: 0,
+                        top: 0,
+                        child: GestureDetector(
+                          onTap: () => ref
+                              .read(placementProvider.notifier)
+                              .clearSelection(),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(13),
+                            child: BackdropFilter(
+                              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                              child: Container(
+                                width: 26,
+                                height: 26,
+                                decoration: BoxDecoration(
+                                  color: kGlassBlue.withValues(alpha: 0.18),
+                                  borderRadius: BorderRadius.circular(13),
+                                  border: Border.all(
+                                    color: kGlassBlueBorder.withValues(alpha: 0.38),
+                                    width: 1,
+                                  ),
+                                ),
+                                child: const Icon(Icons.close,
+                                    size: 16, color: Colors.white70),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
             ),
           ),
         ),
@@ -257,27 +275,37 @@ class _RemainingBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.45),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.layers,
-              size: 12, color: Colors.white.withValues(alpha: 0.85)),
-          const SizedBox(width: 4),
-          Text(
-            '$remaining',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(10),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+          decoration: BoxDecoration(
+            color: kGlassBlue.withValues(alpha: 0.18),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: kGlassBlueBorder.withValues(alpha: 0.38),
+              width: 1,
             ),
           ),
-        ],
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.layers,
+                  size: 12, color: Colors.white.withValues(alpha: 0.85)),
+              const SizedBox(width: 4),
+              Text(
+                '$remaining',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

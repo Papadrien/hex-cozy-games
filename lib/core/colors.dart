@@ -49,3 +49,9 @@ const Color kGlassWhite = Color(0x33FFFFFF);
 
 /// Bordure glassmorphism pour les boutons secondaires.
 const Color kGlassBorder = Color(0x4DFFFFFF);
+
+/// Bleu glacier glassmorphism — fond des composants HUD.
+const Color kGlassBlue = Color(0xFF5BA4D4);
+
+/// Bleu glacier glassmorphism — bordure des composants HUD.
+const Color kGlassBlueBorder = Color(0xFF7EC8E3);

@@ -103,6 +103,9 @@ flutter:
     - assets/images/game_background.png
     - assets/images/hibiscus.png
 
+  shaders:
+    - assets/shaders/ocean.frag
+
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
 

@@ -13,6 +13,7 @@
 library;
 
 import 'dart:async';
+import 'dart:ui' show ImageFilter, FragmentProgram, FragmentShader;
 import 'package:flame/game.dart' hide Matrix4;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -134,8 +135,8 @@ class _GameScreenState extends ConsumerState<GameScreen> {
       bottomNavigationBar: _BannerAdWidget(),
       body: Stack(
         children: [
-          // ── Fond lié au plateau (dézoom 50 %, pas de parallax, synchro zoom) ─
-          _ParallaxBackground(
+          // ── Fond océan procédural (shader GLSL, résolution infinie) ──────────
+          _OceanBackground(
             offsetX: _bgOffsetX,
             offsetY: _bgOffsetY,
             zoom: _game.zoom,
@@ -150,42 +151,48 @@ class _GameScreenState extends ConsumerState<GameScreen> {
             left: 16,
             child: Consumer(builder: (context, ref, _) {
               final session = ref.watch(sessionProvider);
-              return Container(
-                key: _coinsKey,
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.45),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.15),
-                    width: 1,
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      context.tr.game_sessionCoins,
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.6),
-                        fontSize: 11,
+              return ClipRRect(
+                borderRadius: BorderRadius.circular(14),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                  child: Container(
+                    key: _coinsKey,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: kGlassBlue.withValues(alpha: 0.18),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: kGlassBlueBorder.withValues(alpha: 0.38),
+                        width: 1,
                       ),
                     ),
-                    Row(children: [
-                      const Icon(Icons.monetization_on, color: Colors.amber, size: 20),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${session.coins}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          context.tr.game_sessionCoins,
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.6),
+                            fontSize: 11,
+                          ),
                         ),
-                      ),
-                    ]),
-                    _CoinRewardTag(opacity: _rewardOpacity),
-                  ],
+                        Row(children: [
+                          const Icon(Icons.monetization_on, color: Colors.amber, size: 20),
+                          const SizedBox(width: 4),
+                          Text(
+                            '${session.coins}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ]),
+                        _CoinRewardTag(opacity: _rewardOpacity),
+                      ],
+                    ),
+                  ),
                 ),
               );
             }),
@@ -199,23 +206,36 @@ class _GameScreenState extends ConsumerState<GameScreen> {
               Positioned(
                 bottom: 24,
                 left: 16,
-                child: FloatingActionButton.small(
-                  heroTag: 'undo',
-                  onPressed: canUndo
-                      ? () => undoPlacement(
-                            ref,
-                            onUndo: _game.removeTileFromFlame,
-                          )
-                      : null,
-                  backgroundColor: Colors.black.withValues(alpha: 0.55),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    side: BorderSide(
-                      color: Colors.white.withValues(alpha: 0.15),
-                      width: 1,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(14),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                    child: Material(
+                      color: kGlassBlue.withValues(alpha: 0.18),
+                      borderRadius: BorderRadius.circular(14),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(14),
+                        onTap: canUndo
+                            ? () => undoPlacement(
+                                  ref,
+                                  onUndo: _game.removeTileFromFlame,
+                                )
+                            : null,
+                        child: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: kGlassBlueBorder.withValues(alpha: 0.38),
+                              width: 1,
+                            ),
+                          ),
+                          child: const Icon(Icons.undo, color: Colors.white, size: 20),
+                        ),
+                      ),
                     ),
                   ),
-                  child: const Icon(Icons.undo, color: Colors.white),
                 ),
               ),
             ]);
@@ -279,27 +299,37 @@ class _CoinRewardTag extends ConsumerWidget {
 
     return Opacity(
       opacity: opacity,
-      child: Container(
-        margin: const EdgeInsets.only(top: 4),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.55),
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.monetization_on, color: Colors.amber, size: 16),
-            const SizedBox(width: 4),
-            Text(
-              '+${reward.bonusCoins}${context.tr.reward_coins}',
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(10),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          child: Container(
+            margin: const EdgeInsets.only(top: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: kGlassBlue.withValues(alpha: 0.18),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: kGlassBlueBorder.withValues(alpha: 0.38),
+                width: 1,
               ),
             ),
-          ],
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.monetization_on, color: Colors.amber, size: 16),
+                const SizedBox(width: 4),
+                Text(
+                  '+${reward.bonusCoins}${context.tr.reward_coins}',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -322,27 +352,37 @@ class _BonusTileTag extends ConsumerWidget {
 
     return Opacity(
       opacity: opacity,
-      child: Container(
-        margin: const EdgeInsets.only(top: 4),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.55),
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.hexagon, color: Colors.lightBlue, size: 14),
-            const SizedBox(width: 4),
-            Text(
-               '+${reward.bonusTiles}${context.tr.reward_bonusTiles}',
-              style: const TextStyle(
-                color: Colors.white70,
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(10),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          child: Container(
+            margin: const EdgeInsets.only(top: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: kGlassBlue.withValues(alpha: 0.18),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: kGlassBlueBorder.withValues(alpha: 0.38),
+                width: 1,
               ),
             ),
-          ],
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.hexagon, color: Colors.lightBlue, size: 14),
+                const SizedBox(width: 4),
+                Text(
+                   '+${reward.bonusTiles}${context.tr.reward_bonusTiles}',
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -378,9 +418,18 @@ class _BannerAdWidget extends ConsumerWidget {
   }
 }
 
-/// Fond de jeu lié au plateau — zoom et déplacement 1:1 avec la caméra.
-class _ParallaxBackground extends StatelessWidget {
-  const _ParallaxBackground({
+/// Fond d'océan procédural généré par shader GLSL.
+///
+/// Remplace l'ancien [_ParallaxBackground] bitmap. Avantages :
+///   - Résolution infinie : aucun flou au zoom.
+///   - Infini dans toutes les directions : jamais de bord visible.
+///   - Animé : léger mouvement de l'eau (très lent, non intrusif).
+///
+/// Les coordonnées monde sont calculées avec le même pivot que
+/// [HexGridComponent._layout], ce qui garantit un ancrage parfait
+/// du motif à la grille hexagonale.
+class _OceanBackground extends StatefulWidget {
+  const _OceanBackground({
     required this.offsetX,
     required this.offsetY,
     required this.zoom,
@@ -390,34 +439,93 @@ class _ParallaxBackground extends StatelessWidget {
   final double offsetY;
   final double zoom;
 
-  // Échelle de base (dézoomée de 50% par rapport à l'ancienne valeur 5.0).
-  static const double _baseBgScale = 2.5;
+  @override
+  State<_OceanBackground> createState() => _OceanBackgroundState();
+}
+
+class _OceanBackgroundState extends State<_OceanBackground>
+    with SingleTickerProviderStateMixin {
+  late final Ticker _ticker;
+  double _time = 0.0;
+  FragmentProgram? _program;
+
+  @override
+  void initState() {
+    super.initState();
+    _ticker = createTicker(_onTick)..start();
+    _loadShader();
+  }
+
+  void _onTick(Duration elapsed) {
+    // Met à jour le temps en secondes pour l'uniform du shader.
+    setState(() {
+      _time = elapsed.inMicroseconds / 1e6;
+    });
+  }
+
+  Future<void> _loadShader() async {
+    try {
+      final program =
+          await FragmentProgram.fromAsset('assets/shaders/ocean.frag');
+      if (mounted) setState(() => _program = program);
+    } catch (e) {
+      // Shader indisponible (vieux GPU, émulateur) → fond uni de secours.
+      debugPrint('OceanBackground: shader load failed: $e');
+    }
+  }
+
+  @override
+  void dispose() {
+    _ticker.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.sizeOf(context);
-    final scale = _baseBgScale * zoom;
-    // Centrage initial + décalage 1:1 avec la caméra.
-    // Le pivot de zoom correspond à l'origine du plateau (42 % largeur, 38 % hauteur)
-    // pour que fond et grille évoluent du même point.
-    final pivotX = size.width * 0.42;
-    final pivotY = size.height * 0.38;
-    final dx = offsetX + pivotX * (1 - zoom) - zoom * (size.width * _baseBgScale - size.width) / 2;
-    final dy = offsetY + pivotY * (1 - zoom) - zoom * (size.height * _baseBgScale - size.height) / 2;
+    final program = _program;
+    if (program == null) {
+      // Fallback : couleur unie identique au ton principal de l'océan.
+      return const ColoredBox(color: Color(0xFF1CC0D8));
+    }
 
-    return OverflowBox(
-      maxWidth: size.width * scale,
-      maxHeight: size.height * scale,
-      child: Transform.translate(
-        offset: Offset(dx, dy),
-        child: Image.asset(
-          'assets/images/game_background.png',
-          width: size.width * scale,
-          height: size.height * scale,
-          fit: BoxFit.cover,
-          filterQuality: FilterQuality.medium,
-        ),
-      ),
+    final size = MediaQuery.sizeOf(context);
+    final shader = program.fragmentShader();
+
+    // Uniforms dans l'ordre déclaré dans ocean.frag :
+    //   0 uTime, 1 uWidth, 2 uHeight, 3 uOffsetX, 4 uOffsetY, 5 uZoom
+    shader.setFloat(0, _time);
+    shader.setFloat(1, size.width);
+    shader.setFloat(2, size.height);
+    shader.setFloat(3, widget.offsetX);
+    shader.setFloat(4, widget.offsetY);
+    shader.setFloat(5, widget.zoom);
+
+    return CustomPaint(
+      painter: _OceanPainter(shader: shader),
+      size: size,
     );
   }
 }
+
+/// [CustomPainter] qui applique le [FragmentShader] sur un rectangle plein écran.
+class _OceanPainter extends CustomPainter {
+  const _OceanPainter({required this.shader});
+
+  final FragmentShader shader;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.drawRect(
+      Rect.fromLTWH(0, 0, size.width, size.height),
+      Paint()..shader = shader,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_OceanPainter oldDelegate) => true; // animé chaque frame
+}
+
+/// Fond bitmap legacy — remplacé par [_OceanBackground].
+/// Conservé commenté pour référence.
+// class _ParallaxBackground extends StatelessWidget { ... }
+

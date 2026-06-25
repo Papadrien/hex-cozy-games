@@ -4,9 +4,12 @@
 /// homogène avec les autres éléments HUD.
 library;
 
+import 'dart:ui' show ImageFilter;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/colors.dart';
 import '../providers/pause_provider.dart';
 
 /// Taille du bouton pause (carré).
@@ -17,25 +20,33 @@ class PauseButton extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return GestureDetector(
-      onTap: () {
-        ref.read(pauseProvider.notifier).pause();
-      },
-      child: Container(
-        width: _kPauseButtonSize,
-        height: _kPauseButtonSize,
-        decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.45),
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(10),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: Material(
+          color: kGlassBlue.withValues(alpha: 0.18),
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-            color: Colors.white.withValues(alpha: 0.15),
-            width: 1,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(10),
+            onTap: () => ref.read(pauseProvider.notifier).pause(),
+            child: Container(
+              width: _kPauseButtonSize,
+              height: _kPauseButtonSize,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: kGlassBlueBorder.withValues(alpha: 0.38),
+                  width: 1,
+                ),
+              ),
+              child: const Icon(
+                Icons.pause,
+                color: Colors.white,
+                size: 20,
+              ),
+            ),
           ),
-        ),
-        child: const Icon(
-          Icons.pause,
-          color: Colors.white,
-          size: 20,
         ),
       ),
     );
