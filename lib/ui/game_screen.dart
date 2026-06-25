@@ -390,8 +390,9 @@ class _ParallaxBackground extends StatelessWidget {
   final double offsetY;
   final double zoom;
 
-  // Échelle de base (dézoomée de 50% par rapport à l'ancienne valeur 5.0).
-  static const double _baseBgScale = 2.5;
+  // Échelle de base — doublée (×2 par rapport à l'ancienne valeur 2.5) pour
+  // que l'image de fond apparaisse deux fois plus grande.
+  static const double _baseBgScale = 5.0;
 
   @override
   Widget build(BuildContext context) {
@@ -409,12 +410,17 @@ class _ParallaxBackground extends StatelessWidget {
       maxHeight: size.height * scale,
       child: Transform.translate(
         offset: Offset(dx, dy),
-        child: Image.asset(
-          'assets/images/game_background.png',
+        child: Container(
           width: size.width * scale,
           height: size.height * scale,
-          fit: BoxFit.contain,
-          filterQuality: FilterQuality.medium,
+          decoration: BoxDecoration(
+            image: DecorationImage(
+              image: AssetImage('assets/images/game_background.png'),
+              fit: BoxFit.contain,
+              repeat: ImageRepeat.repeat,
+              filterQuality: FilterQuality.medium,
+            ),
+          ),
         ),
       ),
     );
