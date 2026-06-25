@@ -13,9 +13,9 @@
 library;
 
 import 'dart:async';
+import 'dart:ui';
 
 import 'package:flame/game.dart' hide Matrix4;
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -30,7 +30,6 @@ import '../game/hex_board_game.dart';
 import '../providers/pause_provider.dart';
 import '../providers/player_profile_provider.dart';
 import '../providers/placement_commit.dart';
-import '../providers/quest_provider.dart';
 import '../providers/session_provider.dart';
 import '../providers/tutorial_provider.dart';
 import '../services/ad_service.dart';
@@ -57,6 +56,10 @@ class _GameScreenState extends ConsumerState<GameScreen> {
   Timer? _clearRewardTimer;
   double _rewardOpacity = 0.0;
 
+  // Décalage cumulatif de la caméra pour le parallax du fond de jeu.
+  double _bgOffsetX = 0.0;
+  double _bgOffsetY = 0.0;
+
   // Clés réelles utilisées par le tutoriel (Story 1.10a) pour cibler les
   // éléments UI à mettre en évidence — le highlight suit la position et la
   // taille effectives du widget, plutôt que des coordonnées arbitraires.
@@ -67,7 +70,15 @@ class _GameScreenState extends ConsumerState<GameScreen> {
   @override
   void initState() {
     super.initState();
-    _game = HexBoardGame(ref: ref);
+    _game = HexBoardGame(
+      ref: ref,
+      onCameraMove: (dx, dy) {
+        setState(() {
+          _bgOffsetX += dx;
+          _bgOffsetY += dy;
+        });
+      },
+    );
     Future.microtask(
       () => ref.read(tutorialProvider.notifier).checkAndStart(),
     );
@@ -127,16 +138,11 @@ class _GameScreenState extends ConsumerState<GameScreen> {
       bottomNavigationBar: _BannerAdWidget(),
       body: Stack(
         children: [
+          // ── Fond parallax lié au plateau ──────────────────────────────────
+          _ParallaxBackground(offsetX: _bgOffsetX, offsetY: _bgOffsetY),
+
           // ── Jeu Flame — reçoit TOUS les gestes directement ────────────────
           GameWidget(key: _boardKey, game: _game),
-
-          // ── Badge debug ───────────────────────────────────────────────────
-          if (kDebugMode)
-            const Positioned(
-              top: 48,
-              left: 16,
-              child: _DebugBadge(label: 'Story 1.8b — écran résultats'),
-            ),
 
           // ── Compteur de pièces (story 1.6b) + récompense pièces ────────
           Positioned(
@@ -223,14 +229,6 @@ class _GameScreenState extends ConsumerState<GameScreen> {
           // ── Écran de résultats (Story 1.8b) ──────────────────────────────
           const ResultsModal(),
 
-          // ── Encart progression quêtes (Story 2.3b) ───────────────────────
-          const Positioned(
-            bottom: 96,
-            left: 16,
-            right: 16,
-            child: _QuestProgressBanner(),
-          ),
-
           // ── Tutoriel premier lancement (Story 1.10a / 1.10b) ────────────
           TutorialOverlay(
             targetKeys: {
@@ -240,30 +238,6 @@ class _GameScreenState extends ConsumerState<GameScreen> {
             },
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _DebugBadge extends StatelessWidget {
-  const _DebugBadge({required this.label});
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Text(
-        label,
-        style: const TextStyle(
-          color: Colors.white70,
-          fontSize: 11,
-          fontFamily: 'monospace',
-        ),
       ),
     );
   }
@@ -314,116 +288,6 @@ class _CoinRewardTag extends ConsumerWidget {
 }
 
 /// Tag tuiles bonus — affiché sous la pile de tuiles. Disparaît en fade out.
-/// Bannette de progression des quêtes — Story 2.3b.
-///
-/// Affiche la quête active la plus proche de la complétion
-/// (toutes catégories confondues).
-class _QuestProgressBanner extends ConsumerWidget {
-  const _QuestProgressBanner();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final questsAsync = ref.watch(permanentQuestsProvider);
-    return questsAsync.when(
-      loading: () => const SizedBox.shrink(),
-      error: (_, _) => const SizedBox.shrink(),
-      data: (quests) {
-        final active = quests
-            .where((q) => !q.isCompleted)
-            .where((q) => !_hasIncompletePredecessor(q, quests))
-            .toList();
-        if (active.isEmpty) return const SizedBox.shrink();
-
-        // Prendre la quête la plus proche de la complétion.
-        active.sort(
-          (a, b) => (b.currentValue / b.targetValue)
-              .compareTo(a.currentValue / a.targetValue),
-        );
-        final quest = active.first;
-        final progress = (quest.currentValue / quest.targetValue).clamp(0.0, 1.0);
-
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.55),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Row(
-            children: [
-              Icon(
-                _iconForCategory(QuestCategory.fromDb(quest.category)),
-                color: _colorForCategory(QuestCategory.fromDb(quest.category)),
-                size: 16,
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      quest.description,
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.8),
-                        fontSize: 11,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 4),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(3),
-                      child: LinearProgressIndicator(
-                        value: progress,
-                        backgroundColor: Colors.white.withValues(alpha: 0.1),
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          _colorForCategory(QuestCategory.fromDb(quest.category)),
-                        ),
-                        minHeight: 4,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                '${quest.currentValue}/${quest.targetValue}',
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.6),
-                  fontSize: 11,
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  bool _hasIncompletePredecessor(
-    PermanentQuestRow quest,
-    List<PermanentQuestRow> all,
-  ) {
-    return all.any((q) => q.nextQuestId == quest.id && !q.isCompleted);
-  }
-
-  Color _colorForCategory(QuestCategory category) {
-    return switch (category) {
-      QuestCategory.tilesPlaced => const Color(0xFF4CAF50),
-      QuestCategory.villageSize => const Color(0xFFE57373),
-      QuestCategory.biomesClosed => const Color(0xFF64B5F6),
-    };
-  }
-
-  IconData _iconForCategory(QuestCategory category) {
-    return switch (category) {
-      QuestCategory.tilesPlaced => Icons.grid_on,
-      QuestCategory.villageSize => Icons.home,
-      QuestCategory.biomesClosed => Icons.water_drop,
-    };
-  }
-}
-
 class _BonusTileTag extends ConsumerWidget {
   const _BonusTileTag({required this.opacity});
 
@@ -491,6 +355,43 @@ class _BannerAdWidget extends ConsumerWidget {
       child: banner != null
           ? AdWidget(ad: banner)
           : const SizedBox.shrink(),
+    );
+  }
+}
+
+/// Fond de jeu parallax — même image que l'accueil, zoomée à 5× (20 % visible)
+/// et décalée en fonction du pan caméra pour suivre le plateau.
+class _ParallaxBackground extends StatelessWidget {
+  const _ParallaxBackground({required this.offsetX, required this.offsetY});
+
+  final double offsetX;
+  final double offsetY;
+
+  // Facteur de parallax : le fond bouge 1 px pour 5 px de pan plateau.
+  static const double _parallaxFactor = 0.2;
+  // Zoom initial : seuls 20 % de l'image sont visibles à l'écran.
+  static const double _bgScale = 5.0;
+
+  @override
+  Widget build(BuildContext context) {
+    final size = MediaQuery.sizeOf(context);
+    // Décalage centré + parallax cumulatif.
+    final dx = offsetX * _parallaxFactor;
+    final dy = offsetY * _parallaxFactor;
+
+    return OverflowBox(
+      maxWidth: size.width * _bgScale,
+      maxHeight: size.height * _bgScale,
+      child: Transform.translate(
+        offset: Offset(dx, dy),
+        child: Image.asset(
+          'assets/images/game_background.png',
+          width: size.width * _bgScale,
+          height: size.height * _bgScale,
+          fit: BoxFit.cover,
+          filterQuality: FilterQuality.medium,
+        ),
+      ),
     );
   }
 }

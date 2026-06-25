@@ -189,10 +189,14 @@ class _HexHavenTitle extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 4),
-                Image.asset(
-                  'assets/images/hibiscus.png',
-                  width: 32,
-                  height: 32,
+                Transform(
+                  alignment: Alignment.center,
+                  transform: Matrix4.identity()..scale(-1.0, 1.0, 1.0),
+                  child: Image.asset(
+                    'assets/images/hibiscus.png',
+                    width: 64,
+                    height: 64,
+                  ),
                 ),
               ],
             ),
@@ -201,7 +205,7 @@ class _HexHavenTitle extends StatelessWidget {
               'Haven',
               style: GoogleFonts.pacifico(
                 fontSize: 48,
-                color: const Color(0xFF4EC9B8),
+                color: kTropicalTeal,
                 height: 0.9,
                 shadows: [
                   Shadow(
@@ -562,7 +566,7 @@ class _BuildButton extends StatelessWidget {
           children: [
             if (selected.isEmpty)
               Icon(Icons.build_outlined,
-                  size: 18, color: Colors.white.withValues(alpha: 0.85))
+                  size: 18, color: kTropicalTeal)
             else
               ...selected.map((u) => Padding(
                     padding: const EdgeInsets.only(right: 4),
@@ -576,7 +580,7 @@ class _BuildButton extends StatelessWidget {
                   ? context.tr.home_buildSelection
                   : '${selected.length} / $kMaxSelectedUpgrades ${context.tr.home_buildSelection}',
               style: GoogleFonts.nunito(
-                color: Colors.white,
+                color: kTropicalTeal,
                 fontSize: 14,
                 fontWeight: FontWeight.w800,
               ),
@@ -635,7 +639,7 @@ class _RewardedAdButton extends ConsumerWidget {
                   : context.tr.ads_comeBackTomorrow,
               style: GoogleFonts.nunito(
                 color: adAvailable
-                    ? Colors.white
+                    ? kTropicalTeal
                     : Colors.white.withValues(alpha: 0.5),
                 fontSize: 14,
                 fontWeight: FontWeight.w800,
@@ -694,7 +698,7 @@ class _PremiumDailyCoinsButton extends ConsumerWidget {
                   : context.tr.ads_comeBackTomorrow,
               style: GoogleFonts.nunito(
                 color: available
-                    ? Colors.white
+                    ? kTropicalTeal
                     : Colors.white.withValues(alpha: 0.5),
                 fontSize: 14,
                 fontWeight: FontWeight.w800,
@@ -730,12 +734,12 @@ class _NavButton extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, size: 18, color: Colors.white.withValues(alpha: 0.9)),
+          Icon(icon, size: 18, color: kTropicalTeal),
           const SizedBox(width: 8),
           Text(
             label,
             style: GoogleFonts.nunito(
-              color: Colors.white,
+              color: kTropicalTeal,
               fontSize: 14,
               fontWeight: FontWeight.w800,
             ),

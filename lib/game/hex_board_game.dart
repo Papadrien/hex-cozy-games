@@ -37,11 +37,13 @@ import '../providers/placement_commit.dart';
 import 'hex_coords.dart';
 import 'hex_grid_component.dart';
 import 'hex_tile.dart';
-import 'palm_sprite_component.dart';
 
 class HexBoardGame extends FlameGame
     with MultiTouchTapDetector {
-  HexBoardGame({required this._ref});
+  HexBoardGame({required this._ref, this.onCameraMove});
+
+  /// Appelé à chaque déplacement de caméra avec le delta cumulé (dx, dy).
+  final void Function(double dx, double dy)? onCameraMove;
 
   final WidgetRef _ref;
 
@@ -56,13 +58,11 @@ class HexBoardGame extends FlameGame
   final Map<int, Offset> _tapDownPositions = {};
 
   @override
-  Color backgroundColor() => kBackgroundColor;
+  Color backgroundColor() => const Color(0x00000000);
 
   @override
   Future<void> onLoad() async {
     await super.onLoad();
-    // Préchargement des sprites palmier (story 1.10a).
-    await PalmSpriteCache.instance.preload();
     _grid = HexGridComponent(screenSize: size.clone());
     add(_grid!);
     _initBoard();
@@ -266,6 +266,7 @@ class HexBoardGame extends FlameGame
       _handleRotation(delta.dy);
     } else {
       grid.cameraOffset.add(Vector2(delta.dx, delta.dy));
+      onCameraMove?.call(delta.dx, delta.dy);
     }
 
     grid.zoom = (_scaleStart * details.scale)

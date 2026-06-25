@@ -102,6 +102,7 @@ flutter:
     - assets/images/palm_tree_1.png
     - assets/images/palm_tree_2.png
     - assets/images/home_background.png
+    - assets/images/game_background.png
     - assets/images/hibiscus.png
     - assets/Palm Tree.glb
 
