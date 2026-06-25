@@ -44,6 +44,18 @@ class HomeScreen extends ConsumerWidget {
             'assets/images/home_background.png',
             fit: BoxFit.cover,
           ),
+          // ── Titre à 20 % de la hauteur écran ──────────────────────────────
+          Builder(
+            builder: (context) {
+              final screenHeight = MediaQuery.sizeOf(context).height;
+              return Positioned(
+                top: screenHeight * 0.20,
+                left: 0,
+                right: 0,
+                child: const _HexHavenTitle(),
+              );
+            },
+          ),
           // ── Contenu ────────────────────────────────────────────────────────
           SafeArea(
             child: Column(
@@ -76,7 +88,7 @@ class HomeScreen extends ConsumerWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// TOP BAR  —  badge pièces · titre centré · icônes settings/shop
+// TOP BAR  —  badge pièces · icônes settings/shop
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _TopBar extends StatelessWidget {
@@ -87,9 +99,8 @@ class _TopBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           // Badge pièces
           _GlassPill(
@@ -110,11 +121,7 @@ class _TopBar extends StatelessWidget {
               ],
             ),
           ),
-
-          // ── Titre centré ──────────────────────────────────────────────────
-          const Expanded(child: _HexHavenTitle()),
-
-          // ── Boutons icônes ────────────────────────────────────────────────
+          const Spacer(),
           _GlassIconButton(
             icon: Icons.settings,
             tooltip: context.tr.home_settings,
@@ -153,53 +160,59 @@ class _HexHavenTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
+    return Stack(
+      clipBehavior: Clip.none,
+      alignment: Alignment.center,
       children: [
-        // "hex" + fleur
-        Row(
+        Column(
           mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
+            // "hex" + fleur
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Text(
+                  'hex',
+                  style: GoogleFonts.nunito(
+                    fontSize: 38,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                    height: 1,
+                    shadows: [
+                      Shadow(
+                        color: Colors.black.withValues(alpha: 0.3),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 4),
+                Image.asset(
+                  'assets/images/hibiscus.png',
+                  width: 32,
+                  height: 32,
+                ),
+              ],
+            ),
+            // "Haven" en cursif teal
             Text(
-              'hex',
-              style: GoogleFonts.nunito(
-                fontSize: 26,
-                fontWeight: FontWeight.w800,
-                color: Colors.white,
-                height: 1,
+              'Haven',
+              style: GoogleFonts.pacifico(
+                fontSize: 48,
+                color: const Color(0xFF4EC9B8),
+                height: 0.9,
                 shadows: [
                   Shadow(
-                    color: Colors.black.withValues(alpha: 0.35),
-                    blurRadius: 6,
-                    offset: const Offset(0, 2),
+                    color: Colors.black.withValues(alpha: 0.25),
+                    blurRadius: 10,
+                    offset: const Offset(0, 3),
                   ),
                 ],
               ),
             ),
-            const SizedBox(width: 3),
-            Image.asset(
-              'assets/images/hibiscus.png',
-              width: 22,
-              height: 22,
-            ),
           ],
-        ),
-        // "Haven" en cursif teal
-        Text(
-          'Haven',
-          style: GoogleFonts.pacifico(
-            fontSize: 30,
-            color: const Color(0xFF4EC9B8),
-            height: 0.85,
-            shadows: [
-              Shadow(
-                color: Colors.black.withValues(alpha: 0.25),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
         ),
       ],
     );
