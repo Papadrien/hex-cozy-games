@@ -1,7 +1,7 @@
 /// UI de la pile de tuiles (HUD) — Story 1.4b.
 ///
-/// Affiche les 3 prochaines tuiles en disposition diagonale :
-/// tuile active à gauche, suivantes décalées en bas à droite.
+/// Affiche les 3 prochaines tuiles en disposition horizontale de gauche à
+/// droite : active au premier plan, suivante au second, troisième au fond.
 library;
 
 import 'dart:math';
@@ -18,9 +18,15 @@ const double _kActiveTileRadius = 34.0;
 const double _kUpcomingTileRadius = 26.0;
 const double _kHudHexFlattenY = 1.0;
 
-// Hauteur totale pour 3 tuiles en diagonale.
-final double _kStackHeight = _kActiveTileRadius * 2 + _kUpcomingTileRadius * 1.1;
-final double _kStackWidth = _kActiveTileRadius * sqrt(3) + _kUpcomingTileRadius * sqrt(3) * 0.5 + 16;
+// Disposition horizontale avec chevauchement.
+//   [Active (1er plan)] [2e (2d plan)] [3e (3e plan)]
+final double _kActiveTileWidth = _kActiveTileRadius * sqrt(3);
+final double _kUpcomingTileWidth = _kUpcomingTileRadius * sqrt(3);
+const double _kTileOverlap = 14.0;
+
+final double _kStackHeight = _kActiveTileRadius * 2;
+final double _kStackWidth =
+    _kActiveTileWidth + _kUpcomingTileWidth * 2 - _kTileOverlap * 2;
 
 // ── Widget principal ─────────────────────────────────────────────────────────
 
@@ -57,7 +63,31 @@ class TileStackHud extends ConsumerWidget {
             height: _kStackHeight,
             child: Stack(
               children: [
-                // Tuile active à gauche
+                // 3e tuile (fond / 3e plan) — rendue en premier
+                if (nextTiles.length > 1)
+                  Positioned(
+                    left: _kActiveTileWidth + _kUpcomingTileWidth - _kTileOverlap * 2,
+                    top: (_kStackHeight - _kUpcomingTileRadius * 2) / 2,
+                    child: _HexTilePreview(
+                      tile: nextTiles[1],
+                      radius: _kUpcomingTileRadius,
+                      highlighted: false,
+                      dim: true,
+                    ),
+                  ),
+                // 2e tuile (milieu / 2d plan)
+                if (nextTiles.isNotEmpty)
+                  Positioned(
+                    left: _kActiveTileWidth - _kTileOverlap,
+                    top: (_kStackHeight - _kUpcomingTileRadius * 2) / 2,
+                    child: _HexTilePreview(
+                      tile: nextTiles[0],
+                      radius: _kUpcomingTileRadius,
+                      highlighted: false,
+                      dim: true,
+                    ),
+                  ),
+                // Tuile active (1er plan) — rendue en dernier, par-dessus
                 Positioned(
                   left: 0,
                   top: 0,
@@ -68,29 +98,6 @@ class TileStackHud extends ConsumerWidget {
                     dim: false,
                   ),
                 ),
-                // Tuiles suivantes en diagonale
-                if (nextTiles.isNotEmpty)
-                  Positioned(
-                    left: _kActiveTileRadius * sqrt(3) * 0.5 - 4,
-                    top: _kActiveTileRadius * 1.15,
-                    child: _HexTilePreview(
-                      tile: nextTiles[0],
-                      radius: _kUpcomingTileRadius,
-                      highlighted: false,
-                      dim: true,
-                    ),
-                  ),
-                if (nextTiles.length > 1)
-                  Positioned(
-                    left: _kActiveTileRadius * sqrt(3) * 0.5 + _kUpcomingTileRadius * sqrt(3) * 0.45 - 4,
-                    top: _kActiveTileRadius * 1.15 + _kUpcomingTileRadius * 1.1,
-                    child: _HexTilePreview(
-                      tile: nextTiles[1],
-                      radius: _kUpcomingTileRadius,
-                      highlighted: false,
-                      dim: true,
-                    ),
-                  ),
                 // Croix d'annulation de sélection
                 if (placement.hasSelection)
                   Positioned(
