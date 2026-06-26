@@ -428,7 +428,7 @@ class _BannerAdWidget extends ConsumerWidget {
 /// Les coordonnées monde sont calculées avec le même pivot que
 /// [HexGridComponent._layout], ce qui garantit un ancrage parfait
 /// du motif à la grille hexagonale.
-class _OceanBackground extends StatefulWidget {
+class _OceanBackground extends StatelessWidget {
   const _OceanBackground({
     required this.offsetX,
     required this.offsetY,
@@ -439,22 +439,12 @@ class _OceanBackground extends StatefulWidget {
   final double offsetY;
   final double zoom;
 
-  // Échelle de base — doublée (×2 par rapport à l'ancienne valeur 2.5) pour
-  // que l'image de fond apparaisse deux fois plus grande.
   static const double _baseBgScale = 5.0;
 
   @override
   Widget build(BuildContext context) {
-    final program = _program;
-    if (program == null) {
-      // Fallback : couleur unie identique au ton principal de l'océan.
-      return const ColoredBox(color: Color(0xFF1CC0D8));
-    }
-
     final size = MediaQuery.sizeOf(context);
     final scale = _baseBgScale * zoom;
-    // L'OverflowBox centre déjà l'image. On applique seulement le décalage
-    // caméra et le pivot de zoom (identique à celui du plateau : 42 % × 38 %).
     final pivotX = size.width * 0.42;
     final pivotY = size.height * 0.38;
     final dx = offsetX + (size.width / 2 - pivotX) * (zoom - 1);
@@ -480,9 +470,6 @@ class _OceanBackground extends StatefulWidget {
       ),
     );
   }
-
-  @override
-  bool shouldRepaint(_OceanPainter oldDelegate) => true; // animé chaque frame
 }
 
 /// Fond bitmap legacy — remplacé par [_OceanBackground].
