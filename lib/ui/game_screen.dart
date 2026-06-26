@@ -13,9 +13,10 @@
 library;
 
 import 'dart:async';
-import 'dart:ui' show ImageFilter;
+import 'dart:ui' show ImageFilter, FragmentProgram, FragmentShader;
 import 'package:flame/game.dart' hide Matrix4;
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart' show Ticker;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:google_mobile_ads/google_mobile_ads.dart';
@@ -439,53 +440,83 @@ class _OceanBackground extends StatefulWidget {
   final double offsetY;
   final double zoom;
 
-  // Échelle de base — doublée (×2 par rapport à l'ancienne valeur 2.5) pour
-  // que l'image de fond apparaisse deux fois plus grande.
-  static const double _baseBgScale = 5.0;
+  @override
+  State<_OceanBackground> createState() => _OceanBackgroundState();
+}
+
+class _OceanBackgroundState extends State<_OceanBackground>
+    with SingleTickerProviderStateMixin {
+  late final Ticker _ticker;
+  double _time = 0.0;
+  FragmentProgram? _program;
+
+  @override
+  void initState() {
+    super.initState();
+    _ticker = createTicker(_onTick)..start();
+    _loadShader();
+  }
+
+  void _onTick(Duration elapsed) {
+    setState(() {
+      _time = elapsed.inMicroseconds / 1e6;
+    });
+  }
+
+  Future<void> _loadShader() async {
+    try {
+      final program =
+          await FragmentProgram.fromAsset('assets/shaders/ocean.frag');
+      if (mounted) setState(() => _program = program);
+    } catch (e) {
+      debugPrint('OceanBackground: shader load failed: $e');
+    }
+  }
+
+  @override
+  void dispose() {
+    _ticker.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final program = _program;
     if (program == null) {
-      // Fallback : couleur unie identique au ton principal de l'océan.
       return const ColoredBox(color: Color(0xFF1CC0D8));
     }
 
     final size = MediaQuery.sizeOf(context);
-    final scale = _baseBgScale * zoom;
-    // L'OverflowBox centre déjà l'image. On applique seulement le décalage
-    // caméra et le pivot de zoom (identique à celui du plateau : 42 % × 38 %).
-    final pivotX = size.width * 0.42;
-    final pivotY = size.height * 0.38;
-    final dx = offsetX + (size.width / 2 - pivotX) * (zoom - 1);
-    final dy = offsetY + (size.height / 2 - pivotY) * (zoom - 1);
+    final shader = program.fragmentShader();
 
-    return OverflowBox(
-      maxWidth: size.width * scale,
-      maxHeight: size.height * scale,
-      child: Transform.translate(
-        offset: Offset(dx, dy),
-        child: Container(
-          width: size.width * scale,
-          height: size.height * scale,
-          decoration: BoxDecoration(
-            image: DecorationImage(
-              image: AssetImage('assets/images/game_background.png'),
-              fit: BoxFit.contain,
-              repeat: ImageRepeat.repeat,
-              filterQuality: FilterQuality.medium,
-            ),
-          ),
-        ),
-      ),
+    shader.setFloat(0, _time);
+    shader.setFloat(1, size.width);
+    shader.setFloat(2, size.height);
+    shader.setFloat(3, widget.offsetX);
+    shader.setFloat(4, widget.offsetY);
+    shader.setFloat(5, widget.zoom);
+
+    return CustomPaint(
+      painter: _OceanPainter(shader: shader),
+      size: size,
+    );
+  }
+}
+
+class _OceanPainter extends CustomPainter {
+  const _OceanPainter({required this.shader});
+
+  final FragmentShader shader;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.drawRect(
+      Rect.fromLTWH(0, 0, size.width, size.height),
+      Paint()..shader = shader,
     );
   }
 
   @override
-  bool shouldRepaint(_OceanPainter oldDelegate) => true; // animé chaque frame
+  bool shouldRepaint(_OceanPainter oldDelegate) => true;
 }
-
-/// Fond bitmap legacy — remplacé par [_OceanBackground].
-/// Conservé commenté pour référence.
-// class _ParallaxBackground extends StatelessWidget { ... }
 
