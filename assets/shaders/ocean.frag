@@ -1,12 +1,37 @@
-/// Shader d'océan semi-réaliste — hex-cozy-games
+/// Shader d'océan tropical — hex-cozy-games
 ///
-/// Reproduit l'aspect de l'image game_background.png :
-///   - Fond océan avec gradient de bleu-vert (teal) profond à clair
-///   - Houle large et lente avec crêtes d'écume diffuse
-///   - Reflets spéculaires épars (soleil sur l'eau)
-///   - Texture de surface fine (rides de vent)
+/// Objectif visuel : une eau turquoise lumineuse type lagon, avec un peu
+/// d'écume éparse et une animation très légère (scintillements, respiration
+/// de l'écume, micro-ondulation de surface) qui donne l'impression d'une eau
+/// vivante SANS jamais donner une sensation de tangage : il n'y a aucune
+/// translation cohérente de grande amplitude, seulement des variations de
+/// luminosité/opacité localisées et désynchronisées entre elles.
 ///
-/// Uniforms (ordre des setFloat côté Dart) :
+/// ── Pourquoi l'ancienne version semblait "blocs rectangulaires" ───────────
+/// L'ancien bruit de valeur utilisait une fonction hash() avec de très gros
+/// multiplicateurs (×443.897 puis fract()). Dès que les coordonnées de la
+/// grille de bruit dépassaient quelques dizaines d'unités (ce qui arrive
+/// très vite avec plusieurs octaves), la précision flottante mediump des
+/// GPU mobiles ne suffisait plus à représenter la partie fractionnaire :
+/// le hash s'effondrait en valeurs quantifiées, ce qui se voit comme des
+/// cellules carrées à bords nets (exactement le défaut visible sur la
+/// capture d'écran). En plus de ça, un bruit de valeur sur grille carrée a
+/// de toute façon tendance à laisser deviner sa grille (axes alignés),
+/// même sans bug de précision.
+///
+/// Le remplacement ci-dessous utilise le bruit Simplex 2D de Ian
+/// McEwan / Ashima Arts (algorithme libre, largement utilisé sur mobile) :
+///   - grille triangulaire → aucun alignement d'axe visible,
+///   - toutes les multiplications internes sont bornées via mod289(),
+///     donc stable même en précision flottante réduite,
+///   - en plus, on applique une légère déformation de domaine (warp) et
+///     une rotation entre octaves pour qu'aucune structure ne soit
+///     perceptible, même à très faible fréquence.
+///
+/// Le temps (uTime) est rebouclé via mod() pour rester borné même après
+/// plusieurs heures de session, par sécurité numérique.
+///
+/// Uniforms (ordre des setFloat côté Dart, inchangé) :
 ///   0  uTime        — temps en secondes (animation)
 ///   1  uWidth       — largeur écran en pixels logiques
 ///   2  uHeight      — hauteur écran en pixels logiques
@@ -14,12 +39,10 @@
 ///   4  uOffsetY     — décalage caméra Y (cameraOffset.y)
 ///   5  uZoom        — facteur de zoom courant
 ///
-/// Le pivot de la grille est identique au _layout de HexGridComponent :
+/// Le pivot de la grille reste identique au _layout de HexGridComponent :
 ///   (uOffsetX + uWidth * 0.42, uOffsetY + uHeight * 0.38)
-/// Tout fragment est projeté en coordonnées monde via ce pivot et uZoom,
-/// ce qui garantit que le motif de fond (mer ET îlots) suit la grille
-/// parfaitement, sans flou, sans bords visibles, à toutes les résolutions
-/// et tous les niveaux de zoom.
+/// afin que le motif de fond reste parfaitement ancré à la grille
+/// hexagonale, sans flou ni décalage, à toute résolution et tout zoom.
 
 #include <flutter/runtime_effect.glsl>
 
@@ -32,40 +55,63 @@ uniform float uZoom;
 
 out vec4 fragColor;
 
-// ── Bruit de valeur 2D ─────────────────────────────────────────────────────
+// ── Bruit Simplex 2D (Ian McEwan / Ashima Arts, domaine public MIT) ───────
+// Toutes les opérations de hachage sont bornées par mod289(), ce qui évite
+// l'effondrement de précision responsable des "blocs" de l'ancien shader.
 
-float hash(vec2 p) {
-    p = fract(p * vec2(443.897, 441.423));
-    p += dot(p, p + 19.19);
-    return fract(p.x * p.y);
+vec2 mod289(vec2 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+
+vec3 permute(vec3 x) { return mod289(((x * 34.0) + 1.0) * x); }
+
+float snoise(vec2 v) {
+    const vec4 C = vec4(0.211324865405187,
+                         0.366025403784439,
+                        -0.577350269189626,
+                         0.024390243902439);
+    vec2 i  = floor(v + dot(v, C.yy));
+    vec2 x0 = v - i + dot(i, C.xx);
+
+    vec2 i1 = (x0.x > x0.y) ? vec2(1.0, 0.0) : vec2(0.0, 1.0);
+    vec4 x12 = x0.xyxy + C.xxzz;
+    x12.xy -= i1;
+
+    i = mod289(i);
+    vec3 p = permute(permute(i.y + vec3(0.0, i1.y, 1.0))
+                    + i.x + vec3(0.0, i1.x, 1.0));
+
+    vec3 m = max(0.5 - vec3(dot(x0, x0), dot(x12.xy, x12.xy), dot(x12.zw, x12.zw)), 0.0);
+    m = m * m;
+    m = m * m;
+
+    vec3 x = 2.0 * fract(p * C.www) - 1.0;
+    vec3 h = abs(x) - 0.5;
+    vec3 ox = floor(x + 0.5);
+    vec3 a0 = x - ox;
+
+    m *= 1.79284291400159 - 0.85373472095314 * (a0 * a0 + h * h);
+
+    vec3 g;
+    g.x  = a0.x  * x0.x  + h.x  * x0.y;
+    g.yz = a0.yz * x12.xz + h.yz * x12.yw;
+    return 130.0 * dot(m, g);
 }
 
-float vnoise(vec2 p) {
-    vec2 i = floor(p);
-    vec2 f = fract(p);
-    f = f * f * (3.0 - 2.0 * f);
-    return mix(
-        mix(hash(i),                hash(i + vec2(1.0, 0.0)), f.x),
-        mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), f.x),
-        f.y
-    );
-}
+// Rotation fixe appliquée entre chaque octave : casse toute corrélation
+// résiduelle entre octaves successives (évite le moindre motif visible).
+const mat2 kOctaveRot = mat2(0.8775826, 0.4794255, -0.4794255, 0.8775826);
 
 float fbm(vec2 p, int octaves) {
-    float v = 0.0;
-    float a = 0.5;
-    vec2 shift = vec2(3.31, 7.71);
-    for (int i = 0; i < 8; i++) {
+    float sum = 0.0;
+    float amp = 0.5;
+    for (int i = 0; i < 6; i++) {
         if (i >= octaves) break;
-        v += a * vnoise(p);
-        p = p * 2.17 + shift;
-        a *= 0.48;
+        sum += amp * snoise(p);
+        p = kOctaveRot * p * 2.02 + 0.073;
+        amp *= 0.55;
     }
-    return v;
+    return sum; // approximativement dans [-1.05, 1.05]
 }
-
-float fbm4(vec2 p) { return fbm(p, 4); }
-float fbm6(vec2 p) { return fbm(p, 6); }
 
 // ── Programme principal ────────────────────────────────────────────────────
 
@@ -77,60 +123,82 @@ void main() {
                       uOffsetY + uHeight * 0.38);
     vec2 world = (fc - pivot) / uZoom;
 
-    const float kScale = 0.0042;
+    const float kScale = 0.0040;
     vec2 uv = world * kScale;
 
-    float t = uTime * 0.02;
+    // Sécurité numérique : on reboucle la coordonnée de bruit sur une très
+    // grande période (équivalente à ~250 000 px de panoramique caméra,
+    // jamais atteinte en jeu) afin de rester insensible à la précision
+    // flottante même après une très longue session de jeu / un plateau
+    // très étendu.
+    uv = mod(uv + 100.0, 200.0) - 100.0;
 
-    // ── Houle large (basse fréquence) ──────────────────────────────────
-    float swell1 = fbm4(uv * 0.6 + vec2(t * 0.12, t * 0.08));
-    float swell2 = fbm4(uv * 0.9 + vec2(t * 0.15, t * 0.05) + 50.0);
-    float swell = swell1 * 0.65 + swell2 * 0.35;
+    // Temps rebouclé pour la même raison (stabilité numérique long-terme).
+    float time = mod(uTime, 6000.0);
 
-    // ── Texture fine des rides de vent ─────────────────────────────────
-    float ripple = fbm6(world * 0.03 + vec2(t * 0.6, t * 0.3));
+    // ── Vitesses volontairement très lentes ─────────────────────────────
+    // Rien ne doit "voyager" de façon cohérente sur tout l'écran : c'est ce
+    // qui donnerait une impression de tangage. Seules des variations
+    // locales (scintillement, respiration) sont perceptibles.
+    float tBase   = time * 0.0035;
+    float tWarp   = time * 0.0060;
+    float tRipple = time * 0.0500;
+    float tFoam   = time * 0.0250;
+    float tGlint  = time * 0.2200;
 
-    // ── Palette océan réaliste (teinte ~185°, saturation 50-75%) ──────
-    // Couleurs extraites de l'image game_background.png :
-    //   Profond    #0B5C63  ~vec3(0.043, 0.361, 0.388)
-    //   Milieu     #14646C  ~vec3(0.078, 0.392, 0.424)
-    //   Mi-clair    #1C94C4  ~vec3(0.110, 0.580, 0.769)
-    //   Surface    #1CBCCC  ~vec3(0.110, 0.737, 0.800)
-    //   Haut-fond  #AEC8D0  ~vec3(0.682, 0.784, 0.816)
-    vec3 cDeep    = vec3(0.043, 0.361, 0.388);
-    vec3 cMid     = vec3(0.078, 0.392, 0.424);
-    vec3 cLight   = vec3(0.110, 0.580, 0.769);
-    vec3 cShallow = vec3(0.110, 0.737, 0.800);
-    vec3 cFoam    = vec3(0.682, 0.784, 0.816);
-
-    // Mélange principal via la houle.
-    vec3 color = mix(cDeep, cMid, smoothstep(0.20, 0.50, swell));
-    color = mix(color, cLight, smoothstep(0.40, 0.65, swell));
-    color = mix(color, cShallow, smoothstep(0.58, 0.80, swell));
-
-    // ── Rides de vent (micro-variation haute fréquence) ─────────────────
-    float rippleStrength = 0.035;
-    color += vec3(
-        ripple * rippleStrength,
-        ripple * rippleStrength * 0.8,
-        ripple * rippleStrength * 0.6
+    // ── Déformation de domaine ───────────────────────────────────────────
+    // Distord légèrement les coordonnées avant le calcul de la forme de
+    // base : ça casse définitivement toute trace de structure de grille et
+    // donne un aspect fluide/organique à l'eau.
+    vec2 warp = vec2(
+        fbm(uv * 0.8 + vec2(tWarp, -tWarp * 0.7), 3),
+        fbm(uv * 0.8 + vec2(-tWarp * 0.6, tWarp) + 11.3, 3)
     );
+    vec2 uvWarped = uv + warp * 0.35;
 
-    // ── Crêtes d'écume diffuses ────────────────────────────────────────
-    float foamEdge = smoothstep(0.72, 0.88, swell);
-    float foamNoise = fbm4(world * 0.025 + vec2(t * 0.3, t * 0.2));
-    float foam = foamEdge * smoothstep(0.35, 0.65, foamNoise);
-    color = mix(color, cFoam, foam * 0.55);
+    // ── Forme de base : grandes zones de turquoise clair / profond ──────
+    float base = fbm(uvWarped * 0.55 + vec2(tBase, tBase * 0.6), 5);
+    base = clamp(base * 0.5 + 0.5, 0.0, 1.0); // 0..1
 
-    // ── Reflets spéculaires (soleil) ────────────────────────────────────
-    float spec = fbm6(world * 0.04 + vec2(t * 0.5, t * 0.7));
-    float specMask = smoothstep(0.75, 0.92, spec);
-    color = mix(color, vec3(1.0, 1.0, 0.95), specMask * 0.30);
+    // ── Palette lagon tropical ───────────────────────────────────────────
+    //   Profond   #0A697F  ~ vec3(0.039, 0.412, 0.498)
+    //   Médium    #178E9D  ~ vec3(0.090, 0.557, 0.616)
+    //   Lumineux  #38BEC2  ~ vec3(0.220, 0.745, 0.760)
+    //   Haut-fond #85E3D6  ~ vec3(0.520, 0.890, 0.840)
+    vec3 cDeep    = vec3(0.039, 0.412, 0.498);
+    vec3 cMid     = vec3(0.090, 0.557, 0.616);
+    vec3 cLight   = vec3(0.220, 0.745, 0.760);
+    vec3 cShallow = vec3(0.520, 0.890, 0.840);
 
-    // ── Légère atténuation de la saturation en profondeur ──────────────
-    float depthFactor = 1.0 - smoothstep(0.0, 0.40, swell);
-    vec3 desat = vec3(dot(color, vec3(0.3, 0.6, 0.1)));
-    color = mix(color, desat, depthFactor * 0.25);
+    vec3 color = mix(cDeep, cMid, smoothstep(0.15, 0.45, base));
+    color = mix(color, cLight, smoothstep(0.40, 0.70, base));
+    color = mix(color, cShallow, smoothstep(0.68, 0.92, base));
+
+    // ── Micro-ondulation de surface ──────────────────────────────────────
+    // Grain fin qui anime la texture de l'eau sans déplacer la couleur de
+    // fond : juste une variation de luminosité très subtile.
+    float ripple = fbm(uvWarped * 6.0 + vec2(tRipple, tRipple * 0.4), 3);
+    color += ripple * 0.022;
+
+    // ── Écume légère, éparse et "respirante" ─────────────────────────────
+    // Des plaques diffuses, peu nombreuses, dont l'opacité respire
+    // doucement (chaque plaque a sa propre phase, dérivée du bruit local,
+    // donc rien ne semble se déplacer ensemble dans une direction commune).
+    float foamN = fbm(uv * 1.5 + vec2(tFoam, -tFoam * 0.5) + 30.0, 4);
+    foamN = clamp(foamN * 0.5 + 0.5, 0.0, 1.0);
+    float foamMask = smoothstep(0.66, 0.86, foamN);
+    float foamBreathe = 0.80 + 0.20 * sin(tFoam * 2.4 + foamN * 6.2831853);
+    vec3 cFoam = vec3(0.93, 0.99, 0.98);
+    color = mix(color, cFoam, foamMask * foamBreathe * 0.45);
+
+    // ── Reflets scintillants (soleil sur l'eau) ──────────────────────────
+    // Points épars et brillants, qui clignotent individuellement (phase
+    // tirée du bruit local) plutôt que de balayer l'écran ensemble.
+    float glintN = fbm(uv * 9.0 + vec2(tGlint * 0.3, -tGlint * 0.2) + 70.0, 3);
+    glintN = clamp(glintN * 0.5 + 0.5, 0.0, 1.0);
+    float glintMask = smoothstep(0.82, 0.95, glintN);
+    float glintTwinkle = 0.5 + 0.5 * sin(tGlint * 3.0 + glintN * 12.0);
+    color = mix(color, vec3(1.0, 0.99, 0.92), glintMask * glintTwinkle * 0.35);
 
     // ── Sortie ────────────────────────────────────────────────────────────
     fragColor = vec4(clamp(color, 0.0, 1.0), 1.0);
