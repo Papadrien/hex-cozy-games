@@ -123,7 +123,7 @@ void main() {
                       uOffsetY + uHeight * 0.38);
     vec2 world = (fc - pivot) / uZoom;
 
-    const float kScale = 0.0040;
+    const float kScale = 0.0010;
     vec2 uv = world * kScale;
 
     // Sécurité numérique : on reboucle la coordonnée de bruit sur une très
