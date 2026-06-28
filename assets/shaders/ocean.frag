@@ -160,15 +160,15 @@ void main() {
     float base = fbm(uvWarped * 0.55 + vec2(tBase, tBase * 0.6), 5);
     base = clamp(base * 0.5 + 0.5, 0.0, 1.0); // 0..1
 
-    // ── Palette lagon tropical ───────────────────────────────────────────
-    //   Profond   #0A697F  ~ vec3(0.039, 0.412, 0.498)
-    //   Médium    #178E9D  ~ vec3(0.090, 0.557, 0.616)
-    //   Lumineux  #38BEC2  ~ vec3(0.220, 0.745, 0.760)
-    //   Haut-fond #85E3D6  ~ vec3(0.520, 0.890, 0.840)
-    vec3 cDeep    = vec3(0.039, 0.412, 0.498);
-    vec3 cMid     = vec3(0.090, 0.557, 0.616);
-    vec3 cLight   = vec3(0.220, 0.745, 0.760);
-    vec3 cShallow = vec3(0.520, 0.890, 0.840);
+    // ── Palette mer de surface, style illustré ───────────────────────────
+    //   Profond   #2E8FA0  ~ vec3(0.180, 0.560, 0.627)  — bleu-vert brumeux, pas abyssal
+    //   Médium    #3AAFBE  ~ vec3(0.227, 0.686, 0.745)  — bleu-cyan aéré
+    //   Lumineux  #5CCFCF  ~ vec3(0.361, 0.812, 0.812)  — turquoise lumineux
+    //   Haut-fond #95EAE0  ~ vec3(0.584, 0.918, 0.878)  — liseré d'écume froide
+    vec3 cDeep    = vec3(0.180, 0.560, 0.627);
+    vec3 cMid     = vec3(0.227, 0.686, 0.745);
+    vec3 cLight   = vec3(0.361, 0.812, 0.812);
+    vec3 cShallow = vec3(0.584, 0.918, 0.878);
 
     vec3 color = mix(cDeep, cMid, smoothstep(0.15, 0.45, base));
     color = mix(color, cLight, smoothstep(0.40, 0.70, base));
@@ -178,7 +178,7 @@ void main() {
     // Grain fin qui anime la texture de l'eau sans déplacer la couleur de
     // fond : juste une variation de luminosité très subtile.
     float ripple = fbm(uvWarped * 6.0 + vec2(tRipple, tRipple * 0.4), 3);
-    color += ripple * 0.022;
+    color += ripple * 0.030;
 
     // ── Écume légère, éparse et "respirante" ─────────────────────────────
     // Des plaques diffuses, peu nombreuses, dont l'opacité respire
@@ -189,7 +189,7 @@ void main() {
     float foamMask = smoothstep(0.66, 0.86, foamN);
     float foamBreathe = 0.80 + 0.20 * sin(tFoam * 2.4 + foamN * 6.2831853);
     vec3 cFoam = vec3(0.93, 0.99, 0.98);
-    color = mix(color, cFoam, foamMask * foamBreathe * 0.45);
+    color = mix(color, cFoam, foamMask * foamBreathe * 0.38);
 
     // ── Reflets scintillants (soleil sur l'eau) ──────────────────────────
     // Points épars et brillants, qui clignotent individuellement (phase
