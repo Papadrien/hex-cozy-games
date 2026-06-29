@@ -123,7 +123,7 @@ void main() {
                       uOffsetY + uHeight * 0.38);
     vec2 world = (fc - pivot) / uZoom;
 
-    const float kScale = 0.01;
+    const float kScale = 0.03;
     vec2 uv = world * kScale;
 
     // Sécurité numérique : on reboucle la coordonnée de bruit sur une très
@@ -172,20 +172,9 @@ void main() {
     color = mix(color, cShallow, smoothstep(0.68, 0.92, base));
 
     // ── Micro-ondulation de surface ──────────────────────────────────────
-    // snoise simple (pas de FBM) pour éviter les lignes et taches sombres.
-    float ripple = snoise(uvWarped * 4.0 + vec2(tRipple, tRipple * 0.4)) * 0.5 + 0.5;
-    color += (ripple - 0.5) * 0.04; // variation très subtile, centrée sur 0
-
-    // ── Écume légère, éparse et "respirante" ─────────────────────────────
-    // Des plaques diffuses, peu nombreuses, dont l'opacité respire
-    // doucement (chaque plaque a sa propre phase, dérivée du bruit local,
-    // donc rien ne semble se déplacer ensemble dans une direction commune).
-    float foamN = fbm(uv * 1.2 + vec2(tFoam, -tFoam * 0.5) + 30.0, 2);
-    foamN = clamp(foamN * 0.5 + 0.5, 0.0, 1.0);
-    float foamMask = smoothstep(0.74, 0.90, foamN); // seuil plus haut = écume plus rare
-    float foamBreathe = 0.80 + 0.20 * sin(tFoam * 2.4 + foamN * 6.2831853);
-    vec3 cFoam = vec3(0.93, 0.99, 0.98);
-    color = mix(color, cFoam, foamMask * foamBreathe * 0.30);
+    // Uniquement additif (max 0) pour ne jamais assombrir.
+    float ripple = snoise(uvWarped * 4.0 + vec2(tRipple, tRipple * 0.4));
+    color += max(ripple, 0.0) * 0.05;
 
     // ── Reflets scintillants (soleil sur l'eau) ──────────────────────────
     // Points épars et brillants, qui clignotent individuellement (phase
