@@ -155,15 +155,14 @@ void main() {
         fbm(uv * 0.8 + vec2(tWarp, -tWarp * 0.7), 3),
         fbm(uv * 0.8 + vec2(-tWarp * 0.6, tWarp) + 11.3, 3)
     );
-    // Houle basse fréquence : ondulation douce des grandes masses de couleur.
     float swellA = snoise(uv * 0.18 + vec2(tSwell, tSwell * 0.5));
     float swellB = snoise(uv * 0.22 + vec2(-tSwell * 0.7, tSwell * 1.1) + 5.7);
-    vec2 swell = vec2(swellA, swellB) * 0.28;
-    vec2 uvWarped = uv + warp * 0.35 + swell;
+    vec2 swell = vec2(swellA, swellB) * 0.08;
+    vec2 uvWarped = uv + warp * 0.15 + swell;
 
     // ── Forme de base : grandes zones de turquoise clair / profond ──────
     float base = fbm(uvWarped * 0.55 + vec2(tBase, tBase * 0.6), 5);
-    base = clamp(base * 0.5 + 0.5, 0.0, 1.0); // 0..1
+    base = clamp(base * 0.35 + 0.65, 0.0, 1.0); // 0..1 décalé vers clair
 
     // ── Palette mer de surface, style illustré ───────────────────────────
     //   Profond   #5AB8C8  — bleu-vert lumineux
