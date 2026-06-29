@@ -1,5 +1,4 @@
 /// Shader d'océan tropical — hex-cozy-games
-///
 /// Objectif visuel : une eau turquoise lumineuse type lagon, avec un peu
 /// d'écume éparse et une animation très légère (scintillements, respiration
 /// de l'écume, micro-ondulation de surface) qui donne l'impression d'une eau
