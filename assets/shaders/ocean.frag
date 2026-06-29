@@ -147,53 +147,45 @@ void main() {
     float tFoam   = time * 0.0250;
     float tGlint  = time * 0.2200;
 
-    // ── Déformation de domaine ───────────────────────────────────────────
-    // Distord légèrement les coordonnées avant le calcul de la forme de
-    // base : ça casse définitivement toute trace de structure de grille et
-    // donne un aspect fluide/organique à l'eau.
-    vec2 warp = vec2(
-        fbm(uv * 0.8 + vec2(tWarp, -tWarp * 0.7), 3),
-        fbm(uv * 0.8 + vec2(-tWarp * 0.6, tWarp) + 11.3, 3)
-    );
-    float swellA = snoise(uv * 0.18 + vec2(tSwell, tSwell * 0.5));
-    float swellB = snoise(uv * 0.22 + vec2(-tSwell * 0.7, tSwell * 1.1) + 5.7);
-    vec2 swell = vec2(swellA, swellB) * 0.08;
-    vec2 uvWarped = uv + warp * 0.15 + swell;
+    // Déformation très légère — warp quasi nul pour éviter les artefacts.
+    vec2 uvWarped = uv + vec2(
+        snoise(uv * 0.5 + vec2(tWarp, 0.0)),
+        snoise(uv * 0.5 + vec2(0.0, tWarp) + 3.7)
+    ) * 0.04;
 
-    // ── Forme de base : grandes zones de turquoise clair / profond ──────
-    float base = fbm(uvWarped * 0.55 + vec2(tBase, tBase * 0.6), 5);
-    base = clamp(base * 0.35 + 0.65, 0.0, 1.0); // 0..1 décalé vers clair
+    // ── Forme de base : grandes zones douces sans détails marqués ───────
+    float base = fbm(uvWarped * 0.40 + vec2(tBase, tBase * 0.6), 2);
+    base = clamp(base * 0.25 + 0.75, 0.0, 1.0); // fortement décalé vers clair
 
-    // ── Palette mer de surface, style illustré ───────────────────────────
-    //   Profond   #5AB8C8  — bleu-vert lumineux
-    //   Médium    #52CCDA  — bleu-cyan aéré
-    //   Lumineux  #6AD8D8  — turquoise vif
-    //   Haut-fond #96EAEA  — liseré écume claire
-    vec3 cDeep    = vec3(0.353, 0.722, 0.784);
-    vec3 cMid     = vec3(0.322, 0.800, 0.855);
-    vec3 cLight   = vec3(0.416, 0.847, 0.847);
-    vec3 cShallow = vec3(0.588, 0.918, 0.918);
+    //   Toutes les couleurs restent dans les teintes claires pour éviter les zones sombres.
+    //   Profond   #52C8D8  — cyan-turquoise moyen-clair
+    //   Médium    #5AD4DC  — turquoise aéré
+    //   Lumineux  #6ADEDE  — turquoise vif
+    //   Haut-fond #90EEEE  — liseré écume claire
+    vec3 cDeep    = vec3(0.322, 0.784, 0.847);
+    vec3 cMid     = vec3(0.353, 0.831, 0.863);
+    vec3 cLight   = vec3(0.416, 0.871, 0.871);
+    vec3 cShallow = vec3(0.565, 0.933, 0.933);
 
     vec3 color = mix(cDeep, cMid, smoothstep(0.15, 0.45, base));
     color = mix(color, cLight, smoothstep(0.40, 0.70, base));
     color = mix(color, cShallow, smoothstep(0.68, 0.92, base));
 
     // ── Micro-ondulation de surface ──────────────────────────────────────
-    // Grain fin qui anime la texture de l'eau sans déplacer la couleur de
-    // fond : juste une variation de luminosité très subtile.
-    float ripple = fbm(uvWarped * 6.0 + vec2(tRipple, tRipple * 0.4), 3);
-    color += ripple * 0.065;
+    // snoise simple (pas de FBM) pour éviter les lignes et taches sombres.
+    float ripple = snoise(uvWarped * 4.0 + vec2(tRipple, tRipple * 0.4)) * 0.5 + 0.5;
+    color += (ripple - 0.5) * 0.04; // variation très subtile, centrée sur 0
 
     // ── Écume légère, éparse et "respirante" ─────────────────────────────
     // Des plaques diffuses, peu nombreuses, dont l'opacité respire
     // doucement (chaque plaque a sa propre phase, dérivée du bruit local,
     // donc rien ne semble se déplacer ensemble dans une direction commune).
-    float foamN = fbm(uv * 1.5 + vec2(tFoam, -tFoam * 0.5) + 30.0, 4);
+    float foamN = fbm(uv * 1.2 + vec2(tFoam, -tFoam * 0.5) + 30.0, 2);
     foamN = clamp(foamN * 0.5 + 0.5, 0.0, 1.0);
-    float foamMask = smoothstep(0.66, 0.86, foamN);
+    float foamMask = smoothstep(0.74, 0.90, foamN); // seuil plus haut = écume plus rare
     float foamBreathe = 0.80 + 0.20 * sin(tFoam * 2.4 + foamN * 6.2831853);
     vec3 cFoam = vec3(0.93, 0.99, 0.98);
-    color = mix(color, cFoam, foamMask * foamBreathe * 0.38);
+    color = mix(color, cFoam, foamMask * foamBreathe * 0.30);
 
     // ── Reflets scintillants (soleil sur l'eau) ──────────────────────────
     // Points épars et brillants, qui clignotent individuellement (phase
