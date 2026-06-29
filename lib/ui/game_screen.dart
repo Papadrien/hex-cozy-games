@@ -160,10 +160,10 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                     key: _coinsKey,
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     decoration: BoxDecoration(
-                      color: kGlassBlue.withValues(alpha: 0.18),
+                      color: kTropicalTeal.withValues(alpha: 0.22),
                       borderRadius: BorderRadius.circular(14),
                       border: Border.all(
-                        color: kGlassBlueBorder.withValues(alpha: 0.38),
+                        color: const Color(0xFF3DBFAF).withValues(alpha: 0.45),
                         width: 1,
                       ),
                     ),
@@ -206,13 +206,13 @@ class _GameScreenState extends ConsumerState<GameScreen> {
             return Stack(children: [
               Positioned(
                 bottom: 24,
-                left: 16,
+                right: 16,
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(14),
                   child: BackdropFilter(
                     filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
                     child: Material(
-                      color: kGlassBlue.withValues(alpha: 0.18),
+                      color: kTropicalTeal.withValues(alpha: 0.22),
                       borderRadius: BorderRadius.circular(14),
                       child: InkWell(
                         borderRadius: BorderRadius.circular(14),
@@ -228,7 +228,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(14),
                             border: Border.all(
-                              color: kGlassBlueBorder.withValues(alpha: 0.38),
+                              color: const Color(0xFF3DBFAF).withValues(alpha: 0.45),
                               width: 1,
                             ),
                           ),
@@ -308,10 +308,10 @@ class _CoinRewardTag extends ConsumerWidget {
             margin: const EdgeInsets.only(top: 4),
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
-              color: kGlassBlue.withValues(alpha: 0.18),
+              color: kTropicalTeal.withValues(alpha: 0.22),
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
-                color: kGlassBlueBorder.withValues(alpha: 0.38),
+                color: const Color(0xFF3DBFAF).withValues(alpha: 0.45),
                 width: 1,
               ),
             ),
@@ -361,10 +361,10 @@ class _BonusTileTag extends ConsumerWidget {
             margin: const EdgeInsets.only(top: 4),
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
-              color: kGlassBlue.withValues(alpha: 0.18),
+              color: kTropicalTeal.withValues(alpha: 0.22),
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
-                color: kGlassBlueBorder.withValues(alpha: 0.38),
+                color: const Color(0xFF3DBFAF).withValues(alpha: 0.45),
                 width: 1,
               ),
             ),

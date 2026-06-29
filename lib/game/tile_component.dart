@@ -44,7 +44,7 @@ extension BiomeColor on BiomeType {
   }
 }
 
-/// Épaisseur du "bloc" 3D des tuiles.
+/// Épaisseur de base du "bloc" 3D des tuiles (à zoom 1.0).
 const double kTileDepth = 10.0;
 
 const int kTileDepthPriorityBase = 100000;
@@ -89,6 +89,9 @@ class TileComponent extends PositionComponent {
     priority = kTileDepthPriorityBase + position.y.round();
   }
 
+  /// Épaisseur du bloc 3D proportionnelle au zoom courant.
+  double get _tileDepth => kTileDepth * (_hexSize / kHexSize);
+
   double _alpha;
   double get alpha => _alpha;
   set alpha(double value) {
@@ -111,7 +114,7 @@ class TileComponent extends PositionComponent {
   @override
   void render(Canvas canvas) {
     final cx = size.x / 2;
-    final cyTop = size.y / 2 - kTileDepth / 2;
+    final cyTop = size.y / 2 - _tileDepth / 2;
     final topCorners = _isoCorners(cx, cyTop);
 
     // ── Faces latérales (effet bloc 3D) ──────────────────────────────────
@@ -121,8 +124,8 @@ class TileComponent extends PositionComponent {
       final midY = (t0.dy + t1.dy) / 2;
       if (midY < cyTop - 0.01) continue;
 
-      final b0 = Offset(t0.dx, t0.dy + kTileDepth);
-      final b1 = Offset(t1.dx, t1.dy + kTileDepth);
+      final b0 = Offset(t0.dx, t0.dy + _tileDepth);
+      final b1 = Offset(t1.dx, t1.dy + _tileDepth);
 
       final sidePath = Path()
         ..moveTo(t0.dx, t0.dy)

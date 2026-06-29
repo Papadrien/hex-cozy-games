@@ -166,16 +166,14 @@ void main() {
     base = clamp(base * 0.5 + 0.5, 0.0, 1.0); // 0..1
 
     // ── Palette mer de surface, style illustré ───────────────────────────
-    //   Contraste réduit : les couleurs sombres remontées, les claires légèrement
-    //   abaissées → moins de "pointillé", aspect plus doux et homogène.
-    //   Profond   #4AA3B2  ~ vec3(0.290, 0.639, 0.698)  — bleu-vert (remonté)
-    //   Médium    #43B8C5  ~ vec3(0.263, 0.722, 0.773)  — bleu-cyan aéré
-    //   Lumineux  #5AC8C8  ~ vec3(0.353, 0.784, 0.784)  — turquoise (légèrement assombri)
-    //   Haut-fond #82DEDA  ~ vec3(0.510, 0.871, 0.855)  — liseré écume (assombri)
-    vec3 cDeep    = vec3(0.290, 0.639, 0.698);
-    vec3 cMid     = vec3(0.263, 0.722, 0.773);
-    vec3 cLight   = vec3(0.353, 0.784, 0.784);
-    vec3 cShallow = vec3(0.510, 0.871, 0.855);
+    //   Profond   #5AB8C8  — bleu-vert lumineux
+    //   Médium    #52CCDA  — bleu-cyan aéré
+    //   Lumineux  #6AD8D8  — turquoise vif
+    //   Haut-fond #96EAEA  — liseré écume claire
+    vec3 cDeep    = vec3(0.353, 0.722, 0.784);
+    vec3 cMid     = vec3(0.322, 0.800, 0.855);
+    vec3 cLight   = vec3(0.416, 0.847, 0.847);
+    vec3 cShallow = vec3(0.588, 0.918, 0.918);
 
     vec3 color = mix(cDeep, cMid, smoothstep(0.15, 0.45, base));
     color = mix(color, cLight, smoothstep(0.40, 0.70, base));
@@ -185,7 +183,7 @@ void main() {
     // Grain fin qui anime la texture de l'eau sans déplacer la couleur de
     // fond : juste une variation de luminosité très subtile.
     float ripple = fbm(uvWarped * 6.0 + vec2(tRipple, tRipple * 0.4), 3);
-    color += ripple * 0.045;
+    color += ripple * 0.065;
 
     // ── Écume légère, éparse et "respirante" ─────────────────────────────
     // Des plaques diffuses, peu nombreuses, dont l'opacité respire

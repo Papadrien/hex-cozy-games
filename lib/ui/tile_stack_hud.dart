@@ -20,6 +20,10 @@ const double _kActiveTileRadius = 34.0;
 const double _kUpcomingTileRadius = 26.0;
 const double _kHudHexFlattenY = 1.0;
 
+// Teinte glassmorphism teal pour le HUD (même teinte que boutons secondaires accueil).
+const Color _kHudGlass = kTropicalTeal;
+const Color _kHudGlassBorder = Color(0xFF3DBFAF); // teal clair
+
 // Disposition horizontale avec chevauchement.
 //   [Active (1er plan)] [2e (2d plan)] [3e (3e plan)]
 final double _kActiveTileWidth = _kActiveTileRadius * sqrt(3);
@@ -57,10 +61,10 @@ class TileStackHud extends ConsumerWidget {
             child: Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: kGlassBlue.withValues(alpha: 0.18),
+                color: _kHudGlass.withValues(alpha: 0.22),
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(
-                  color: kGlassBlueBorder.withValues(alpha: 0.38),
+                  color: _kHudGlassBorder.withValues(alpha: 0.45),
                   width: 1,
                 ),
               ),
@@ -78,7 +82,7 @@ class TileStackHud extends ConsumerWidget {
                           tile: nextTiles[1],
                           radius: _kUpcomingTileRadius,
                           highlighted: false,
-                          dim: true,
+                          dim: false,
                         ),
                       ),
                     // 2e tuile (milieu / 2d plan)
@@ -90,7 +94,7 @@ class TileStackHud extends ConsumerWidget {
                           tile: nextTiles[0],
                           radius: _kUpcomingTileRadius,
                           highlighted: false,
-                          dim: true,
+                          dim: false,
                         ),
                       ),
                     // Tuile active (1er plan) — rendue en dernier, par-dessus
@@ -121,10 +125,10 @@ class TileStackHud extends ConsumerWidget {
                                 width: 26,
                                 height: 26,
                                 decoration: BoxDecoration(
-                                  color: kGlassBlue.withValues(alpha: 0.18),
+                                  color: _kHudGlass.withValues(alpha: 0.22),
                                   borderRadius: BorderRadius.circular(13),
                                   border: Border.all(
-                                    color: kGlassBlueBorder.withValues(alpha: 0.38),
+                                    color: _kHudGlassBorder.withValues(alpha: 0.45),
                                     width: 1,
                                   ),
                                 ),
@@ -282,10 +286,10 @@ class _RemainingBadge extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
           decoration: BoxDecoration(
-            color: kGlassBlue.withValues(alpha: 0.18),
+            color: _kHudGlass.withValues(alpha: 0.22),
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
-              color: kGlassBlueBorder.withValues(alpha: 0.38),
+              color: _kHudGlassBorder.withValues(alpha: 0.45),
               width: 1,
             ),
           ),
