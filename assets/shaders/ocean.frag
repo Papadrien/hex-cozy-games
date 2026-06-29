@@ -142,48 +142,22 @@ void main() {
     // locales (scintillement, respiration) sont perceptibles.
     float tBase   = time * 0.0035;
     float tWarp   = time * 0.0060;
-    float tSwell  = time * 0.0018;  // houle lente basse fréquence
-    float tRipple = time * 0.0500;
-    float tFoam   = time * 0.0250;
-    float tGlint  = time * 0.2200;
 
-    // Déformation très légère — warp quasi nul pour éviter les artefacts.
-    vec2 uvWarped = uv + vec2(
-        snoise(uv * 0.5 + vec2(tWarp, 0.0)),
-        snoise(uv * 0.5 + vec2(0.0, tWarp) + 3.7)
-    ) * 0.04;
+    // Déformation invisible — quasi nulle.
+    float warpX = snoise(uv * 0.3 + vec2(tWarp, 0.0)) * 0.03;
+    float warpY = snoise(uv * 0.3 + vec2(0.0, tWarp) + 3.7) * 0.03;
+    vec2 uvWarped = uv + vec2(warpX, warpY);
 
-    // ── Forme de base : grandes zones douces sans détails marqués ───────
-    float base = fbm(uvWarped * 0.40 + vec2(tBase, tBase * 0.6), 2);
-    base = clamp(base * 0.25 + 0.75, 0.0, 1.0); // fortement décalé vers clair
+    // ── Forme de base : snoise unique basse fréquence, sans FBM ─────────
+    // Un seul snoise = zéro grain, zéro artefact. Variation très douce
+    // entre deux teintes turquoise claires.
+    float base = snoise(uvWarped * 0.30 + vec2(tBase, tBase * 0.5));
+    base = base * 0.5 + 0.5; // [0..1]
 
-    //   Toutes les couleurs restent dans les teintes claires pour éviter les zones sombres.
-    //   Profond   #52C8D8  — cyan-turquoise moyen-clair
-    //   Médium    #5AD4DC  — turquoise aéré
-    //   Lumineux  #6ADEDE  — turquoise vif
-    //   Haut-fond #90EEEE  — liseré écume claire
-    vec3 cDeep    = vec3(0.322, 0.784, 0.847);
-    vec3 cMid     = vec3(0.353, 0.831, 0.863);
-    vec3 cLight   = vec3(0.416, 0.871, 0.871);
-    vec3 cShallow = vec3(0.565, 0.933, 0.933);
-
-    vec3 color = mix(cDeep, cMid, smoothstep(0.15, 0.45, base));
-    color = mix(color, cLight, smoothstep(0.40, 0.70, base));
-    color = mix(color, cShallow, smoothstep(0.68, 0.92, base));
-
-    // ── Micro-ondulation de surface ──────────────────────────────────────
-    // Uniquement additif (max 0) pour ne jamais assombrir.
-    float ripple = snoise(uvWarped * 4.0 + vec2(tRipple, tRipple * 0.4));
-    color += max(ripple, 0.0) * 0.05;
-
-    // ── Reflets scintillants (soleil sur l'eau) ──────────────────────────
-    // Points épars et brillants, qui clignotent individuellement (phase
-    // tirée du bruit local) plutôt que de balayer l'écran ensemble.
-    float glintN = fbm(uv * 9.0 + vec2(tGlint * 0.3, -tGlint * 0.2) + 70.0, 3);
-    glintN = clamp(glintN * 0.5 + 0.5, 0.0, 1.0);
-    float glintMask = smoothstep(0.82, 0.95, glintN);
-    float glintTwinkle = 0.5 + 0.5 * sin(tGlint * 3.0 + glintN * 12.0);
-    color = mix(color, vec3(1.0, 0.99, 0.92), glintMask * glintTwinkle * 0.35);
+    // Deux couleurs proches → variation quasi imperceptible, juste vivante.
+    vec3 cA = vec3(0.38, 0.86, 0.88); // #61DBE0 turquoise clair
+    vec3 cB = vec3(0.47, 0.92, 0.92); // #78EBEB turquoise très clair
+    vec3 color = mix(cA, cB, smoothstep(0.35, 0.65, base));
 
     // ── Sortie ────────────────────────────────────────────────────────────
     fragColor = vec4(clamp(color, 0.0, 1.0), 1.0);
