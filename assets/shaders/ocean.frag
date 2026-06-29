@@ -142,6 +142,7 @@ void main() {
     // locales (scintillement, respiration) sont perceptibles.
     float tBase   = time * 0.0035;
     float tWarp   = time * 0.0060;
+    float tSwell  = time * 0.0018;  // houle lente basse fréquence
     float tRipple = time * 0.0500;
     float tFoam   = time * 0.0250;
     float tGlint  = time * 0.2200;
@@ -154,21 +155,27 @@ void main() {
         fbm(uv * 0.8 + vec2(tWarp, -tWarp * 0.7), 3),
         fbm(uv * 0.8 + vec2(-tWarp * 0.6, tWarp) + 11.3, 3)
     );
-    vec2 uvWarped = uv + warp * 0.35;
+    // Houle basse fréquence : ondulation douce des grandes masses de couleur.
+    float swellA = snoise(uv * 0.18 + vec2(tSwell, tSwell * 0.5));
+    float swellB = snoise(uv * 0.22 + vec2(-tSwell * 0.7, tSwell * 1.1) + 5.7);
+    vec2 swell = vec2(swellA, swellB) * 0.28;
+    vec2 uvWarped = uv + warp * 0.35 + swell;
 
     // ── Forme de base : grandes zones de turquoise clair / profond ──────
     float base = fbm(uvWarped * 0.55 + vec2(tBase, tBase * 0.6), 5);
     base = clamp(base * 0.5 + 0.5, 0.0, 1.0); // 0..1
 
     // ── Palette mer de surface, style illustré ───────────────────────────
-    //   Profond   #2E8FA0  ~ vec3(0.180, 0.560, 0.627)  — bleu-vert brumeux, pas abyssal
-    //   Médium    #3AAFBE  ~ vec3(0.227, 0.686, 0.745)  — bleu-cyan aéré
-    //   Lumineux  #5CCFCF  ~ vec3(0.361, 0.812, 0.812)  — turquoise lumineux
-    //   Haut-fond #95EAE0  ~ vec3(0.584, 0.918, 0.878)  — liseré d'écume froide
-    vec3 cDeep    = vec3(0.180, 0.560, 0.627);
-    vec3 cMid     = vec3(0.227, 0.686, 0.745);
-    vec3 cLight   = vec3(0.361, 0.812, 0.812);
-    vec3 cShallow = vec3(0.584, 0.918, 0.878);
+    //   Contraste réduit : les couleurs sombres remontées, les claires légèrement
+    //   abaissées → moins de "pointillé", aspect plus doux et homogène.
+    //   Profond   #4AA3B2  ~ vec3(0.290, 0.639, 0.698)  — bleu-vert (remonté)
+    //   Médium    #43B8C5  ~ vec3(0.263, 0.722, 0.773)  — bleu-cyan aéré
+    //   Lumineux  #5AC8C8  ~ vec3(0.353, 0.784, 0.784)  — turquoise (légèrement assombri)
+    //   Haut-fond #82DEDA  ~ vec3(0.510, 0.871, 0.855)  — liseré écume (assombri)
+    vec3 cDeep    = vec3(0.290, 0.639, 0.698);
+    vec3 cMid     = vec3(0.263, 0.722, 0.773);
+    vec3 cLight   = vec3(0.353, 0.784, 0.784);
+    vec3 cShallow = vec3(0.510, 0.871, 0.855);
 
     vec3 color = mix(cDeep, cMid, smoothstep(0.15, 0.45, base));
     color = mix(color, cLight, smoothstep(0.40, 0.70, base));
@@ -178,7 +185,7 @@ void main() {
     // Grain fin qui anime la texture de l'eau sans déplacer la couleur de
     // fond : juste une variation de luminosité très subtile.
     float ripple = fbm(uvWarped * 6.0 + vec2(tRipple, tRipple * 0.4), 3);
-    color += ripple * 0.030;
+    color += ripple * 0.045;
 
     // ── Écume légère, éparse et "respirante" ─────────────────────────────
     // Des plaques diffuses, peu nombreuses, dont l'opacité respire
