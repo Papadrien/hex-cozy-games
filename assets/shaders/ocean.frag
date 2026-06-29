@@ -5,7 +5,6 @@
 /// vivante SANS jamais donner une sensation de tangage : il n'y a aucune
 /// translation cohérente de grande amplitude, seulement des variations de
 /// luminosité/opacité localisées et désynchronisées entre elles.
-///
 /// ── Pourquoi l'ancienne version semblait "blocs rectangulaires" ───────────
 /// L'ancien bruit de valeur utilisait une fonction hash() avec de très gros
 /// multiplicateurs (×443.897 puis fract()). Dès que les coordonnées de la
