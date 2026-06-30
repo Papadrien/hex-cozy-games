@@ -76,10 +76,10 @@ class FoamRingComponent extends PositionComponent {
           width,
           [
             Color.fromRGBO(255, 255, 255, alpha),
-            Color.fromRGBO(255, 255, 255, alpha * 0.6),
+            Color.fromRGBO(255, 255, 255, alpha * 0.8),
             Color.fromRGBO(255, 255, 255, 0.0),
           ],
-          [0.0, 0.55, 1.0],
+          [0.0, 0.7, 1.0],
         );
 
       canvas.drawCircle(Offset.zero, width, paint);
@@ -123,7 +123,9 @@ class FoamRingComponent extends PositionComponent {
     // Décalage vertical correspondant à l'épaisseur visuelle de la tuile
     // (cf. _tileDepth dans tile_component.dart), pour coller l'écume à la
     // ligne de flottaison plutôt qu'au contour du dessus de la tuile.
-    final tileDepth = kTileDepth * (hs / kHexSize);
+    // On ne prend qu'une fraction de cette épaisseur pour rester proche
+    // du bord (sinon l'écume "flotte" trop loin sous la tuile).
+    final tileDepth = kTileDepth * (hs / kHexSize) * 0.35;
 
     // Direction le long de l'arête (angle utilisé pour orienter les traits).
     final edgeAngle = atan2(edY, edX);
@@ -132,7 +134,7 @@ class FoamRingComponent extends PositionComponent {
     const int n = 5;
     for (int b = 0; b < n; b++) {
       final t = (b / (n - 1) - 0.5) * 0.75 * edLen;
-      final outDist = (0.0 + rng.nextDouble() * 0.05) * hs;
+      final outDist = (-0.02 + rng.nextDouble() * 0.04) * hs;
       final latNoise = (rng.nextDouble() - 0.5) * 0.10 * edLen;
       final angleJitter = (rng.nextDouble() - 0.5) * 0.35; // léger zigzag
 
@@ -147,7 +149,7 @@ class FoamRingComponent extends PositionComponent {
         center: Offset(bx, by),
         angle: edgeAngle + angleJitter,
         length: (0.16 + rng.nextDouble() * 0.10) * hs,
-        width: (0.022 + rng.nextDouble() * 0.012) * hs,
+        width: (0.045 + rng.nextDouble() * 0.02) * hs,
         alphaMin: 0.18 + rng.nextDouble() * 0.10,
         alphaMax: 0.55 + rng.nextDouble() * 0.25,
         speed: 0.7 + rng.nextDouble() * 1.3,
