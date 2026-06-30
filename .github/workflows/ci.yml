@@ -1,0 +1,309 @@
+name: Flutter CI/CD
+
+on:
+  push:
+    branches: [master, develop]
+    tags: ['v*']
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+    inputs:
+      create_release:
+        description: 'Créer une release GitHub'
+        required: true
+        default: true
+        type: boolean
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FLUTTER_VERSION: '3.44.2'
+  JAVA_VERSION: '17'
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  analyze:
+    name: Analyze & Test
+    runs-on: ubuntu-latest
+    outputs:
+      app_version: ${{ steps.version.outputs.version }}
+      app_build: ${{ steps.version.outputs.build }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Extract version from pubspec.yaml and regenerate build number
+        id: version
+        run: |
+          # Version sémantique (x.y.z) lue depuis pubspec.yaml — source de vérité.
+          VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: //' | sed 's/+.*//')
+
+          # Build number déclaré dans pubspec.yaml (informatif, on ne l'utilise pas
+          # pour le build final afin d'éviter les collisions avec Google Play).
+          PUBSPEC_BUILD=$(grep '^version:' pubspec.yaml | sed 's/.*+//')
+
+          # Build number EFFECTIVEMENT utilisé pour cette exécution : timestamp Unix
+          # courant. Garantit un versionCode strictement croissant à chaque run CI,
+          # sans avoir à modifier pubspec.yaml (pas de commit de bump nécessaire).
+          BUILD=$(date +%s)
+
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "build=$BUILD" >> $GITHUB_OUTPUT
+          echo "📦 Version sémantique : $VERSION"
+          echo "🕒 Build number (timestamp CI) : $BUILD"
+          echo "ℹ️  Build dans pubspec.yaml : $PUBSPEC_BUILD (informatif uniquement)"
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Cache pub dependencies
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.pub-cache
+            .dart_tool
+          key: pub-${{ runner.os }}-${{ hashFiles('pubspec.lock') }}
+          restore-keys: pub-${{ runner.os }}-
+
+      - run: flutter pub get
+      - run: flutter gen-l10n
+      - run: flutter analyze --no-fatal-infos
+      - run: flutter test --coverage
+
+  # ═══════════════════════════════════════════════
+  # BUILD DEBUG — uniquement sur develop
+  # ═══════════════════════════════════════════════
+  build-android-debug:
+    name: Build Android (Debug)
+    needs: analyze
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/develop'
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Cache pub dependencies
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.pub-cache
+            .dart_tool
+          key: pub-${{ runner.os }}-${{ hashFiles('pubspec.lock') }}
+          restore-keys: pub-${{ runner.os }}-
+
+      - name: Cache Gradle
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+            android/.gradle
+          key: gradle-${{ runner.os }}-${{ hashFiles('android/**/*.gradle*', 'android/gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: gradle-${{ runner.os }}-
+
+      - run: flutter pub get
+      - run: flutter gen-l10n
+
+
+      - name: Inject google-services.json
+        env:
+          GOOGLE_SERVICES_JSON_BASE64: ${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}
+        run: |
+          if [ -n "$GOOGLE_SERVICES_JSON_BASE64" ]; then
+            echo "$GOOGLE_SERVICES_JSON_BASE64" | base64 --decode > android/app/google-services.json
+            echo "✅ google-services.json injecté depuis les secrets GitHub"
+          else
+            echo "⚠️  GOOGLE_SERVICES_JSON_BASE64 absent — Firebase Analytics désactivé"
+          fi
+      - name: Build APK (Debug)
+        run: flutter build apk --debug --no-pub
+
+      - name: Rename artifact
+        run: |
+          VERSION=${{ needs.analyze.outputs.app_version }}
+          mkdir -p dist
+          cp build/app/outputs/flutter-apk/app-debug.apk "dist/HexCozyGames-${VERSION}-debug.apk"
+          echo "📦 Debug artifact:"
+          ls -lh dist/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-debug
+          path: dist/*
+          retention-days: 14
+
+  # ═══════════════════════════════════════════════
+  # BUILD RELEASE — uniquement sur master et tags
+  # ═══════════════════════════════════════════════
+  build-android-release:
+    name: Build Android (Release)
+    needs: analyze
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Cache pub dependencies
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.pub-cache
+            .dart_tool
+          key: pub-${{ runner.os }}-${{ hashFiles('pubspec.lock') }}
+          restore-keys: pub-${{ runner.os }}-
+
+      - name: Cache Gradle
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+            android/.gradle
+          key: gradle-${{ runner.os }}-${{ hashFiles('android/**/*.gradle*', 'android/gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: gradle-${{ runner.os }}-
+
+      - name: Setup Android signing
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEY_PROPERTIES: ${{ secrets.ANDROID_KEY_PROPERTIES }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 --decode > android/app/keystore.jks
+            echo "$KEY_PROPERTIES" > android/key.properties
+            echo "✅ Signing release (secrets)"
+          else
+            keytool -genkey -v -keystore android/app/keystore.jks -alias hexcozygames-debug -keyalg RSA -keysize 2048 -validity 10000 -storepass hexcozygames-debug-pwd -keypass hexcozygames-debug-pwd -dname "CN=HexCozyGames Debug, OU=Dev, O=HexCozyGames, L=Paris, C=FR" 2>/dev/null
+            printf 'storePassword=hexcozygames-debug-pwd\nkeyPassword=hexcozygames-debug-pwd\nkeyAlias=hexcozygames-debug\nstoreFile=keystore.jks\n' > android/key.properties
+            echo "✅ Signing debug stable (sans secrets)"
+          fi
+
+
+      - name: Inject google-services.json
+        env:
+          GOOGLE_SERVICES_JSON_BASE64: ${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}
+        run: |
+          if [ -n "$GOOGLE_SERVICES_JSON_BASE64" ]; then
+            echo "$GOOGLE_SERVICES_JSON_BASE64" | base64 --decode > android/app/google-services.json
+            echo "✅ google-services.json injecté depuis les secrets GitHub"
+          else
+            echo "⚠️  GOOGLE_SERVICES_JSON_BASE64 absent — Firebase Analytics désactivé"
+          fi
+      - run: flutter pub get
+      - run: flutter gen-l10n
+
+      - name: Build APK
+        run: flutter build apk --release --no-pub --build-name=${{ needs.analyze.outputs.app_version }} --build-number=${{ needs.analyze.outputs.app_build }}
+
+      - name: Build App Bundle
+        run: flutter build appbundle --release --no-pub --build-name=${{ needs.analyze.outputs.app_version }} --build-number=${{ needs.analyze.outputs.app_build }}
+
+      - name: Rename artifacts
+        run: |
+          VERSION=${{ needs.analyze.outputs.app_version }}
+          mkdir -p dist
+          cp build/app/outputs/flutter-apk/app-release.apk "dist/HexCozyGames-${VERSION}.apk"
+          cp build/app/outputs/bundle/release/app-release.aab "dist/HexCozyGames-${VERSION}.aab"
+          echo "📦 Release artifacts:"
+          ls -lh dist/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-release
+          path: dist/*
+          retention-days: 30
+
+  # ═══════════════════════════════════════════════
+  # RELEASE GITHUB — tags et manual dispatch
+  # ═══════════════════════════════════════════════
+  release:
+    name: Create GitHub Release
+    if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && github.event.inputs.create_release == 'true')
+    needs: [analyze, build-android-release]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Create tag (if manual dispatch)
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          VERSION=${{ needs.analyze.outputs.app_version }}
+          TAG="v${VERSION}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "$TAG" -m "Release $TAG"
+          git push origin "$TAG"
+          echo "TAG_NAME=$TAG" >> $GITHUB_ENV
+          echo "🏷️ Tag créé : $TAG"
+
+      - name: Set tag name (if tag push)
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: echo "TAG_NAME=${{ github.ref_name }}" >> $GITHUB_ENV
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          PREV_TAG=$(git tag --sort=-creatordate | grep '^v' | head -2 | tail -1)
+          if [ -z "$PREV_TAG" ] || [ "$PREV_TAG" = "$TAG_NAME" ]; then
+            PREV_TAG=$(git rev-list --max-parents=0 HEAD)
+          fi
+          CHANGELOG=$(git log "$PREV_TAG"..HEAD --pretty=format:"- %s" --no-merges 2>/dev/null || echo "- Release initiale")
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: android-release
+          path: ./artifacts
+
+      - name: List release artifacts
+        run: ls -lh artifacts/
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.TAG_NAME }}
+          name: "HexCozyGames ${{ env.TAG_NAME }}"
+          body: |
+            ## HexCozyGames ${{ env.TAG_NAME }}
+
+            **Version** : `${{ needs.analyze.outputs.app_version }}` | **Build** : `${{ needs.analyze.outputs.app_build }}`
+
+            ### 📋 Changements
+            ${{ steps.changelog.outputs.changelog }}
+
+            ### 📦 Téléchargements
+            - **APK** : Installation directe sur Android
+            - **AAB** : Pour le Google Play Store
+          files: |
+            artifacts/*
+          draft: false
+          prerelease: false
