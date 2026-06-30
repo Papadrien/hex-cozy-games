@@ -37,7 +37,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
       // Préchauffe le FutureProvider pour que HomeScreen l'ait déjà en cache.
       ref.read(activeSessionProvider.future).catchError((_) => false),
       ref.read(cloudSaveServiceProvider).syncOnLaunch(),
-    ]);
+    ]).catchError((_) {});
 
     if (mounted) {
       Navigator.pushReplacementNamed(context, '/home');
@@ -45,12 +45,12 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   }
 
   Future<void> _precacheFonts() async {
-    await Future.wait([
-      GoogleFonts.pendingFonts([
+    try {
+      await GoogleFonts.pendingFonts([
         GoogleFonts.pacifico(),
         GoogleFonts.nunito(),
-      ]),
-    ]);
+      ]).timeout(const Duration(seconds: 5));
+    } catch (_) {}
   }
 
   Future<void> _precacheImages() async {

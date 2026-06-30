@@ -101,6 +101,7 @@ flutter:
   assets:
     - assets/images/home_background.png
     - assets/images/hibiscus.png
+    - assets/fonts/
 
   shaders:
     - assets/shaders/ocean.frag
