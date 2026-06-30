@@ -3,6 +3,7 @@ import 'dart:ui';
 
 import 'package:flame/components.dart';
 
+import '../core/constants.dart';
 import 'hex_coords.dart';
 
 import 'tile_component.dart'; // kIsoScaleY, kTileDepthPriorityBase
@@ -104,6 +105,11 @@ class FoamRingComponent extends PositionComponent {
     final midX = (c0.dx + c1.dx) / 2;
     final midY = (c0.dy + c1.dy) / 2;
 
+    // On ne garde que les arêtes "basses" de la tuile (celles dont la face
+    // latérale 3D est visible, cf. tile_component.dart). Ce sont elles qui
+    // touchent l'eau visuellement : la tuile a l'air de flotter dessus.
+    if (midY < cy - 0.01) return;
+
     // Vecteur de l'arête et sa longueur.
     final edX = c1.dx - c0.dx;
     final edY = c1.dy - c0.dy;
@@ -114,6 +120,11 @@ class FoamRingComponent extends PositionComponent {
     final outX = edY / edLen;
     final outY = -edX / edLen;
 
+    // Décalage vertical correspondant à l'épaisseur visuelle de la tuile
+    // (cf. _tileDepth dans tile_component.dart), pour coller l'écume à la
+    // ligne de flottaison plutôt qu'au contour du dessus de la tuile.
+    final tileDepth = kTileDepth * (hs / kHexSize);
+
     // Direction le long de l'arête (angle utilisé pour orienter les traits).
     final edgeAngle = atan2(edY, edX);
 
@@ -121,12 +132,16 @@ class FoamRingComponent extends PositionComponent {
     const int n = 5;
     for (int b = 0; b < n; b++) {
       final t = (b / (n - 1) - 0.5) * 0.75 * edLen;
-      final outDist = (0.08 + rng.nextDouble() * 0.12) * hs;
+      final outDist = (0.0 + rng.nextDouble() * 0.05) * hs;
       final latNoise = (rng.nextDouble() - 0.5) * 0.10 * edLen;
       final angleJitter = (rng.nextDouble() - 0.5) * 0.35; // léger zigzag
 
       final bx = midX + edX / edLen * t + outX * outDist + latNoise * edX / edLen;
-      final by = midY + edY / edLen * t + outY * outDist + latNoise * edY / edLen;
+      final by = midY +
+          tileDepth +
+          edY / edLen * t +
+          outY * outDist +
+          latNoise * edY / edLen;
 
       _blobs.add(_FoamBlob(
         center: Offset(bx, by),
