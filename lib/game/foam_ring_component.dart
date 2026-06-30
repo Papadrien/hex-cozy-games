@@ -56,16 +56,33 @@ class FoamRingComponent extends PositionComponent {
     for (final blob in _blobs) {
       final breath = (sin(_time * blob.speed + blob.phase) + 1.0) / 2.0;
       final alpha = lerpDouble(blob.alphaMin, blob.alphaMax, breath)!;
-      final r = blob.radius * lerpDouble(0.85, 1.15, breath)!;
+      final pulse = lerpDouble(0.9, 1.1, breath)!;
+
+      final length = blob.length * pulse;
+      final width = blob.width * pulse;
+
+      // On dessine un cercle dans un repère local, puis on l'écrase et
+      // l'oriente le long de l'arête pour obtenir un trait fin (effet
+      // écume/vague) au lieu d'un blob rond.
+      canvas.save();
+      canvas.translate(blob.center.dx, blob.center.dy);
+      canvas.rotate(blob.angle);
+      canvas.scale(length / width, 1.0);
 
       final paint = Paint()
         ..shader = Gradient.radial(
-          blob.center,
-          r,
-          [Color.fromRGBO(255, 255, 255, alpha), Color.fromRGBO(255, 255, 255, 0.0)],
+          Offset.zero,
+          width,
+          [
+            Color.fromRGBO(255, 255, 255, alpha),
+            Color.fromRGBO(255, 255, 255, alpha * 0.6),
+            Color.fromRGBO(255, 255, 255, 0.0),
+          ],
+          [0.0, 0.55, 1.0],
         );
 
-      canvas.drawCircle(blob.center, r, paint);
+      canvas.drawCircle(Offset.zero, width, paint);
+      canvas.restore();
     }
   }
 
@@ -97,21 +114,27 @@ class FoamRingComponent extends PositionComponent {
     final outX = edY / edLen;
     final outY = -edX / edLen;
 
-    // 3 blobs par arête.
-    const int n = 3;
+    // Direction le long de l'arête (angle utilisé pour orienter les traits).
+    final edgeAngle = atan2(edY, edX);
+
+    // 5 traits d'écume par arête (au lieu de 3 blobs ronds).
+    const int n = 5;
     for (int b = 0; b < n; b++) {
-      final t = (b / (n - 1) - 0.5) * 0.65 * edLen;
-      final outDist = (0.10 + rng.nextDouble() * 0.14) * hs;
-      final latNoise = (rng.nextDouble() - 0.5) * 0.12 * edLen;
+      final t = (b / (n - 1) - 0.5) * 0.75 * edLen;
+      final outDist = (0.08 + rng.nextDouble() * 0.12) * hs;
+      final latNoise = (rng.nextDouble() - 0.5) * 0.10 * edLen;
+      final angleJitter = (rng.nextDouble() - 0.5) * 0.35; // léger zigzag
 
       final bx = midX + edX / edLen * t + outX * outDist + latNoise * edX / edLen;
       final by = midY + edY / edLen * t + outY * outDist + latNoise * edY / edLen;
 
       _blobs.add(_FoamBlob(
         center: Offset(bx, by),
-        radius: (0.10 + rng.nextDouble() * 0.08) * hs,
-        alphaMin: 0.05 + rng.nextDouble() * 0.07,
-        alphaMax: 0.30 + rng.nextDouble() * 0.22,
+        angle: edgeAngle + angleJitter,
+        length: (0.16 + rng.nextDouble() * 0.10) * hs,
+        width: (0.022 + rng.nextDouble() * 0.012) * hs,
+        alphaMin: 0.18 + rng.nextDouble() * 0.10,
+        alphaMax: 0.55 + rng.nextDouble() * 0.25,
         speed: 0.7 + rng.nextDouble() * 1.3,
         phase: rng.nextDouble() * 2 * pi,
       ));
@@ -129,7 +152,9 @@ class FoamRingComponent extends PositionComponent {
 class _FoamBlob {
   const _FoamBlob({
     required this.center,
-    required this.radius,
+    required this.angle,
+    required this.length,
+    required this.width,
     required this.alphaMin,
     required this.alphaMax,
     required this.speed,
@@ -137,7 +162,9 @@ class _FoamBlob {
   });
 
   final Offset center;
-  final double radius;
+  final double angle;
+  final double length;
+  final double width;
   final double alphaMin;
   final double alphaMax;
   final double speed;
