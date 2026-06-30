@@ -59,12 +59,11 @@ class FoamRingComponent extends PositionComponent {
       final r = blob.radius * lerpDouble(0.85, 1.15, breath)!;
 
       final paint = Paint()
-        ..shader = RadialGradient(
-          colors: [
-            Color.fromRGBO(255, 255, 255, alpha),
-            Color.fromRGBO(255, 255, 255, 0.0),
-          ],
-        ).createShader(Rect.fromCircle(center: blob.center, radius: r));
+        ..shader = Gradient.radial(
+          blob.center,
+          r,
+          [Color.fromRGBO(255, 255, 255, alpha), Color.fromRGBO(255, 255, 255, 0.0)],
+        );
 
       canvas.drawCircle(blob.center, r, paint);
     }
