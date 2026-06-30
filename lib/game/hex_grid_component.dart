@@ -25,6 +25,7 @@ import 'package:flame/effects.dart';
 
 import '../core/colors.dart';
 import '../core/constants.dart';
+import 'foam_ring_component.dart';
 import 'hex_coords.dart';
 import 'hex_cell.dart';
 import 'hex_tile.dart';
@@ -48,6 +49,9 @@ class HexGridComponent extends PositionComponent {
 
   final Map<HexCoords, HexCell> placedCells = {};
   final Map<HexCoords, TileComponent> placedTiles = {};
+
+  /// Écume animée sur les bords du plateau.
+  late final FoamRingComponent _foamRing;
 
   // ── Prévisualisation de placement (story 1.5a) ──────────────────────────
 
@@ -222,6 +226,13 @@ class HexGridComponent extends PositionComponent {
 
   // ── Layout ────────────────────────────────────────────────────────────────
 
+  @override
+  Future<void> onLoad() async {
+    await super.onLoad();
+    _foamRing = FoamRingComponent();
+    await add(_foamRing);
+  }
+
   /// Origine de la grille en coordonnées écran (avant iso).
   /// Décalée à 42 % de la largeur pour laisser la place au HUD droit.
   HexLayout get _layout => HexLayout(
@@ -278,6 +289,8 @@ class HexGridComponent extends PositionComponent {
       biome: _dominantBiome(tile),
     );
 
+    _foamRing.refresh(placedTiles, _layout);
+
     // Nettoyer les surbrillances de prévisualisation.
     for (final entry in _previewNeighborHighlights.entries) {
       final tile = placedTiles[entry.key];
@@ -292,6 +305,7 @@ class HexGridComponent extends PositionComponent {
     final existing = placedTiles.remove(coords);
     if (existing != null) remove(existing);
     placedCells.remove(coords);
+    _foamRing.refresh(placedTiles, _layout);
   }
 
   /// Affiche des pièces (pièces de monnaie) au niveau de chaque côté connecté
@@ -371,6 +385,7 @@ class HexGridComponent extends PositionComponent {
       entry.value.updateDepthPriority();
     }
     _syncPreviewComponent();
+    _foamRing.refresh(placedTiles, _layout);
   }
 
   // ── Rendu (emplacements disponibles — story 1.7f) ─────────
