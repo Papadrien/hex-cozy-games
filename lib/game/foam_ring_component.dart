@@ -3,7 +3,6 @@ import 'dart:ui';
 
 import 'package:flame/components.dart';
 
-import '../core/constants.dart';
 import 'hex_coords.dart';
 
 import 'tile_component.dart'; // kIsoScaleY, kTileDepthPriorityBase
@@ -24,10 +23,10 @@ class FoamRingComponent extends PositionComponent {
 
   double _time = 0.0;
 
-  // Priorité : juste en dessous des tuiles (qui commencent à kTileDepthPriorityBase + Y).
-  // On met -1 pour être sous toutes les tuiles mais au-dessus du fond.
+  // Priorité : au-dessus de toutes les tuiles (et de l'aperçu de pose), pour
+  // que l'écume soit visible par-dessus le plateau plutôt que dessous.
   @override
-  int get priority => kTileDepthPriorityBase - 1;
+  int get priority => kTileDepthPriorityPreview + 2;
 
   // ── API publique ─────────────────────────────────────────────────────────
 
@@ -105,11 +104,6 @@ class FoamRingComponent extends PositionComponent {
     final midX = (c0.dx + c1.dx) / 2;
     final midY = (c0.dy + c1.dy) / 2;
 
-    // On ne garde que les arêtes "basses" de la tuile (celles dont la face
-    // latérale 3D est visible, cf. tile_component.dart). Ce sont elles qui
-    // touchent l'eau visuellement : la tuile a l'air de flotter dessus.
-    if (midY < cy - 0.01) return;
-
     // Vecteur de l'arête et sa longueur.
     final edX = c1.dx - c0.dx;
     final edY = c1.dy - c0.dy;
@@ -120,35 +114,28 @@ class FoamRingComponent extends PositionComponent {
     final outX = edY / edLen;
     final outY = -edX / edLen;
 
-    // Décalage vertical correspondant à l'épaisseur visuelle de la tuile
-    // (cf. _tileDepth dans tile_component.dart), pour coller l'écume à la
-    // ligne de flottaison plutôt qu'au contour du dessus de la tuile.
-    // On ne prend qu'une fraction de cette épaisseur pour rester proche
-    // du bord (sinon l'écume "flotte" trop loin sous la tuile).
-    final tileDepth = kTileDepth * (hs / kHexSize) * 0.35;
-
     // Direction le long de l'arête (angle utilisé pour orienter les traits).
     final edgeAngle = atan2(edY, edX);
 
-    // 5 traits d'écume par arête (au lieu de 3 blobs ronds).
+    // On découpe l'arête en N créneaux égaux et on place un trait dans
+    // chacun, avec une longueur strictement inférieure à la largeur du
+    // créneau : ça garantit que les traits restent entre les deux coins de
+    // l'arête et ne se chevauchent/débordent pas dessus.
     const int n = 5;
+    final slotWidth = edLen / n;
     for (int b = 0; b < n; b++) {
-      final t = (b / (n - 1) - 0.5) * 0.75 * edLen;
-      final outDist = (-0.02 + rng.nextDouble() * 0.04) * hs;
-      final latNoise = (rng.nextDouble() - 0.5) * 0.10 * edLen;
-      final angleJitter = (rng.nextDouble() - 0.5) * 0.35; // léger zigzag
+      final t = ((b + 0.5) / n - 0.5) * edLen;
+      final outDist = (-0.03 + rng.nextDouble() * 0.05) * hs;
+      final latNoise = (rng.nextDouble() - 0.5) * 0.20 * slotWidth;
+      final angleJitter = (rng.nextDouble() - 0.5) * 0.25; // léger zigzag
 
       final bx = midX + edX / edLen * t + outX * outDist + latNoise * edX / edLen;
-      final by = midY +
-          tileDepth +
-          edY / edLen * t +
-          outY * outDist +
-          latNoise * edY / edLen;
+      final by = midY + edY / edLen * t + outY * outDist + latNoise * edY / edLen;
 
       _blobs.add(_FoamBlob(
         center: Offset(bx, by),
         angle: edgeAngle + angleJitter,
-        length: (0.16 + rng.nextDouble() * 0.10) * hs,
+        length: slotWidth * (0.55 + rng.nextDouble() * 0.25),
         width: (0.045 + rng.nextDouble() * 0.02) * hs,
         alphaMin: 0.18 + rng.nextDouble() * 0.10,
         alphaMax: 0.55 + rng.nextDouble() * 0.25,
