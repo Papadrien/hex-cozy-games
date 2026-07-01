@@ -35,7 +35,7 @@ android {
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         // minSdk forcé à 23 : requis par google_mobile_ads et games_services
         // (Play Games Services v2) — flutter.minSdkVersion serait insuffisant.
-        minSdk = 23
+        minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
@@ -58,4 +58,16 @@ kotlin {
 
 flutter {
     source = "../.."
+}
+
+// Workaround: Flutter Gradle plugin declares two @OutputFiles on the same
+// task (outputFiles + getDependenciesFiles), which breaks Gradle 9.x strict
+// validation. Disable state tracking as suggested by the error message.
+// See: https://docs.gradle.org/9.1.0/userguide/incremental_build.html#sec:disable-state-tracking
+afterEvaluate {
+    tasks.matching { it.name.startsWith("compileFlutterBuild") }.configureEach {
+        doNotTrackState(
+            "Flutter Gradle plugin has duplicate @OutputFiles annotations",
+        )
+    }
 }
