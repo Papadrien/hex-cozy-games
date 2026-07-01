@@ -1,0 +1,20 @@
+{
+    "logs": [
+        {
+            "outputFile": "fr.junade.hex_haven.app-mergeDebugResources-54:/values-watch-v20/values-watch-v20.xml",
+            "map": [
+                {
+                    "source": "/root/.gradle/caches/9.1.0/transforms/7309dea8730bca09998fdb3c9f1791b8/transformed/appcompat-1.2.0/res/values-watch-v20/values-watch-v20.xml",
+                    "from": {
+                        "startLines": "2,5,8",
+                        "startColumns": "4,4,4",
+                        "startOffsets": "55,214,385",
+                        "endLines": "4,7,10",
+                        "endColumns": "12,12,12",
+                        "endOffsets": "209,380,553"
+                    }
+                }
+            ]
+        }
+    ]
+}

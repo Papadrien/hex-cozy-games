@@ -67,17 +67,14 @@ const int kTileDepthPriorityPreview = kTileDepthPriorityBase + 1000000;
 
 class TileComponent extends PositionComponent {
   TileComponent({
-    required HexTile tile,
-    required HexCoords coords,
+    required this.tile,
+    required this._coords,
     double hexSize = kHexSize,
-    double alpha = 1.0,
+    this._alpha = 1.0,
     this.highlightedSides = const {},
     Vector2? position,
     double initialWaveIntensity = 1.0,
-  })  : _tile = tile,
-        _coords = coords,
-        _hexSize = hexSize,
-        _alpha = alpha,
+  })  : _hexSize = hexSize,
         _waveIntensity = initialWaveIntensity.clamp(0.0, 1.0),
         super(
           position: position ?? Vector2.zero(),
@@ -86,11 +83,7 @@ class TileComponent extends PositionComponent {
           priority: 1,
         );
 
-  HexTile _tile;
-  HexTile get tile => _tile;
-  set tile(HexTile value) {
-    _tile = value;
-  }
+  HexTile tile;
 
   final HexCoords _coords;
   HexCoords get coords => _coords;

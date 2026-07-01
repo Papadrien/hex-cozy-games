@@ -15,7 +15,7 @@
 library;
 
 import 'dart:math';
-import 'dart:ui' show Canvas, Color, FontWeight, Offset, Paint, PaintingStyle, Path, TextDirection;
+import 'dart:ui' show Canvas, FontWeight, Offset, Paint, PaintingStyle, Path, TextDirection;
 
 import 'package:flutter/animation.dart' show Curves;
 import 'package:flutter/painting.dart' show TextPainter, TextSpan, TextStyle;
