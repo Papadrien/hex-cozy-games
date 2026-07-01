@@ -1,0 +1,21 @@
+{
+  "assets": {},
+  "config": {
+    "build_asset_types": [
+      "code_assets/code"
+    ],
+    "extensions": {
+      "code_assets": {
+        "link_mode_preference": "dynamic",
+        "target_architecture": "arm64",
+        "target_os": "linux"
+      }
+    },
+    "linking_enabled": false
+  },
+  "out_dir_shared": "/root/hex-cozy-games/.dart_tool/hooks_runner/shared/sqlite3/build/",
+  "out_file": "/root/hex-cozy-games/.dart_tool/hooks_runner/sqlite3/0c894306e9/output.json",
+  "package_name": "sqlite3",
+  "package_root": "/root/.pub-cache/hosted/pub.dev/sqlite3-3.3.3/",
+  "user_defines": {}
+}
