@@ -186,7 +186,7 @@ class TileComponent extends PositionComponent {
     // l'anisotropie de la projection isométrique.
     final hasRotationOffset = _rotationVisualOffset.abs() > 0.0001;
     if (hasRotationOffset) {
-      final pivot = Offset(cx, size.y / 2);
+      final pivot = Offset(cx, cyTop);
       canvas.save();
       canvas.translate(pivot.dx, pivot.dy);
       canvas.scale(1.0, 1.0 / kIsoScaleY);
