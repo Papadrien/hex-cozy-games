@@ -46,7 +46,7 @@ const double kDropStartLiftPx = kPreviewLiftPx;
 
 /// Profondeur du dépassement sous l'emplacement final, avant le rebond de
 /// remontée (effet "posée dans l'eau, qui flotte légèrement en remontant").
-const double kDropBounceOvershootPx = 1.0;
+const double kDropBounceOvershootPx = 2.0;
 
 /// Durée de la phase de descente.
 const double kDropDescendDurationSec = 0.20;
@@ -473,7 +473,7 @@ class HexGridComponent extends PositionComponent {
     canvas.drawPath(
       path,
       Paint()
-        ..color = Color(0xFF0A1420).withValues(alpha: 0.5)
+        ..color = Color(0xFF0A1420).withValues(alpha: 0.70)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2.0,
     );

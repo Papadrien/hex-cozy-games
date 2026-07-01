@@ -192,10 +192,12 @@ class TileComponent extends PositionComponent {
     final hasRotationOffset = _rotationVisualOffset.abs() > 0.0001;
     if (hasRotationOffset) {
       final pivot = Offset(cx, cyTop);
-      topCorners = [
-        for (final corner in topCorners)
-          _rotateAroundPivot(corner, pivot, _rotationVisualOffset),
-      ];
+      canvas.save();
+      canvas.translate(pivot.dx, pivot.dy);
+      canvas.scale(1.0, 1.0 / kIsoScaleY);
+      canvas.rotate(_rotationVisualOffset);
+      canvas.scale(1.0, kIsoScaleY);
+      canvas.translate(-pivot.dx, -pivot.dy);
     }
 
     _renderTile(canvas, cx, cyTop, topCorners);
@@ -255,10 +257,8 @@ class TileComponent extends PositionComponent {
           ..style = PaintingStyle.fill,
       );
 
-      // Ligne blanche sur l'ondulation du bord bas — uniquement sur les
-      // côtés bas-gauche (i == 3) et bas-droit (i == 2), pas sur les côtés
-      // gauche/droit (i == 4 / i == 1).
-      if (_waveIntensity > 0.01 && (i == 2 || i == 3)) {
+      // Ligne blanche sur l'ondulation du bord bas.
+      if (_waveIntensity > 0.01) {
         final wavePath = Path();
         for (var s = 0; s < wavyBottom.length; s++) {
           if (s == 0) {
