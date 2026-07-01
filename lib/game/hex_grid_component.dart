@@ -15,7 +15,7 @@
 library;
 
 import 'dart:math';
-import 'dart:ui' show Canvas, FontWeight, Offset, Paint, PaintingStyle, Path, TextDirection;
+import 'dart:ui' show Canvas, Color, FontWeight, Offset, Paint, PaintingStyle, Path, TextDirection;
 
 import 'package:flutter/animation.dart' show Curves;
 import 'package:flutter/painting.dart' show TextPainter, TextSpan, TextStyle;
@@ -469,12 +469,13 @@ class HexGridComponent extends PositionComponent {
     }
     path.close();
 
-    // Remplissage sombre translucide (story 1.7f), sans contour.
+    // Contour sombre seulement (story 1.7f), sans remplissage.
     canvas.drawPath(
       path,
       Paint()
-        ..color = kBackgroundColor.withValues(alpha: 0.45)
-        ..style = PaintingStyle.fill,
+        ..color = Color(0xFF0A1420).withValues(alpha: 0.70)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.0,
     );
   }
 
