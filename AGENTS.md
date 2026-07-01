@@ -30,10 +30,11 @@ Le SDK Flutter local a aussi été patché dans :
 Ces patches SDK sont nécessaires localement mais pas en CI (le `doNotTrackState`
 dans le projet suffit).
 
-## Build directory redirection supprimée dans `android/build.gradle.kts`
-Le `../../build` redirigeait les outputs vers `build/` à la racine du projet,
-ce qui causait des erreurs de création de dossier sur CI. Les outputs vont
-maintenant dans `android/build/` (comportement Gradle par défaut).
+## `android/build.gradle.kts` : redirection du build directory vers `../build`
+Les outputs Gradle sont redirigés vers `build/` à la racine du projet (comportement
+attendu par `flutter build` pour trouver l'APK). La redirection utilise
+`rootProject.layout.projectDirectory.dir("../build")` plutôt que l'ancien
+`rootProject.layout.buildDirectory.dir("../../build")` qui pouvait mal résoudre.
 
 # Bloquant
 - AAPT2 crash avec "Illegal instruction" sur ce CPU (environnement virtualisé incompatible avec les instructions CPU des binaires AAPT2 récents). Le build Android ne peut pas finaliser ici, mais `flutter analyze` et `flutter test` passent.
