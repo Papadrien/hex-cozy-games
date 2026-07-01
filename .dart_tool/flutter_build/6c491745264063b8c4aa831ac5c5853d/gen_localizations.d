@@ -1,1 +1,0 @@
- /root/hex-cozy-games/lib/l10n/app_localizations_en.dart /root/hex-cozy-games/lib/l10n/app_localizations_fr.dart /root/hex-cozy-games/lib/l10n/app_localizations.dart:  /root/hex-cozy-games/l10n.yaml /root/hex-cozy-games/lib/l10n/app_en.arb /root/hex-cozy-games/lib/l10n/app_fr.arb
