@@ -14,5 +14,21 @@
 - NDK 28.2.13676358 installé
 - Licences Android acceptées
 
+# Workarounds
+## Gradle 9.1.0 + Flutter Gradle plugin : `outputFiles$1` / `Cannot access output property`
+Le plugin Flutter Gradle déclare deux `@OutputFiles` sur la même tâche
+(`outputFiles` dans `FlutterTask` + `getDependenciesFiles()` dans `BaseFlutterTask`).
+Gradle 9.x échoue avec `Cannot access output property 'outputFiles$1'`.
+
+**Fix** : `android/app/build.gradle.kts` utilise `doNotTrackState()` sur les
+tâches `compileFlutterBuild*` pour désactiver le state tracking.
+
+Le SDK Flutter local a aussi été patché dans :
+- `BaseFlutterTask.kt` : `@OutputFiles` → `@Internal` sur `getDependenciesFiles()`
+- `BaseFlutterTaskHelper.kt` : retiré `@OutputFiles` du helper
+
+Ces patches SDK sont nécessaires localement mais pas en CI (le `doNotTrackState`
+dans le projet suffit).
+
 # Bloquant
 - AAPT2 crash avec "Illegal instruction" sur ce CPU (environnement virtualisé incompatible avec les instructions CPU des binaires AAPT2 récents). Le build Android ne peut pas finaliser ici, mais `flutter analyze` et `flutter test` passent.
