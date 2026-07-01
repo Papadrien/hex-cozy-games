@@ -241,6 +241,25 @@ class TileComponent extends PositionComponent {
           ..color = shaded.withValues(alpha: _alpha)
           ..style = PaintingStyle.fill,
       );
+
+      // Ligne blanche sur l'ondulation du bord bas.
+      if (_waveIntensity > 0.01) {
+        final wavePath = Path();
+        for (var s = 0; s < wavyBottom.length; s++) {
+          if (s == 0) {
+            wavePath.moveTo(wavyBottom[s].dx, wavyBottom[s].dy);
+          } else {
+            wavePath.lineTo(wavyBottom[s].dx, wavyBottom[s].dy);
+          }
+        }
+        canvas.drawPath(
+          wavePath,
+          Paint()
+            ..color = const Color(0xFFFFFFFF).withValues(alpha: _alpha * 0.55)
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 1.5,
+        );
+      }
     }
 
     // ── Face du dessus ────────────────────────────────────────────────────
