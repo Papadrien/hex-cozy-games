@@ -38,6 +38,26 @@ const double kPreviewLiftPx = 10.0;
 /// Opacité de la tuile en prévisualisation.
 const double kPreviewAlpha = 1.0;
 
+// ── Animation de pose (descente + léger rebond "flottant") ─────────────────
+
+/// Hauteur de départ de la descente : la tuile posée part de la même
+/// élévation que la prévisualisation, pour un enchaînement visuel continu.
+const double kDropStartLiftPx = kPreviewLiftPx;
+
+/// Profondeur du dépassement sous l'emplacement final, avant le rebond de
+/// remontée (effet "posée dans l'eau, qui flotte légèrement en remontant").
+const double kDropBounceOvershootPx = 4.0;
+
+/// Durée de la phase de descente.
+const double kDropDescendDurationSec = 0.20;
+
+/// Durée de la phase de rebond (remontée jusqu'à la position finale).
+const double kDropBounceDurationSec = 0.16;
+
+/// Durée de la montée en puissance de l'ondulation du bord bas une fois la
+/// tuile arrivée à son emplacement final.
+const double kDropWaveRampInDurationSec = 0.45;
+
 class HexGridComponent extends PositionComponent {
   HexGridComponent({required this.screenSize})
       : super(position: Vector2.zero(), priority: 0);
@@ -59,6 +79,13 @@ class HexGridComponent extends PositionComponent {
   HexCoords? _previewCoords;
   HexTile? _previewTile;
   TileComponent? _previewComponent;
+
+  /// Dernier couple (coords, tuile) synchronisé, utilisé pour distinguer une
+  /// simple rotation de la tuile prévisualisée (même emplacement) d'une
+  /// nouvelle sélection (déclenche l'animation de rotation plutôt qu'un
+  /// remplacement instantané — voir [_syncPreviewComponent]).
+  HexCoords? _lastSyncedPreviewCoords;
+  HexTile? _lastSyncedPreviewTile;
 
   Set<int> _previewHighlightedSides = const {};
   final List<PositionComponent> _previewCoinComponents = [];
@@ -136,6 +163,8 @@ class HexGridComponent extends PositionComponent {
         remove(c);
       }
       _previewCoinComponents.clear();
+      _lastSyncedPreviewCoords = null;
+      _lastSyncedPreviewTile = null;
       return;
     }
 
@@ -147,10 +176,23 @@ class HexGridComponent extends PositionComponent {
 
     final existing = _previewComponent;
     if (existing != null) {
+      // Si l'emplacement n'a pas changé mais que la tuile a changé, il ne
+      // peut s'agir que d'une rotation (voir doc de [PlacementState]) : on
+      // anime la rotation plutôt que de basculer instantanément l'affichage.
+      final previousTile = _lastSyncedPreviewTile;
+      final sameCell = _lastSyncedPreviewCoords == coords;
       existing.tile = tile;
       existing.hexSize = kHexSize * zoom;
       existing.position = liftedPosition;
       existing.highlightedSides = _previewHighlightedSides;
+      if (sameCell && previousTile != null) {
+        final steps = _detectRotationSteps(previousTile, tile);
+        if (steps != null) {
+          existing.animateRotationSwirl(steps);
+        }
+      }
+      _lastSyncedPreviewCoords = coords;
+      _lastSyncedPreviewTile = tile;
       _syncPreviewCoinComponents();
       return;
     }
@@ -162,10 +204,16 @@ class HexGridComponent extends PositionComponent {
       alpha: kPreviewAlpha,
       highlightedSides: _previewHighlightedSides,
       position: liftedPosition,
+      // Pas d'ondulation pendant la prévisualisation (elle n'apparaît qu'une
+      // fois la tuile réellement posée, voir [placeTile]).
+      initialWaveIntensity: 0.0,
     );
     component.priority = kTileDepthPriorityPreview;
     _previewComponent = component;
     add(component);
+
+    _lastSyncedPreviewCoords = coords;
+    _lastSyncedPreviewTile = tile;
 
     _syncPreviewCoinComponents();
   }
@@ -249,19 +297,25 @@ class HexGridComponent extends PositionComponent {
     if (existing != null) remove(existing);
 
     final center = _layout.hexToPixel(coords, isoScaleY: kIsoScaleY);
+    final finalPosition = Vector2(center.x, center.y);
 
     final component = TileComponent(
       tile: tile,
       coords: coords,
       hexSize: kHexSize * zoom,
-      position: Vector2(center.x, center.y),
+      position: animated
+          ? Vector2(center.x, center.y - kDropStartLiftPx)
+          : finalPosition,
       highlightedSides: const {},
+      // En pose animée, l'ondulation n'apparaît qu'une fois la tuile arrivée
+      // (voir plus bas) ; sans animation (restauration de partie), elle est
+      // visible immédiatement.
+      initialWaveIntensity: animated ? 0.0 : 1.0,
     );
-    component.updateDepthPriority();
-
-    if (animated) {
-      component.scale = Vector2.all(0.3);
-    }
+    // Calculée sur la position finale (et non la position de départ
+    // surélevée) pour que l'empilement visuel reste correct pendant toute
+    // l'animation de descente.
+    component.priority = kTileDepthPriorityBase + finalPosition.y.round();
 
     if (connectedSides != null && connectedSides.isNotEmpty) {
       component.startGlow(connectedSides);
@@ -271,10 +325,23 @@ class HexGridComponent extends PositionComponent {
     add(component);
 
     if (animated) {
-      component.add(ScaleEffect.to(
-        Vector2.all(1.0),
-        EffectController(duration: 0.35, curve: Curves.easeInOut),
-      ));
+      // Descente vers l'emplacement final, puis léger rebond (dépassement
+      // sous la cible et remontée) pour un effet "posée dans l'eau qui
+      // flotte". L'ondulation du bord bas démarre sa montée en puissance une
+      // fois la tuile arrivée à son emplacement définitif.
+      final overshootPosition =
+          Vector2(center.x, center.y + kDropBounceOvershootPx);
+      final descend = MoveEffect.to(
+        overshootPosition,
+        EffectController(duration: kDropDescendDurationSec, curve: Curves.easeIn),
+      );
+      final bounceBack = MoveEffect.to(
+        finalPosition,
+        EffectController(duration: kDropBounceDurationSec, curve: Curves.easeOut),
+      )..onComplete = () {
+          component.startWaveRampIn(duration: kDropWaveRampInDurationSec);
+        };
+      component.add(SequenceEffect([descend, bounceBack]));
     }
 
     placedCells[coords] = HexCell(
@@ -402,11 +469,11 @@ class HexGridComponent extends PositionComponent {
     }
     path.close();
 
-    // Remplissage blanc translucide (story 1.7f), sans contour.
+    // Remplissage sombre translucide (story 1.7f), sans contour.
     canvas.drawPath(
       path,
       Paint()
-        ..color = const Color(0xFFFFFFFF).withValues(alpha: 0.08)
+        ..color = kBackgroundColor.withValues(alpha: 0.45)
         ..style = PaintingStyle.fill,
     );
   }
@@ -437,6 +504,29 @@ class HexGridComponent extends PositionComponent {
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────────
+
+  /// Détecte de combien de crans de 60° [newTile] est la rotation de
+  /// [oldTile] (positif ou négatif selon le sens le plus court), ou null si
+  /// [newTile] n'est pas une simple rotation de [oldTile] (ex : biomes
+  /// différents — nouvelle tuile plutôt que rotation).
+  static int? _detectRotationSteps(HexTile oldTile, HexTile newTile) {
+    for (var n = 1; n < 6; n++) {
+      final rotated = oldTile.rotated(n);
+      var equal = true;
+      for (var i = 0; i < 6; i++) {
+        if (rotated.sides[i] != newTile.sides[i]) {
+          equal = false;
+          break;
+        }
+      }
+      if (equal) {
+        // Ramène vers le chemin de rotation le plus court (ex : 5 crans
+        // dans un sens équivaut à 1 cran dans l'autre sens).
+        return n > 3 ? n - 6 : n;
+      }
+    }
+    return null;
+  }
 
   static BiomeType _dominantBiome(HexTile tile) {
     final counts = <BiomeType, int>{};
