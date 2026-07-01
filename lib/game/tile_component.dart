@@ -47,6 +47,21 @@ extension BiomeColor on BiomeType {
 /// Épaisseur de base du "bloc" 3D des tuiles (à zoom 1.0).
 const double kTileDepth = 10.0;
 
+// ── Ondulation animée de la ligne basse du relief 3D ────────────────────────
+// Donne l'impression que le pied de la tuile "trempe" légèrement dans l'eau.
+
+/// Amplitude de l'ondulation (à zoom 1.0), en pixels.
+const double kEdgeWaveAmplitude = 1.6;
+
+/// Nombre d'oscillations le long de chaque arête.
+const double kEdgeWaveFrequency = 1.5;
+
+/// Vitesse d'animation de l'ondulation (rad/s).
+const double kEdgeWaveSpeed = 1.3;
+
+/// Nombre de segments utilisés pour dessiner la ligne ondulée.
+const int kEdgeWaveSegments = 8;
+
 const int kTileDepthPriorityBase = 100000;
 const int kTileDepthPriorityPreview = kTileDepthPriorityBase + 1000000;
 
@@ -78,6 +93,13 @@ class TileComponent extends PositionComponent {
   final HexCoords _coords;
   HexCoords get coords => _coords;
 
+  /// Décalage de phase propre à cette tuile (basé sur ses coordonnées) pour
+  /// que les tuiles n'ondulent pas toutes de façon parfaitement synchrone.
+  late final double _wavePhaseOffset =
+      (_coords.q * 0.73 + _coords.r * 1.31).abs() % (2 * pi);
+
+  double _waveTime = 0.0;
+
   double _hexSize;
   double get hexSize => _hexSize;
   set hexSize(double value) {
@@ -91,6 +113,9 @@ class TileComponent extends PositionComponent {
 
   /// Épaisseur du bloc 3D proportionnelle au zoom courant.
   double get _tileDepth => kTileDepth * (_hexSize / kHexSize);
+
+  /// Amplitude de l'ondulation proportionnelle au zoom courant.
+  double get _waveAmplitude => kEdgeWaveAmplitude * (_hexSize / kHexSize);
 
   double _alpha;
   double get alpha => _alpha;
@@ -127,12 +152,18 @@ class TileComponent extends PositionComponent {
       final b0 = Offset(t0.dx, t0.dy + _tileDepth);
       final b1 = Offset(t1.dx, t1.dy + _tileDepth);
 
+      // Ligne basse ondulée (b1 → b0) : les extrémités restent fixes sur les
+      // coins pour garder une silhouette fermée, l'ondulation est maximale
+      // au milieu de l'arête (effet "trempé dans l'eau").
+      final wavyBottom = _wavyEdge(b1, b0, _wavePhaseOffset + i * 0.9);
+
       final sidePath = Path()
         ..moveTo(t0.dx, t0.dy)
-        ..lineTo(t1.dx, t1.dy)
-        ..lineTo(b1.dx, b1.dy)
-        ..lineTo(b0.dx, b0.dy)
-        ..close();
+        ..lineTo(t1.dx, t1.dy);
+      for (final p in wavyBottom) {
+        sidePath.lineTo(p.dx, p.dy);
+      }
+      sidePath.close();
 
       final baseColor = tile.sides[i].color;
       final shaded = Color.from(
@@ -244,6 +275,7 @@ class TileComponent extends PositionComponent {
   @override
   void update(double dt) {
     super.update(dt);
+    _waveTime += dt;
     if (_glowSides != null && _glowAlpha > 0.01) {
       _glowAlpha -= (kGlowStartAlpha / kGlowDurationSec) * dt;
       if (_glowAlpha <= 0.01) {
@@ -254,6 +286,29 @@ class TileComponent extends PositionComponent {
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────────
+
+  /// Génère les points d'une arête ondulée entre [from] et [to].
+  ///
+  /// Les extrémités gardent un décalage nul (enveloppe en sinus) afin que
+  /// l'arête reste parfaitement raccordée aux coins de l'hexagone — seul le
+  /// milieu de l'arête ondule, comme une petite vague le long du pied de
+  /// la tuile.
+  List<Offset> _wavyEdge(Offset from, Offset to, double phase) {
+    final dx = to.dx - from.dx;
+    final dy = to.dy - from.dy;
+    final points = <Offset>[];
+    for (var s = 0; s <= kEdgeWaveSegments; s++) {
+      final t = s / kEdgeWaveSegments;
+      final baseX = from.dx + dx * t;
+      final baseY = from.dy + dy * t;
+      final envelope = sin(pi * t); // 0 aux extrémités, 1 au centre
+      final wave = _waveAmplitude *
+          envelope *
+          sin(kEdgeWaveFrequency * 2 * pi * t + phase + _waveTime * kEdgeWaveSpeed);
+      points.add(Offset(baseX, baseY + wave));
+    }
+    return points;
+  }
 
   List<Offset> _isoCorners(double cx, double cy) {
     return List.generate(6, (i) {
