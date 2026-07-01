@@ -36,16 +36,8 @@ jobs:
       - name: Extract version from pubspec.yaml and regenerate build number
         id: version
         run: |
-          # Version sémantique (x.y.z) lue depuis pubspec.yaml — source de vérité.
           VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: //' | sed 's/+.*//')
-
-          # Build number déclaré dans pubspec.yaml (informatif, on ne l'utilise pas
-          # pour le build final afin d'éviter les collisions avec Google Play).
           PUBSPEC_BUILD=$(grep '^version:' pubspec.yaml | sed 's/.*+//')
-
-          # Build number EFFECTIVEMENT utilisé pour cette exécution : timestamp Unix
-          # courant. Garantit un versionCode strictement croissant à chaque run CI,
-          # sans avoir à modifier pubspec.yaml (pas de commit de bump nécessaire).
           BUILD=$(date +%s)
 
           echo "version=$VERSION" >> $GITHUB_OUTPUT
@@ -63,11 +55,17 @@ jobs:
       - name: Cache pub dependencies
         uses: actions/cache@v5
         with:
+          # ⚠️ NE PAS mettre .dart_tool ici : package_config.json contient des
+          # chemins ABSOLUS (rootUri) figés au moment du "flutter pub get".
+          # Si pub considère le lockfile à jour, il ne réécrit pas ce fichier
+          # et le cache peut resservir un rootUri d'un autre environnement
+          # (ex. /root/hex-cozy-games) → fait planter compileFlutterBuildDebug.
+          # ~/.pub-cache est safe : c'est le cache global des packages pub.dev,
+          # sans chemin lié au checkout.
           path: |
             ~/.pub-cache
-            .dart_tool
-          key: pub-${{ runner.os }}-${{ hashFiles('pubspec.lock') }}
-          restore-keys: pub-${{ runner.os }}-
+          key: pub-v2-${{ runner.os }}-${{ hashFiles('pubspec.lock') }}
+          restore-keys: pub-v2-${{ runner.os }}-
 
       - run: flutter pub get
       - run: flutter gen-l10n
@@ -101,9 +99,8 @@ jobs:
         with:
           path: |
             ~/.pub-cache
-            .dart_tool
-          key: pub-${{ runner.os }}-${{ hashFiles('pubspec.lock') }}
-          restore-keys: pub-${{ runner.os }}-
+          key: pub-v2-${{ runner.os }}-${{ hashFiles('pubspec.lock') }}
+          restore-keys: pub-v2-${{ runner.os }}-
 
       - name: Cache Gradle
         uses: actions/cache@v5
@@ -173,9 +170,8 @@ jobs:
         with:
           path: |
             ~/.pub-cache
-            .dart_tool
-          key: pub-${{ runner.os }}-${{ hashFiles('pubspec.lock') }}
-          restore-keys: pub-${{ runner.os }}-
+          key: pub-v2-${{ runner.os }}-${{ hashFiles('pubspec.lock') }}
+          restore-keys: pub-v2-${{ runner.os }}-
 
       - name: Cache Gradle
         uses: actions/cache@v5
