@@ -50,7 +50,7 @@ jobs:
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
-          cache: true
+          cache: false
 
       - name: Cache pub dependencies
         uses: actions/cache@v5
@@ -163,7 +163,7 @@ jobs:
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
-          cache: true
+          cache: false
 
       - name: Cache pub dependencies
         uses: actions/cache@v5
@@ -213,7 +213,7 @@ jobs:
       - run: flutter gen-l10n
 
       - name: Build APK
-        run: flutter build apk --release --no-pub --build-name=${{ needs.analyze.outputs.app_version }} --build-number=${{ needs.analyze.outputs.app_build }}
+        run: flutter build apk --release --no-pub --stacktrace --build-name=${{ needs.analyze.outputs.app_version }} --build-number=${{ needs.analyze.outputs.app_build }}
 
       - name: Build App Bundle
         run: flutter build appbundle --release --no-pub --build-name=${{ needs.analyze.outputs.app_version }} --build-number=${{ needs.analyze.outputs.app_build }}
