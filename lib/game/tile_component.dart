@@ -203,20 +203,6 @@ class TileComponent extends PositionComponent {
     _renderTile(canvas, cx, cyTop, topCorners);
   }
 
-  /// Fait pivoter [point] autour de [pivot] d'un angle [angle] (radians),
-  /// dans l'espace "monde plat" (annule puis réapplique kIsoScaleY), pour
-  /// simuler une rotation à plat correcte malgré la projection iso.
-  Offset _rotateAroundPivot(Offset point, Offset pivot, double angle) {
-    final dx = point.dx - pivot.dx;
-    var dy = (point.dy - pivot.dy) / kIsoScaleY;
-    final cosA = cos(angle);
-    final sinA = sin(angle);
-    final rx = dx * cosA - dy * sinA;
-    final ry = dx * sinA + dy * cosA;
-    dy = ry * kIsoScaleY;
-    return Offset(pivot.dx + rx, pivot.dy + dy);
-  }
-
   void _renderTile(Canvas canvas, double cx, double cyTop, List<Offset> topCorners) {
 
     // ── Faces latérales (effet bloc 3D) ──────────────────────────────────
