@@ -4,8 +4,11 @@
 /// organisées par catégorie.
 library;
 
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../core/colors.dart';
 import '../core/game_enums.dart';
@@ -21,30 +24,51 @@ class QuestsScreen extends ConsumerWidget {
     final questsAsync = ref.watch(permanentQuestsProvider);
 
     return Scaffold(
-      backgroundColor: kBackgroundColor,
-      appBar: AppBar(
-        backgroundColor: kBackgroundColor,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.close, color: Colors.white),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        title: Text(
-          context.tr.quests_title,
-          style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
-        ),
-      ),
-      body: questsAsync.when(
-        loading: () => const Center(
-          child: CircularProgressIndicator(color: Colors.white),
-        ),
-        error: (_, _) => Center(
-          child: Text(
-            context.tr.quests_empty,
-            style: TextStyle(color: Colors.white.withValues(alpha: 0.6)),
+      backgroundColor: Colors.black,
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          Image.asset(
+            'assets/images/home_background.png',
+            fit: BoxFit.cover,
           ),
-        ),
-        data: (quests) => _QuestsList(quests: quests),
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  const Color(0xFF0D1B3E).withValues(alpha: 0.72),
+                  const Color(0xFF0A1628).withValues(alpha: 0.88),
+                ],
+              ),
+            ),
+          ),
+          SafeArea(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _QuestsAppBar(),
+                Expanded(
+                  child: questsAsync.when(
+                    loading: () => const Center(
+                      child: CircularProgressIndicator(color: Colors.white),
+                    ),
+                    error: (_, _) => Center(
+                      child: Text(
+                        context.tr.quests_empty,
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.6),
+                        ),
+                      ),
+                    ),
+                    data: (quests) => _QuestsList(quests: quests),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -104,6 +128,71 @@ class _QuestsList extends StatelessWidget {
       list.sort((a, b) => a.targetValue.compareTo(b.targetValue));
     }
     return map;
+  }
+}
+
+class _QuestsAppBar extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
+        children: [
+          _QuestsGlassIconButton(
+            icon: Icons.close,
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+          const SizedBox(width: 14),
+          Text(
+            context.tr.quests_title,
+            style: GoogleFonts.nunito(
+              color: Colors.white,
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
+              shadows: [
+                Shadow(
+                  color: Colors.black.withValues(alpha: 0.3),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _QuestsGlassIconButton extends StatelessWidget {
+  const _QuestsGlassIconButton({required this.icon, required this.onPressed});
+  final IconData icon;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(14),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: Material(
+          color: Colors.white.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(14),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(14),
+            onTap: onPressed,
+            child: Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.35)),
+              ),
+              child: Icon(icon, color: Colors.white, size: 20),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
 
@@ -185,19 +274,23 @@ class _QuestCard extends StatelessWidget {
         : 0.0;
     final isLocked = status == _QuestStatus.locked;
 
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: isLocked ? 0.03 : 0.06),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: status == _QuestStatus.completed
-              ? color.withValues(alpha: 0.4)
-              : Colors.white.withValues(alpha: 0.08),
-          width: 1,
-        ),
-      ),
-      child: Row(
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(14),
+      child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          child: Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: isLocked ? 0.04 : 0.08),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: status == _QuestStatus.completed
+                    ? color.withValues(alpha: 0.5)
+                    : Colors.white.withValues(alpha: 0.15),
+                width: 1,
+              ),
+            ),
+            child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Status icon
@@ -292,6 +385,8 @@ class _QuestCard extends StatelessWidget {
             ),
           ),
         ],
+          ),
+        ),
       ),
     );
   }

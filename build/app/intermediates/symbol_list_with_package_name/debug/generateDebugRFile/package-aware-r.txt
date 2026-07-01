@@ -1,5 +1,0 @@
-fr.junade.hex_haven
-drawable launch_background
-mipmap ic_launcher
-style LaunchTheme
-style NormalTheme

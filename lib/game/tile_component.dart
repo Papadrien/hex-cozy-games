@@ -177,29 +177,42 @@ class TileComponent extends PositionComponent {
   void render(Canvas canvas) {
     final cx = size.x / 2;
     final cyTop = size.y / 2 - _tileDepth / 2;
-    final topCorners = _isoCorners(cx, cyTop);
+    var topCorners = _isoCorners(cx, cyTop);
 
     // Rotation visuelle : on "dé-écrase" temporairement l'axe Y (annule
-    // kIsoScaleY), on tourne dans cet espace "monde plat" non déformé, puis
-    // on ré-applique l'écrasement iso. Une simple canvas.rotate() sans ce
-    // traitement donnerait une rotation visuellement fausse à cause de
-    // l'anisotropie de la projection isométrique.
+    // kIsoScaleY) pour tourner chaque coin de la face du dessus dans cet
+    // espace "monde plat" non déformé, puis on ré-applique l'écrasement iso.
+    // On ne transforme QUE les coins du dessus (pas tout le canvas) : si on
+    // transformait tout le rendu, l'extrusion verticale du bloc (ajoutée en
+    // coordonnées locales après coup, voir _renderTile) se retrouverait elle
+    // aussi tournée/désécrasée, ce qui fait pencher visuellement la tuile
+    // sur le côté pendant l'animation. En ne tournant que la face du dessus,
+    // l'extrusion reste purement verticale à l'écran et la tuile reste
+    // horizontale pendant toute la rotation.
     final hasRotationOffset = _rotationVisualOffset.abs() > 0.0001;
     if (hasRotationOffset) {
-      final pivot = Offset(cx, size.y / 2);
-      canvas.save();
-      canvas.translate(pivot.dx, pivot.dy);
-      canvas.scale(1.0, 1.0 / kIsoScaleY);
-      canvas.rotate(_rotationVisualOffset);
-      canvas.scale(1.0, kIsoScaleY);
-      canvas.translate(-pivot.dx, -pivot.dy);
+      final pivot = Offset(cx, cyTop);
+      topCorners = [
+        for (final corner in topCorners)
+          _rotateAroundPivot(corner, pivot, _rotationVisualOffset),
+      ];
     }
 
     _renderTile(canvas, cx, cyTop, topCorners);
+  }
 
-    if (hasRotationOffset) {
-      canvas.restore();
-    }
+  /// Fait pivoter [point] autour de [pivot] d'un angle [angle] (radians),
+  /// dans l'espace "monde plat" (annule puis réapplique kIsoScaleY), pour
+  /// simuler une rotation à plat correcte malgré la projection iso.
+  Offset _rotateAroundPivot(Offset point, Offset pivot, double angle) {
+    final dx = point.dx - pivot.dx;
+    var dy = (point.dy - pivot.dy) / kIsoScaleY;
+    final cosA = cos(angle);
+    final sinA = sin(angle);
+    final rx = dx * cosA - dy * sinA;
+    final ry = dx * sinA + dy * cosA;
+    dy = ry * kIsoScaleY;
+    return Offset(pivot.dx + rx, pivot.dy + dy);
   }
 
   void _renderTile(Canvas canvas, double cx, double cyTop, List<Offset> topCorners) {
@@ -241,6 +254,27 @@ class TileComponent extends PositionComponent {
           ..color = shaded.withValues(alpha: _alpha)
           ..style = PaintingStyle.fill,
       );
+
+      // Ligne blanche sur l'ondulation du bord bas — uniquement sur les
+      // côtés bas-gauche (i == 3) et bas-droit (i == 2), pas sur les côtés
+      // gauche/droit (i == 4 / i == 1).
+      if (_waveIntensity > 0.01 && (i == 2 || i == 3)) {
+        final wavePath = Path();
+        for (var s = 0; s < wavyBottom.length; s++) {
+          if (s == 0) {
+            wavePath.moveTo(wavyBottom[s].dx, wavyBottom[s].dy);
+          } else {
+            wavePath.lineTo(wavyBottom[s].dx, wavyBottom[s].dy);
+          }
+        }
+        canvas.drawPath(
+          wavePath,
+          Paint()
+            ..color = const Color(0xFFFFFFFF).withValues(alpha: _alpha * 0.55)
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 1.5,
+        );
+      }
     }
 
     // ── Face du dessus ────────────────────────────────────────────────────

@@ -15,7 +15,7 @@
 library;
 
 import 'dart:math';
-import 'dart:ui' show Canvas, FontWeight, Offset, Paint, PaintingStyle, Path, TextDirection;
+import 'dart:ui' show Canvas, Color, FontWeight, Offset, Paint, PaintingStyle, Path, TextDirection;
 
 import 'package:flutter/animation.dart' show Curves;
 import 'package:flutter/painting.dart' show TextPainter, TextSpan, TextStyle;
@@ -46,7 +46,7 @@ const double kDropStartLiftPx = kPreviewLiftPx;
 
 /// Profondeur du dépassement sous l'emplacement final, avant le rebond de
 /// remontée (effet "posée dans l'eau, qui flotte légèrement en remontant").
-const double kDropBounceOvershootPx = 4.0;
+const double kDropBounceOvershootPx = 1.0;
 
 /// Durée de la phase de descente.
 const double kDropDescendDurationSec = 0.20;
@@ -469,12 +469,13 @@ class HexGridComponent extends PositionComponent {
     }
     path.close();
 
-    // Remplissage sombre translucide (story 1.7f), sans contour.
+    // Contour sombre seulement (story 1.7f), sans remplissage.
     canvas.drawPath(
       path,
       Paint()
-        ..color = kBackgroundColor.withValues(alpha: 0.45)
-        ..style = PaintingStyle.fill,
+        ..color = Color(0xFF0A1420).withValues(alpha: 0.5)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.0,
     );
   }
 
