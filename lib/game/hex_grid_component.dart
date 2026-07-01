@@ -46,7 +46,7 @@ const double kDropStartLiftPx = kPreviewLiftPx;
 
 /// Profondeur du dépassement sous l'emplacement final, avant le rebond de
 /// remontée (effet "posée dans l'eau, qui flotte légèrement en remontant").
-const double kDropBounceOvershootPx = 4.0;
+const double kDropBounceOvershootPx = 2.0;
 
 /// Durée de la phase de descente.
 const double kDropDescendDurationSec = 0.20;
