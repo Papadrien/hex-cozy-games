@@ -127,7 +127,7 @@ jobs:
             echo "⚠️  GOOGLE_SERVICES_JSON_BASE64 absent — Firebase Analytics désactivé"
           fi
       - name: Build APK (Debug)
-        run: flutter build apk --debug --no-pub --stacktrace
+        run: flutter build apk --debug --no-pub && echo done || (cd android && ./gradlew assembleDebug --stacktrace
 
       - name: Rename artifact
         run: |
@@ -213,7 +213,7 @@ jobs:
       - run: flutter gen-l10n
 
       - name: Build APK
-        run: flutter build apk --release --no-pub --stacktrace --build-name=${{ needs.analyze.outputs.app_version }} --build-number=${{ needs.analyze.outputs.app_build }}
+        run: flutter build apk --release --no-pub --build-name=${{ needs.analyze.outputs.app_version }} --build-number=${{ needs.analyze.outputs.app_build }}
 
       - name: Build App Bundle
         run: flutter build appbundle --release --no-pub --build-name=${{ needs.analyze.outputs.app_version }} --build-number=${{ needs.analyze.outputs.app_build }}
