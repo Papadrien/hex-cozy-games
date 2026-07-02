@@ -10,6 +10,7 @@ import '../core/colors.dart';
 import '../core/game_enums.dart';
 import '../core/strings.dart';
 import '../data/app_database.dart';
+import '../providers/player_profile_provider.dart';
 import '../providers/progression_provider.dart';
 import '../providers/quest_provider.dart';
 
