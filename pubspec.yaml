@@ -101,6 +101,7 @@ flutter:
   assets:
     - assets/images/home_background.png
     - assets/images/hibiscus.png
+    - assets/images/splash_logo.png
     - assets/fonts/
 
   shaders:

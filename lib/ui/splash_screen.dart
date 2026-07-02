@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import '../core/colors.dart';
 import '../providers/placement_commit.dart';
 import '../services/cloud_save_service.dart';
 
@@ -66,11 +65,12 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: kTropicalTeal,
-      body: const Center(
-        child: CircularProgressIndicator(
-          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-          strokeWidth: 2.5,
+      backgroundColor: Colors.black,
+      body: Center(
+        child: Image.asset(
+          'assets/images/splash_logo.png',
+          width: MediaQuery.sizeOf(context).width * 0.8,
+          fit: BoxFit.fitWidth,
         ),
       ),
     );

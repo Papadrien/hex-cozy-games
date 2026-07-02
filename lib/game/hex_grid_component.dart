@@ -266,7 +266,7 @@ class HexGridComponent extends PositionComponent {
   Vector2 cameraOffset = Vector2.zero();
   double zoom = 1.0;
   static const double minZoom = 0.4;
-  static const double maxZoom = 3.0;
+  static const double maxZoom = 2.0;
 
   // ── Layout ────────────────────────────────────────────────────────────────
 

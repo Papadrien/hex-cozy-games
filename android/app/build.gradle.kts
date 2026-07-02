@@ -56,6 +56,12 @@ kotlin {
     }
 }
 
+dependencies {
+    // Requis par installSplashScreen() dans MainActivity.kt (splash natif
+    // Android 12+ via l'API Theme.SplashScreen).
+    implementation("androidx.core:core-splashscreen:1.0.1")
+}
+
 flutter {
     source = "../.."
 }
