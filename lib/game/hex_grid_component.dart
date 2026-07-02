@@ -46,7 +46,7 @@ const double kDropStartLiftPx = kPreviewLiftPx;
 
 /// Profondeur du dépassement sous l'emplacement final, avant le rebond de
 /// remontée (effet "posée dans l'eau, qui flotte légèrement en remontant").
-const double kDropBounceOvershootPx = 1.0;
+const double kDropBounceOvershootPx = 1.0 / 3;
 
 /// Durée de la phase de descente.
 const double kDropDescendDurationSec = 0.20;
@@ -460,8 +460,17 @@ class HexGridComponent extends PositionComponent {
     }
   }
 
+  /// Ratio de surface occupée par le remplissage des emplacements
+  /// disponibles (70 % de la surface de la case, en partant du centre —
+  /// laisse donc une marge de 30 % visible autour, sur tout le pourtour).
+  static const double _kAvailableFillAreaRatio = 0.7;
+
   void _renderHighlight(Canvas canvas, Offset center) {
-    final corners = _isoHighlightCorners(center);
+    // On réduit le rayon (échelle linéaire) de sorte que la SURFACE occupée
+    // corresponde à _kAvailableFillAreaRatio : aire ∝ rayon², donc
+    // rayon_ratio = sqrt(ratio_aire).
+    final scale = sqrt(_kAvailableFillAreaRatio);
+    final corners = _isoHighlightCorners(center, scale: scale);
 
     final path = Path()..moveTo(corners[0].dx, corners[0].dy);
     for (var i = 1; i < 6; i++) {
@@ -469,20 +478,21 @@ class HexGridComponent extends PositionComponent {
     }
     path.close();
 
-    // Contour sombre seulement (story 1.7f), sans remplissage.
+    // Case entière remplie (mais réduite à 70 % de sa surface réelle, donc
+    // visuellement plus petite avec une marge tout autour), sans contour.
     canvas.drawPath(
       path,
       Paint()
         ..color = Color(0xFF0A1420).withValues(alpha: 0.5)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 2.0,
+        ..style = PaintingStyle.fill,
     );
   }
 
   /// Sommets d'un hexagone pointy-top avec projection iso, pour le rendu des
-  /// surbrillances.
-  List<Offset> _isoHighlightCorners(Offset center) {
-    final hexSize = kHexSize * zoom;
+  /// surbrillances. [scale] permet de réduire (ou agrandir) l'hexagone
+  /// depuis son centre, tout en gardant la même projection iso.
+  List<Offset> _isoHighlightCorners(Offset center, {double scale = 1.0}) {
+    final hexSize = kHexSize * zoom * scale;
     return List.generate(6, (i) {
       final angleDeg = 60.0 * i - 90.0;
       final angleRad = angleDeg * pi / 180.0;

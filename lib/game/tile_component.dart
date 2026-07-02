@@ -127,7 +127,7 @@ class TileComponent extends PositionComponent {
   /// visuellement de l'ancienne orientation puis pivote jusqu'à la nouvelle.
   void animateRotationSwirl(int steps, {double duration = 0.22}) {
     if (steps == 0) return;
-    _rotationAnimFrom = steps * (pi / 3);
+    _rotationAnimFrom = -steps * (pi / 3);
     _rotationVisualOffset = _rotationAnimFrom;
     _rotationAnimElapsed = 0.0;
     _rotationAnimDuration = duration;
@@ -269,7 +269,7 @@ class TileComponent extends PositionComponent {
           Paint()
             ..color = const Color(0xFFFFFFFF).withValues(alpha: _alpha * 0.55)
             ..style = PaintingStyle.stroke
-            ..strokeWidth = 1.5,
+            ..strokeWidth = 3.0,
         );
       }
     }
