@@ -201,6 +201,17 @@ class TileComponent extends PositionComponent {
     _renderTile(canvas, cx, cyTop, topCorners);
   }
 
+  Offset _rotateAroundPivot(Offset point, Offset pivot, double angle) {
+    final dx = point.dx - pivot.dx;
+    var dy = (point.dy - pivot.dy) / kIsoScaleY;
+    final cosA = cos(angle);
+    final sinA = sin(angle);
+    final rx = dx * cosA - dy * sinA;
+    final ry = dx * sinA + dy * cosA;
+    dy = ry * kIsoScaleY;
+    return Offset(pivot.dx + rx, pivot.dy + dy);
+  }
+
   void _renderTile(Canvas canvas, double cx, double cyTop, List<Offset> topCorners) {
 
     // ── Faces latérales (effet bloc 3D) ──────────────────────────────────
