@@ -144,24 +144,37 @@ void main() {
     float tBase   = time * 0.0035 * kAnimSpeedMultiplier;
     float tWarp   = time * 0.0060 * kAnimSpeedMultiplier;
 
-    // Déformation invisible — quasi nulle.
-    float warpX = snoise(uv * 0.3 + vec2(tWarp, 0.0)) * 0.03;
-    float warpY = snoise(uv * 0.3 + vec2(0.0, tWarp) + 3.7) * 0.03;
+    // ── Déformation de domaine (léger flot d'eau) ────────────────────────
+    // Warp un peu plus marqué que la version précédente (quasi nulle) pour
+    // que la surface donne l'impression de bouger réellement, sans aller
+    // jusqu'à une translation cohérente de grande amplitude (pas de
+    // "tangage").
+    float warpX = snoise(uv * 0.35 + vec2(tWarp, 0.0)) * 0.15;
+    float warpY = snoise(uv * 0.35 + vec2(0.0, tWarp) + 3.7) * 0.15;
     vec2 uvWarped = uv + vec2(warpX, warpY);
 
-    // ── Forme de base : snoise unique basse fréquence, sans FBM ─────────
-    // Un seul snoise = zéro grain, zéro artefact. Variation très douce
-    // entre deux teintes turquoise claires.
-    float base = snoise(uvWarped * 0.30 + vec2(tBase, tBase * 0.5));
-    base = base * 0.5 + 0.5; // [0..1]
+    // ── Forme de base : caustiques d'eau ──────────────────────────────────
+    // Remplace l'ancien bruit unique seuillé (qui donnait des taches
+    // arrondies statiques, façon pelage de vache — pas très "eau") par deux
+    // champs de FBM à échelle/rotation différentes, chacun passé dans un
+    // sinus. Le produit des deux ondes ne s'illumine que là où elles
+    // s'alignent : on obtient de fines veines qui s'étirent, ondulent et se
+    // déplacent — beaucoup plus proche de reflets de caustiques sous l'eau.
+    vec2 uvA = uvWarped * 0.5;
+    vec2 uvB = mat2(0.5, -0.866, 0.866, 0.5) * uvWarped * 0.62;
+
+    float fA = fbm(uvA + vec2(tBase, tBase * 0.4), 3);
+    float fB = fbm(uvB - vec2(tBase * 0.6, tBase * 0.9), 3);
+
+    float wave1 = sin(fA * 6.2831853 + tBase * 2.0);
+    float wave2 = sin(fB * 6.2831853 - tBase * 2.6);
+    float caustic = wave1 * wave2; // ∈ [-1, 1] — veines là où les deux ondes s'alignent
 
     // Deux couleurs proches → variation quasi imperceptible, juste vivante.
+    // Couleurs inchangées : seules les formes et l'animation ont changé.
     vec3 cA = vec3(0.38, 0.86, 0.88); // #61DBE0 turquoise clair
     vec3 cB = vec3(0.47, 0.92, 0.92); // #78EBEB turquoise très clair
-    // Largeur de transition divisée par 3 (0.30 → 0.10, toujours centrée sur
-    // 0.5) : les zones claires ressortent comme des lignes trois fois plus
-    // fines qu'auparavant.
-    vec3 color = mix(cA, cB, smoothstep(0.45, 0.55, base));
+    vec3 color = mix(cA, cB, smoothstep(0.55, 0.95, caustic));
 
     // ── Sortie ────────────────────────────────────────────────────────────
     fragColor = vec4(clamp(color, 0.0, 1.0), 1.0);

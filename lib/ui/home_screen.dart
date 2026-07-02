@@ -575,14 +575,18 @@ class _BuildButton extends StatelessWidget {
                     ),
                   )),
             const SizedBox(width: 8),
-            Text(
-              selected.isEmpty
-                  ? context.tr.home_buildSelection
-                  : '${selected.length} / $kMaxSelectedUpgrades ${context.tr.home_buildSelection}',
-              style: GoogleFonts.nunito(
-                color: kTropicalTeal,
-                fontSize: 14,
-                fontWeight: FontWeight.w800,
+            Flexible(
+              child: Text(
+                selected.isEmpty
+                    ? context.tr.home_buildSelection
+                    : '${selected.length} / $kMaxSelectedUpgrades ${context.tr.home_buildSelection}',
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
+                style: GoogleFonts.nunito(
+                  color: kTropicalTeal,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
             ),
           ],
