@@ -269,7 +269,7 @@ class TileComponent extends PositionComponent {
           Paint()
             ..color = const Color(0xFFFFFFFF).withValues(alpha: _alpha * 0.55)
             ..style = PaintingStyle.stroke
-            ..strokeWidth = 3.0,
+            ..strokeWidth = 3.0 * (_hexSize / kHexSize),
         );
       }
     }

@@ -140,8 +140,9 @@ void main() {
     // Rien ne doit "voyager" de façon cohérente sur tout l'écran : c'est ce
     // qui donnerait une impression de tangage. Seules des variations
     // locales (scintillement, respiration) sont perceptibles.
-    float tBase   = time * 0.0035;
-    float tWarp   = time * 0.0060;
+    const float kAnimSpeedMultiplier = 5.0;
+    float tBase   = time * 0.0035 * kAnimSpeedMultiplier;
+    float tWarp   = time * 0.0060 * kAnimSpeedMultiplier;
 
     // Déformation invisible — quasi nulle.
     float warpX = snoise(uv * 0.3 + vec2(tWarp, 0.0)) * 0.03;
@@ -157,7 +158,10 @@ void main() {
     // Deux couleurs proches → variation quasi imperceptible, juste vivante.
     vec3 cA = vec3(0.38, 0.86, 0.88); // #61DBE0 turquoise clair
     vec3 cB = vec3(0.47, 0.92, 0.92); // #78EBEB turquoise très clair
-    vec3 color = mix(cA, cB, smoothstep(0.35, 0.65, base));
+    // Largeur de transition divisée par 3 (0.30 → 0.10, toujours centrée sur
+    // 0.5) : les zones claires ressortent comme des lignes trois fois plus
+    // fines qu'auparavant.
+    vec3 color = mix(cA, cB, smoothstep(0.45, 0.55, base));
 
     // ── Sortie ────────────────────────────────────────────────────────────
     fragColor = vec4(clamp(color, 0.0, 1.0), 1.0);

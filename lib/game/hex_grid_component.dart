@@ -49,10 +49,10 @@ const double kDropStartLiftPx = kPreviewLiftPx;
 const double kDropBounceOvershootPx = 1.0 / 3;
 
 /// Durée de la phase de descente.
-const double kDropDescendDurationSec = 0.20;
+const double kDropDescendDurationSec = 0.10;
 
 /// Durée de la phase de rebond (remontée jusqu'à la position finale).
-const double kDropBounceDurationSec = 0.16;
+const double kDropBounceDurationSec = 0.08;
 
 /// Durée de la montée en puissance de l'ondulation du bord bas une fois la
 /// tuile arrivée à son emplacement final.
@@ -483,7 +483,7 @@ class HexGridComponent extends PositionComponent {
     canvas.drawPath(
       path,
       Paint()
-        ..color = Color(0xFF0A1420).withValues(alpha: 0.5)
+        ..color = Color(0xFF0A1420).withValues(alpha: 0.2)
         ..style = PaintingStyle.fill,
     );
   }
