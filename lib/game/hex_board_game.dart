@@ -12,11 +12,17 @@
 ///              Annulation via croix sur la pile HUD.
 ///
 /// Gestes :
-///  - [MultiTouchTapDetector.onTapDown/onTapUp] : tap immobile → sélection,
-///    confirmation ou annulation (story 1.7d : la sélection est faite dans
-///    onTapUp, pas onTapDown, pour qu'un premier tap ne valide pas).
+///  - [MultiTouchTapDetector.onTapDown/onTapUp] : tap immobile → sélection
+///    (premier tap sur un emplacement disponible) ou confirmation (tap
+///    suivant, n'importe où sur l'écran, une fois qu'une sélection existe).
+///    La sélection est faite dans onTapUp, pas onTapDown, pour qu'un
+///    premier tap ne valide pas (story 1.7d). Le tap ne permet plus
+///    d'annuler la prévisualisation : seule la croix sur la pile HUD
+///    (ui/tile_stack_hud.dart) le permet désormais.
 ///  - [ScaleGestureRecognizer] : pan 1 doigt + zoom pinch 2 doigts. Pendant
 ///    la prévisualisation, le swipe vertical pivote la tuile (story 1.7c).
+///    Le sens de rotation est inversé si le geste démarre sur la moitié
+///    gauche de l'écran par rapport à la moitié droite.
 ///  - La distance de mouvement est mesurée entre [onTapDown] et [onTapUp]
 ///    pour filtrer les swipes (story 1.7d).
 library;
@@ -51,7 +57,6 @@ class HexBoardGame extends FlameGame
   HexGridComponent? _grid;
 
   bool _cameraDirty = false;
-  bool _previewDirty = true;
 
   /// Stocke la position du onTapDown par pointerId, pour mesurer la distance
   /// parcourue dans onTapUp : si le doigt a bougé > 5 px, c'était un swipe
@@ -107,10 +112,16 @@ class HexBoardGame extends FlameGame
       _grid?.refreshTilePositions();
       _cameraDirty = false;
     }
-    if (_previewDirty) {
-      _syncPlacementPreview();
-      _previewDirty = false;
-    }
+    // Resynchronisé à chaque frame plutôt que via un flag "dirty" posé
+    // uniquement par les gestes internes au jeu (tap/swipe sur la grille) :
+    // la croix d'annulation de la pile HUD (widget Flutter externe) modifie
+    // aussi [placementProvider] via clearSelection(), sans passer par ces
+    // gestes. Avec l'ancien flag, ce changement externe n'était jamais
+    // détecté et le fantôme de prévisualisation restait affiché après un
+    // clic sur la croix. Les setters de [HexGridComponent] ci-dessous font
+    // déjà de la détection de changement (no-op si valeur identique), donc
+    // cet appel systématique reste bon marché.
+    _syncPlacementPreview();
   }
 
   /// Lit l'état courant des providers de placement/pile et met à jour le
@@ -162,7 +173,6 @@ class HexBoardGame extends FlameGame
     if (connectedSides.isNotEmpty || bonusTiles > 0) {
       _grid?.showRewardIndicators(coords, connectedSides, bonusTiles: bonusTiles);
     }
-    _previewDirty = true;
   }
 
   /// Retire une tuile du rendu Flame (appelé depuis le bouton Annuler).
@@ -171,7 +181,6 @@ class HexBoardGame extends FlameGame
   /// vers laquelle animer le retour de la tuile — voir [HexGridComponent.removeTile].
   void removeTileFromFlame(HexCoords coords, {Vector2? flyTarget}) {
     _grid?.removeTile(coords, flyTarget: flyTarget);
-    _previewDirty = true;
   }
 
   /// Vrai si le jeu est en pause — les gestes doivent être ignorés.
@@ -198,24 +207,35 @@ class HexBoardGame extends FlameGame
   // En repartant à chaque frame de la position ABSOLUE (start vs courant),
   // le nombre de crans "cible" est toujours recalculé intégralement : il ne
   // peut jamais dériver ni dépendre de deltas manqués, et le sens ne dépend
-  // que du signe du déplacement total (haut = anti-horaire, bas = horaire).
+  // que du signe du déplacement total (haut = anti-horaire, bas = horaire),
+  // sauf inversion côté gauche de l'écran — voir [_rotationInverted]
+  // ci-dessous.
   Offset? _rotationStartFocalPoint;
   int _rotationNotchesApplied = 0;
   static const double _kRotationThreshold = 40; // pixels pour 1 cran de 60°
 
+  /// Vrai si le geste de rotation en cours a démarré sur la moitié gauche de
+  /// l'écran — dans ce cas le sens de rotation est inversé par rapport à la
+  /// moitié droite (demande utilisateur : la moitié droite reste la
+  /// référence, la gauche fait "miroir"). Figé au [_handleScaleStart] du
+  /// geste, ne change pas si le doigt traverse le milieu de l'écran en
+  /// cours de geste.
+  bool _rotationInverted = false;
+
   void _handleRotation(Offset focalPoint) {
     final start = _rotationStartFocalPoint;
     if (start == null) return;
-    final totalDy = focalPoint.dy - start.dy;
+    var totalDy = focalPoint.dy - start.dy;
     // haut (dy négatif) = anti-horaire, bas (dy positif) = horaire — cohérent
-    // avec rotate() dans placementProvider (positif = sens horaire).
+    // avec rotate() dans placementProvider (positif = sens horaire). Côté
+    // gauche de l'écran : sens inversé par rapport au côté droit.
+    if (_rotationInverted) totalDy = -totalDy;
     final targetNotches = (totalDy / _kRotationThreshold).truncate();
     final delta = targetNotches - _rotationNotchesApplied;
     if (delta != 0) {
       _ref.read(placementProvider.notifier).rotate(delta);
       _rotationNotchesApplied = targetNotches;
     }
-    _previewDirty = true;
   }
 
   // ── Tap (via MultiTouchTapDetector) ───────────────────────────────────────
@@ -244,32 +264,28 @@ class HexBoardGame extends FlameGame
 
     final placement = _ref.read(placementProvider);
     final placementNotifier = _ref.read(placementProvider.notifier);
-    final coords = grid.hexAt(info.eventPosition.widget.toOffset());
 
     if (!placement.hasSelection) {
-      // Premier tap : sélectionner la cellule pour la prévisualisation.
+      // Premier tap : sélectionner la cellule pour la prévisualisation
+      // (uniquement si le tap tombe sur un emplacement disponible).
+      final coords = grid.hexAt(info.eventPosition.widget.toOffset());
       if (placementNotifier.availableCells.contains(coords)) {
         placementNotifier.selectCell(coords);
-        _previewDirty = true;
       }
       return;
     }
 
-    if (placement.selected == coords) {
-      // Second tap sur la même cellule → validation du placement (story 1.5b)
-      await confirmPlacement(_ref, onConfirm: placeTileOnFlame);
-      _previewDirty = true;
-      return;
-    }
-
-    if (!placementNotifier.availableCells.contains(coords)) {
-      // Tap en dehors des emplacements disponibles → annuler la prévisualisation.
-      placementNotifier.clearSelection();
-      _previewDirty = true;
-      return;
-    }
-
-    placementNotifier.selectCell(coords);
+    // Une prévisualisation est en cours : n'importe quel tap sur l'écran
+    // valide le placement (demande utilisateur — ce n'est plus limité à un
+    // second tap sur la tuile prévisualisée). confirmPlacement() lit
+    // placement.selected en interne, donc l'emplacement tapé n'a pas
+    // d'importance ici.
+    //
+    // Le tap n'annule plus la prévisualisation : le seul moyen de
+    // l'annuler est désormais la croix sur la pile HUD (clearSelection()
+    // appelé depuis ui/tile_stack_hud.dart), qui déclenche sa propre
+    // resynchronisation via _syncPlacementPreview() dans update().
+    await confirmPlacement(_ref, onConfirm: placeTileOnFlame);
   }
 
   // ── Pan / Zoom / Rotation (via ScaleGestureRecognizer) ──────────────────
@@ -281,6 +297,8 @@ class HexBoardGame extends FlameGame
     _scaleStart = _grid?.zoom ?? 1.0;
     _rotationStartFocalPoint = details.focalPoint;
     _rotationNotchesApplied = 0;
+    // Moitié gauche de l'écran → rotation inversée (voir [_rotationInverted]).
+    _rotationInverted = details.focalPoint.dx < size.x / 2;
   }
 
   void _handleScaleUpdate(ScaleUpdateDetails details) {
@@ -311,5 +329,6 @@ class HexBoardGame extends FlameGame
     _scaleStart = _grid?.zoom ?? 1.0;
     _rotationStartFocalPoint = null;
     _rotationNotchesApplied = 0;
+    _rotationInverted = false;
   }
 }
