@@ -12,6 +12,7 @@
 library;
 
 import 'dart:math' show cos, pi, sin;
+import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -105,10 +106,17 @@ class _TutorialOverlayState extends ConsumerState<TutorialOverlay>
 
       return Stack(
         children: [
-          // Arrière-plan semi-transparent qui bloque les interactions.
+          // Arrière-plan glassmorphisme qui bloque les interactions
+          // (BackdropFilter au lieu d'un voile noir opaque — corrige aussi
+          // l'ombre noire résiduelle visible à l'étape 3).
           GestureDetector(
             onTap: () {},
-            child: Container(color: Colors.black.withValues(alpha: 0.65)),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+              child: Container(
+                color: const Color(0xFF0D1A2A).withValues(alpha: 0.55),
+              ),
+            ),
           ),
 
           // Zone en évidence (highlight) — uniquement si le widget ciblé
@@ -125,12 +133,12 @@ class _TutorialOverlayState extends ConsumerState<TutorialOverlay>
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
-                        color: kBrandBlue,
+                        color: kGlassBlueBorder,
                         width: 3,
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: kBrandBlue.withValues(alpha: 0.35),
+                          color: kGlassBlueBorder.withValues(alpha: 0.35),
                           blurRadius: 24,
                           spreadRadius: 6,
                         ),
@@ -176,42 +184,77 @@ class _TutorialOverlayState extends ConsumerState<TutorialOverlay>
             ),
           ),
 
-          // Bouton Passer
+          // Bouton Passer — style glassmorphisme
           Positioned(
             top: MediaQuery.of(context).padding.top + 8,
             right: 12,
-            child: TextButton(
-              onPressed: () => notifier.skip(),
-              child: Text(
-                context.tr.tutorial_skip,
-                style: const TextStyle(
-                  color: Colors.white70,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w500,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                child: Material(
+                  color: kGlassBlue.withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(10),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(10),
+                    onTap: () => notifier.skip(),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: kGlassBlueBorder.withValues(alpha: 0.38),
+                          width: 1,
+                        ),
+                      ),
+                      child: Text(
+                        context.tr.tutorial_skip,
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ),
           ),
 
-          // Bouton Suivant / Terminer
+          // Bouton Suivant / Terminer — style glassmorphisme
           Positioned(
             bottom: 96 + safeBottom,
             right: 32,
-            child: FilledButton(
-              onPressed: () => notifier.next(),
-              style: FilledButton.styleFrom(
-                backgroundColor: kBrandBlue,
-                padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
-                shape: RoundedRectangleBorder(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(14),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                child: Material(
+                  color: kGlassBlue.withValues(alpha: 0.22),
                   borderRadius: BorderRadius.circular(14),
-                ),
-              ),
-              child: Text(
-                notifier.isLastStep ? 'OK' : '→',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(14),
+                    onTap: () => notifier.next(),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: kGlassBlueBorder.withValues(alpha: 0.45),
+                          width: 1,
+                        ),
+                      ),
+                      child: Text(
+                        notifier.isLastStep ? 'OK' : '→',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -296,26 +339,32 @@ class _InstructionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-      decoration: BoxDecoration(
-        color: kBackgroundColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.12),
-          width: 1,
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+          decoration: BoxDecoration(
+            color: kGlassBlue.withValues(alpha: 0.18),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: kGlassBlueBorder.withValues(alpha: 0.38),
+              width: 1.5,
+            ),
+          ),
+          child: Text(
+            text,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+              height: 1.4,
+              fontWeight: FontWeight.w500,
+            ),
+            textAlign: TextAlign.center,
+          ),
         ),
-      ),
-      child: Text(
-        text,
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 16,
-          height: 1.4,
-          fontWeight: FontWeight.w500,
-        ),
-        textAlign: TextAlign.center,
       ),
     );
   }
@@ -467,7 +516,7 @@ class _StepDots extends StatelessWidget {
           height: 8,
           decoration: BoxDecoration(
             color: isActive
-                ? kBrandBlue
+                ? kGlassBlueBorder
                 : Colors.white.withValues(alpha: 0.3),
             borderRadius: BorderRadius.circular(4),
           ),

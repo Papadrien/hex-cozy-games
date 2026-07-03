@@ -136,37 +136,6 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     }
   }
 
-  /// Après un délai de 500 ms, sélectionne une nouvelle cellule adjacente
-  /// disponible pour mettre en prévisualisation la tuile suivante (étape 5
-  /// du tutoriel). La prévisualisation fait apparaître la croix sur la pile
-  /// ([tile_stack_hud.dart]), que l'utilisateur peut taper pour annuler.
-  Future<void> _previewThirdTile() async {
-    await Future<void>.delayed(const Duration(milliseconds: 500));
-    if (!mounted) return;
-
-    final grid = ref.read(gridProvider);
-    final activeTile = ref.read(tileStackProvider).activeTile;
-    if (activeTile == null) return;
-
-    for (final entry in grid.placedTiles.entries) {
-      for (var dir = 0; dir < 6; dir++) {
-        final coords = entry.key.neighbor(dir);
-        if (grid.tileAt(coords) != null) continue;
-        if (!grid.canPlaceTileAt(coords, activeTile)) continue;
-
-        for (var rotation = 0; rotation < 6; rotation++) {
-          final rotated = activeTile.rotated(rotation);
-          if (!grid.hasCompatibleSide(coords, rotated)) continue;
-
-          final placementNotifier = ref.read(placementProvider.notifier);
-          placementNotifier.selectCell(coords);
-          placementNotifier.rotate(rotation);
-          return;
-        }
-      }
-    }
-  }
-
   /// Déclenche automatiquement l'annulation du dernier placement (étape 6
   /// du tutoriel), avec l'animation de vol vers la pile.
   void _triggerUndo() {
@@ -202,7 +171,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
       if (next.currentStep == 2) {
         _previewTutorialConnection();
       } else if (next.currentStep == 4) {
-        _previewThirdTile();
+        ref.read(placementProvider.notifier).clearSelection();
       } else if (next.currentStep == 5) {
         _triggerUndo();
       }
