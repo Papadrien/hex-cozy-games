@@ -47,7 +47,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
         // Préchauffe le FutureProvider pour que HomeScreen l'ait déjà en cache.
         ref.read(activeSessionProvider.future).catchError((_) => false),
         ref.read(cloudSaveServiceProvider).syncOnLaunch(),
-        Future.delayed(_kMinDisplayDuration),
+        Future<void>.delayed(_kMinDisplayDuration),
       ]);
     } catch (_) {}
 
