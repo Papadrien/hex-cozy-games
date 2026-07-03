@@ -101,11 +101,12 @@ class AppLocalizationsFr extends AppLocalizations {
       'Les icônes pièce te montrent ce que tu vas gagner';
 
   @override
-  String get tutorial_step4 => 'Tape à nouveau pour valider le placement';
+  String get tutorial_step4 =>
+      'Tape n\'importe où sur l\'écran pour valider le placement';
 
   @override
   String get tutorial_step5 =>
-      'Connecte les côtés identiques pour gagner des tuiles et des pièces bonus';
+      'Connecte les côtés identiques pour gagner des tuiles et des pièces bonus. La croix sur la pile annule la prévisualisation.';
 
   @override
   String get tutorial_skip => 'Passer';

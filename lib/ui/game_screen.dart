@@ -557,7 +557,7 @@ class _OceanBackgroundState extends State<_OceanBackground>
   Widget build(BuildContext context) {
     final program = _program;
     if (program == null) {
-      return const ColoredBox(color: Color(0xFF1CC0D8));
+      return const ColoredBox(color: Color(0xFF48B2DB));
     }
 
     final size = MediaQuery.sizeOf(context);

@@ -100,11 +100,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tutorial_step3 => 'Coin icons show you what you’ll earn';
 
   @override
-  String get tutorial_step4 => 'Tap again to confirm the placement';
+  String get tutorial_step4 =>
+      'Tap anywhere on the screen to confirm the placement';
 
   @override
   String get tutorial_step5 =>
-      'Match identical sides to earn bonus tiles and coins';
+      'Match identical sides to earn bonus tiles and coins. The cross on the tile stack cancels the preview.';
 
   @override
   String get tutorial_skip => 'Skip';

@@ -191,9 +191,9 @@ void main() {
     float causticVisible = caustic * mix(0.35, 1.15, waveMask);
 
     // Deux couleurs proches → variation quasi imperceptible, juste vivante.
-    // Turquoise mis à jour (demande utilisateur) : basé sur #10E0EB.
-    vec3 cA = vec3(0.045, 0.632, 0.664); // variante assombrie de #10E0EB
-    vec3 cB = vec3(0.063, 0.878, 0.922); // #10E0EB, léger éclat
+    // Turquoise mis à jour (demande utilisateur) : basé sur #48B2DB.
+    vec3 cA = vec3(0.203, 0.503, 0.618); // variante assombrie de #48B2DB
+    vec3 cB = vec3(0.282, 0.698, 0.859); // #48B2DB, léger éclat
     vec3 color = mix(cA, cB, smoothstep(0.55, 0.95, causticVisible));
 
     // ── Taches sombres ────────────────────────────────────────────────────

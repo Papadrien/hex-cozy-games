@@ -124,27 +124,31 @@ class TileStackHud extends ConsumerWidget {
                       Positioned(
                         left: (_kActiveTileWidth - _kCrossSize) / 2,
                         top: (_kStackHeight - _kCrossSize) / 2,
-                        child: GestureDetector(
-                          onTap: () => ref
-                              .read(placementProvider.notifier)
-                              .clearSelection(),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(13),
-                            child: BackdropFilter(
-                              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                              child: Container(
-                                width: _kCrossSize,
-                                height: _kCrossSize,
-                                decoration: BoxDecoration(
-                                  color: _kHudGlass.withValues(alpha: 0.22),
-                                  borderRadius: BorderRadius.circular(13),
-                                  border: Border.all(
-                                    color: _kHudGlassBorder.withValues(alpha: 0.45),
-                                    width: 1,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(13),
+                          child: BackdropFilter(
+                            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                            child: Material(
+                              color: _kHudGlass.withValues(alpha: 0.22),
+                              borderRadius: BorderRadius.circular(13),
+                              child: InkWell(
+                                borderRadius: BorderRadius.circular(13),
+                                onTap: () => ref
+                                    .read(placementProvider.notifier)
+                                    .clearSelection(),
+                                child: Container(
+                                  width: _kCrossSize,
+                                  height: _kCrossSize,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(13),
+                                    border: Border.all(
+                                      color: _kHudGlassBorder.withValues(alpha: 0.45),
+                                      width: 1,
+                                    ),
                                   ),
+                                  child: const Icon(Icons.close,
+                                      size: 16, color: Colors.white70),
                                 ),
-                                child: const Icon(Icons.close,
-                                    size: 16, color: Colors.white70),
                               ),
                             ),
                           ),
