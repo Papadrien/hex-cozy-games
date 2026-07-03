@@ -258,11 +258,12 @@ class _TutorialOverlayState extends ConsumerState<TutorialOverlay>
   /// l'étape ([TutorialStep.anchorFraction]), sinon `null` (pas de geste).
   Offset? _resolveHintCenter(
       BuildContext context, TutorialStep step, Rect? highlightRect) {
-    if (highlightRect != null) return highlightRect.center;
+    if (highlightRect != null) return highlightRect.center + step.anchorOffset;
     final fraction = step.anchorFraction;
     if (fraction == null) return null;
     final screenSize = MediaQuery.of(context).size;
-    return Offset(screenSize.width * fraction.dx, screenSize.height * fraction.dy);
+    return Offset(screenSize.width * fraction.dx, screenSize.height * fraction.dy) +
+        step.anchorOffset;
   }
 
   String _stepText(BuildContext context, String textKey) {

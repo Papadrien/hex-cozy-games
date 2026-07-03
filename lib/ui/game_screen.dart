@@ -25,10 +25,14 @@ import '../core/colors.dart';
 import '../core/constants.dart';
 import '../core/strings.dart';
 import '../game/hex_board_game.dart';
+import '../game/hex_coords.dart';
+import '../providers/grid_state_provider.dart';
 import '../providers/pause_provider.dart';
+import '../providers/placement_provider.dart';
 import '../providers/player_profile_provider.dart';
 import '../providers/placement_commit.dart';
 import '../providers/session_provider.dart';
+import '../providers/tile_stack_provider.dart';
 import '../providers/tutorial_provider.dart';
 import '../services/ad_service.dart';
 import 'pause_button.dart';
@@ -100,11 +104,63 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     return Vector2(globalCenter.dx, globalCenter.dy);
   }
 
+  /// Pose automatiquement, pour la démonstration de l'étape 3 du tutoriel,
+  /// une tuile à côté de la tuile centrale — en choisissant un emplacement
+  /// et une rotation garantissant au moins un côté connecté, pour que
+  /// l'icône de pièce mise en évidence par [TutorialOverlay] apparaisse
+  /// réellement.
+  ///
+  /// Ne fait rien si le plateau ne contient pas exactement la tuile
+  /// centrale de départ (ex. tutoriel relancé sur une partie déjà avancée) :
+  /// dans ce cas on laisse simplement le geste "point" sans garantie de
+  /// connexion plutôt que de perturber une partie en cours.
+  ///
+  /// Priorité donnée à la case sud-ouest — la même que celle indiquée par le
+  /// doigt aux étapes 1 et 4 — pour que la démonstration reste cohérente
+  /// visuellement d'une étape à l'autre ; les 5 autres directions servent de
+  /// repli si cette case ne permet aucune connexion possible.
+  Future<void> _autoPlaceTutorialConnection() async {
+    final grid = ref.read(gridProvider);
+    if (grid.placedTiles.length != 1) return;
+    if (grid.tileAt(const HexCoords(0, 0)) == null) return;
+
+    final activeTile = ref.read(tileStackProvider).activeTile;
+    if (activeTile == null) return;
+
+    const directionsPriority = [3, 0, 1, 2, 4, 5]; // sud-ouest en premier
+    for (final dir in directionsPriority) {
+      final coords = const HexCoords(0, 0).neighbor(dir);
+      for (var rotation = 0; rotation < 6; rotation++) {
+        final rotated = activeTile.rotated(rotation);
+        if (!grid.hasCompatibleSide(coords, rotated)) continue;
+
+        final placementNotifier = ref.read(placementProvider.notifier);
+        placementNotifier.selectCell(coords);
+        placementNotifier.rotate(rotation);
+        await confirmPlacement(ref, onConfirm: _game.placeTileOnFlame);
+        return;
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     ref.listen<PauseState>(pauseProvider, (prev, next) {
       if (prev?.isPaused != next.isPaused) {
         _game.paused = next.isPaused;
+      }
+    });
+
+    // Tutoriel étape 3 (« les icônes pièce te montrent ce que tu vas
+    // gagner ») : pose automatiquement une tuile garantissant au moins une
+    // connexion avec la tuile centrale, pour que l'icône de pièce mise en
+    // évidence par [TutorialOverlay] soit effectivement visible à l'écran —
+    // voir [_autoPlaceTutorialConnection].
+    ref.listen<TutorialState>(tutorialProvider, (prev, next) {
+      if (next.isActive &&
+          next.currentStep == 2 &&
+          (prev == null || prev.currentStep != 2 || !prev.isActive)) {
+        _autoPlaceTutorialConnection();
       }
     });
 

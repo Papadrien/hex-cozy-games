@@ -22,6 +22,26 @@ const String _kHasSeenTutorialKey = 'hasSeenTutorial';
 /// apparaissent réellement à l'écran.
 const Offset _kBoardHintAnchor = Offset(0.42, 0.40);
 
+/// Position du geste doigt pour l'étape swipe (rotation) : décalée vers la
+/// droite de l'écran, là où le swipe de rotation est réellement effectué
+/// pendant une partie (le pouce/index droit reste sur le côté plutôt qu'au
+/// centre), au lieu du pivot central de la grille utilisé par erreur
+/// auparavant.
+const Offset _kSwipeHintAnchor = Offset(0.82, 0.52);
+
+/// Décalage (en pixels logiques, à zoom 1.0) du centre de la case voisine
+/// sud-ouest de la tuile centrale (0, 0) par rapport à ce pivot — direction
+/// 3 dans [HexCoords] ("sud-ouest" : (-1, 1)).
+///
+/// Calculé à partir de [kHexSize] (48) et [kIsoScaleY] (0.57), avec les
+/// mêmes formules que [HexLayout.hexToPixel] :
+///   dx = kHexSize * (sqrt(3) * -1 + sqrt(3)/2 * 1) = -kHexSize * sqrt(3)/2
+///   dy = kHexSize * (3/2 * 1) * kIsoScaleY
+/// Cette case est toujours l'une des 6 cases disponibles en surbrillance
+/// autour de la tuile de départ : le doigt pointe donc vers une case
+/// réellement posable, en diagonale bas-gauche, proche du centre.
+const Offset _kSwNeighborOffset = Offset(-41.57, 41.04);
+
 const List<TutorialStep> kTutorialSteps = [
   TutorialStep(
     highlightTargetKey: 'board',
@@ -29,19 +49,26 @@ const List<TutorialStep> kTutorialSteps = [
     order: 0,
     gesture: TutorialGesture.tap,
     anchorFraction: _kBoardHintAnchor,
+    anchorOffset: _kSwNeighborOffset,
   ),
   TutorialStep(
     highlightTargetKey: 'board',
     textKey: 'tutorial.step2',
     order: 1,
     gesture: TutorialGesture.swipeVertical,
-    anchorFraction: _kBoardHintAnchor,
+    anchorFraction: _kSwipeHintAnchor,
   ),
   TutorialStep(
-    highlightTargetKey: 'coins',
+    // Aucune zone rectangulaire mise en évidence ici (le plateau occupe tout
+    // l'écran) : seul le geste "point" ci-dessous attire l'œil vers l'icône
+    // de pièce qui apparaît sur la tuile posée automatiquement pour cette
+    // étape — voir [_GameScreenState._autoPlaceTutorialConnection].
+    highlightTargetKey: 'board',
     textKey: 'tutorial.step3',
     order: 2,
     gesture: TutorialGesture.point,
+    anchorFraction: _kBoardHintAnchor,
+    anchorOffset: _kSwNeighborOffset,
   ),
   TutorialStep(
     highlightTargetKey: 'board',
@@ -49,13 +76,13 @@ const List<TutorialStep> kTutorialSteps = [
     order: 3,
     gesture: TutorialGesture.tap,
     anchorFraction: _kBoardHintAnchor,
+    anchorOffset: _kSwNeighborOffset,
   ),
   TutorialStep(
     highlightTargetKey: 'board',
     textKey: 'tutorial.step5',
     order: 4,
-    gesture: TutorialGesture.point,
-    anchorFraction: _kBoardHintAnchor,
+    gesture: TutorialGesture.none,
   ),
 ];
 

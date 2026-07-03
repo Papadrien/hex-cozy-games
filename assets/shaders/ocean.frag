@@ -196,6 +196,17 @@ void main() {
     vec3 cB = vec3(0.47, 0.92, 0.92); // #78EBEB turquoise très clair
     vec3 color = mix(cA, cB, smoothstep(0.55, 0.95, causticVisible));
 
+    // ── Taches sombres ────────────────────────────────────────────────────
+    // Même champ et même animation que les taches claires ci-dessus
+    // (causticVisible, dérivé du même fbm/temps) : les taches sombres
+    // bougent, apparaissent et disparaissent exactement comme les taches
+    // claires, juste un ton plus foncé. Le seuil (0.80 → 0.97) est plus
+    // étroit et plus extrême que celui des taches claires (0.55 → 0.95),
+    // ce qui les rend environ deux fois moins fréquentes à l'écran.
+    vec3 cDark = cA * 0.80; // légèrement plus sombre que cA, pas de teinte différente
+    float darkMask = smoothstep(0.80, 0.97, causticVisible);
+    color = mix(color, cDark, darkMask);
+
     // ── Sortie ────────────────────────────────────────────────────────────
     fragColor = vec4(clamp(color, 0.0, 1.0), 1.0);
 }
