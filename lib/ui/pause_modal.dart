@@ -324,6 +324,10 @@ class _SaveAndQuitButton extends ConsumerWidget {
         onPressed: () async {
           await SessionSaver.save(ref);
           ref.invalidate(activeSessionProvider);
+          // Repartir sur un état "non pausé" : sinon, ce provider global
+          // garde isPaused == true et la prochaine partie (nouvelle ou
+          // reprise) démarre directement sur la modale de pause.
+          ref.read(pauseProvider.notifier).resume();
           if (context.mounted) {
             Navigator.pushReplacementNamed(context, '/');
           }
@@ -409,5 +413,8 @@ void _abandonGame(BuildContext context, WidgetRef ref) {
   ref.read(lastPlacementProvider.notifier).set(null);
   ref.invalidate(gridProvider);
   ref.invalidate(tileStackProvider);
+  // Idem : sans ça, isPaused reste true et la prochaine partie démarre
+  // directement sur la modale de pause.
+  ref.read(pauseProvider.notifier).resume();
   Navigator.pushReplacementNamed(context, '/');
 }

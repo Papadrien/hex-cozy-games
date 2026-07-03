@@ -47,7 +47,19 @@ String get _interstitialAdUnitId {
 // ── Bannière (3.1a) ────────────────────────────────────────────────────────
 
 /// Provider qui crée, charge et maintient la bannière AdMob en vie.
-final bannerAdProvider = Provider<BannerAd?>((ref) {
+///
+/// `autoDispose` est indispensable ici : un [BannerAd] ne peut être associé
+/// qu'à un seul [AdWidget] pendant toute sa durée de vie (limitation du
+/// plugin google_mobile_ads). Sans `autoDispose`, ce provider global restait
+/// vivant d'une partie à l'autre (le [ProviderScope] racine n'est jamais
+/// détruit lors d'une navigation) : au lancement d'une nouvelle partie, la
+/// même instance de [BannerAd] — déjà utilisée par le précédent [AdWidget —
+/// était réutilisée pour construire un second [AdWidget], ce qui déclenche
+/// l'erreur "already initialized" du SDK AdMob. Avec `autoDispose`, la
+/// bannière est détruite quand l'écran de jeu précédent est démonté (plus
+/// personne ne l'écoute) et une bannière fraîche est chargée pour la
+/// nouvelle partie.
+final bannerAdProvider = Provider.autoDispose<BannerAd?>((ref) {
   final banner = BannerAd(
     adUnitId: _bannerAdUnitId,
     size: AdSize.banner,

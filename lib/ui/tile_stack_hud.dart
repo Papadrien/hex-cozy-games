@@ -19,6 +19,7 @@ import '../providers/tile_stack_provider.dart';
 const double _kActiveTileRadius = 34.0;
 const double _kUpcomingTileRadius = 26.0;
 const double _kHudHexFlattenY = 1.0;
+const double _kCrossSize = 26.0;
 
 // Teinte glassmorphism teal pour le HUD (même teinte que boutons secondaires accueil).
 const Color _kHudGlass = kTropicalTeal;
@@ -108,11 +109,21 @@ class TileStackHud extends ConsumerWidget {
                         dim: false,
                       ),
                     ),
-                    // Croix d'annulation de sélection
+                    // Croix d'annulation de sélection — centrée sur la tuile
+                    // active (qui occupe (_kActiveTileWidth, _kStackHeight)
+                    // depuis (0, 0)). Avant ce correctif, la croix était
+                    // positionnée à (0, 0) elle-même : elle apparaissait
+                    // donc collée au coin supérieur gauche de la tuile au
+                    // lieu d'être centrée dessus, ET son propre coin
+                    // supérieur gauche coïncidait avec le coin arrondi du
+                    // conteneur englobant (BorderRadius 14), qui la
+                    // rognait (ClipRRect) sur une bonne partie de sa
+                    // surface — ce qui rendait le tap peu fiable, voire
+                    // inopérant, à l'endroit où l'utilisateur voit l'icône.
                     if (placement.hasSelection)
                       Positioned(
-                        left: 0,
-                        top: 0,
+                        left: (_kActiveTileWidth - _kCrossSize) / 2,
+                        top: (_kStackHeight - _kCrossSize) / 2,
                         child: GestureDetector(
                           onTap: () => ref
                               .read(placementProvider.notifier)
@@ -122,8 +133,8 @@ class TileStackHud extends ConsumerWidget {
                             child: BackdropFilter(
                               filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
                               child: Container(
-                                width: 26,
-                                height: 26,
+                                width: _kCrossSize,
+                                height: _kCrossSize,
                                 decoration: BoxDecoration(
                                   color: _kHudGlass.withValues(alpha: 0.22),
                                   borderRadius: BorderRadius.circular(13),

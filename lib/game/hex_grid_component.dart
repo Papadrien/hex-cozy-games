@@ -521,7 +521,7 @@ class HexGridComponent extends PositionComponent {
     canvas.drawPath(
       path,
       Paint()
-        ..color = Color(0xFF0A1420).withValues(alpha: 0.2)
+        ..color = Color(0xFF0A1420).withValues(alpha: 0.11)
         ..style = PaintingStyle.fill,
     );
   }

@@ -27,7 +27,15 @@ const Offset _kBoardHintAnchor = Offset(0.42, 0.40);
 /// pendant une partie (le pouce/index droit reste sur le côté plutôt qu'au
 /// centre), au lieu du pivot central de la grille utilisé par erreur
 /// auparavant.
-const Offset _kSwipeHintAnchor = Offset(0.82, 0.52);
+///
+/// Remontée à 0.28 (au lieu de 0.52) : à 0.52, le centre de l'icône était
+/// quasiment à la même hauteur que le haut de la carte de texte (placée à
+/// `screenSize.height * 0.5 + 24` lorsqu'aucune zone n'est mise en évidence,
+/// ce qui est le cas ici), donc le texte chevauchait l'icône et son
+/// animation (doigt + flèches, qui s'étendent sur ~90px de part et d'autre
+/// du centre). En plaçant l'ancre plus haut, l'icône et son animation
+/// restent entièrement au-dessus de la carte.
+const Offset _kSwipeHintAnchor = Offset(0.82, 0.28);
 
 /// Décalage (en pixels logiques, à zoom 1.0) du centre de la case voisine
 /// sud-ouest de la tuile centrale (0, 0) par rapport à ce pivot — direction

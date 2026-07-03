@@ -21,7 +21,7 @@
 ///    pour filtrer les swipes (story 1.7d).
 library;
 
-import 'dart:ui' show Color;
+import 'dart:ui' show Color, Offset;
 
 import 'package:flame/events.dart';
 
@@ -178,16 +178,42 @@ class HexBoardGame extends FlameGame
   bool get _isPaused => _ref.read(pauseProvider).isPaused;
 
   // ── Rotation par swipe vertical ──────────────────────────────────────────
-
-  double _rotationAccumulator = 0;
+  //
+  // Le nombre de crans est recalculé à chaque frame à partir du déplacement
+  // ABSOLU depuis le début du geste (focalPoint courant - focalPoint de
+  // départ), et non plus par accumulation de deltas incrémentaux
+  // (onUpdate.focalPointDelta, frame par frame).
+  //
+  // Avant, un accumulateur mutable (_rotationAccumulator) sommait les
+  // deltas au fil des appels à onUpdate. Problème : ces deltas incrémentaux
+  // peuvent être fusionnés ou partiellement perdus par le pipeline
+  // tactile — en particulier lors du tout premier geste suivant un retour
+  // d'arrière-plan, où la reprise du pipeline d'événements peut livrer un
+  // batch d'updates différent de la normale. Le résultat observé : un
+  // swipe qui aurait dû produire plusieurs crans n'en appliquait qu'un
+  // seul, et l'accumulateur pouvait rester dans un état incohérent d'un
+  // geste à l'autre (ce qui donnait aussi une impression de sens de
+  // rotation aléatoire).
+  //
+  // En repartant à chaque frame de la position ABSOLUE (start vs courant),
+  // le nombre de crans "cible" est toujours recalculé intégralement : il ne
+  // peut jamais dériver ni dépendre de deltas manqués, et le sens ne dépend
+  // que du signe du déplacement total (haut = anti-horaire, bas = horaire).
+  Offset? _rotationStartFocalPoint;
+  int _rotationNotchesApplied = 0;
   static const double _kRotationThreshold = 40; // pixels pour 1 cran de 60°
 
-  void _handleRotation(double dy) {
-    _rotationAccumulator += dy;
-    while (_rotationAccumulator.abs() >= _kRotationThreshold) {
-      final step = _rotationAccumulator > 0 ? 1 : -1; // haut = anti-horaire
-      _ref.read(placementProvider.notifier).rotate(step);
-      _rotationAccumulator -= step.sign * _kRotationThreshold;
+  void _handleRotation(Offset focalPoint) {
+    final start = _rotationStartFocalPoint;
+    if (start == null) return;
+    final totalDy = focalPoint.dy - start.dy;
+    // haut (dy négatif) = anti-horaire, bas (dy positif) = horaire — cohérent
+    // avec rotate() dans placementProvider (positif = sens horaire).
+    final targetNotches = (totalDy / _kRotationThreshold).truncate();
+    final delta = targetNotches - _rotationNotchesApplied;
+    if (delta != 0) {
+      _ref.read(placementProvider.notifier).rotate(delta);
+      _rotationNotchesApplied = targetNotches;
     }
     _previewDirty = true;
   }
@@ -253,7 +279,8 @@ class HexBoardGame extends FlameGame
   void _handleScaleStart(ScaleStartDetails details) {
     if (_isPaused) return;
     _scaleStart = _grid?.zoom ?? 1.0;
-    _rotationAccumulator = 0;
+    _rotationStartFocalPoint = details.focalPoint;
+    _rotationNotchesApplied = 0;
   }
 
   void _handleScaleUpdate(ScaleUpdateDetails details) {
@@ -267,7 +294,7 @@ class HexBoardGame extends FlameGame
     // Le pan horizontal est désactivé pendant la prévisualisation (story 1.7e).
     final placement = _ref.read(placementProvider);
     if (placement.hasSelection && (details.scale - 1.0).abs() < 0.05) {
-      _handleRotation(delta.dy);
+      _handleRotation(details.focalPoint);
     } else {
       grid.cameraOffset.add(Vector2(delta.dx, delta.dy));
       onCameraMove?.call(delta.dx, delta.dy);
@@ -282,6 +309,7 @@ class HexBoardGame extends FlameGame
   void _handleScaleEnd(ScaleEndDetails details) {
     if (_isPaused) return;
     _scaleStart = _grid?.zoom ?? 1.0;
-    _rotationAccumulator = 0;
+    _rotationStartFocalPoint = null;
+    _rotationNotchesApplied = 0;
   }
 }
