@@ -15,6 +15,16 @@ import '../services/cloud_save_service.dart';
 ///   - la sync cloud (cloudSaveServiceProvider).
 ///
 /// Une fois tout prêt, navigate vers '/home' (HomeScreen) en remplaçant.
+///
+/// Toutes ces initialisations ont bien lieu ICI (dans [_load]) : l'écran ne
+/// navigue vers HomeScreen qu'une fois [Future.wait] résolu. Si l'écran
+/// paraît s'afficher très brièvement, c'est simplement que ce travail se
+/// termine vite (polices déjà en cache, images légères, réseau rapide) — pas
+/// qu'il se produirait ailleurs. [_kMinDisplayDuration] garantit malgré tout
+/// un minimum d'affichage pour éviter un flash trop rapide pour l'œil sur
+/// les lancements où tout se résout quasi instantanément.
+const Duration _kMinDisplayDuration = Duration(milliseconds: 700);
+
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
 
@@ -37,6 +47,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
         // Préchauffe le FutureProvider pour que HomeScreen l'ait déjà en cache.
         ref.read(activeSessionProvider.future).catchError((_) => false),
         ref.read(cloudSaveServiceProvider).syncOnLaunch(),
+        Future.delayed(_kMinDisplayDuration),
       ]);
     } catch (_) {}
 

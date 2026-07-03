@@ -166,8 +166,11 @@ class HexBoardGame extends FlameGame
   }
 
   /// Retire une tuile du rendu Flame (appelé depuis le bouton Annuler).
-  void removeTileFromFlame(HexCoords coords) {
-    _grid?.removeTile(coords);
+  ///
+  /// [flyTarget] : position (coordonnées jeu) de la pile de prévisualisation
+  /// vers laquelle animer le retour de la tuile — voir [HexGridComponent.removeTile].
+  void removeTileFromFlame(HexCoords coords, {Vector2? flyTarget}) {
+    _grid?.removeTile(coords, flyTarget: flyTarget);
     _previewDirty = true;
   }
 

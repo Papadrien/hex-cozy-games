@@ -11,11 +11,14 @@
 /// élément UI réel.
 library;
 
+import 'dart:math' show cos, pi, sin;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/colors.dart';
 import '../core/strings.dart';
+import '../core/tutorial_step.dart';
 import '../l10n/app_localizations.dart';
 import '../providers/tutorial_provider.dart';
 
@@ -31,8 +34,15 @@ class TutorialOverlay extends ConsumerStatefulWidget {
 }
 
 class _TutorialOverlayState extends ConsumerState<TutorialOverlay>
-    with WidgetsBindingObserver {
+    with WidgetsBindingObserver, SingleTickerProviderStateMixin {
   bool _wasActive = false;
+
+  /// Anime en boucle le geste doigt (tap / swipe / point) de l'étape
+  /// courante — voir [_TutorialGestureHint].
+  late final AnimationController _gestureController = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1400),
+  )..repeat();
 
   @override
   void initState() {
@@ -43,6 +53,7 @@ class _TutorialOverlayState extends ConsumerState<TutorialOverlay>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _gestureController.dispose();
     super.dispose();
   }
 
@@ -79,6 +90,7 @@ class _TutorialOverlayState extends ConsumerState<TutorialOverlay>
       final notifier = ref.read(tutorialProvider.notifier);
       final step = notifier.currentStepData;
       final highlightRect = _resolveRect(step.highlightTargetKey);
+      final hintCenter = _resolveHintCenter(context, step, highlightRect);
 
       // Place la carte d'instruction au-dessus ou en dessous de la zone
       // surlignée selon l'espace disponible, pour ne jamais la recouvrir.
@@ -125,6 +137,20 @@ class _TutorialOverlayState extends ConsumerState<TutorialOverlay>
                       ],
                     ),
                   ),
+                ),
+              ),
+            ),
+
+          // Geste doigt animé illustrant l'action attendue (tap / swipe /
+          // simple mise en évidence) — Story 1.10c.
+          if (step.gesture != TutorialGesture.none && hintCenter != null)
+            Positioned.fill(
+              child: IgnorePointer(
+                child: _TutorialGestureHint(
+                  key: ValueKey(tutorial.currentStep),
+                  center: hintCenter,
+                  gesture: step.gesture,
+                  animation: _gestureController,
                 ),
               ),
             ),
@@ -227,6 +253,18 @@ class _TutorialOverlayState extends ConsumerState<TutorialOverlay>
     );
   }
 
+  /// Détermine où afficher le geste doigt animé : centre de la zone en
+  /// évidence si elle existe, sinon la position fractionnelle explicite de
+  /// l'étape ([TutorialStep.anchorFraction]), sinon `null` (pas de geste).
+  Offset? _resolveHintCenter(
+      BuildContext context, TutorialStep step, Rect? highlightRect) {
+    if (highlightRect != null) return highlightRect.center;
+    final fraction = step.anchorFraction;
+    if (fraction == null) return null;
+    final screenSize = MediaQuery.of(context).size;
+    return Offset(screenSize.width * fraction.dx, screenSize.height * fraction.dy);
+  }
+
   String _stepText(BuildContext context, String textKey) {
     final tr = AppLocalizations.of(context)!;
     switch (textKey) {
@@ -274,6 +312,134 @@ class _InstructionCard extends StatelessWidget {
         ),
         textAlign: TextAlign.center,
       ),
+    );
+  }
+}
+
+/// Doigt animé illustrant le geste attendu à l'étape courante du tutoriel
+/// (Story 1.10c) : tap (anneau qui pulse), swipe vertical (oscillation +
+/// flèches), ou simple mise en évidence (léger rebond).
+class _TutorialGestureHint extends StatelessWidget {
+  const _TutorialGestureHint({
+    super.key,
+    required this.center,
+    required this.gesture,
+    required this.animation,
+  });
+
+  final Offset center;
+  final TutorialGesture gesture;
+  final Animation<double> animation;
+
+  static const double _kIconSize = 40.0;
+  static const Color _kHintColor = Colors.white;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: animation,
+      builder: (context, _) {
+        final t = animation.value; // boucle 0 → 1
+        switch (gesture) {
+          case TutorialGesture.tap:
+            return _buildTap(t);
+          case TutorialGesture.swipeVertical:
+            return _buildSwipe(t);
+          case TutorialGesture.point:
+            return _buildPoint(t);
+          case TutorialGesture.none:
+            return const SizedBox.shrink();
+        }
+      },
+    );
+  }
+
+  /// Le doigt "appuie" (léger rétrécissement) en boucle, avec un anneau qui
+  /// s'étend et s'estompe à chaque pression — mime un tap répété.
+  Widget _buildTap(double t) {
+    final pressAmount = (1 - cos(t * 2 * pi)) / 2; // 0 → 1 → 0, lisse
+    final scale = 1.0 - 0.15 * pressAmount;
+    final rippleRadius = 16.0 + 34.0 * t;
+    final rippleOpacity = (1 - t) * 0.55;
+
+    return Stack(
+      children: [
+        Positioned(
+          left: center.dx - rippleRadius,
+          top: center.dy - rippleRadius,
+          child: Container(
+            width: rippleRadius * 2,
+            height: rippleRadius * 2,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: _kHintColor.withValues(alpha: rippleOpacity),
+                width: 2,
+              ),
+            ),
+          ),
+        ),
+        Positioned(
+          left: center.dx - _kIconSize / 2,
+          top: center.dy - _kIconSize / 2,
+          child: Transform.scale(scale: scale, child: _fingerIcon()),
+        ),
+      ],
+    );
+  }
+
+  /// Le doigt oscille de haut en bas entre deux petites flèches, pour mimer
+  /// le swipe vertical utilisé pour faire pivoter la tuile.
+  Widget _buildSwipe(double t) {
+    final dy = sin(t * 2 * pi) * 26.0;
+    final arrowPulse = 0.4 + 0.3 * ((cos(t * 2 * pi) + 1) / 2);
+
+    return Stack(
+      children: [
+        Positioned(
+          left: center.dx - 13,
+          top: center.dy - 58,
+          child: Icon(Icons.keyboard_arrow_up_rounded,
+              color: _kHintColor.withValues(alpha: arrowPulse), size: 26),
+        ),
+        Positioned(
+          left: center.dx - 13,
+          top: center.dy + 32,
+          child: Icon(Icons.keyboard_arrow_down_rounded,
+              color: _kHintColor.withValues(alpha: arrowPulse), size: 26),
+        ),
+        Positioned(
+          left: center.dx - _kIconSize / 2,
+          top: center.dy - _kIconSize / 2 + dy,
+          child: _fingerIcon(),
+        ),
+      ],
+    );
+  }
+
+  /// Simple rebond léger, pour attirer l'attention sans mimer un geste précis
+  /// (étapes purement informatives).
+  Widget _buildPoint(double t) {
+    final dy = sin(t * 2 * pi) * 6.0;
+    return Stack(
+      children: [
+        Positioned(
+          left: center.dx - _kIconSize / 2,
+          top: center.dy - _kIconSize / 2 + dy,
+          child: _fingerIcon(),
+        ),
+      ],
+    );
+  }
+
+  Widget _fingerIcon() {
+    return Icon(
+      Icons.touch_app_rounded,
+      color: _kHintColor,
+      size: _kIconSize,
+      shadows: const [
+        Shadow(color: Colors.black54, blurRadius: 8),
+      ],
     );
   }
 }

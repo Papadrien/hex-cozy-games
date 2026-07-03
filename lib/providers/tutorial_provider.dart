@@ -5,6 +5,8 @@
 /// actions (next, skip, start).
 library;
 
+import 'dart:ui' show Offset;
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -12,31 +14,48 @@ import '../core/tutorial_step.dart';
 
 const String _kHasSeenTutorialKey = 'hasSeenTutorial';
 
+/// Position du geste doigt pour les étapes ciblant le plateau : le plateau
+/// occupe tout l'écran (aucune zone en évidence précise n'est calculable),
+/// on ancre donc le geste sur le pivot visuel de la grille — mêmes
+/// fractions que le pivot utilisé par [HexGridComponent] et le shader
+/// d'océan (0.42, 0.38), pour rester cohérent avec l'endroit où les tuiles
+/// apparaissent réellement à l'écran.
+const Offset _kBoardHintAnchor = Offset(0.42, 0.40);
+
 const List<TutorialStep> kTutorialSteps = [
   TutorialStep(
     highlightTargetKey: 'board',
     textKey: 'tutorial.step1',
     order: 0,
+    gesture: TutorialGesture.tap,
+    anchorFraction: _kBoardHintAnchor,
   ),
   TutorialStep(
     highlightTargetKey: 'board',
     textKey: 'tutorial.step2',
     order: 1,
+    gesture: TutorialGesture.swipeVertical,
+    anchorFraction: _kBoardHintAnchor,
   ),
   TutorialStep(
     highlightTargetKey: 'coins',
     textKey: 'tutorial.step3',
     order: 2,
+    gesture: TutorialGesture.point,
   ),
   TutorialStep(
     highlightTargetKey: 'board',
     textKey: 'tutorial.step4',
     order: 3,
+    gesture: TutorialGesture.tap,
+    anchorFraction: _kBoardHintAnchor,
   ),
   TutorialStep(
     highlightTargetKey: 'board',
     textKey: 'tutorial.step5',
     order: 4,
+    gesture: TutorialGesture.point,
+    anchorFraction: _kBoardHintAnchor,
   ),
 ];
 

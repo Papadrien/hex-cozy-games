@@ -58,6 +58,15 @@ const double kDropBounceDurationSec = 0.08;
 /// tuile arrivée à son emplacement final.
 const double kDropWaveRampInDurationSec = 0.45;
 
+// ── Animation d'annulation (retour vers la pile) ────────────────────────────
+
+/// Durée du vol de retour de la tuile annulée vers la pile de prévisualisation.
+const double kUndoFlyDurationSec = 0.32;
+
+/// Échelle finale (quasi nulle) atteinte par la tuile juste avant sa
+/// disparition dans la pile.
+const double kUndoFlyEndScale = 0.12;
+
 class HexGridComponent extends PositionComponent {
   HexGridComponent({required this.screenSize})
       : super(position: Vector2.zero(), priority: 0);
@@ -360,10 +369,39 @@ class HexGridComponent extends PositionComponent {
     _previewNeighborHighlights = const {};
   }
 
-  void removeTile(HexCoords coords) {
+  /// Retire la tuile en [coords].
+  ///
+  /// Si [flyTarget] est fourni (position écran/jeu de la pile de
+  /// prévisualisation d'où la tuile est sortie), la tuile s'envole vers ce
+  /// point en rétrécissant et en s'estompant avant de disparaître —
+  /// utilisé par le bouton Annuler pour montrer visuellement que la tuile
+  /// "retourne" dans la pile. Sans [flyTarget], la tuile est retirée
+  /// instantanément (comportement historique).
+  void removeTile(HexCoords coords, {Vector2? flyTarget}) {
     final existing = placedTiles.remove(coords);
-    if (existing != null) remove(existing);
     placedCells.remove(coords);
+    if (existing == null) return;
+
+    if (flyTarget == null) {
+      remove(existing);
+      return;
+    }
+
+    // Passe au-dessus de toutes les autres tuiles pendant son vol de retour.
+    existing.priority = kTileDepthPriorityPreview + 10;
+    existing.startFadeOut(duration: kUndoFlyDurationSec);
+    existing.add(
+      MoveEffect.to(
+        flyTarget,
+        EffectController(duration: kUndoFlyDurationSec, curve: Curves.easeInCubic),
+      )..onComplete = () => remove(existing),
+    );
+    existing.add(
+      ScaleEffect.to(
+        Vector2.all(kUndoFlyEndScale),
+        EffectController(duration: kUndoFlyDurationSec, curve: Curves.easeIn),
+      ),
+    );
   }
 
   /// Affiche des pièces (pièces de monnaie) au niveau de chaque côté connecté

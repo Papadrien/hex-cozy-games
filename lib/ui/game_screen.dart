@@ -13,7 +13,7 @@
 library;
 
 import 'dart:async';
-import 'dart:ui' show ImageFilter, FragmentProgram, FragmentShader;
+import 'dart:ui' show ImageFilter, FragmentProgram, FragmentShader, Offset;
 import 'package:flame/game.dart' hide Matrix4;
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart' show Ticker;
@@ -86,6 +86,18 @@ class _GameScreenState extends ConsumerState<GameScreen> {
   void dispose() {
     _clearRewardTimer?.cancel();
     super.dispose();
+  }
+
+  /// Position (coordonnées jeu Flame) du centre de la pile de tuiles HUD,
+  /// utilisée comme cible de vol pour l'animation d'annulation — voir
+  /// [HexBoardGame.removeTileFromFlame]. [GameWidget] occupant tout l'écran
+  /// avec la même origine que le [Stack] racine, les coordonnées globales du
+  /// HUD correspondent directement aux coordonnées jeu.
+  Vector2? _stackHudFlyTarget() {
+    final hudBox = _tileStackKey.currentContext?.findRenderObject() as RenderBox?;
+    if (hudBox == null || !hudBox.hasSize) return null;
+    final globalCenter = hudBox.localToGlobal(hudBox.size.center(Offset.zero));
+    return Vector2(globalCenter.dx, globalCenter.dy);
   }
 
   @override
@@ -217,10 +229,16 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                       child: InkWell(
                         borderRadius: BorderRadius.circular(14),
                         onTap: canUndo
-                            ? () => undoPlacement(
+                            ? () {
+                                final target = _stackHudFlyTarget();
+                                undoPlacement(
                                   ref,
-                                  onUndo: _game.removeTileFromFlame,
-                                )
+                                  onUndo: (coords) => _game.removeTileFromFlame(
+                                    coords,
+                                    flyTarget: target,
+                                  ),
+                                );
+                              }
                             : null,
                         child: Container(
                           width: 40,

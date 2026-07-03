@@ -26,6 +26,11 @@ const double kGlowDurationSec = 0.6;
 /// Opacité initiale du glow.
 const double kGlowStartAlpha = 0.45;
 
+/// Proportion (depuis le bord extérieur) de la surbrillance de connexion —
+/// seuls les 10 % les plus proches du bord du côté sont éclairés, pas toute
+/// la longueur jusqu'au centre de la tuile.
+const double kHighlightOuterBand = 0.10;
+
 /// Correspondance [BiomeType] → couleur d'affichage.
 extension BiomeColor on BiomeType {
   Color get color {
@@ -132,6 +137,20 @@ class TileComponent extends PositionComponent {
     _rotationAnimElapsed = 0.0;
     _rotationAnimDuration = duration;
     _rotationAnimating = true;
+  }
+
+  // ── Fondu de sortie ──────────────────────────────────────────────────────
+  // Utilisé lors de l'annulation d'un placement : la tuile s'estompe
+  // progressivement pendant qu'elle s'envole vers la pile de prévisualisation
+  // (voir [HexGridComponent.removeTile]).
+  bool _fadeOutActive = false;
+  double _fadeOutSpeed = 0.0;
+
+  /// Démarre un fondu de sortie progressif de l'opacité actuelle jusqu'à 0
+  /// sur [duration] secondes.
+  void startFadeOut({double duration = 0.3}) {
+    _fadeOutActive = true;
+    _fadeOutSpeed = duration > 0 ? 1.0 / duration : double.infinity;
   }
 
   double _hexSize;
@@ -302,12 +321,28 @@ class TileComponent extends PositionComponent {
         );
       }
 
-      // Surbrillance côtés connectés.
+      // Surbrillance côtés connectés — uniquement les 10 % extérieurs du
+      // côté (bande proche du bord, pas toute la longueur jusqu'au centre),
+      // en blanc peu translucide pour bien faire ressortir la connexion.
       if (highlightedSides.contains(i)) {
+        final innerC0 = Offset(
+          cx + (c0.dx - cx) * (1 - kHighlightOuterBand),
+          cyTop + (c0.dy - cyTop) * (1 - kHighlightOuterBand),
+        );
+        final innerC1 = Offset(
+          cx + (c1.dx - cx) * (1 - kHighlightOuterBand),
+          cyTop + (c1.dy - cyTop) * (1 - kHighlightOuterBand),
+        );
+        final bandPath = Path()
+          ..moveTo(innerC0.dx, innerC0.dy)
+          ..lineTo(c0.dx, c0.dy)
+          ..lineTo(c1.dx, c1.dy)
+          ..lineTo(innerC1.dx, innerC1.dy)
+          ..close();
         canvas.drawPath(
-          path,
+          bandPath,
           Paint()
-            ..color = const Color(0xFFFFFFFF).withValues(alpha: 0.20)
+            ..color = const Color(0xFFFFFFFF).withValues(alpha: 0.75)
             ..style = PaintingStyle.fill,
         );
       }
@@ -396,6 +431,14 @@ class TileComponent extends PositionComponent {
       if (_glowAlpha <= 0.01) {
         _glowAlpha = 0.0;
         _glowSides = null;
+      }
+    }
+
+    if (_fadeOutActive) {
+      alpha = _alpha - _fadeOutSpeed * dt;
+      if (_alpha <= 0.01) {
+        alpha = 0.0;
+        _fadeOutActive = false;
       }
     }
   }

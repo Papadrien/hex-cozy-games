@@ -136,11 +136,13 @@ void main() {
     // Temps rebouclé pour la même raison (stabilité numérique long-terme).
     float time = mod(uTime, 6000.0);
 
-    // ── Vitesses volontairement très lentes ─────────────────────────────
-    // Rien ne doit "voyager" de façon cohérente sur tout l'écran : c'est ce
-    // qui donnerait une impression de tangage. Seules des variations
-    // locales (scintillement, respiration) sont perceptibles.
-    const float kAnimSpeedMultiplier = 5.0;
+    // ── Vitesses ──────────────────────────────────────────────────────────
+    // Volontairement modérées : rien ne doit "voyager" de façon cohérente
+    // sur tout l'écran (ce qui donnerait une impression de tangage), mais
+    // un peu plus vif qu'avant pour que la surface paraisse réellement
+    // vivante — voir aussi [waveMask] plus bas pour le mouvement local des
+    // petites vagues.
+    const float kAnimSpeedMultiplier = 7.5;
     float tBase   = time * 0.0035 * kAnimSpeedMultiplier;
     float tWarp   = time * 0.0060 * kAnimSpeedMultiplier;
 
@@ -170,11 +172,29 @@ void main() {
     float wave2 = sin(fB * 6.2831853 - tBase * 2.6);
     float caustic = wave1 * wave2; // ∈ [-1, 1] — veines là où les deux ondes s'alignent
 
+    // ── Petites vagues locales : apparition / déplacement / disparition ──
+    // Un champ FBM basse fréquence sert de masque d'intensité aux veines de
+    // caustiques ci-dessus. Ce masque dérive doucement dans une direction
+    // (driftUv) ET évolue dans le temps (troisième terme), si bien que
+    // chaque petite "vague" se déplace légèrement puis s'estompe pendant
+    // qu'une autre apparaît ailleurs — plutôt qu'un scintillement figé sur
+    // place. Le déplacement reste lent et local (pas de translation globale
+    // cohérente) pour ne jamais donner d'impression de tangage.
+    vec2 driftUv = uvWarped * 0.24 + vec2(tBase * 0.4, -tBase * 0.28);
+    float waveLife = fbm(driftUv + vec2(0.0, time * 0.07), 3);
+    float waveMask = smoothstep(-0.25, 0.6, waveLife);
+
+    // Le masque module l'intensité des veines (0.35 → 1.15) : les vagues
+    // ressortent nettement là où le masque est haut, et s'effacent presque
+    // complètement là où il est bas, sans jamais disparaître totalement
+    // (garde un peu de vie partout).
+    float causticVisible = caustic * mix(0.35, 1.15, waveMask);
+
     // Deux couleurs proches → variation quasi imperceptible, juste vivante.
     // Couleurs inchangées : seules les formes et l'animation ont changé.
     vec3 cA = vec3(0.38, 0.86, 0.88); // #61DBE0 turquoise clair
     vec3 cB = vec3(0.47, 0.92, 0.92); // #78EBEB turquoise très clair
-    vec3 color = mix(cA, cB, smoothstep(0.55, 0.95, caustic));
+    vec3 color = mix(cA, cB, smoothstep(0.55, 0.95, causticVisible));
 
     // ── Sortie ────────────────────────────────────────────────────────────
     fragColor = vec4(clamp(color, 0.0, 1.0), 1.0);
