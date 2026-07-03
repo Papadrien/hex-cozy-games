@@ -110,6 +110,7 @@ Future<void> restoreSession(WidgetRef ref) async {
 void startNewGame(WidgetRef ref) {
   ref.invalidate(gridProvider);
   ref.invalidate(tileStackProvider);
+  ref.invalidate(bannerAdProvider);
   ref.read(sessionProvider.notifier).reset();
   ref.read(lastPlacementProvider.notifier).set(null);
   ref.read(placementProvider.notifier).clearSelection();
