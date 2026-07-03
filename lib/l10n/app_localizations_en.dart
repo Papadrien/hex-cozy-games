@@ -94,7 +94,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get tutorial_step2 =>
-      'Swipe to rotate it — multiple turns in a single gesture!';
+      'Swipe to rotate it';
 
   @override
   String get tutorial_step3 => 'Coin icons show you what you’ll earn';
@@ -105,7 +105,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get tutorial_step5 =>
-      'Match identical sides to earn bonus tiles and coins. The cross on the tile stack cancels the preview.';
+      'The cross on the tile stack removes the preview.';
+
+  @override
+  String get tutorial_step6 =>
+      'Use the Undo button to undo the last placed tile.';
+
+  @override
+  String get tutorial_step7 =>
+      'Match identical sides to earn bonus tiles and coins';
 
   @override
   String get tutorial_skip => 'Skip';

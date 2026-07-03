@@ -279,6 +279,10 @@ class _TutorialOverlayState extends ConsumerState<TutorialOverlay>
         return tr.tutorial_step4;
       case 'tutorial.step5':
         return tr.tutorial_step5;
+      case 'tutorial.step6':
+        return tr.tutorial_step6;
+      case 'tutorial.step7':
+        return tr.tutorial_step7;
       default:
         return '';
     }

@@ -68,6 +68,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
   final GlobalKey _boardKey = GlobalKey();
   final GlobalKey _coinsKey = GlobalKey();
   final GlobalKey _tileStackKey = GlobalKey();
+  final GlobalKey _undoKey = GlobalKey();
 
   @override
   void initState() {
@@ -104,22 +105,15 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     return Vector2(globalCenter.dx, globalCenter.dy);
   }
 
-  /// Pose automatiquement, pour la démonstration de l'étape 3 du tutoriel,
-  /// une tuile à côté de la tuile centrale — en choisissant un emplacement
-  /// et une rotation garantissant au moins un côté connecté, pour que
-  /// l'icône de pièce mise en évidence par [TutorialOverlay] apparaisse
-  /// réellement.
-  ///
-  /// Ne fait rien si le plateau ne contient pas exactement la tuile
-  /// centrale de départ (ex. tutoriel relancé sur une partie déjà avancée) :
-  /// dans ce cas on laisse simplement le geste "point" sans garantie de
-  /// connexion plutôt que de perturber une partie en cours.
+  /// Sélectionne et oriente automatiquement une tuile en prévisualisation
+  /// (sans la poser) pour l'étape 3 du tutoriel — les icônes pièce sont
+  /// calculées à partir de la prévisualisation, pas d'un placement réel.
   ///
   /// Priorité donnée à la case sud-ouest — la même que celle indiquée par le
   /// doigt aux étapes 1 et 4 — pour que la démonstration reste cohérente
   /// visuellement d'une étape à l'autre ; les 5 autres directions servent de
   /// repli si cette case ne permet aucune connexion possible.
-  Future<void> _autoPlaceTutorialConnection() async {
+  Future<void> _previewTutorialConnection() async {
     final grid = ref.read(gridProvider);
     if (grid.placedTiles.length != 1) return;
     if (grid.tileAt(const HexCoords(0, 0)) == null) return;
@@ -137,10 +131,53 @@ class _GameScreenState extends ConsumerState<GameScreen> {
         final placementNotifier = ref.read(placementProvider.notifier);
         placementNotifier.selectCell(coords);
         placementNotifier.rotate(rotation);
-        await confirmPlacement(ref, onConfirm: _game.placeTileOnFlame);
         return;
       }
     }
+  }
+
+  /// Après un délai de 500 ms, sélectionne une nouvelle cellule adjacente
+  /// disponible pour mettre en prévisualisation la tuile suivante (étape 5
+  /// du tutoriel). La prévisualisation fait apparaître la croix sur la pile
+  /// ([tile_stack_hud.dart]), que l'utilisateur peut taper pour annuler.
+  Future<void> _previewThirdTile() async {
+    await Future<void>.delayed(const Duration(milliseconds: 500));
+    if (!mounted) return;
+
+    final grid = ref.read(gridProvider);
+    final activeTile = ref.read(tileStackProvider).activeTile;
+    if (activeTile == null) return;
+
+    for (final entry in grid.placedTiles.entries) {
+      for (var dir = 0; dir < 6; dir++) {
+        final coords = entry.key.neighbor(dir);
+        if (grid.tileAt(coords) != null) continue;
+        if (!grid.canPlaceTileAt(coords, activeTile)) continue;
+
+        for (var rotation = 0; rotation < 6; rotation++) {
+          final rotated = activeTile.rotated(rotation);
+          if (!grid.hasCompatibleSide(coords, rotated)) continue;
+
+          final placementNotifier = ref.read(placementProvider.notifier);
+          placementNotifier.selectCell(coords);
+          placementNotifier.rotate(rotation);
+          return;
+        }
+      }
+    }
+  }
+
+  /// Déclenche automatiquement l'annulation du dernier placement (étape 6
+  /// du tutoriel), avec l'animation de vol vers la pile.
+  void _triggerUndo() {
+    final target = _stackHudFlyTarget();
+    undoPlacement(
+      ref,
+      onUndo: (coords) => _game.removeTileFromFlame(
+        coords,
+        flyTarget: target,
+      ),
+    );
   }
 
   @override
@@ -157,10 +194,17 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     // évidence par [TutorialOverlay] soit effectivement visible à l'écran —
     // voir [_autoPlaceTutorialConnection].
     ref.listen<TutorialState>(tutorialProvider, (prev, next) {
-      if (next.isActive &&
-          next.currentStep == 2 &&
-          (prev == null || prev.currentStep != 2 || !prev.isActive)) {
-        _autoPlaceTutorialConnection();
+      if (!next.isActive) return;
+      final justEntered =
+          prev == null || prev.currentStep != next.currentStep || !prev.isActive;
+      if (!justEntered) return;
+
+      if (next.currentStep == 2) {
+        _previewTutorialConnection();
+      } else if (next.currentStep == 4) {
+        _previewThirdTile();
+      } else if (next.currentStep == 5) {
+        _triggerUndo();
       }
     });
 
@@ -276,6 +320,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                 bottom: 24,
                 right: 16,
                 child: ClipRRect(
+                  key: _undoKey,
                   borderRadius: BorderRadius.circular(14),
                   child: BackdropFilter(
                     filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
@@ -349,6 +394,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
               'board': _boardKey,
               'tileStack': _tileStackKey,
               'coins': _coinsKey,
+              'undo': _undoKey,
             },
           ),
         ],

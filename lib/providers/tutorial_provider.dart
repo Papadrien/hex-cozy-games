@@ -67,10 +67,6 @@ const List<TutorialStep> kTutorialSteps = [
     anchorFraction: _kSwipeHintAnchor,
   ),
   TutorialStep(
-    // Aucune zone rectangulaire mise en évidence ici (le plateau occupe tout
-    // l'écran) : seul le geste "point" ci-dessous attire l'œil vers l'icône
-    // de pièce qui apparaît sur la tuile posée automatiquement pour cette
-    // étape — voir [_GameScreenState._autoPlaceTutorialConnection].
     highlightTargetKey: 'board',
     textKey: 'tutorial.step3',
     order: 2,
@@ -87,9 +83,22 @@ const List<TutorialStep> kTutorialSteps = [
     anchorOffset: _kSwNeighborOffset,
   ),
   TutorialStep(
-    highlightTargetKey: 'board',
+    highlightTargetKey: 'tileStack',
     textKey: 'tutorial.step5',
     order: 4,
+    gesture: TutorialGesture.tap,
+    anchorOffset: Offset(-30, 0),
+  ),
+  TutorialStep(
+    highlightTargetKey: 'undo',
+    textKey: 'tutorial.step6',
+    order: 5,
+    gesture: TutorialGesture.point,
+  ),
+  TutorialStep(
+    highlightTargetKey: 'board',
+    textKey: 'tutorial.step7',
+    order: 6,
     gesture: TutorialGesture.none,
   ),
 ];

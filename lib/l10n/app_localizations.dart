@@ -263,7 +263,7 @@ abstract class AppLocalizations {
   /// No description provided for @tutorial_step2.
   ///
   /// In en, this message translates to:
-  /// **'Swipe to rotate it — multiple turns in a single gesture!'**
+  /// **'Swipe to rotate it'**
   String get tutorial_step2;
 
   /// No description provided for @tutorial_step3.
@@ -275,14 +275,26 @@ abstract class AppLocalizations {
   /// No description provided for @tutorial_step4.
   ///
   /// In en, this message translates to:
-  /// **'Tap again to confirm the placement'**
+  /// **'Tap anywhere on the screen to confirm the placement'**
   String get tutorial_step4;
 
   /// No description provided for @tutorial_step5.
   ///
   /// In en, this message translates to:
-  /// **'Match identical sides to earn bonus tiles and coins'**
+  /// **'The cross on the tile stack removes the preview.'**
   String get tutorial_step5;
+
+  /// No description provided for @tutorial_step6.
+  ///
+  /// In en, this message translates to:
+  /// **'Use the Undo button to undo the last placed tile.'**
+  String get tutorial_step6;
+
+  /// No description provided for @tutorial_step7.
+  ///
+  /// In en, this message translates to:
+  /// **'Match identical sides to earn bonus tiles and coins'**
+  String get tutorial_step7;
 
   /// No description provided for @tutorial_skip.
   ///

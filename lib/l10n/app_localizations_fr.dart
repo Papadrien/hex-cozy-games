@@ -94,7 +94,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get tutorial_step2 =>
-      'Swipe pour la faire pivoter — plusieurs rotations d’un seul geste !';
+      'Swipe pour la faire pivoter';
 
   @override
   String get tutorial_step3 =>
@@ -106,7 +106,15 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get tutorial_step5 =>
-      'Connecte les côtés identiques pour gagner des tuiles et des pièces bonus. La croix sur la pile annule la prévisualisation.';
+      'La croix sur la pile retire la prévisualisation.';
+
+  @override
+  String get tutorial_step6 =>
+      'Utilise le bouton Annuler pour annuler la dernière tuile posée.';
+
+  @override
+  String get tutorial_step7 =>
+      'Connecte les côtés identiques pour gagner des tuiles et des pièces bonus';
 
   @override
   String get tutorial_skip => 'Passer';
