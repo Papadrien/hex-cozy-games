@@ -275,7 +275,7 @@ Future<void> confirmPlacement(
   final appliedReward = _applyReward(ref, tile, reward);
   _recordPlacement(ref, coords, tile, appliedReward);
   _triggerPlacementHaptics(ref, appliedReward);
-  _advanceStack(ref);
+  _advanceStack(ref, reward.connectedSides.length);
   await SessionSaver.save(ref);
   _checkGameOver(ref);
 }
@@ -341,9 +341,10 @@ PlacementReward _applyReward(WidgetRef ref, HexTile tile, PlacementReward reward
   return applied;
 }
 
-void _advanceStack(WidgetRef ref) {
+void _advanceStack(WidgetRef ref, int connectedSidesCount) {
   ref.read(tileStackProvider.notifier).consumeActiveTile();
-  ref.read(questServiceProvider).onTilePlaced();
+  ref.read(questServiceProvider)
+      .onTilePlaced(connectedSidesCount: connectedSidesCount);
   ref.read(adTilesPlacedProvider.notifier).increment();
   ref.read(placementProvider.notifier).clearSelection();
 }
@@ -380,6 +381,7 @@ void _checkGameOver(WidgetRef ref) {
   );
 
   ref.read(questServiceProvider).onGameEnd(
+    coinsEarned: session.coins,
     largestVillage: analysis.largestVillage,
     closedBiomes: analysis.closedBiomes,
   );

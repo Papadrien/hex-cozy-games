@@ -12,9 +12,17 @@ enum UpgradeEffectType {
 
 /// Catégories de quêtes (category) — remplace les chaînes magiques.
 enum QuestCategory {
-  tilesPlaced,
+  /// Cumul (toutes parties confondues) de pièces gagnées.
+  coinsEarned,
+
+  /// Meilleur score (pièces gagnées) atteint en une seule partie.
+  bestGameCoins,
   villageSize,
-  biomesClosed;
+  biomesClosed,
+  tripleConnections,
+  quadConnections,
+  quintConnections,
+  sextConnections;
 
   String get dbValue => name;
   static QuestCategory fromDb(String value) =>

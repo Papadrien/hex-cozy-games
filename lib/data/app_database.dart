@@ -68,6 +68,9 @@ class PermanentQuests extends Table {
   TextColumn get rewardType => text()();
   IntColumn get rewardValue => integer()();
   TextColumn get nextQuestId => text().nullable()();
+  // Quête répétable (ex: connexions) — se remet à zéro instantanément après
+  // obtention de la récompense, en conservant le même palier (targetValue).
+  BoolColumn get isRepeatable => boolean().withDefault(const Constant(false))();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -130,7 +133,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration {
@@ -181,6 +184,137 @@ class AppDatabase extends _$AppDatabase {
         if (from < 4) {
           await customStatement('ALTER TABLE game_session RENAME TO active_board_session');
           await customStatement('ALTER TABLE game_sessions RENAME TO meta_run_history');
+        }
+        if (from < 5) {
+          await m.addColumn(permanentQuests, permanentQuests.isRepeatable);
+          // Renomme la quête "village de 100 maisons" en "groupe rouge de
+          // plus de 50 tuiles" pour les bases déjà seedées.
+          await (update(permanentQuests)..where((q) => q.id.equals('village_100')))
+              .write(const PermanentQuestsCompanion(
+            description: Value('Faire un groupe rouge de plus de 50 tuiles'),
+            targetValue: Value(51),
+          ));
+          // Ajoute les nouvelles quêtes répétables de connexions si absentes.
+          await batch((b) => b.insertAll(
+                permanentQuests,
+                kConnectionQuests,
+                mode: InsertMode.insertOrIgnore,
+              ));
+        }
+        if (from < 6) {
+          // Remplace la chaîne "tiles_placed" (poser des tuiles) par la
+          // chaîne "coins_earned" (cumul de pièces gagnées), en conservant
+          // la progression déjà acquise sur chaque palier.
+          const renames = <String, (String, String, String?)>{
+            'tiles_50': ('coins_50', 'Gagner 50 pièces au total', 'coins_100'),
+            'tiles_100':
+                ('coins_100', 'Gagner 100 pièces au total', 'coins_200'),
+            'tiles_200':
+                ('coins_200', 'Gagner 200 pièces au total', 'coins_300'),
+            'tiles_300':
+                ('coins_300', 'Gagner 300 pièces au total', 'coins_500'),
+            'tiles_500': ('coins_500', 'Gagner 500 pièces au total', null),
+          };
+          for (final entry in renames.entries) {
+            final (newId, description, nextId) = entry.value;
+            await (update(permanentQuests)
+                  ..where((q) => q.id.equals(entry.key)))
+                .write(PermanentQuestsCompanion(
+              id: Value(newId),
+              category: const Value('coinsEarned'),
+              description: Value(description),
+              nextQuestId: Value(nextId),
+            ));
+          }
+          // Ajoute la nouvelle quête record "best_game_coins_500" si absente.
+          await batch((b) => b.insertAll(
+                permanentQuests,
+                [kBestGameCoinsQuest],
+                mode: InsertMode.insertOrIgnore,
+              ));
+          // Met à jour les conditions de déblocage des améliorations liées
+          // à l'ancienne chaîne "tiles_placed".
+          await (update(upgrades)..where((u) => u.unlockConditionType.equals('tiles_200')))
+              .write(const UpgradesCompanion(
+            unlockConditionType: Value('coins_200'),
+          ));
+          await (update(upgrades)..where((u) => u.unlockConditionType.equals('tiles_300')))
+              .write(const UpgradesCompanion(
+            unlockConditionType: Value('coins_300'),
+          ));
+          // Ajoute la nouvelle amélioration "Jackpot+" si absente.
+          await batch((b) => b.insertAll(
+                upgrades,
+                [kJackpotPlusUpgrade],
+                mode: InsertMode.insertOrIgnore,
+              ));
+          // Les quêtes quotidiennes en cours référencent l'ancien pool
+          // (tuiles posées) : on force un nouveau tirage avec le pool
+          // "pièces gagnées" dès la prochaine lecture.
+          await delete(dailyQuests).go();
+        }
+        if (from < 7) {
+          // Multiplie par 10 les paliers de la chaîne "coins_earned"
+          // (500/1000/2000/3000/5000 au lieu de 50/100/200/300/500).
+          // Traité dans cet ordre précis (du dernier palier au premier)
+          // pour éviter toute collision de clé primaire : le nouvel id
+          // 'coins_500' entrerait sinon en conflit avec l'ancien id
+          // 'coins_500' (palier 500) tant qu'il n'a pas encore été
+          // renommé en 'coins_5000'.
+          const renames = <String, (String, int, String, String?)>{
+            'coins_500': (
+              'coins_5000',
+              5000,
+              'Gagner 5000 pièces au total',
+              null,
+            ),
+            'coins_300': (
+              'coins_3000',
+              3000,
+              'Gagner 3000 pièces au total',
+              'coins_5000',
+            ),
+            'coins_200': (
+              'coins_2000',
+              2000,
+              'Gagner 2000 pièces au total',
+              'coins_3000',
+            ),
+            'coins_100': (
+              'coins_1000',
+              1000,
+              'Gagner 1000 pièces au total',
+              'coins_2000',
+            ),
+            'coins_50': (
+              'coins_500',
+              500,
+              'Gagner 500 pièces au total',
+              'coins_1000',
+            ),
+          };
+          for (final entry in renames.entries) {
+            final (newId, target, description, nextId) = entry.value;
+            await (update(permanentQuests)
+                  ..where((q) => q.id.equals(entry.key)))
+                .write(PermanentQuestsCompanion(
+              id: Value(newId),
+              targetValue: Value(target),
+              description: Value(description),
+              nextQuestId: Value(nextId),
+            ));
+          }
+          // Met à jour les conditions de déblocage des améliorations liées.
+          await (update(upgrades)..where((u) => u.unlockConditionType.equals('coins_200')))
+              .write(const UpgradesCompanion(
+            unlockConditionType: Value('coins_2000'),
+            unlockConditionValue: Value(2000),
+          ));
+          await (update(upgrades)..where((u) => u.unlockConditionType.equals('coins_300')))
+              .write(const UpgradesCompanion(
+            unlockConditionType: Value('coins_3000'),
+            unlockConditionValue: Value(3000),
+          ));
         }
       },
     );

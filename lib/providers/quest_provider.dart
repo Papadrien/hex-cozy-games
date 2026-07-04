@@ -84,14 +84,15 @@ final todayDailyQuestsProvider =
   final progress = (jsonDecode(row.progressByQuestId) as Map<String, dynamic>)
       .map((k, v) => MapEntry(k, v as int));
 
-  return ids.map((id) {
-    final def = kDailyQuestDefMap[id]!;
-    return DailyQuestWithProgress(
-      def: def,
-      currentValue: progress[id] ?? 0,
-      isCompleted: completed.contains(id),
-    );
-  }).toList();
+  return ids
+      .map((id) => kDailyQuestDefMap[id])
+      .whereType<DailyQuestDef>()
+      .map((def) => DailyQuestWithProgress(
+            def: def,
+            currentValue: progress[def.id] ?? 0,
+            isCompleted: completed.contains(def.id),
+          ))
+      .toList();
 });
 
 // ── Helpers ───────────────────────────────────────────────────────────────
@@ -173,32 +174,94 @@ class QuestService {
   // ─── Public API ─────────────────────────────────────────────────────────
 
   /// Appelé après chaque placement de tuile validé.
-  Future<void> onTilePlaced() async {
-    await _updateTilesPlaced();
-    await _updateDailyTilesPlaced();
+  ///
+  /// [connectedSidesCount] : nombre de côtés connectés obtenus par la tuile
+  /// posée (0 à 6), utilisé pour progresser les quêtes de connexions
+  /// multiples (triple/quadruple/quintuple/sextuple).
+  Future<void> onTilePlaced({int connectedSidesCount = 0}) async {
+    await _updateConnectionQuests(connectedSidesCount);
     final db = _ref.read(appDatabaseProvider);
     await incrementTotalTilesPlaced(db);
     _ref.invalidate(permanentQuestsProvider);
   }
 
   /// Appelé à la fin d'une partie (pile épuisée).
-  /// [largestVillage] et [closedBiomes] sont pré-calculés par [BoardAnalysis]
-  /// pour éviter les traversées redondantes du plateau.
-  Future<void> onGameEnd({required int largestVillage, required int closedBiomes}) async {
+  /// [coinsEarned] : total de pièces gagnées pendant cette partie, utilisé
+  /// pour progresser le cumul de pièces gagnées et le record de la
+  /// meilleure partie. [largestVillage] et [closedBiomes] sont pré-calculés
+  /// par [BoardAnalysis] pour éviter les traversées redondantes du plateau.
+  Future<void> onGameEnd({
+    required int coinsEarned,
+    required int largestVillage,
+    required int closedBiomes,
+  }) async {
+    await _updateCoinsEarned(coinsEarned);
+    await _updateBestGameCoins(coinsEarned);
     await _updateVillageSize(largestVillage);
     await _updateBiomesClosed(closedBiomes);
+    await _updateDailyCoinsEarned(coinsEarned);
     await _updateDailyVillageSize(largestVillage);
     await _updateDailyBiomesClosed(closedBiomes);
     _ref.invalidate(permanentQuestsProvider);
   }
 
-  // ─── tiles_placed ───────────────────────────────────────────────────────
+  // ─── coins_earned (cumul toutes parties confondues) ────────────────────
 
-  Future<void> _updateTilesPlaced() async {
+  Future<void> _updateCoinsEarned(int coinsEarned) async {
+    if (coinsEarned <= 0) return;
     final db = _ref.read(appDatabaseProvider);
     final rows = await (db.select(db.permanentQuests)
-      ..where((q) => q.category.equals(QuestCategory.tilesPlaced.dbValue))
+      ..where((q) => q.category.equals(QuestCategory.coinsEarned.dbValue))
       ..where((q) => q.isCompleted.equals(false)))
+        .get();
+    await db.transaction(() async {
+      for (final quest in rows) {
+        final newValue = quest.currentValue + coinsEarned;
+        final completed = newValue >= quest.targetValue;
+        await db.update(db.permanentQuests).replace(quest.copyWith(
+              currentValue: newValue,
+              isCompleted: completed,
+            ));
+        if (completed) await _handleCompletion(quest);
+      }
+    });
+  }
+
+  // ─── best_game_coins (record d'une seule partie) ───────────────────────
+
+  Future<void> _updateBestGameCoins(int coinsEarned) async {
+    if (coinsEarned <= 0) return;
+    final db = _ref.read(appDatabaseProvider);
+    final rows = await (db.select(db.permanentQuests)
+      ..where((q) => q.category.equals(QuestCategory.bestGameCoins.dbValue))
+      ..where((q) => q.isCompleted.equals(false)))
+        .get();
+    await db.transaction(() async {
+      for (final quest in rows) {
+        if (coinsEarned <= quest.currentValue) continue;
+        final completed = coinsEarned >= quest.targetValue;
+        await db.update(db.permanentQuests).replace(quest.copyWith(
+              currentValue: coinsEarned,
+              isCompleted: completed,
+            ));
+        if (completed) await _handleCompletion(quest);
+      }
+    });
+  }
+
+  // ─── connexions multiples (répétables) ─────────────────────────────────
+
+  /// Fait progresser d'un cran la quête de connexions correspondant à
+  /// [connectedCount] (3, 4, 5 ou 6 côtés). Aucune quête n'existe pour les
+  /// valeurs 0, 1 ou 2.
+  Future<void> _updateConnectionQuests(int connectedCount) async {
+    final category = _connectionCategoryFor(connectedCount);
+    if (category == null) return;
+
+    final db = _ref.read(appDatabaseProvider);
+    final rows = await (db.select(db.permanentQuests)
+          ..where((q) => q.category.equals(category.dbValue))
+          ..where((q) => q.isCompleted.equals(false)))
         .get();
     await db.transaction(() async {
       for (final quest in rows) {
@@ -211,6 +274,21 @@ class QuestService {
         if (completed) await _handleCompletion(quest);
       }
     });
+  }
+
+  QuestCategory? _connectionCategoryFor(int connectedCount) {
+    switch (connectedCount) {
+      case 3:
+        return QuestCategory.tripleConnections;
+      case 4:
+        return QuestCategory.quadConnections;
+      case 5:
+        return QuestCategory.quintConnections;
+      case 6:
+        return QuestCategory.sextConnections;
+      default:
+        return null;
+    }
   }
 
   // ─── village_size ───────────────────────────────────────────────────────
@@ -261,6 +339,18 @@ class QuestService {
 
   Future<void> _handleCompletion(PermanentQuestRow quest) async {
     await _grantReward(quest);
+
+    if (quest.isRepeatable) {
+      // Quête répétable (ex: connexions multiples) : remise à zéro
+      // instantanée, même palier, pas de chaîne ni de déblocage.
+      final db = _ref.read(appDatabaseProvider);
+      await db.update(db.permanentQuests).replace(quest.copyWith(
+            currentValue: 0,
+            isCompleted: false,
+          ));
+      return;
+    }
+
     if (quest.nextQuestId != null) {
       _unlockNextQuest(quest.nextQuestId!);
     }
@@ -283,12 +373,14 @@ class QuestService {
 
   // ─── Daily quests (Story 2.4a) ──────────────────────────────────────────
 
-  Future<void> _updateDailyTilesPlaced() async {
+  Future<void> _updateDailyCoinsEarned(int coinsEarned) async {
+    if (coinsEarned <= 0) return;
     final db = _ref.read(appDatabaseProvider);
     final rows =
         await (db.select(db.dailyQuests)..where((t) => t.id.equals(1))).get();
     if (rows.isEmpty) return;
-    await _applyDailyDelta(rows.first, db, QuestCategory.tilesPlaced, increment: 1);
+    await _applyDailyDelta(rows.first, db, QuestCategory.coinsEarned,
+        increment: coinsEarned);
   }
 
   Future<void> _updateDailyVillageSize(int largest) async {

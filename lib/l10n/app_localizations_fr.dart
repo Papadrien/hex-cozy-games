@@ -122,13 +122,19 @@ class AppLocalizationsFr extends AppLocalizations {
   String get quests_title => 'Quêtes';
 
   @override
-  String get quests_category_tiles => 'Tuiles posées';
+  String get quests_category_coins => 'Pièces gagnées';
+
+  @override
+  String get quests_category_record => 'Record de pièces';
 
   @override
   String get quests_category_village => 'Village';
 
   @override
   String get quests_category_biomes => 'Biomes fermés';
+
+  @override
+  String get quests_category_connections => 'Connexions multiples';
 
   @override
   String get quests_status_active => 'En cours';

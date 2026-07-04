@@ -121,13 +121,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get quests_title => 'Quests';
 
   @override
-  String get quests_category_tiles => 'Tiles placed';
+  String get quests_category_coins => 'Coins earned';
+
+  @override
+  String get quests_category_record => 'Coins record';
 
   @override
   String get quests_category_village => 'Village';
 
   @override
   String get quests_category_biomes => 'Closed biomes';
+
+  @override
+  String get quests_category_connections => 'Multi-side connections';
 
   @override
   String get quests_status_active => 'Active';

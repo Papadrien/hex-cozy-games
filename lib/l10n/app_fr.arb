@@ -37,9 +37,11 @@
   "tutorial_skip": "Passer",
 
   "quests_title": "Qu\u00eates",
-  "quests_category_tiles": "Tuiles pos\u00e9es",
+  "quests_category_coins": "Pi\u00e8ces gagn\u00e9es",
+  "quests_category_record": "Record de pi\u00e8ces",
   "quests_category_village": "Village",
   "quests_category_biomes": "Biomes ferm\u00e9s",
+  "quests_category_connections": "Connexions multiples",
   "quests_status_active": "En cours",
   "quests_status_completed": "Termin\u00e9e",
   "quests_status_locked": "Verrouill\u00e9e",

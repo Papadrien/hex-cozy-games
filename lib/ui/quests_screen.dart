@@ -83,16 +83,28 @@ class _QuestsList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final grouped = _groupByCategory(quests);
+    final completedCount = quests.where((q) => q.isCompleted).length;
 
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       children: [
-        if (grouped.containsKey(QuestCategory.tilesPlaced.dbValue))
+        _QuestsSummaryBar(completed: completedCount, total: quests.length),
+        const SizedBox(height: 20),
+        if (grouped.containsKey(QuestCategory.coinsEarned.dbValue))
           _CategorySection(
-            icon: Icons.grid_on,
-            color: kSuccessGreen,
-            label: context.tr.quests_category_tiles,
-            quests: grouped[QuestCategory.tilesPlaced.dbValue]!,
+            icon: Icons.monetization_on,
+            color: kCoinAmber,
+            label: context.tr.quests_category_coins,
+            quests: grouped[QuestCategory.coinsEarned.dbValue]!,
+            allQuests: quests,
+          ),
+        const SizedBox(height: 24),
+        if (grouped.containsKey(QuestCategory.bestGameCoins.dbValue))
+          _CategorySection(
+            icon: Icons.emoji_events,
+            color: kRecordGold,
+            label: context.tr.quests_category_record,
+            quests: grouped[QuestCategory.bestGameCoins.dbValue]!,
             allQuests: quests,
           ),
         const SizedBox(height: 24),
@@ -113,9 +125,32 @@ class _QuestsList extends StatelessWidget {
             quests: grouped[QuestCategory.biomesClosed.dbValue]!,
             allQuests: quests,
           ),
+        const SizedBox(height: 24),
+        if (_connectionQuests(grouped).isNotEmpty)
+          _CategorySection(
+            icon: Icons.hub,
+            color: kConnectionOrange,
+            label: context.tr.quests_category_connections,
+            quests: _connectionQuests(grouped),
+            allQuests: quests,
+          ),
         const SizedBox(height: 32),
       ],
     );
+  }
+
+  /// Rassemble les 4 quêtes de connexions (triple/quadruple/quintuple/
+  /// sextuple) dans un seul groupe affiché sous une même section, dans
+  /// l'ordre croissant du nombre de côtés connectés.
+  List<PermanentQuestRow> _connectionQuests(
+    Map<String, List<PermanentQuestRow>> grouped,
+  ) {
+    return [
+      ...?grouped[QuestCategory.tripleConnections.dbValue],
+      ...?grouped[QuestCategory.quadConnections.dbValue],
+      ...?grouped[QuestCategory.quintConnections.dbValue],
+      ...?grouped[QuestCategory.sextConnections.dbValue],
+    ];
   }
 
   Map<String, List<PermanentQuestRow>> _groupByCategory(
@@ -129,6 +164,62 @@ class _QuestsList extends StatelessWidget {
       list.sort((a, b) => a.targetValue.compareTo(b.targetValue));
     }
     return map;
+  }
+}
+
+class _QuestsSummaryBar extends StatelessWidget {
+  const _QuestsSummaryBar({required this.completed, required this.total});
+
+  final int completed;
+  final int total;
+
+  @override
+  Widget build(BuildContext context) {
+    final progress = total > 0 ? completed / total : 0.0;
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '$completed / $total ${context.tr.quests_status_completed.toLowerCase()}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: LinearProgressIndicator(
+                        value: progress,
+                        backgroundColor: Colors.white.withValues(alpha: 0.1),
+                        valueColor:
+                            AlwaysStoppedAnimation<Color>(kCoinAmber),
+                        minHeight: 6,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 
@@ -217,24 +308,44 @@ class _CategorySection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final completedInCategory = quests.where((q) => q.isCompleted).length;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Icon(icon, color: color, size: 20),
-            const SizedBox(width: 8),
-            Text(
-              label,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Row(
+            children: [
+              Icon(icon, color: color, size: 18),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    color: color,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.2,
+                  ),
+                ),
               ),
-            ),
-          ],
+              Text(
+                '$completedInCategory/${quests.length}',
+                style: TextStyle(
+                  color: color.withValues(alpha: 0.85),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 10),
         ...quests.map((q) => Padding(
               padding: const EdgeInsets.only(bottom: 8),
               child: _QuestCard(

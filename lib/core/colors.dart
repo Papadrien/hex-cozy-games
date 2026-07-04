@@ -61,3 +61,9 @@ const Color kGlassBlue = Color(0xFF5BA4D4);
 
 /// Bleu glacier glassmorphism — bordure des composants HUD.
 const Color kGlassBlueBorder = Color(0xFF7EC8E3);
+
+/// Orange pour les quêtes de type connexions multiples (répétables).
+const Color kConnectionOrange = Color(0xFFFFB74D);
+
+/// Or vif pour la quête record (meilleure partie en pièces gagnées).
+const Color kRecordGold = Color(0xFFFFD54F);

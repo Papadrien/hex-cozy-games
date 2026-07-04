@@ -308,11 +308,17 @@ abstract class AppLocalizations {
   /// **'Quests'**
   String get quests_title;
 
-  /// No description provided for @quests_category_tiles.
+  /// No description provided for @quests_category_coins.
   ///
   /// In en, this message translates to:
-  /// **'Tiles placed'**
-  String get quests_category_tiles;
+  /// **'Coins earned'**
+  String get quests_category_coins;
+
+  /// No description provided for @quests_category_record.
+  ///
+  /// In en, this message translates to:
+  /// **'Coins record'**
+  String get quests_category_record;
 
   /// No description provided for @quests_category_village.
   ///
@@ -325,6 +331,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Closed biomes'**
   String get quests_category_biomes;
+
+  /// No description provided for @quests_category_connections.
+  ///
+  /// In en, this message translates to:
+  /// **'Multi-side connections'**
+  String get quests_category_connections;
 
   /// No description provided for @quests_status_active.
   ///
