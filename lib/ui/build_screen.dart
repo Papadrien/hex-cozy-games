@@ -19,6 +19,7 @@ import '../core/strings.dart';
 import '../data/app_database.dart';
 import '../providers/build_provider.dart';
 import '../providers/progression_provider.dart';
+import '../services/haptics_service.dart';
 
 class BuildScreen extends ConsumerWidget {
   const BuildScreen({super.key});
@@ -76,10 +77,13 @@ class BuildScreen extends ConsumerWidget {
                                   child: _BuildCard(
                                     upgrade: u,
                                     isSelected: selected.contains(u.id),
-                                    onTap: () => ref
-                                        .read(
-                                            selectedUpgradeIdsProvider.notifier)
-                                        .toggle(u.id),
+                                    onTap: () {
+                                      buttonHapticTap(context);
+                                      ref
+                                          .read(selectedUpgradeIdsProvider
+                                              .notifier)
+                                          .toggle(u.id);
+                                    },
                                   ),
                                 )),
                           ],
@@ -110,7 +114,10 @@ class _BuildAppBar extends StatelessWidget {
         children: [
           _BuildGlassIconButton(
             icon: Icons.close,
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () {
+              buttonHapticTap(context);
+              Navigator.of(context).pop();
+            },
           ),
           const SizedBox(width: 14),
           Expanded(

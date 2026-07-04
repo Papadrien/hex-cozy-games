@@ -15,6 +15,7 @@ import '../game/hex_tile.dart';
 import '../game/tile_component.dart' show BiomeColor;
 import '../providers/placement_provider.dart';
 import '../providers/tile_stack_provider.dart';
+import '../services/haptics_service.dart';
 
 const double _kActiveTileRadius = 34.0;
 const double _kUpcomingTileRadius = 26.0;
@@ -133,9 +134,12 @@ class TileStackHud extends ConsumerWidget {
                               borderRadius: BorderRadius.circular(13),
                               child: InkWell(
                                 borderRadius: BorderRadius.circular(13),
-                                onTap: () => ref
-                                    .read(placementProvider.notifier)
-                                    .clearSelection(),
+                                onTap: () {
+                                  buttonHapticTap(context);
+                                  ref
+                                      .read(placementProvider.notifier)
+                                      .clearSelection();
+                                },
                                 child: Container(
                                   width: _kCrossSize,
                                   height: _kCrossSize,

@@ -28,6 +28,7 @@ import '../providers/pause_provider.dart';
 import '../providers/placement_commit.dart';
 import '../providers/session_provider.dart';
 import '../providers/tile_stack_provider.dart';
+import '../services/haptics_service.dart';
 
 class PauseModal extends ConsumerWidget {
   const PauseModal({super.key});
@@ -139,13 +140,19 @@ class _OptionsContent extends ConsumerWidget {
         _OptionToggle(
           label: context.tr.options_sound,
           value: options.soundEnabled,
-          onToggle: () => ref.read(optionsProvider.notifier).toggleSound(),
+          onToggle: () {
+            buttonHapticTap(context);
+            ref.read(optionsProvider.notifier).toggleSound();
+          },
         ),
         const SizedBox(height: 16),
         _OptionToggle(
           label: context.tr.options_vibrations,
           value: options.vibrationEnabled,
-          onToggle: () => ref.read(optionsProvider.notifier).toggleVibration(),
+          onToggle: () {
+            buttonHapticTap(context);
+            ref.read(optionsProvider.notifier).toggleVibration();
+          },
         ),
         const SizedBox(height: 24),
         _ResumeButton(),
@@ -218,6 +225,7 @@ class _ResumeButton extends ConsumerWidget {
           ),
         ),
         onPressed: () {
+          buttonHapticTap(context);
           ref.read(pauseProvider.notifier).resume();
         },
         child: Text(
@@ -251,6 +259,7 @@ class _OptionsButton extends ConsumerWidget {
           ),
         ),
         onPressed: () {
+          buttonHapticTap(context);
           ref.read(pauseProvider.notifier).toggleOptions();
         },
         child: Text(
@@ -276,6 +285,7 @@ class _BackButton extends ConsumerWidget {
           ),
         ),
         onPressed: () {
+          buttonHapticTap(context);
           ref.read(pauseProvider.notifier).toggleOptions();
         },
         child: const Text(
@@ -305,6 +315,7 @@ class _SaveAndQuitButton extends ConsumerWidget {
           ),
         ),
         onPressed: () async {
+          buttonHapticTap(context);
           await SessionSaver.save(ref);
           ref.invalidate(activeSessionProvider);
           // Repartir sur un état "non pausé" : sinon, ce provider global
@@ -339,7 +350,10 @@ class _AbandonButton extends ConsumerWidget {
             borderRadius: BorderRadius.circular(16),
           ),
         ),
-        onPressed: () => _showAbandonConfirmDialog(context, ref),
+        onPressed: () {
+          buttonHapticTap(context);
+          _showAbandonConfirmDialog(context, ref);
+        },
         child: Text(
           context.tr.pause_abandon,
           style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
@@ -371,7 +385,10 @@ Future<void> _showAbandonConfirmDialog(
       ),
       actions: [
         TextButton(
-          onPressed: () => Navigator.of(dialogContext).pop(),
+          onPressed: () {
+            buttonHapticTap(dialogContext);
+            Navigator.of(dialogContext).pop();
+          },
           child: Text(
             context.tr.pause_abandonConfirmCancel,
             style: const TextStyle(color: Colors.white70),
@@ -379,6 +396,7 @@ Future<void> _showAbandonConfirmDialog(
         ),
         TextButton(
           onPressed: () {
+            buttonHapticTap(dialogContext);
             Navigator.of(dialogContext).pop();
             _abandonGame(context, ref);
           },

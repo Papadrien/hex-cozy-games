@@ -13,6 +13,7 @@ import '../data/app_database.dart';
 import '../providers/player_profile_provider.dart';
 import '../providers/progression_provider.dart';
 import '../providers/quest_provider.dart';
+import '../services/haptics_service.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ÉCRAN DES AMÉLIORATIONS — style glassmorphism (aligné sur ShopScreen)
@@ -104,7 +105,10 @@ class _UpgradesAppBar extends StatelessWidget {
         children: [
           _UpgradesGlassIconButton(
             icon: Icons.close,
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () {
+              buttonHapticTap(context);
+              Navigator.of(context).pop();
+            },
           ),
           const SizedBox(width: 14),
           Text(
@@ -618,6 +622,7 @@ class _UpgradeButton extends ConsumerWidget {
   }
 
   Future<void> _handleUpgrade(BuildContext context, WidgetRef ref) async {
+    buttonHapticTap(context);
     final service = ref.read(progressionServiceProvider);
     final result = await service.levelUpUpgrade(upgrade.id);
 

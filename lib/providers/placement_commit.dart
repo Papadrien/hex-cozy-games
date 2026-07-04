@@ -280,18 +280,21 @@ Future<void> confirmPlacement(
   _checkGameOver(ref);
 }
 
-/// Déclenche les retours haptiques associés à un placement : un motif
-/// spécifique et de plus en plus marqué selon le nombre de côtés connectés
-/// (3 à 6), puis un retour dédié si des pièces ont été gagnées.
+/// Déclenche les retours haptiques associés à un placement : une vibration
+/// légère par pièce "de base" (côtés connectés), une vibration moyenne par
+/// pièce bonus, et une vibration forte par tuile bonus — jouées dans cet
+/// ordre (léger → moyen → fort) pour souligner l'intensité croissante du
+/// gain (voir [HapticsService.playReward]).
 void _triggerPlacementHaptics(WidgetRef ref, PlacementReward reward) {
-  final haptics = ref.read(hapticsServiceProvider);
-  if (reward.connectedSides.isNotEmpty) {
-    haptics.connectionSucceeded(reward.connectedSides.length);
+  final baseCoins = reward.connectedSides.length;
+  if (baseCoins == 0 && reward.bonusCoins == 0 && reward.bonusTiles == 0) {
+    return;
   }
-  final coins = reward.connectedSides.length + reward.bonusTiles + reward.bonusCoins;
-  if (coins > 0) {
-    haptics.coinsEarned();
-  }
+  ref.read(hapticsServiceProvider).playReward(
+        coins: baseCoins,
+        bonusCoins: reward.bonusCoins,
+        bonusTiles: reward.bonusTiles,
+      );
 }
 
 void _placeTileOnGrid(WidgetRef ref, HexCoords coords, HexTile tile) {

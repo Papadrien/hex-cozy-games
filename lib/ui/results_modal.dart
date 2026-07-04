@@ -13,6 +13,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/strings.dart';
 import '../providers/end_game_provider.dart';
 import '../providers/placement_commit.dart';
+import '../services/haptics_service.dart';
 
 class ResultsModal extends ConsumerWidget {
   const ResultsModal({super.key});
@@ -188,12 +189,14 @@ class _ResultsCard extends ConsumerWidget {
   }
 
   void _replay(BuildContext context, WidgetRef ref) {
+    buttonHapticTap(context);
     SessionSaver.endSession(ref);
     startNewGame(ref);
     Navigator.pushReplacementNamed(context, '/game');
   }
 
   void _goHome(BuildContext context, WidgetRef ref) {
+    buttonHapticTap(context);
     SessionSaver.endSession(ref);
     // '/' est le splash screen (précache polices/images + délai minimum) :
     // le réafficher ici provoquait un flash de splash inutile à chaque

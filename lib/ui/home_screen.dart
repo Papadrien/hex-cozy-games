@@ -15,6 +15,7 @@ import '../providers/placement_commit.dart';
 import '../providers/player_profile_provider.dart';
 import '../providers/progression_provider.dart';
 import '../services/ad_service.dart';
+import '../services/haptics_service.dart';
 import 'build_screen.dart';
 import 'quests_screen.dart';
 import 'shop_screen.dart';
@@ -125,15 +126,21 @@ class _TopBar extends StatelessWidget {
           _GlassIconButton(
             icon: Icons.settings,
             tooltip: context.tr.home_settings,
-            onPressed: () => _notYet(context, context.tr.home_settings),
+            onPressed: () {
+              buttonHapticTap(context);
+              _notYet(context, context.tr.home_settings);
+            },
           ),
           const SizedBox(width: 8),
           _GlassIconButton(
             icon: Icons.store,
             tooltip: context.tr.home_shop,
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(builder: (_) => const ShopScreen()),
-            ),
+            onPressed: () {
+              buttonHapticTap(context);
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(builder: (_) => const ShopScreen()),
+              );
+            },
           ),
         ],
       ),
@@ -437,7 +444,12 @@ class _PlayButton extends StatelessWidget {
                 borderRadius: BorderRadius.circular(28),
                 child: InkWell(
                   borderRadius: BorderRadius.circular(28),
-                  onTap: onTap,
+                  onTap: onTap == null
+                      ? null
+                      : () {
+                          buttonHapticTap(context);
+                          onTap();
+                        },
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 18),
                     decoration: BoxDecoration(
@@ -519,7 +531,12 @@ class _GlassButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           child: InkWell(
             borderRadius: BorderRadius.circular(16),
-            onTap: onPressed,
+            onTap: onPressed == null
+                ? null
+                : () {
+                    buttonHapticTap(context);
+                    onPressed!();
+                  },
             child: Container(
               padding: padding,
               decoration: BoxDecoration(
@@ -871,6 +888,7 @@ class _DebugButton extends StatelessWidget {
         ),
         label: const Text('DEBUG : tout débloquer'),
         onPressed: () async {
+          buttonHapticTap(context);
           await ref.read(progressionServiceProvider).unlockAllUpgrades();
           if (context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(

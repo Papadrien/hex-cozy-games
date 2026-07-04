@@ -35,6 +35,7 @@ import '../providers/session_provider.dart';
 import '../providers/tile_stack_provider.dart';
 import '../providers/tutorial_provider.dart';
 import '../services/ad_service.dart';
+import '../services/haptics_service.dart';
 import 'pause_button.dart';
 import 'pause_modal.dart';
 import 'results_modal.dart';
@@ -300,6 +301,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                         borderRadius: BorderRadius.circular(14),
                         onTap: canUndo
                             ? () {
+                                buttonHapticTap(context);
                                 final target = _stackHudFlyTarget();
                                 undoPlacement(
                                   ref,

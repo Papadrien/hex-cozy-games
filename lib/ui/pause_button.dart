@@ -11,6 +11,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/colors.dart';
 import '../providers/pause_provider.dart';
+import '../services/haptics_service.dart';
 
 /// Taille du bouton pause (carré).
 const double _kPauseButtonSize = 36.0;
@@ -29,7 +30,10 @@ class PauseButton extends ConsumerWidget {
           borderRadius: BorderRadius.circular(10),
           child: InkWell(
             borderRadius: BorderRadius.circular(10),
-            onTap: () => ref.read(pauseProvider.notifier).pause(),
+            onTap: () {
+              buttonHapticTap(context);
+              ref.read(pauseProvider.notifier).pause();
+            },
             child: Container(
               width: _kPauseButtonSize,
               height: _kPauseButtonSize,

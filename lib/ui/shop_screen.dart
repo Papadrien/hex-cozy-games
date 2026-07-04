@@ -9,6 +9,7 @@ import '../core/constants.dart';
 import '../core/strings.dart';
 import '../providers/player_profile_provider.dart';
 import '../services/iap_service.dart';
+import '../services/haptics_service.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SHOP SCREEN
@@ -96,7 +97,10 @@ class _ShopAppBar extends StatelessWidget {
           // Bouton fermer glassmorphism
           _ShopGlassIconButton(
             icon: Icons.close,
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () {
+              buttonHapticTap(context);
+              Navigator.of(context).pop();
+            },
           ),
           const SizedBox(width: 14),
           Text(
@@ -315,6 +319,7 @@ class _CoinPackCardState extends ConsumerState<_CoinPackCard> {
                   onTap: (_loading || !iapAvailable)
                       ? null
                       : () async {
+                          buttonHapticTap(context);
                           setState(() => _loading = true);
                           try {
                             final result =
@@ -572,6 +577,7 @@ class _PremiumCardState extends ConsumerState<_PremiumCard> {
                       onTap: (widget.isPremium || _loading || !iapAvailable)
                           ? null
                           : () async {
+                              buttonHapticTap(context);
                               setState(() => _loading = true);
                               try {
                                 final result = await purchasePremium(ref);
@@ -693,6 +699,7 @@ class _RestoreButtonState extends ConsumerState<_RestoreButton> {
             onTap: _loading
                 ? null
                 : () async {
+                    buttonHapticTap(context);
                     setState(() => _loading = true);
                     try {
                       final ok = await restoreAllPurchases(ref);

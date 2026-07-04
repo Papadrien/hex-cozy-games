@@ -15,6 +15,7 @@ import '../core/game_enums.dart';
 import '../core/strings.dart';
 import '../data/app_database.dart';
 import '../providers/quest_provider.dart';
+import '../services/haptics_service.dart';
 
 class QuestsScreen extends ConsumerWidget {
   const QuestsScreen({super.key});
@@ -140,7 +141,10 @@ class _QuestsAppBar extends StatelessWidget {
         children: [
           _QuestsGlassIconButton(
             icon: Icons.close,
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () {
+              buttonHapticTap(context);
+              Navigator.of(context).pop();
+            },
           ),
           const SizedBox(width: 14),
           Text(

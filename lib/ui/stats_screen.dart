@@ -14,6 +14,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../core/colors.dart';
 import '../core/strings.dart';
 import '../providers/player_stats_provider.dart';
+import '../services/haptics_service.dart';
 
 class StatsScreen extends ConsumerWidget {
   const StatsScreen({super.key});
@@ -175,7 +176,10 @@ class _StatsAppBar extends StatelessWidget {
         children: [
           _StatsGlassIconButton(
             icon: Icons.close,
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () {
+              buttonHapticTap(context);
+              Navigator.of(context).pop();
+            },
           ),
           const SizedBox(width: 14),
           Text(

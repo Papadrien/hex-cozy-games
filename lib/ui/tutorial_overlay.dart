@@ -22,6 +22,7 @@ import '../core/strings.dart';
 import '../core/tutorial_step.dart';
 import '../l10n/app_localizations.dart';
 import '../providers/tutorial_provider.dart';
+import '../services/haptics_service.dart';
 
 class TutorialOverlay extends ConsumerStatefulWidget {
   const TutorialOverlay({super.key, required this.targetKeys});
@@ -194,7 +195,10 @@ class _TutorialOverlayState extends ConsumerState<TutorialOverlay>
                   borderRadius: BorderRadius.circular(10),
                   child: InkWell(
                     borderRadius: BorderRadius.circular(10),
-                    onTap: () => notifier.skip(),
+                    onTap: () {
+                      buttonHapticTap(context);
+                      notifier.skip();
+                    },
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                       decoration: BoxDecoration(
@@ -232,7 +236,10 @@ class _TutorialOverlayState extends ConsumerState<TutorialOverlay>
                   borderRadius: BorderRadius.circular(14),
                   child: InkWell(
                     borderRadius: BorderRadius.circular(14),
-                    onTap: () => notifier.next(),
+                    onTap: () {
+                      buttonHapticTap(context);
+                      notifier.next();
+                    },
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
                       decoration: BoxDecoration(
