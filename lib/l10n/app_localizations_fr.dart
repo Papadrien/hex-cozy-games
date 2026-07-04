@@ -93,8 +93,7 @@ class AppLocalizationsFr extends AppLocalizations {
       'Les cases brillantes sont les endroits où tu peux poser ta tuile';
 
   @override
-  String get tutorial_step2 =>
-      'Swipe pour la faire pivoter';
+  String get tutorial_step2 => 'Swipe pour la faire pivoter';
 
   @override
   String get tutorial_step3 =>

@@ -275,13 +275,11 @@ class _StatRow extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.value,
-    this.valueColor,
   });
 
   final IconData icon;
   final String label;
   final String value;
-  final Color? valueColor;
 
   @override
   Widget build(BuildContext context) {
@@ -300,7 +298,7 @@ class _StatRow extends StatelessWidget {
         Text(
           value,
           style: TextStyle(
-            color: valueColor ?? Colors.white,
+            color: Colors.white,
             fontSize: 16,
             fontWeight: FontWeight.bold,
           ),
