@@ -81,48 +81,49 @@ class _ResultsCard extends ConsumerWidget {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
+                const SizedBox(height: 20),
+
+                // Pièces gagnées — mises en avant (bandeau doré)
+                _CoinsHero(coins: stats.coins),
                 const SizedBox(height: 24),
 
-                // Tuiles posées
-                _StatRow(
-                  icon: Icons.grid_on,
-                  label: context.tr.results_tilesPlaced,
-                  value: '${stats.placedTilesCount}',
-                ),
-                const SizedBox(height: 12),
-
-                // Connexions par type
-                _StatRow(
-                  icon: Icons.link,
-                  label: '${context.tr.results_connections3} (3)',
-                  value: '${stats.connections3}',
-                ),
-                const SizedBox(height: 8),
-                _StatRow(
-                  icon: Icons.link,
-                  label: '${context.tr.results_connections4} (4)',
-                  value: '${stats.connections4}',
-                ),
-                const SizedBox(height: 8),
-                _StatRow(
-                  icon: Icons.link,
-                  label: '${context.tr.results_connections5} (5)',
-                  value: '${stats.connections5}',
-                ),
-                const SizedBox(height: 8),
-                _StatRow(
-                  icon: Icons.link,
-                  label: '${context.tr.results_connections6} (6)',
-                  value: '${stats.connections6}',
-                ),
-                const SizedBox(height: 16),
-
-                // Pièces gagnées
-                _StatRow(
-                  icon: Icons.monetization_on,
-                  label: context.tr.results_coins,
-                  value: '${stats.coins}',
-                  valueColor: Colors.amber,
+                // Autres statistiques — en retrait (plus petites, plus
+                // discrètes, regroupées dans un bloc légèrement estompé).
+                Opacity(
+                  opacity: 0.75,
+                  child: Column(
+                    children: [
+                      _StatRow(
+                        icon: Icons.grid_on,
+                        label: context.tr.results_tilesPlaced,
+                        value: '${stats.placedTilesCount}',
+                      ),
+                      const SizedBox(height: 8),
+                      _StatRow(
+                        icon: Icons.link,
+                        label: context.tr.results_connections3,
+                        value: '${stats.connections3}',
+                      ),
+                      const SizedBox(height: 6),
+                      _StatRow(
+                        icon: Icons.link,
+                        label: context.tr.results_connections4,
+                        value: '${stats.connections4}',
+                      ),
+                      const SizedBox(height: 6),
+                      _StatRow(
+                        icon: Icons.link,
+                        label: context.tr.results_connections5,
+                        value: '${stats.connections5}',
+                      ),
+                      const SizedBox(height: 6),
+                      _StatRow(
+                        icon: Icons.link,
+                        label: context.tr.results_connections6,
+                        value: '${stats.connections6}',
+                      ),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 28),
 
@@ -194,7 +195,78 @@ class _ResultsCard extends ConsumerWidget {
 
   void _goHome(BuildContext context, WidgetRef ref) {
     SessionSaver.endSession(ref);
-    Navigator.pushReplacementNamed(context, '/');
+    // '/' est le splash screen (précache polices/images + délai minimum) :
+    // le réafficher ici provoquait un flash de splash inutile à chaque
+    // retour à l'accueil après une partie. On va directement sur '/home'.
+    Navigator.pushReplacementNamed(context, '/home');
+  }
+}
+
+/// Bandeau doré mettant en avant les pièces gagnées — proposition A
+/// (voir les autres propositions envoyées à Adrien en fin de tour).
+class _CoinsHero extends StatelessWidget {
+  const _CoinsHero({required this.coins});
+
+  final int coins;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.amber.withValues(alpha: 0.28),
+            Colors.amber.shade700.withValues(alpha: 0.14),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: Colors.amber.withValues(alpha: 0.55),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.amber.withValues(alpha: 0.25),
+            blurRadius: 18,
+            spreadRadius: 1,
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Text(
+            context.tr.results_coins.toUpperCase(),
+            style: TextStyle(
+              color: Colors.amber.shade100,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1.2,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.monetization_on, color: Colors.amber, size: 32),
+              const SizedBox(width: 10),
+              Text(
+                '$coins',
+                style: const TextStyle(
+                  color: Colors.amber,
+                  fontSize: 40,
+                  fontWeight: FontWeight.w900,
+                  height: 1,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 }
 

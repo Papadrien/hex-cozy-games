@@ -66,18 +66,13 @@ const List<TutorialStep> kTutorialSteps = [
     gesture: TutorialGesture.swipeVertical,
     anchorFraction: _kSwipeHintAnchor,
   ),
-  TutorialStep(
-    highlightTargetKey: 'board',
-    textKey: 'tutorial.step3',
-    order: 2,
-    gesture: TutorialGesture.point,
-    anchorFraction: _kBoardHintAnchor,
-    anchorOffset: _kSwNeighborOffset,
-  ),
+  // Ancienne étape 3 (textKey 'tutorial.step3') retirée : les textKeys
+  // suivants ne sont volontairement pas renumérotés, pour ne pas casser les
+  // clés de traduction existantes (tutorial.step4 reste tutorial.step4).
   TutorialStep(
     highlightTargetKey: 'board',
     textKey: 'tutorial.step4',
-    order: 3,
+    order: 2,
     gesture: TutorialGesture.tap,
     anchorFraction: _kBoardHintAnchor,
     anchorOffset: _kSwNeighborOffset,
@@ -85,20 +80,20 @@ const List<TutorialStep> kTutorialSteps = [
   TutorialStep(
     highlightTargetKey: 'tileStack',
     textKey: 'tutorial.step5',
-    order: 4,
+    order: 3,
     gesture: TutorialGesture.tap,
     anchorOffset: Offset(-30, 0),
   ),
   TutorialStep(
     highlightTargetKey: 'undo',
     textKey: 'tutorial.step6',
-    order: 5,
+    order: 4,
     gesture: TutorialGesture.point,
   ),
   TutorialStep(
     highlightTargetKey: 'board',
     textKey: 'tutorial.step7',
-    order: 6,
+    order: 5,
     gesture: TutorialGesture.none,
   ),
 ];

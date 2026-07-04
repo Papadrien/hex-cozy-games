@@ -85,31 +85,14 @@ class _PauseCard extends ConsumerWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Titre avec hibiscus décoratif
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Image.asset(
-                      'assets/images/hibiscus.png',
-                      width: 22,
-                      height: 22,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      showOptions ? context.tr.pause_options : '⏸ Pause',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Image.asset(
-                      'assets/images/hibiscus.png',
-                      width: 22,
-                      height: 22,
-                    ),
-                  ],
+                // Titre (sans décoration ni emoji)
+                Text(
+                  showOptions ? context.tr.pause_options : 'Pause',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
                 const SizedBox(height: 20),
                 if (showOptions)
@@ -329,7 +312,9 @@ class _SaveAndQuitButton extends ConsumerWidget {
           // reprise) démarre directement sur la modale de pause.
           ref.read(pauseProvider.notifier).resume();
           if (context.mounted) {
-            Navigator.pushReplacementNamed(context, '/');
+            // Idem que _goHome dans results_modal.dart : '/' relance le
+            // splash screen, on va directement sur '/home'.
+            Navigator.pushReplacementNamed(context, '/home');
           }
         },
         child: Text(
@@ -416,5 +401,7 @@ void _abandonGame(BuildContext context, WidgetRef ref) {
   // Idem : sans ça, isPaused reste true et la prochaine partie démarre
   // directement sur la modale de pause.
   ref.read(pauseProvider.notifier).resume();
-  Navigator.pushReplacementNamed(context, '/');
+  // Idem que _goHome dans results_modal.dart : '/' relance le splash
+  // screen, on va directement sur '/home'.
+  Navigator.pushReplacementNamed(context, '/home');
 }

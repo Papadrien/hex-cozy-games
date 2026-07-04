@@ -807,7 +807,7 @@ class _GlassIconButton extends StatelessWidget {
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
           child: Material(
-            color: _kGlassBlue.withValues(alpha: 0.22),
+            color: kTropicalTeal.withValues(alpha: 0.22),
             borderRadius: BorderRadius.circular(14),
             child: InkWell(
               borderRadius: BorderRadius.circular(14),
@@ -817,7 +817,7 @@ class _GlassIconButton extends StatelessWidget {
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(
-                    color: _kGlassBlueBorder.withValues(alpha: 0.40),
+                    color: kTropicalTealBorder.withValues(alpha: 0.40),
                   ),
                 ),
                 child: Icon(icon, color: Colors.white, size: 22),

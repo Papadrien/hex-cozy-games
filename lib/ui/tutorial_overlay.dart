@@ -106,16 +106,13 @@ class _TutorialOverlayState extends ConsumerState<TutorialOverlay>
 
       return Stack(
         children: [
-          // Arrière-plan glassmorphisme qui bloque les interactions
-          // (BackdropFilter au lieu d'un voile noir opaque — corrige aussi
-          // l'ombre noire résiduelle visible à l'étape 3).
+          // Arrière-plan qui bloque les interactions : légèrement teinté et
+          // assombri, mais volontairement PAS flouté (le flou masquait trop
+          // le plateau et gênait la compréhension de ce qui était surligné).
           GestureDetector(
             onTap: () {},
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
-              child: Container(
-                color: const Color(0xFF0D1A2A).withValues(alpha: 0.55),
-              ),
+            child: Container(
+              color: const Color(0xFF0D1A2A).withValues(alpha: 0.55),
             ),
           ),
 

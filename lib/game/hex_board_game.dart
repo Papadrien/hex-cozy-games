@@ -139,6 +139,11 @@ class HexBoardGame extends FlameGame
 
     grid.availableHighlights = placementNotifier.availableCells;
     grid.previewCoords = placement.selected;
+    // DOIT être défini avant previewTile : previewTile s'appuie sur ce
+    // compteur pour détecter une rotation (voir doc de
+    // [HexGridComponent.previewRotationSteps]), notamment sur les tuiles à
+    // un seul biome où la comparaison visuelle des côtés ne suffit pas.
+    grid.previewRotationSteps = placement.rotationSteps;
     grid.previewTile = placementNotifier.previewTile;
 
     // Côtés bien connectés et tuiles bonus à montrer sur la prévisualisation.

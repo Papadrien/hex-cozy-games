@@ -96,6 +96,12 @@ class HexGridComponent extends PositionComponent {
   HexCoords? _lastSyncedPreviewCoords;
   HexTile? _lastSyncedPreviewTile;
 
+  /// Dernier nombre de crans de rotation (0-5) synchronisé pour la tuile en
+  /// prévisualisation. Sert à détecter une rotation même quand la tuile a un
+  /// seul biome (dans ce cas [_detectRotationSteps] ne peut rien détecter en
+  /// comparant les côtés, puisqu'ils sont tous identiques après rotation).
+  int? _lastSyncedPreviewRotationSteps;
+
   Set<int> _previewHighlightedSides = const {};
   final List<PositionComponent> _previewCoinComponents = [];
 
@@ -145,6 +151,16 @@ class HexGridComponent extends PositionComponent {
     _syncPreviewComponent();
   }
 
+  /// Nombre de crans de rotation (0-5) actuellement appliqués à la tuile en
+  /// prévisualisation. Doit être défini AVANT [previewTile] à chaque
+  /// synchronisation : c'est ce compteur (et non une comparaison visuelle des
+  /// côtés) qui permet de détecter une rotation, y compris sur une tuile à un
+  /// seul biome où tous les côtés sont identiques quel que soit l'angle.
+  int? _previewRotationSteps;
+  set previewRotationSteps(int? value) {
+    _previewRotationSteps = value;
+  }
+
   /// Tuile (déjà tournée) affichée en prévisualisation, ou null.
   HexTile? get previewTile => _previewTile;
   set previewTile(HexTile? value) {
@@ -174,6 +190,7 @@ class HexGridComponent extends PositionComponent {
       _previewCoinComponents.clear();
       _lastSyncedPreviewCoords = null;
       _lastSyncedPreviewTile = null;
+      _lastSyncedPreviewRotationSteps = null;
       return;
     }
 
@@ -189,19 +206,22 @@ class HexGridComponent extends PositionComponent {
       // peut s'agir que d'une rotation (voir doc de [PlacementState]) : on
       // anime la rotation plutôt que de basculer instantanément l'affichage.
       final previousTile = _lastSyncedPreviewTile;
+      final previousSteps = _lastSyncedPreviewRotationSteps;
       final sameCell = _lastSyncedPreviewCoords == coords;
       existing.tile = tile;
       existing.hexSize = kHexSize * zoom;
       existing.position = liftedPosition;
       existing.highlightedSides = _previewHighlightedSides;
       if (sameCell && previousTile != null) {
-        final steps = _detectRotationSteps(previousTile, tile);
+        final steps = _detectRotationSteps(previousTile, tile) ??
+            _rotationDeltaFromCounters(previousSteps, _previewRotationSteps);
         if (steps != null) {
           existing.animateRotationSwirl(steps);
         }
       }
       _lastSyncedPreviewCoords = coords;
       _lastSyncedPreviewTile = tile;
+      _lastSyncedPreviewRotationSteps = _previewRotationSteps;
       _syncPreviewCoinComponents();
       return;
     }
@@ -223,6 +243,7 @@ class HexGridComponent extends PositionComponent {
 
     _lastSyncedPreviewCoords = coords;
     _lastSyncedPreviewTile = tile;
+    _lastSyncedPreviewRotationSteps = _previewRotationSteps;
 
     _syncPreviewCoinComponents();
   }
@@ -575,6 +596,22 @@ class HexGridComponent extends PositionComponent {
       }
     }
     return null;
+  }
+
+  /// Calcule le delta de crans entre deux compteurs de rotation (0-5),
+  /// ramené vers le chemin le plus court, ou null si l'un des compteurs est
+  /// absent ou s'ils sont identiques (aucune rotation à animer).
+  ///
+  /// Sert de repli à [_detectRotationSteps] : cette dernière compare les
+  /// côtés des tuiles et ne peut rien détecter pour une tuile à un seul
+  /// biome (tous les côtés identiques, quel que soit l'angle). En se basant
+  /// directement sur le compteur de crans plutôt que sur l'apparence de la
+  /// tuile, la rotation reste détectée — et donc animée — même dans ce cas.
+  static int? _rotationDeltaFromCounters(int? previous, int? current) {
+    if (previous == null || current == null) return null;
+    final raw = ((current - previous) % 6 + 6) % 6;
+    if (raw == 0) return null;
+    return raw > 3 ? raw - 6 : raw;
   }
 
   static BiomeType _dominantBiome(HexTile tile) {

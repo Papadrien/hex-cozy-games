@@ -114,7 +114,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get tutorial_step7 =>
-      'Connecte les côtés identiques pour gagner des tuiles et des pièces bonus';
+      'Connecte des côtés identiques pour gagner des tuiles et des pièces bonus';
 
   @override
   String get tutorial_skip => 'Passer';

@@ -41,8 +41,14 @@ const Color kQuestBlue = Color(0xFF64B5F6);
 /// Jaune/ambre pour les pièces et icônes de valeur.
 const Color kCoinAmber = Color(0xFFFFC107); // Colors.amber
 
-/// Teal tropical pour le bouton Jouer principal.
+/// Teal tropical pour le bouton Jouer principal — aussi la teinte "verte"
+/// utilisée sur les boutons secondaires (pause, croix d'annulation,
+/// paramètres/boutique de l'écran d'accueil…).
 const Color kTropicalTeal = Color(0xFF2A9D8F);
+
+/// Bordure teal claire assortie à [kTropicalTeal] pour les boutons
+/// secondaires reteintés en vert.
+const Color kTropicalTealBorder = Color(0xFF3DBFAF);
 
 /// Blanc glassmorphism pour les boutons secondaires.
 const Color kGlassWhite = Color(0x33FFFFFF);

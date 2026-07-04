@@ -25,7 +25,7 @@ class PauseButton extends ConsumerWidget {
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
         child: Material(
-          color: kGlassBlue.withValues(alpha: 0.18),
+          color: kTropicalTeal.withValues(alpha: 0.18),
           borderRadius: BorderRadius.circular(10),
           child: InkWell(
             borderRadius: BorderRadius.circular(10),
@@ -36,7 +36,7 @@ class PauseButton extends ConsumerWidget {
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(
-                  color: kGlassBlueBorder.withValues(alpha: 0.38),
+                  color: kTropicalTealBorder.withValues(alpha: 0.38),
                   width: 1,
                 ),
               ),
