@@ -72,7 +72,7 @@ class HapticsService {
         await HapticFeedback.heavyImpact();
       case 6:
         await HapticFeedback.heavyImpact();
-        await Future.delayed(const Duration(milliseconds: 120));
+        await Future<void>.delayed(const Duration(milliseconds: 120));
         await HapticFeedback.heavyImpact();
     }
   }
