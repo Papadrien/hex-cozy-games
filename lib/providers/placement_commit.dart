@@ -11,6 +11,7 @@ import '../game/hex_tile.dart';
 import '../services/cloud_save_service.dart';
 import 'end_game_provider.dart';
 import '../services/ad_service.dart';
+import '../services/haptics_service.dart';
 import 'game_effects_service.dart';
 import 'grid_state_provider.dart';
 import 'placement_provider.dart';
@@ -273,9 +274,24 @@ Future<void> confirmPlacement(
   onConfirm(coords, tile, reward.connectedSides, reward.bonusTiles);
   final appliedReward = _applyReward(ref, tile, reward);
   _recordPlacement(ref, coords, tile, appliedReward);
+  _triggerPlacementHaptics(ref, appliedReward);
   _advanceStack(ref);
   await SessionSaver.save(ref);
   _checkGameOver(ref);
+}
+
+/// Déclenche les retours haptiques associés à un placement : un motif
+/// spécifique et de plus en plus marqué selon le nombre de côtés connectés
+/// (3 à 6), puis un retour dédié si des pièces ont été gagnées.
+void _triggerPlacementHaptics(WidgetRef ref, PlacementReward reward) {
+  final haptics = ref.read(hapticsServiceProvider);
+  if (reward.connectedSides.isNotEmpty) {
+    haptics.connectionSucceeded(reward.connectedSides.length);
+  }
+  final coins = reward.connectedSides.length + reward.bonusTiles + reward.bonusCoins;
+  if (coins > 0) {
+    haptics.coinsEarned();
+  }
 }
 
 void _placeTileOnGrid(WidgetRef ref, HexCoords coords, HexTile tile) {

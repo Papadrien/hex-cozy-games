@@ -93,8 +93,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Glowing tiles are the spots where you can place your tile';
 
   @override
-  String get tutorial_step2 =>
-      'Swipe to rotate it';
+  String get tutorial_step2 => 'Swipe to rotate it';
 
   @override
   String get tutorial_step3 => 'Coin icons show you what you’ll earn';

@@ -580,6 +580,14 @@ class HexGridComponent extends PositionComponent {
   /// [newTile] n'est pas une simple rotation de [oldTile] (ex : biomes
   /// différents — nouvelle tuile plutôt que rotation).
   static int? _detectRotationSteps(HexTile oldTile, HexTile newTile) {
+    // Sur une tuile à un seul biome, tous les côtés sont strictement
+    // identiques quel que soit l'angle : la boucle ci-dessous "détecterait"
+    // toujours n = 1 (premier cran testé, toujours égal), quel que soit le
+    // nombre réel de crans appliqués par le joueur. Ce faux positif empêchait
+    // le repli [_rotationDeltaFromCounters] (basé sur le compteur de crans,
+    // seul fiable dans ce cas) de jamais être utilisé. On renvoie donc null
+    // immédiatement pour laisser la main à ce repli.
+    if (oldTile.biomeCount == 1) return null;
     for (var n = 1; n < 6; n++) {
       final rotated = oldTile.rotated(n);
       var equal = true;

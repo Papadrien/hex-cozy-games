@@ -39,6 +39,7 @@ import '../providers/grid_state_provider.dart';
 import '../providers/pause_provider.dart';
 import '../providers/placement_provider.dart';
 import '../providers/placement_commit.dart';
+import '../services/haptics_service.dart';
 import 'hex_coords.dart';
 import 'hex_grid_component.dart';
 import 'hex_tile.dart';
@@ -240,6 +241,10 @@ class HexBoardGame extends FlameGame
     if (delta != 0) {
       _ref.read(placementProvider.notifier).rotate(delta);
       _rotationNotchesApplied = targetNotches;
+      // Un clic haptique par mise à jour de rotation (un ou plusieurs crans
+      // d'un coup lors d'un swipe rapide comptent pour un seul retour, afin
+      // de ne pas spammer de vibrations en rafale).
+      _ref.read(hapticsServiceProvider).tileRotated();
     }
   }
 
@@ -276,6 +281,7 @@ class HexBoardGame extends FlameGame
       final coords = grid.hexAt(info.eventPosition.widget.toOffset());
       if (placementNotifier.availableCells.contains(coords)) {
         placementNotifier.selectCell(coords);
+        _ref.read(hapticsServiceProvider).tilePreviewed();
       }
       return;
     }
