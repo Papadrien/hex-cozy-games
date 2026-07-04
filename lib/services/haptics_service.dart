@@ -75,11 +75,28 @@ class HapticsService {
     await _pulseN(HapticFeedback.heavyImpact, bonusTiles);
   }
 
-  Future<void> _pulseN(Future<void> Function() pulse, int count) async {
-    final n = count.clamp(0, _kMaxHapticPulsesPerCategory);
-    for (var i = 0; i < n; i++) {
-      await pulse();
-      if (i < n - 1) await Future.delayed(_kPulseGap);
+  /// Retour spécifique lors d'une connexion réussie, avec une intensité qui
+  /// grandit avec le nombre de côtés connectés pour souligner que le bonus
+  /// associé est de plus en plus important :
+  ///  - 3 côtés : un clic léger.
+  ///  - 4 côtés : un clic moyen.
+  ///  - 5 côtés : un clic fort.
+  ///  - 6 côtés : double clic fort ("jackpot"), nettement plus marqué.
+  ///
+  /// Aucun effet en dehors de 3-6 (pas de bonus associé à moins de 3 côtés).
+  Future<void> connectionSucceeded(int connectedSides) async {
+    if (!_enabled) return;
+    switch (connectedSides) {
+      case 3:
+        await HapticFeedback.lightImpact();
+      case 4:
+        await HapticFeedback.mediumImpact();
+      case 5:
+        await HapticFeedback.heavyImpact();
+      case 6:
+        await HapticFeedback.heavyImpact();
+        await Future<void>.delayed(const Duration(milliseconds: 120));
+        await HapticFeedback.heavyImpact();
     }
   }
 }
