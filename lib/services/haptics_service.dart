@@ -75,6 +75,19 @@ class HapticsService {
     await _pulseN(HapticFeedback.heavyImpact, bonusTiles);
   }
 
+  Future<void> _pulseN(
+    Future<void> Function() feedback,
+    int count,
+  ) async {
+    final n = count.clamp(0, _kMaxHapticPulsesPerCategory);
+    for (var i = 0; i < n; i++) {
+      await feedback();
+      if (i < n - 1) {
+        await Future<void>.delayed(_kPulseGap);
+      }
+    }
+  }
+
   /// Retour spécifique lors d'une connexion réussie, avec une intensité qui
   /// grandit avec le nombre de côtés connectés pour souligner que le bonus
   /// associé est de plus en plus important :
