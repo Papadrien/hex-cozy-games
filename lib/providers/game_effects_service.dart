@@ -34,26 +34,35 @@ class GameEffectsService {
     return (bonusTiles * mult).round();
   }
 
-  /// Calcule les pièces finales après application des bonus — Story 2.8b.
+  /// Calcule les pièces finales après application des bonus — Story 2.8b / B1.
   ///
-  /// 1. [villageSides] reçoivent un bonus de [villageCoinsBonus] en sus de
-  ///    leur pièce de base.
-  /// 2. Le total (pièces de base + bonus village) est multiplié par
-  ///    [coinsMultiplier].
+  /// Chaque biome dispose de son propre bonus par côté connecté :
+  /// [villageSides] × [villageCoinsBonus], [forestSides] × [forestCoinsBonus],
+  /// etc. Le total des bonus est ajouté aux pièces de base, puis le tout est
+  /// multiplié par (1 + [coinsMultiplier]).
   int applyCoinBonuses({
     required int baseCoins,
     required int villageSides,
+    int forestSides = 0,
+    int waterSides = 0,
+    int plainSides = 0,
+    int mountainSides = 0,
   }) {
     final effects = _ref.read(activeUpgradeEffectsProvider);
     final villageExtra = (villageSides * effects.villageCoinsBonus).round();
-    final withBiomeBonus = baseCoins + villageExtra;
+    final forestExtra = (forestSides * effects.forestCoinsBonus).round();
+    final waterExtra = (waterSides * effects.waterCoinsBonus).round();
+    final plainExtra = (plainSides * effects.plainCoinsBonus).round();
+    final mountainExtra = (mountainSides * effects.mountainCoinsBonus).round();
+    final withBiomeBonus =
+        baseCoins + villageExtra + forestExtra + waterExtra + plainExtra + mountainExtra;
     return (withBiomeBonus * (1.0 + effects.coinsMultiplier)).round();
   }
 
-  /// Compte le nombre de côtés connectés dont le biome est village.
-  int countVillageSides(HexTile tile, List<int> connectedSides) {
+  /// Compte le nombre de côtés connectés dont le biome est [biome].
+  int countBiomeSides(BiomeType biome, HexTile tile, List<int> connectedSides) {
     return connectedSides
-        .where((side) => tile.sides[side] == BiomeType.village)
+        .where((side) => tile.sides[side] == biome)
         .length;
   }
 }

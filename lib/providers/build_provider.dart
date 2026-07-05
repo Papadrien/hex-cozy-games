@@ -52,6 +52,10 @@ class ActiveUpgradeEffects {
     this.connectionMultiplier = 1.0,
     this.coinsMultiplier = 0.0,
     this.villageCoinsBonus = 0.0,
+    this.forestCoinsBonus = 0.0,
+    this.waterCoinsBonus = 0.0,
+    this.plainCoinsBonus = 0.0,
+    this.mountainCoinsBonus = 0.0,
   });
 
   /// Nombre de tuiles supplémentaires au début de la partie.
@@ -66,6 +70,18 @@ class ActiveUpgradeEffects {
   /// Bonus de pièces pour chaque côté connecté de type village
   /// (ex: 0.33 = +33% sur la pièce de base du côté).
   final double villageCoinsBonus;
+
+  /// Bonus de pièces pour chaque côté connecté de type forêt (Vert+).
+  final double forestCoinsBonus;
+
+  /// Bonus de pièces pour chaque côté connecté de type eau (Bleu+).
+  final double waterCoinsBonus;
+
+  /// Bonus de pièces pour chaque côté connecté de type plaine (Jaune+).
+  final double plainCoinsBonus;
+
+  /// Bonus de pièces pour chaque côté connecté de type montagne (Violet+).
+  final double mountainCoinsBonus;
 }
 
 final activeUpgradeEffectsProvider = Provider<ActiveUpgradeEffects>((ref) {
@@ -74,6 +90,10 @@ final activeUpgradeEffectsProvider = Provider<ActiveUpgradeEffects>((ref) {
   double connectionMult = 1.0;
   double coinsMult = 0.0;
   double villageBonus = 0.0;
+  double forestBonus = 0.0;
+  double waterBonus = 0.0;
+  double plainBonus = 0.0;
+  double mountainBonus = 0.0;
 
   for (final u in selected) {
     final et = UpgradeEffectType.fromDb(u.effectType);
@@ -88,12 +108,13 @@ final activeUpgradeEffectsProvider = Provider<ActiveUpgradeEffects>((ref) {
       case UpgradeEffectType.villageCoinsPercentBonus:
         villageBonus += val;
       case UpgradeEffectType.forestCoinsPercentBonus:
+        forestBonus += val;
       case UpgradeEffectType.waterCoinsPercentBonus:
+        waterBonus += val;
       case UpgradeEffectType.plainCoinsPercentBonus:
+        plainBonus += val;
       case UpgradeEffectType.mountainCoinsPercentBonus:
-        // Déblocage seulement (Story A5). L'application réelle du bonus
-        // au calcul des pièces par biome est branchée en Story B1.
-        break;
+        mountainBonus += val;
       case UpgradeEffectType.closureBonusTiles:
       case UpgradeEffectType.hatedColorExclusion:
         // Déblocage seulement (Story A7). Effets réels branchés en
@@ -118,6 +139,10 @@ final activeUpgradeEffectsProvider = Provider<ActiveUpgradeEffects>((ref) {
     connectionMultiplier: connectionMult,
     coinsMultiplier: coinsMult,
     villageCoinsBonus: villageBonus,
+    forestCoinsBonus: forestBonus,
+    waterCoinsBonus: waterBonus,
+    plainCoinsBonus: plainBonus,
+    mountainCoinsBonus: mountainBonus,
   );
 });
 

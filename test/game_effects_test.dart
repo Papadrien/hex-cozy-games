@@ -34,6 +34,10 @@ void main() {
       expect(effects.connectionMultiplier, 1.0);
       expect(effects.coinsMultiplier, 0.0);
       expect(effects.villageCoinsBonus, 0.0);
+      expect(effects.forestCoinsBonus, 0.0);
+      expect(effects.waterCoinsBonus, 0.0);
+      expect(effects.plainCoinsBonus, 0.0);
+      expect(effects.mountainCoinsBonus, 0.0);
     });
   });
 
@@ -174,9 +178,82 @@ void main() {
       final coins = service.applyCoinBonuses(baseCoins: 10, villageSides: 2);
       expect(coins, 16);
     });
+
+    test('forestCoinsBonus 25% → +1 pour 3 côtés forêt', () {
+      final container = _makeContainer(
+        const ActiveUpgradeEffects(forestCoinsBonus: 0.25),
+      );
+      final service = container.read(gameEffectsServiceProvider);
+      final coins = service.applyCoinBonuses(
+        baseCoins: 10, villageSides: 0, forestSides: 3,
+      );
+      expect(coins, 11);
+    });
+
+    test('waterCoinsBonus 50% → +1 pour 2 côtés eau', () {
+      final container = _makeContainer(
+        const ActiveUpgradeEffects(waterCoinsBonus: 0.50),
+      );
+      final service = container.read(gameEffectsServiceProvider);
+      final coins = service.applyCoinBonuses(
+        baseCoins: 10, villageSides: 0, waterSides: 2,
+      );
+      expect(coins, 11);
+    });
+
+    test('plainCoinsBonus 100% → +2 pour 2 côtés plaine', () {
+      final container = _makeContainer(
+        const ActiveUpgradeEffects(plainCoinsBonus: 1.00),
+      );
+      final service = container.read(gameEffectsServiceProvider);
+      final coins = service.applyCoinBonuses(
+        baseCoins: 10, villageSides: 0, plainSides: 2,
+      );
+      expect(coins, 12);
+    });
+
+    test('mountainCoinsBonus 25% → 0 pour 0 côté montagne', () {
+      final container = _makeContainer(
+        const ActiveUpgradeEffects(mountainCoinsBonus: 0.25),
+      );
+      final service = container.read(gameEffectsServiceProvider);
+      final coins = service.applyCoinBonuses(
+        baseCoins: 10, villageSides: 0, mountainSides: 0,
+      );
+      expect(coins, 10);
+    });
+
+    test('tous les bonus biome cumulés', () {
+      final container = _makeContainer(
+        const ActiveUpgradeEffects(
+          villageCoinsBonus: 0.33,
+          forestCoinsBonus: 0.25,
+          waterCoinsBonus: 0.25,
+          plainCoinsBonus: 0.25,
+          mountainCoinsBonus: 0.25,
+        ),
+      );
+      final service = container.read(gameEffectsServiceProvider);
+      // village: 3 * 0.33 = 0.99 → 1
+      // forest: 2 * 0.25 = 0.50 → 1 (0.5 arrondi → 1)
+      // water: 1 * 0.25 = 0.25 → 0
+      // plain: 0 * 0.25 = 0 → 0
+      // mountain: 1 * 0.25 = 0.25 → 0
+      // total biome bonus = 1 + 1 + 0 + 0 + 0 = 2
+      // withBiomeBonus = 10 + 2 = 12
+      final coins = service.applyCoinBonuses(
+        baseCoins: 10,
+        villageSides: 3,
+        forestSides: 2,
+        waterSides: 1,
+        plainSides: 0,
+        mountainSides: 1,
+      );
+      expect(coins, 12);
+    });
   });
 
-  group('GameEffectsService.countVillageSides', () {
+  group('GameEffectsService.countBiomeSides', () {
     late GameEffectsService service;
 
     setUp(() {
@@ -192,7 +269,7 @@ void main() {
         BiomeType.forest,
         BiomeType.plain,
       ]);
-      expect(service.countVillageSides(tile, [0, 1, 2]), 0);
+      expect(service.countBiomeSides(BiomeType.village, tile, [0, 1, 2]), 0);
     });
 
     test('2 côtés village sur 3 connectés → 2', () {
@@ -204,12 +281,60 @@ void main() {
         BiomeType.water,
         BiomeType.mountain,
       ]);
-      expect(service.countVillageSides(tile, [0, 1, 2]), 2);
+      expect(service.countBiomeSides(BiomeType.village, tile, [0, 1, 2]), 2);
     });
 
     test('tous les côtés village → 6', () {
       final tile = HexTile(sides: List.filled(6, BiomeType.village));
-      expect(service.countVillageSides(tile, [0, 1, 2, 3, 4, 5]), 6);
+      expect(service.countBiomeSides(BiomeType.village, tile, [0, 1, 2, 3, 4, 5]), 6);
+    });
+
+    test('compte forêt correctement', () {
+      final tile = HexTile(sides: [
+        BiomeType.forest,
+        BiomeType.plain,
+        BiomeType.forest,
+        BiomeType.water,
+        BiomeType.forest,
+        BiomeType.mountain,
+      ]);
+      expect(service.countBiomeSides(BiomeType.forest, tile, [0, 2, 4]), 3);
+    });
+
+    test('compte eau correctement', () {
+      final tile = HexTile(sides: [
+        BiomeType.water,
+        BiomeType.plain,
+        BiomeType.forest,
+        BiomeType.water,
+        BiomeType.water,
+        BiomeType.mountain,
+      ]);
+      expect(service.countBiomeSides(BiomeType.water, tile, [0, 3, 4]), 3);
+    });
+
+    test('compte plaine correctement', () {
+      final tile = HexTile(sides: [
+        BiomeType.plain,
+        BiomeType.plain,
+        BiomeType.forest,
+        BiomeType.water,
+        BiomeType.mountain,
+        BiomeType.plain,
+      ]);
+      expect(service.countBiomeSides(BiomeType.plain, tile, [0, 1, 5]), 3);
+    });
+
+    test('compte montagne correctement', () {
+      final tile = HexTile(sides: [
+        BiomeType.mountain,
+        BiomeType.plain,
+        BiomeType.forest,
+        BiomeType.water,
+        BiomeType.mountain,
+        BiomeType.mountain,
+      ]);
+      expect(service.countBiomeSides(BiomeType.mountain, tile, [0, 4, 5]), 3);
     });
   });
 }

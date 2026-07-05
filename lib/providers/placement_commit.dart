@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/constants.dart';
 import '../data/app_database.dart';
+import '../game/hex_cell.dart';
 import '../game/hex_coords.dart';
 import '../game/hex_tile.dart';
 import '../services/cloud_save_service.dart';
@@ -322,11 +323,19 @@ PlacementReward _applyReward(WidgetRef ref, HexTile tile, PlacementReward reward
     return reward;
   }
   final effects = ref.read(gameEffectsServiceProvider);
-  final villageSides = effects.countVillageSides(tile, reward.connectedSides);
+  final villageSides = effects.countBiomeSides(BiomeType.village, tile, reward.connectedSides);
+  final forestSides = effects.countBiomeSides(BiomeType.forest, tile, reward.connectedSides);
+  final waterSides = effects.countBiomeSides(BiomeType.water, tile, reward.connectedSides);
+  final plainSides = effects.countBiomeSides(BiomeType.plain, tile, reward.connectedSides);
+  final mountainSides = effects.countBiomeSides(BiomeType.mountain, tile, reward.connectedSides);
   final baseCoins = reward.connectedSides.length + reward.bonusTiles;
   final totalCoins = effects.applyCoinBonuses(
     baseCoins: baseCoins,
     villageSides: villageSides,
+    forestSides: forestSides,
+    waterSides: waterSides,
+    plainSides: plainSides,
+    mountainSides: mountainSides,
   );
   final bonusCoins = totalCoins - baseCoins;
   final applied = PlacementReward(
