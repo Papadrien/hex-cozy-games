@@ -87,6 +87,29 @@ final activeUpgradeEffectsProvider = Provider<ActiveUpgradeEffects>((ref) {
         coinsMult += val;
       case UpgradeEffectType.villageCoinsPercentBonus:
         villageBonus += val;
+      case UpgradeEffectType.forestCoinsPercentBonus:
+      case UpgradeEffectType.waterCoinsPercentBonus:
+      case UpgradeEffectType.plainCoinsPercentBonus:
+      case UpgradeEffectType.mountainCoinsPercentBonus:
+        // Déblocage seulement (Story A5). L'application réelle du bonus
+        // au calcul des pièces par biome est branchée en Story B1.
+        break;
+      case UpgradeEffectType.closureBonusTiles:
+      case UpgradeEffectType.hatedColorExclusion:
+        // Déblocage seulement (Story A7). Effets réels branchés en
+        // Story B7 (Bonus de clôture) et Story B5 (Couleur détestée).
+        break;
+      case UpgradeEffectType.extendedPreviewCount:
+      case UpgradeEffectType.holdSlotUses:
+      case UpgradeEffectType.secondChanceUses:
+        // Déblocage seulement (Story A9). Effets réels branchés en
+        // Story B4 (Aperçu prolongé) et Story B9-B10-B11 (Hold /
+        // Deuxième chance).
+        break;
+      case UpgradeEffectType.comboBonusTiles:
+        // Déblocage seulement (Story A11). Effet réel branché en
+        // Story B3 (utilise le compteur de série de Story B2).
+        break;
     }
   }
 

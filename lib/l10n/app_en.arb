@@ -82,6 +82,8 @@
   "@quests_category_biomes": {},
   "quests_category_connections": "Multi-side connections",
   "@quests_category_connections": {},
+  "quests_category_biome_colors": "Color groups",
+  "@quests_category_biome_colors": {},
   "quests_status_active": "Active",
   "@quests_status_active": {},
   "quests_status_completed": "Completed",

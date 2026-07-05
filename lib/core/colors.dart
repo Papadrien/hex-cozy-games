@@ -67,3 +67,7 @@ const Color kConnectionOrange = Color(0xFFFFB74D);
 
 /// Or vif pour la quête record (meilleure partie en pièces gagnées).
 const Color kRecordGold = Color(0xFFFFD54F);
+
+/// Violet pour la section des 4 quêtes "cluster couleur" (forêt/eau/
+/// plaine/montagne — débloquent Vert+/Bleu+/Jaune+/Violet+).
+const Color kBiomeColorQuestPurple = Color(0xFFBA68C8);

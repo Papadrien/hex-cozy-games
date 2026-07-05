@@ -338,6 +338,12 @@ abstract class AppLocalizations {
   /// **'Multi-side connections'**
   String get quests_category_connections;
 
+  /// No description provided for @quests_category_biome_colors.
+  ///
+  /// In en, this message translates to:
+  /// **'Color groups'**
+  String get quests_category_biome_colors;
+
   /// No description provided for @quests_status_active.
   ///
   /// In en, this message translates to:

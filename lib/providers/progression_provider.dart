@@ -56,9 +56,9 @@ enum UpgradeResult {
 
 /// Coût en pièces pour chaque niveau.
 /// L'index correspond au `currentLevel` avant la montée :
-///   niveau 0→1 (currentLevel 0) → 100 pièces
-///   niveau 1→2 (currentLevel 1) → 250 pièces
-const kUpgradeCosts = [100, 250];
+///   niveau 1→2 (currentLevel 0) → 20 000 pièces
+///   niveau 2→3 (currentLevel 1) → 50 000 pièces
+const kUpgradeCosts = [20000, 50000];
 
 // ── Service ──────────────────────────────────────────────────────────────
 
@@ -182,6 +182,26 @@ IconData upgradeIconData(UpgradeEffectType effectType) {
       return Icons.monetization_on;
     case UpgradeEffectType.villageCoinsPercentBonus:
       return Icons.home;
+    case UpgradeEffectType.forestCoinsPercentBonus:
+      return Icons.park;
+    case UpgradeEffectType.waterCoinsPercentBonus:
+      return Icons.water_drop;
+    case UpgradeEffectType.plainCoinsPercentBonus:
+      return Icons.grass;
+    case UpgradeEffectType.mountainCoinsPercentBonus:
+      return Icons.terrain;
+    case UpgradeEffectType.closureBonusTiles:
+      return Icons.all_inclusive;
+    case UpgradeEffectType.hatedColorExclusion:
+      return Icons.block;
+    case UpgradeEffectType.extendedPreviewCount:
+      return Icons.visibility;
+    case UpgradeEffectType.holdSlotUses:
+      return Icons.swap_horiz;
+    case UpgradeEffectType.secondChanceUses:
+      return Icons.undo;
+    case UpgradeEffectType.comboBonusTiles:
+      return Icons.bolt;
   }
 }
 
@@ -202,9 +222,26 @@ List<String> upgradeAllLevelEffects(UpgradeEffectType effectType) {
     case UpgradeEffectType.connectionBonusMultiplier:
       return ['x2', 'x2', 'x2'];
     case UpgradeEffectType.coinsPercentBonus:
-      return ['+10%', '+20%', '+30%'];
+      return ['+25%', '+50%', '+100%'];
     case UpgradeEffectType.villageCoinsPercentBonus:
       return ['+33%', '+66%', '+100%'];
+    case UpgradeEffectType.forestCoinsPercentBonus:
+    case UpgradeEffectType.waterCoinsPercentBonus:
+    case UpgradeEffectType.plainCoinsPercentBonus:
+    case UpgradeEffectType.mountainCoinsPercentBonus:
+      return ['+25%', '+50%', '+100%'];
+    case UpgradeEffectType.closureBonusTiles:
+      return ['+1/10 tuiles', '+2/10 tuiles', '+3/10 tuiles'];
+    case UpgradeEffectType.hatedColorExclusion:
+      return ['5 tuiles', '8 tuiles', '10 tuiles'];
+    case UpgradeEffectType.extendedPreviewCount:
+      return ['3 tuiles', '4 tuiles', '5 tuiles'];
+    case UpgradeEffectType.holdSlotUses:
+      return ['1 usage/partie', '2 usages/partie', '3 usages/partie'];
+    case UpgradeEffectType.secondChanceUses:
+      return ['1 usage/partie', '2 usages/partie', '3 usages/partie'];
+    case UpgradeEffectType.comboBonusTiles:
+      return ['+1 tuile/5 série', '+2 tuiles/5 série', '+3 tuiles/5 série'];
   }
 }
 
@@ -216,8 +253,25 @@ double upgradeEffectValue(UpgradeEffectType effectType, int level) {
     case UpgradeEffectType.connectionBonusMultiplier:
       return 2.0;
     case UpgradeEffectType.coinsPercentBonus:
-      return [0.10, 0.20, 0.30][level.clamp(0, 2)];
+      return [0.25, 0.50, 1.00][level.clamp(0, 2)];
     case UpgradeEffectType.villageCoinsPercentBonus:
       return [0.33, 0.66, 1.00][level.clamp(0, 2)];
+    case UpgradeEffectType.forestCoinsPercentBonus:
+    case UpgradeEffectType.waterCoinsPercentBonus:
+    case UpgradeEffectType.plainCoinsPercentBonus:
+    case UpgradeEffectType.mountainCoinsPercentBonus:
+      return [0.25, 0.50, 1.00][level.clamp(0, 2)];
+    case UpgradeEffectType.closureBonusTiles:
+      return [1.0, 2.0, 3.0][level.clamp(0, 2)];
+    case UpgradeEffectType.hatedColorExclusion:
+      return [5.0, 8.0, 10.0][level.clamp(0, 2)];
+    case UpgradeEffectType.extendedPreviewCount:
+      return [3.0, 4.0, 5.0][level.clamp(0, 2)];
+    case UpgradeEffectType.holdSlotUses:
+      return [1.0, 2.0, 3.0][level.clamp(0, 2)];
+    case UpgradeEffectType.secondChanceUses:
+      return [1.0, 2.0, 3.0][level.clamp(0, 2)];
+    case UpgradeEffectType.comboBonusTiles:
+      return [1.0, 2.0, 3.0][level.clamp(0, 2)];
   }
 }

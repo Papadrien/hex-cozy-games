@@ -188,17 +188,36 @@ class QuestService {
   /// Appelé à la fin d'une partie (pile épuisée).
   /// [coinsEarned] : total de pièces gagnées pendant cette partie, utilisé
   /// pour progresser le cumul de pièces gagnées et le record de la
-  /// meilleure partie. [largestVillage] et [closedBiomes] sont pré-calculés
-  /// par [BoardAnalysis] pour éviter les traversées redondantes du plateau.
+  /// meilleure partie. [largestVillage], [closedBiomes] et [maxBiomeSizes]
+  /// sont pré-calculés par [BoardAnalysis] pour éviter les traversées
+  /// redondantes du plateau. [maxBiomeSizes] alimente les quêtes "cluster
+  /// couleur" (forêt/eau/plaine/montagne — Story A4).
   Future<void> onGameEnd({
     required int coinsEarned,
     required int largestVillage,
     required int closedBiomes,
+    Map<String, int> maxBiomeSizes = const {},
   }) async {
     await _updateCoinsEarned(coinsEarned);
     await _updateBestGameCoins(coinsEarned);
     await _updateVillageSize(largestVillage);
     await _updateBiomesClosed(closedBiomes);
+    await _updateClusterSizeQuests(
+      QuestCategory.forestClusterSize,
+      maxBiomeSizes['forest'] ?? 0,
+    );
+    await _updateClusterSizeQuests(
+      QuestCategory.waterClusterSize,
+      maxBiomeSizes['water'] ?? 0,
+    );
+    await _updateClusterSizeQuests(
+      QuestCategory.plainClusterSize,
+      maxBiomeSizes['plain'] ?? 0,
+    );
+    await _updateClusterSizeQuests(
+      QuestCategory.mountainClusterSize,
+      maxBiomeSizes['mountain'] ?? 0,
+    );
     await _updateDailyCoinsEarned(coinsEarned);
     await _updateDailyVillageSize(largestVillage);
     await _updateDailyBiomesClosed(closedBiomes);
@@ -291,13 +310,23 @@ class QuestService {
     }
   }
 
-  // ─── village_size ───────────────────────────────────────────────────────
+  // ─── village_size / cluster couleur (Story A4) ─────────────────────────
+  //
+  // Toutes les quêtes "record de plus grand amas connecté" (village, et
+  // désormais forêt/eau/plaine/montagne) partagent le même mécanisme de
+  // progression : on ne retient que le maximum jamais atteint.
 
-  Future<void> _updateVillageSize(int largest) async {
+  Future<void> _updateVillageSize(int largest) =>
+      _updateClusterSizeQuests(QuestCategory.villageSize, largest);
+
+  Future<void> _updateClusterSizeQuests(
+    QuestCategory category,
+    int largest,
+  ) async {
     if (largest == 0) return;
     final db = _ref.read(appDatabaseProvider);
     final rows = await (db.select(db.permanentQuests)
-          ..where((q) => q.category.equals(QuestCategory.villageSize.dbValue))
+          ..where((q) => q.category.equals(category.dbValue))
           ..where((q) => q.isCompleted.equals(false)))
         .get();
     await db.transaction(() async {

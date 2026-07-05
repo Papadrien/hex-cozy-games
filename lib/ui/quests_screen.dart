@@ -126,6 +126,15 @@ class _QuestsList extends StatelessWidget {
             allQuests: quests,
           ),
         const SizedBox(height: 24),
+        if (_biomeColorQuests(grouped).isNotEmpty)
+          _CategorySection(
+            icon: Icons.palette,
+            color: kBiomeColorQuestPurple,
+            label: context.tr.quests_category_biome_colors,
+            quests: _biomeColorQuests(grouped),
+            allQuests: quests,
+          ),
+        const SizedBox(height: 24),
         if (_connectionQuests(grouped).isNotEmpty)
           _CategorySection(
             icon: Icons.hub,
@@ -150,6 +159,20 @@ class _QuestsList extends StatelessWidget {
       ...?grouped[QuestCategory.quadConnections.dbValue],
       ...?grouped[QuestCategory.quintConnections.dbValue],
       ...?grouped[QuestCategory.sextConnections.dbValue],
+    ];
+  }
+
+  /// Rassemble les 4 quêtes "cluster couleur" (forêt/eau/plaine/montagne)
+  /// dans un seul groupe affiché sous une même section — même principe
+  /// que [_connectionQuests].
+  List<PermanentQuestRow> _biomeColorQuests(
+    Map<String, List<PermanentQuestRow>> grouped,
+  ) {
+    return [
+      ...?grouped[QuestCategory.forestClusterSize.dbValue],
+      ...?grouped[QuestCategory.waterClusterSize.dbValue],
+      ...?grouped[QuestCategory.plainClusterSize.dbValue],
+      ...?grouped[QuestCategory.mountainClusterSize.dbValue],
     ];
   }
 

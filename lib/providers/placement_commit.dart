@@ -384,6 +384,7 @@ void _checkGameOver(WidgetRef ref) {
     coinsEarned: session.coins,
     largestVillage: analysis.largestVillage,
     closedBiomes: analysis.closedBiomes,
+    maxBiomeSizes: analysis.maxBiomeSizes,
   );
   ref.read(cloudSaveServiceProvider).syncAfterGame();
 }

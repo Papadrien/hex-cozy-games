@@ -133,7 +133,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 10;
 
   @override
   MigrationStrategy get migration {
@@ -315,6 +315,91 @@ class AppDatabase extends _$AppDatabase {
             unlockConditionType: Value('coins_3000'),
             unlockConditionValue: Value(3000),
           ));
+        }
+        if (from < 8) {
+          // Renomme "Villages+" en "Rouge+" (l'id et l'effet ne changent
+          // pas, seul le libellé affiché est mis à jour).
+          await (update(upgrades)..where((u) => u.id.equals('villages_plus')))
+              .write(const UpgradesCompanion(name: Value('Rouge+')));
+        }
+        if (from < 9) {
+          // Stories A4 + A5 : quêtes record "cluster couleur"
+          // (forêt/eau/plaine/montagne) et améliorations associées
+          // (Vert+/Bleu+/Jaune+/Violet+). insertOrIgnore : n'ajoute rien si
+          // déjà présent (idempotent, comme les autres migrations).
+          await batch((b) => b.insertAll(
+                permanentQuests,
+                kClusterColorQuests,
+                mode: InsertMode.insertOrIgnore,
+              ));
+          await batch((b) => b.insertAll(
+                upgrades,
+                kClusterColorUpgrades,
+                mode: InsertMode.insertOrIgnore,
+              ));
+        }
+        if (from < 10) {
+          // Story A12 — migration unique regroupant les Stories A6 à A11
+          // (nouvelles améliorations "upgrades" : extension de la chaîne
+          // biomes_closed, quêtes one-shot connexions, catégorie/quête
+          // best_streak_10, et toutes les améliorations de déblocage
+          // associées). insertOrIgnore partout : idempotent, comme les
+          // autres migrations.
+
+          // Story A6 : extension de la chaîne "biomes_closed" avec
+          // biomes_50 (débloque Bonus de clôture) et biomes_100 (débloque
+          // Couleur détestée). Rattache biomes_25 -> biomes_50 pour les
+          // bases déjà seedées (nextQuestId absent jusqu'ici).
+          await (update(permanentQuests)..where((q) => q.id.equals('biomes_25')))
+              .write(const PermanentQuestsCompanion(
+            nextQuestId: Value('biomes_50'),
+          ));
+          await batch((b) => b.insertAll(
+                permanentQuests,
+                kBiomesClosedExtensionQuests,
+                mode: InsertMode.insertOrIgnore,
+              ));
+
+          // Story A7 : améliorations liées à l'extension "biomes_closed"
+          // (Bonus de clôture, Couleur détestée) — déblocage uniquement.
+          await batch((b) => b.insertAll(
+                upgrades,
+                kBiomesClosedExtensionUpgrades,
+                mode: InsertMode.insertOrIgnore,
+              ));
+
+          // Story A8 : quêtes one-shot de connexions multiples
+          // (débloquent Aperçu prolongé / Emplacement Joker / Deuxième
+          // chance en Story A9).
+          await batch((b) => b.insertAll(
+                permanentQuests,
+                kOneShotConnectionQuests,
+                mode: InsertMode.insertOrIgnore,
+              ));
+
+          // Story A9 : améliorations liées aux quêtes one-shot de
+          // connexions (Aperçu prolongé, Emplacement Joker, Deuxième
+          // chance) — déblocage uniquement.
+          await batch((b) => b.insertAll(
+                upgrades,
+                kExtendedActionsUpgrades,
+                mode: InsertMode.insertOrIgnore,
+              ));
+
+          // Story A10 : nouvelle catégorie "bestConnectionStreak" et sa
+          // quête record (débloque Combo+ en Story A11).
+          await batch((b) => b.insertAll(
+                permanentQuests,
+                [kBestConnectionStreakQuest],
+                mode: InsertMode.insertOrIgnore,
+              ));
+
+          // Story A11 : amélioration Combo+ (déblocage uniquement).
+          await batch((b) => b.insertAll(
+                upgrades,
+                [kComboPlusUpgrade],
+                mode: InsertMode.insertOrIgnore,
+              ));
         }
       },
     );

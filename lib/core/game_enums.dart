@@ -3,7 +3,52 @@ enum UpgradeEffectType {
   startingTilesBonus,
   connectionBonusMultiplier,
   coinsPercentBonus,
-  villageCoinsPercentBonus;
+  villageCoinsPercentBonus,
+
+  /// Bonus % pièces forêt (Vert+) — déblocage en Story A5, effet réel
+  /// (application au calcul des pièces) branché en Story B1.
+  forestCoinsPercentBonus,
+
+  /// Bonus % pièces eau (Bleu+) — déblocage en Story A5, effet réel
+  /// branché en Story B1.
+  waterCoinsPercentBonus,
+
+  /// Bonus % pièces plaine (Jaune+) — déblocage en Story A5, effet réel
+  /// branché en Story B1.
+  plainCoinsPercentBonus,
+
+  /// Bonus % pièces montagne (Violet+) — déblocage en Story A5, effet réel
+  /// branché en Story B1.
+  mountainCoinsPercentBonus,
+
+  /// Bonus tuiles à la fermeture d'un biome (Bonus de clôture) —
+  /// déblocage en Story A7, effet réel (calcul sur taille du biome fermé)
+  /// branché en Story B7.
+  closureBonusTiles,
+
+  /// Exclusion temporaire d'une couleur aléatoire de la pile (Couleur
+  /// détestée) — déblocage en Story A7, effet réel branché en Story B5.
+  hatedColorExclusion,
+
+  /// Nombre de tuiles visibles dans la file d'attente (Aperçu prolongé) —
+  /// déblocage en Story A9, effet réel (HUD `tile_stack_hud.dart`) branché
+  /// en Story B4.
+  extendedPreviewCount,
+
+  /// Nombre d'utilisations par partie de l'échange tuile active ↔ tuile en
+  /// réserve (Emplacement Joker / Hold) — déblocage en Story A9, effet
+  /// réel branché en Story B9/B10.
+  holdSlotUses,
+
+  /// Nombre d'utilisations par partie du retrait d'une tuile posée
+  /// (Deuxième chance) — déblocage en Story A9, effet réel branché en
+  /// Story B9/B11.
+  secondChanceUses,
+
+  /// Tuiles bonus ajoutées tous les 5 crans de la série de connexions en
+  /// cours (Combo+) — déblocage en Story A11, effet réel branché en
+  /// Story B3 (utilise le compteur de Story B2).
+  comboBonusTiles;
 
   String get dbValue => name;
   static UpgradeEffectType fromDb(String value) =>
@@ -22,7 +67,26 @@ enum QuestCategory {
   tripleConnections,
   quadConnections,
   quintConnections,
-  sextConnections;
+  sextConnections,
+
+  /// Plus grand amas forêt (vert) connecté — débloque Vert+ (Story A4/A5).
+  forestClusterSize,
+
+  /// Plus grand amas eau (bleu) connecté — débloque Bleu+ (Story A4/A5).
+  waterClusterSize,
+
+  /// Plus grand amas plaine (jaune) connecté — débloque Jaune+ (Story A4/A5).
+  plainClusterSize,
+
+  /// Plus grand amas montagne (violet) connecté — débloque Violet+
+  /// (Story A4/A5).
+  mountainClusterSize,
+
+  /// Record de la plus longue série de connexions consécutives (poses
+  /// ayant connecté ≥1 côté sans interruption), toutes parties confondues
+  /// — débloque Combo+ (Story A10/A11). Mécanisme de comptage en session
+  /// branché en Story B2.
+  bestConnectionStreak;
 
   String get dbValue => name;
   static QuestCategory fromDb(String value) =>

@@ -30,7 +30,10 @@ Future<void> seedDatabase(AppDatabase db) async {
 // Catégories : `coins_earned` (cumul global de pièces gagnées),
 // `best_game_coins` (record de pièces gagnées en une seule partie),
 // `village_size` (plus grand amas village connecté), `biomes_closed`
-// (biomes entièrement entourés). rewardType : `coins` ou `upgrade_unlock`.
+// (biomes entièrement entourés), `forest_cluster_size`/`water_cluster_size`/
+// `plain_cluster_size`/`mountain_cluster_size` (plus grand amas de la
+// couleur correspondante connecté — même principe que `village_size`).
+// rewardType : `coins` ou `upgrade_unlock`.
 // rewardValue : montant de pièces, ou ignoré si rewardType ==
 // upgrade_unlock (le déblocage cible est porté par
 // `upgrades.unlockConditionValue`, la quête sert de palier déclencheur).
@@ -46,6 +49,71 @@ final kBestGameCoinsQuest = PermanentQuestsCompanion.insert(
   rewardType: RewardType.upgradeUnlock.dbValue,
   rewardValue: 0,
 );
+
+/// Quêtes record "cluster couleur" (forêt/eau/plaine/montagne) — extraites
+/// en constante nommée pour être réutilisables depuis la migration de
+/// schéma (voir [AppDatabase.migration], version 9). Modèle exact de
+/// "village_100" : palier unique, pas de nextQuestId, récompense =
+/// déblocage d'amélioration. Réutilisent `maxBiomeSizes` (déjà calculé par
+/// [BoardAnalysis]), aucune nouvelle logique de board analysis.
+final kClusterColorQuests = [
+  PermanentQuestsCompanion.insert(
+    id: 'forest_51',
+    category: QuestCategory.forestClusterSize.dbValue,
+    description: 'Faire un groupe vert de plus de 50 tuiles',
+    targetValue: 51,
+    rewardType: RewardType.upgradeUnlock.dbValue,
+    rewardValue: 0,
+  ),
+  PermanentQuestsCompanion.insert(
+    id: 'water_51',
+    category: QuestCategory.waterClusterSize.dbValue,
+    description: 'Faire un groupe bleu de plus de 50 tuiles',
+    targetValue: 51,
+    rewardType: RewardType.upgradeUnlock.dbValue,
+    rewardValue: 0,
+  ),
+  PermanentQuestsCompanion.insert(
+    id: 'plain_51',
+    category: QuestCategory.plainClusterSize.dbValue,
+    description: 'Faire un groupe jaune de plus de 50 tuiles',
+    targetValue: 51,
+    rewardType: RewardType.upgradeUnlock.dbValue,
+    rewardValue: 0,
+  ),
+  PermanentQuestsCompanion.insert(
+    id: 'mountain_51',
+    category: QuestCategory.mountainClusterSize.dbValue,
+    description: 'Faire un groupe violet de plus de 50 tuiles',
+    targetValue: 51,
+    rewardType: RewardType.upgradeUnlock.dbValue,
+    rewardValue: 0,
+  ),
+];
+
+/// Extension de la chaîne "biomes_closed" (Story A6) — `biomes_50` débloque
+/// Bonus de clôture, `biomes_100` débloque Couleur détestée. Extraites en
+/// constante nommée pour être réutilisables depuis la migration de schéma
+/// (voir [AppDatabase.migration], version 10).
+final kBiomesClosedExtensionQuests = [
+  PermanentQuestsCompanion.insert(
+    id: 'biomes_50',
+    category: QuestCategory.biomesClosed.dbValue,
+    description: 'Fermer 50 biomes',
+    targetValue: 50,
+    rewardType: RewardType.upgradeUnlock.dbValue,
+    rewardValue: 0,
+    nextQuestId: Value('biomes_100'),
+  ),
+  PermanentQuestsCompanion.insert(
+    id: 'biomes_100',
+    category: QuestCategory.biomesClosed.dbValue,
+    description: 'Fermer 100 biomes',
+    targetValue: 100,
+    rewardType: RewardType.upgradeUnlock.dbValue,
+    rewardValue: 0,
+  ),
+];
 
 final _permanentQuests = [
   // Chaîne "coins_earned" — cumul de pièces gagnées toutes parties
@@ -102,7 +170,7 @@ final _permanentQuests = [
   // amélioration.
   kBestGameCoinsQuest,
 
-  // Chaîne "village_size" — débloque Villages+.
+  // Chaîne "village_size" — débloque Rouge+.
   PermanentQuestsCompanion.insert(
     id: 'village_100',
     category: QuestCategory.villageSize.dbValue,
@@ -112,7 +180,13 @@ final _permanentQuests = [
     rewardValue: 0,
   ),
 
-  // Chaîne "biomes_closed" — débloque pièces puis Connexions doublées.
+  // Quêtes "cluster couleur" — débloquent Vert+/Bleu+/Jaune+/Violet+.
+  // Extraites en constante nommée (voir [kClusterColorQuests]) pour être
+  // réutilisables depuis la migration de schéma (version 9).
+  ...kClusterColorQuests,
+
+  // Chaîne "biomes_closed" — débloque pièces, puis Connexions doublées,
+  // puis Bonus de clôture, puis Couleur détestée (Story A6).
   PermanentQuestsCompanion.insert(
     id: 'biomes_10',
     category: QuestCategory.biomesClosed.dbValue,
@@ -129,13 +203,37 @@ final _permanentQuests = [
     targetValue: 25,
     rewardType: RewardType.upgradeUnlock.dbValue,
     rewardValue: 0,
+    nextQuestId: Value('biomes_50'),
   ),
+  ...kBiomesClosedExtensionQuests,
 
   // Chaîne "connexions" — quêtes répétables (cumul toutes parties
   // confondues), remises à zéro instantanément après récompense, même
   // palier. Pas de nextQuestId : elles ne font pas partie d'une chaîne.
   ...kConnectionQuests,
+
+  // Quêtes one-shot connexions (Story A8) — débloquent Aperçu prolongé /
+  // Emplacement Joker / Deuxième chance (Story A9).
+  ...kOneShotConnectionQuests,
+
+  // Quête "record de série" (Story A10) — débloque Combo+ (Story A11).
+  // Alimentée par le compteur de série en session, branché en Story B2.
+  kBestConnectionStreakQuest,
 ];
+
+/// Quête record "meilleure série de connexions consécutives" — extraite
+/// en constante nommée pour être réutilisable depuis la migration de
+/// schéma (voir [AppDatabase.migration], version 14). Palier unique, pas
+/// de nextQuestId, récompense = déblocage d'amélioration (Combo+, Story
+/// A11).
+final kBestConnectionStreakQuest = PermanentQuestsCompanion.insert(
+  id: 'best_streak_10',
+  category: QuestCategory.bestConnectionStreak.dbValue,
+  description: 'Réaliser une série de 10 connexions consécutives',
+  targetValue: 10,
+  rewardType: RewardType.upgradeUnlock.dbValue,
+  rewardValue: 0,
+);
 
 /// Quêtes répétables de connexions multiples. Chaque quête cumule le nombre
 /// de fois où une tuile posée obtient exactement N côtés connectés (toutes
@@ -177,6 +275,41 @@ final kConnectionQuests = [
     rewardType: RewardType.coins.dbValue,
     rewardValue: 500,
     isRepeatable: const Value(true),
+  ),
+];
+
+/// Quêtes one-shot de connexions multiples (Story A8) — partagent la
+/// catégorie avec les quêtes répétables de farm ([kConnectionQuests]) mais
+/// `isRepeatable: false` : une seule complétion débloque une amélioration,
+/// puis la quête reste acquise (pas de remise à zéro). Le mécanisme de
+/// progression existant (`_updateConnectionQuests`, boucle sur toutes les
+/// quêtes non complétées de la catégorie) les gère sans modification.
+/// Extraites en constante nommée pour être réutilisables depuis la
+/// migration de schéma (voir [AppDatabase.migration], version 12).
+final kOneShotConnectionQuests = [
+  PermanentQuestsCompanion.insert(
+    id: 'connections_triple_first',
+    category: QuestCategory.tripleConnections.dbValue,
+    description: 'Réaliser 15 triples connexions',
+    targetValue: 15,
+    rewardType: RewardType.upgradeUnlock.dbValue,
+    rewardValue: 0,
+  ),
+  PermanentQuestsCompanion.insert(
+    id: 'connections_quad_first',
+    category: QuestCategory.quadConnections.dbValue,
+    description: 'Réaliser 8 quadruples connexions',
+    targetValue: 8,
+    rewardType: RewardType.upgradeUnlock.dbValue,
+    rewardValue: 0,
+  ),
+  PermanentQuestsCompanion.insert(
+    id: 'connections_quint_first',
+    category: QuestCategory.quintConnections.dbValue,
+    description: 'Réaliser 5 quintuples connexions',
+    targetValue: 5,
+    rewardType: RewardType.upgradeUnlock.dbValue,
+    rewardValue: 0,
   ),
 ];
 
@@ -317,12 +450,126 @@ final _upgrades = [
   ),
   UpgradesCompanion.insert(
     id: 'villages_plus',
-    name: 'Villages+',
+    name: 'Rouge+',
     effectType: UpgradeEffectType.villageCoinsPercentBonus.dbValue,
     unlockConditionType: 'village_100',
     unlockConditionValue: 100,
   ),
   kJackpotPlusUpgrade,
+
+  // Story A5 — déblocage uniquement. L'effet réel (bonus % pièces par
+  // biome) est branché en Story B1 ; les upgrades ci-dessous restent
+  // verrouillées jusqu'à ce que leur quête "cluster couleur" (Story A4)
+  // soit complétée.
+  ...kClusterColorUpgrades,
+
+  // Story A7 — déblocage uniquement (Bonus de clôture / Couleur
+  // détestée). Effets réels branchés en Story B7 / B5.
+  ...kBiomesClosedExtensionUpgrades,
+
+  // Story A9 — déblocage uniquement (Aperçu prolongé / Emplacement Joker /
+  // Deuxième chance). Effets réels branchés en Story B4 / B9-B10 / B9-B11.
+  ...kExtendedActionsUpgrades,
+
+  // Story A11 — déblocage uniquement (Combo+). Effet réel branché en
+  // Story B3 (utilise le compteur de série de Story B2).
+  kComboPlusUpgrade,
+];
+
+/// Amélioration débloquée par la quête record "best_streak_10" (série de
+/// 10 connexions consécutives) — extraite en constante nommée pour être
+/// réutilisable depuis la migration de schéma (voir
+/// [AppDatabase.migration], version 15).
+final kComboPlusUpgrade = UpgradesCompanion.insert(
+  id: 'combo_plus',
+  name: 'Combo+',
+  effectType: UpgradeEffectType.comboBonusTiles.dbValue,
+  unlockConditionType: 'best_streak_10',
+  unlockConditionValue: 10,
+);
+
+/// Améliorations liées aux quêtes one-shot de connexions (Story A9) —
+/// déblocage uniquement. Extraites en constante nommée pour être
+/// réutilisables depuis la migration de schéma (voir
+/// [AppDatabase.migration], version 13).
+final kExtendedActionsUpgrades = [
+  UpgradesCompanion.insert(
+    id: 'extended_preview',
+    name: 'Aperçu prolongé',
+    effectType: UpgradeEffectType.extendedPreviewCount.dbValue,
+    unlockConditionType: 'connections_triple_first',
+    unlockConditionValue: 15,
+  ),
+  UpgradesCompanion.insert(
+    id: 'hold_slot',
+    name: 'Emplacement Joker',
+    effectType: UpgradeEffectType.holdSlotUses.dbValue,
+    unlockConditionType: 'connections_quad_first',
+    unlockConditionValue: 8,
+  ),
+  UpgradesCompanion.insert(
+    id: 'second_chance',
+    name: 'Deuxième chance',
+    effectType: UpgradeEffectType.secondChanceUses.dbValue,
+    unlockConditionType: 'connections_quint_first',
+    unlockConditionValue: 5,
+  ),
+];
+
+/// Améliorations "cluster couleur" (Vert+/Bleu+/Jaune+/Violet+) — extraites
+/// en constante nommée pour être réutilisables depuis la migration de
+/// schéma (voir [AppDatabase.migration], version 9).
+final kClusterColorUpgrades = [
+  UpgradesCompanion.insert(
+    id: 'forest_plus',
+    name: 'Vert+',
+    effectType: UpgradeEffectType.forestCoinsPercentBonus.dbValue,
+    unlockConditionType: 'forest_51',
+    unlockConditionValue: 51,
+  ),
+  UpgradesCompanion.insert(
+    id: 'water_plus',
+    name: 'Bleu+',
+    effectType: UpgradeEffectType.waterCoinsPercentBonus.dbValue,
+    unlockConditionType: 'water_51',
+    unlockConditionValue: 51,
+  ),
+  UpgradesCompanion.insert(
+    id: 'plain_plus',
+    name: 'Jaune+',
+    effectType: UpgradeEffectType.plainCoinsPercentBonus.dbValue,
+    unlockConditionType: 'plain_51',
+    unlockConditionValue: 51,
+  ),
+  UpgradesCompanion.insert(
+    id: 'mountain_plus',
+    name: 'Violet+',
+    effectType: UpgradeEffectType.mountainCoinsPercentBonus.dbValue,
+    unlockConditionType: 'mountain_51',
+    unlockConditionValue: 51,
+  ),
+];
+
+/// Améliorations liées à l'extension "biomes_closed" (Story A7) —
+/// déblocage uniquement. L'effet réel de Bonus de clôture est branché en
+/// Story B7, celui de Couleur détestée en Story B5. Extraites en constante
+/// nommée pour être réutilisables depuis la migration de schéma (voir
+/// [AppDatabase.migration], version 11).
+final kBiomesClosedExtensionUpgrades = [
+  UpgradesCompanion.insert(
+    id: 'closure_bonus',
+    name: 'Bonus de clôture',
+    effectType: UpgradeEffectType.closureBonusTiles.dbValue,
+    unlockConditionType: 'biomes_50',
+    unlockConditionValue: 50,
+  ),
+  UpgradesCompanion.insert(
+    id: 'hated_color',
+    name: 'Couleur détestée',
+    effectType: UpgradeEffectType.hatedColorExclusion.dbValue,
+    unlockConditionType: 'biomes_100',
+    unlockConditionValue: 100,
+  ),
 ];
 
 /// Amélioration débloquée par la quête record "best_game_coins_500" (500

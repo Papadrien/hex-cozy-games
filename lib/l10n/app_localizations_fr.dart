@@ -137,6 +137,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get quests_category_connections => 'Connexions multiples';
 
   @override
+  String get quests_category_biome_colors => 'Groupes de couleur';
+
+  @override
   String get quests_status_active => 'En cours';
 
   @override
