@@ -65,6 +65,13 @@ class GameEffectsService {
     return _ref.read(activeUpgradeEffectsProvider).comboBonusTiles;
   }
 
+  /// Multiplicateur du Bonus de clôture (Story B7) : à chaque fermeture de
+  /// biome, [closureBonusTiles] tuiles bonus sont ajoutées par tranche de 10
+  /// tuiles du cluster fermé.
+  int getClosureBonusTiles() {
+    return _ref.read(activeUpgradeEffectsProvider).closureBonusTiles;
+  }
+
   /// Compte le nombre de côtés connectés dont le biome est [biome].
   int countBiomeSides(BiomeType biome, HexTile tile, List<int> connectedSides) {
     return connectedSides

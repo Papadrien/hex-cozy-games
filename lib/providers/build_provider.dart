@@ -59,6 +59,7 @@ class ActiveUpgradeEffects {
     this.comboBonusTiles = 0,
     this.extendedPreviewCount = 0,
     this.hatedColorExclusionDuration = 0,
+    this.closureBonusTiles = 0,
   });
 
   /// Nombre de tuiles supplémentaires au début de la partie.
@@ -98,6 +99,11 @@ class ActiveUpgradeEffects {
   /// aléatoire est exclu du pool (Story B5 — Couleur détestée).
   /// Valeurs : 5/8/10 selon niveau ; 0 = inactif.
   final int hatedColorExclusionDuration;
+
+  /// Multiplicateur du Bonus de clôture (Story B7) : tuiles bonus = (taille du
+  /// biome ÷ 10) × [closureBonusTiles] pour chaque fermeture détectée.
+  /// Valeurs : 1/2/3 selon niveau ; 0 = inactif.
+  final int closureBonusTiles;
 }
 
 final activeUpgradeEffectsProvider = Provider<ActiveUpgradeEffects>((ref) {
@@ -113,6 +119,7 @@ final activeUpgradeEffectsProvider = Provider<ActiveUpgradeEffects>((ref) {
   int comboBonus = 0;
   int extendedPreviewCount = 0;
   int hatedColorExclusionDuration = 0;
+  int closureBonus = 0;
 
   for (final u in selected) {
     final et = UpgradeEffectType.fromDb(u.effectType);
@@ -141,8 +148,7 @@ final activeUpgradeEffectsProvider = Provider<ActiveUpgradeEffects>((ref) {
         hatedColorExclusionDuration = val.toInt();
         break;
       case UpgradeEffectType.closureBonusTiles:
-        // Déblocage seulement (Story A7). Effet réel branché en
-        // Story B7 (Bonus de clôture).
+        closureBonus = val.toInt();
         break;
       case UpgradeEffectType.holdSlotUses:
       case UpgradeEffectType.secondChanceUses:
@@ -166,6 +172,7 @@ final activeUpgradeEffectsProvider = Provider<ActiveUpgradeEffects>((ref) {
     comboBonusTiles: comboBonus,
     extendedPreviewCount: extendedPreviewCount,
     hatedColorExclusionDuration: hatedColorExclusionDuration,
+    closureBonusTiles: closureBonus,
   );
 });
 

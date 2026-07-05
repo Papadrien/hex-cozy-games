@@ -273,7 +273,7 @@ Future<void> confirmPlacement(
 
   _placeTileOnGrid(ref, coords, tile);
   onConfirm(coords, tile, reward.connectedSides, reward.bonusTiles);
-  final appliedReward = _applyReward(ref, tile, reward);
+  final appliedReward = _applyReward(ref, coords, tile, reward);
   _recordPlacement(ref, coords, tile, appliedReward);
   _triggerPlacementHaptics(ref, appliedReward);
   _advanceStack(ref, reward.connectedSides.length);
@@ -317,7 +317,8 @@ void _recordPlacement(
   );
 }
 
-PlacementReward _applyReward(WidgetRef ref, HexTile tile, PlacementReward reward) {
+PlacementReward _applyReward(
+    WidgetRef ref, HexCoords pos, HexTile tile, PlacementReward reward) {
   if (reward.connectedSides.isEmpty && reward.bonusTiles == 0) {
     ref.read(sessionProvider.notifier).addReward(reward);
     return reward;
@@ -354,6 +355,20 @@ PlacementReward _applyReward(WidgetRef ref, HexTile tile, PlacementReward reward
     final comboCount = effects.getComboBonusTiles();
     if (comboCount > 0) {
       ref.read(tileStackProvider.notifier).addBonusTiles(comboCount);
+    }
+  }
+  // Story B7 — Bonus de clôture : détecte les biomes qui viennent de se
+  // fermer après cette pose et ajoute (taille ÷ 10) × niveau tuiles bonus.
+  final closureMult = effects.getClosureBonusTiles();
+  if (closureMult > 0) {
+    final grid = ref.read(gridProvider);
+    final closures = grid.biomesJustClosed(pos, tile);
+    var closureTiles = 0;
+    for (final entry in closures) {
+      closureTiles += (entry.value ~/ 10) * closureMult;
+    }
+    if (closureTiles > 0) {
+      ref.read(tileStackProvider.notifier).addBonusTiles(closureTiles);
     }
   }
   return applied;
