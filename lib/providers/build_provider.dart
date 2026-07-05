@@ -57,6 +57,8 @@ class ActiveUpgradeEffects {
     this.plainCoinsBonus = 0.0,
     this.mountainCoinsBonus = 0.0,
     this.comboBonusTiles = 0,
+    this.extendedPreviewCount = 0,
+    this.hatedColorExclusionDuration = 0,
   });
 
   /// Nombre de tuiles supplémentaires au début de la partie.
@@ -87,6 +89,15 @@ class ActiveUpgradeEffects {
   /// Nombre de tuiles bonus ajoutées à chaque pallier de 5 dans la série de
   /// connexions consécutives (Combo+ — Story B3).
   final int comboBonusTiles;
+
+  /// Nombre de tuiles visibles dans la pile d'attente (Story B4 — Aperçu
+  /// prolongé). 0 = utiliser la valeur par défaut [kVisibleStackSize].
+  final int extendedPreviewCount;
+
+  /// Nombre de tuiles au début de la partie pendant lesquelles un biome
+  /// aléatoire est exclu du pool (Story B5 — Couleur détestée).
+  /// Valeurs : 5/8/10 selon niveau ; 0 = inactif.
+  final int hatedColorExclusionDuration;
 }
 
 final activeUpgradeEffectsProvider = Provider<ActiveUpgradeEffects>((ref) {
@@ -100,6 +111,8 @@ final activeUpgradeEffectsProvider = Provider<ActiveUpgradeEffects>((ref) {
   double plainBonus = 0.0;
   double mountainBonus = 0.0;
   int comboBonus = 0;
+  int extendedPreviewCount = 0;
+  int hatedColorExclusionDuration = 0;
 
   for (final u in selected) {
     final et = UpgradeEffectType.fromDb(u.effectType);
@@ -121,17 +134,20 @@ final activeUpgradeEffectsProvider = Provider<ActiveUpgradeEffects>((ref) {
         plainBonus += val;
       case UpgradeEffectType.mountainCoinsPercentBonus:
         mountainBonus += val;
-      case UpgradeEffectType.closureBonusTiles:
-      case UpgradeEffectType.hatedColorExclusion:
-        // Déblocage seulement (Story A7). Effets réels branchés en
-        // Story B7 (Bonus de clôture) et Story B5 (Couleur détestée).
-        break;
       case UpgradeEffectType.extendedPreviewCount:
+        extendedPreviewCount = val.toInt();
+        break;
+      case UpgradeEffectType.hatedColorExclusion:
+        hatedColorExclusionDuration = val.toInt();
+        break;
+      case UpgradeEffectType.closureBonusTiles:
+        // Déblocage seulement (Story A7). Effet réel branché en
+        // Story B7 (Bonus de clôture).
+        break;
       case UpgradeEffectType.holdSlotUses:
       case UpgradeEffectType.secondChanceUses:
         // Déblocage seulement (Story A9). Effets réels branchés en
-        // Story B4 (Aperçu prolongé) et Story B9-B10-B11 (Hold /
-        // Deuxième chance).
+        // Story B9-B10-B11 (Hold / Deuxième chance).
         break;
       case UpgradeEffectType.comboBonusTiles:
         comboBonus += val.toInt();
@@ -148,6 +164,8 @@ final activeUpgradeEffectsProvider = Provider<ActiveUpgradeEffects>((ref) {
     plainCoinsBonus: plainBonus,
     mountainCoinsBonus: mountainBonus,
     comboBonusTiles: comboBonus,
+    extendedPreviewCount: extendedPreviewCount,
+    hatedColorExclusionDuration: hatedColorExclusionDuration,
   );
 });
 

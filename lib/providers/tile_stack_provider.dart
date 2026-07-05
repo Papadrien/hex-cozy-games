@@ -12,7 +12,9 @@ import 'dart:math';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../core/constants.dart';
+import '../game/hex_cell.dart';
 import '../game/hex_tile.dart';
+import 'build_provider.dart';
 
 part 'tile_stack_provider.g.dart';
 
@@ -27,11 +29,13 @@ class TileStackState {
   const TileStackState({
     required this.remaining,
     required this.visible,
+    this.visibleCount = kVisibleStackSize,
     this.seed,
   });
 
   final int remaining;
   final List<HexTile> visible;
+  final int visibleCount;
   final int? seed;
 
   /// La tuile que le joueur va poser ensuite, ou null si la pile est vide.
@@ -49,12 +53,24 @@ class TileStack extends _$TileStack {
   TileStackState build() {
     final seed = Random().nextInt(1 << 31);
     final rng = Random(seed);
-    final pool = generateTilePool(kStartingTiles, rng);
+    final effects = ref.read(activeUpgradeEffectsProvider);
+    final visibleCount = max(kVisibleStackSize, effects.extendedPreviewCount);
+    final hatedDuration = effects.hatedColorExclusionDuration;
+    BiomeType? excludeBiome;
+    if (hatedDuration > 0) {
+      excludeBiome = BiomeType.values[rng.nextInt(BiomeType.values.length)];
+    }
+    final pool = generateTilePool(
+      kStartingTiles,
+      rng,
+      excludeBiome: excludeBiome,
+      excludeDuration: hatedDuration,
+    );
     _shuffle(pool, rng);
     _queue
       ..clear()
       ..addAll(pool);
-    return _buildState(seed: seed);
+    return _buildState(seed: seed, visibleCount: visibleCount);
   }
 
   /// Mélange la file avec Fisher-Yates.
@@ -75,12 +91,12 @@ class TileStack extends _$TileStack {
     return generateTilePool(count, rng);
   }
 
-  TileStackState _buildState({int? seed}) {
+  TileStackState _buildState({int? seed, int? visibleCount}) {
+    final vc = visibleCount ?? state.visibleCount;
     return TileStackState(
       remaining: _queue.length,
-      visible: List.unmodifiable(
-        _queue.take(kVisibleStackSize).toList(),
-      ),
+      visible: List.unmodifiable(_queue.take(vc).toList()),
+      visibleCount: vc,
       seed: seed ?? state.seed,
     );
   }

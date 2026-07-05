@@ -13,12 +13,18 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hex_haven/core/constants.dart';
 import 'package:hex_haven/game/hex_cell.dart';
 import 'package:hex_haven/game/hex_tile.dart';
+import 'package:hex_haven/providers/build_provider.dart';
 import 'package:hex_haven/providers/tile_stack_provider.dart';
 
 void main() {
   group('tileStackProvider', () {
+    ProviderContainer makeContainer() => ProviderContainer(overrides: [
+          activeUpgradeEffectsProvider
+              .overrideWithValue(const ActiveUpgradeEffects()),
+        ]);
+
     test('expose kVisibleStackSize tuiles visibles et le bon "remaining"', () {
-      final container = ProviderContainer();
+      final container = makeContainer();
       addTearDown(container.dispose);
 
       final state = container.read(tileStackProvider);
@@ -29,7 +35,7 @@ void main() {
     });
 
     test('le pool généré respecte max 3 biomes et arcs contigus', () {
-      final container = ProviderContainer();
+      final container = makeContainer();
       addTearDown(container.dispose);
 
       final drawn = <HexTile>[];
@@ -68,7 +74,7 @@ void main() {
     });
 
     test('consumeActiveTile fait avancer la pile et décrémente remaining', () {
-      final container = ProviderContainer();
+      final container = makeContainer();
       addTearDown(container.dispose);
 
       final before = container.read(tileStackProvider);
@@ -85,7 +91,7 @@ void main() {
     });
 
     test('la pile épuisée ne se ré-alimente pas (fin de partie)', () {
-      final container = ProviderContainer();
+      final container = makeContainer();
       addTearDown(container.dispose);
 
       // Vide complètement la pile initiale.

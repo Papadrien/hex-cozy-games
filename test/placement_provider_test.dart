@@ -15,6 +15,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hex_haven/game/hex_cell.dart';
 import 'package:hex_haven/game/hex_coords.dart';
 import 'package:hex_haven/game/hex_tile.dart';
+import 'package:hex_haven/providers/build_provider.dart';
 import 'package:hex_haven/providers/grid_state_provider.dart';
 import 'package:hex_haven/providers/placement_provider.dart';
 import 'package:hex_haven/providers/tile_stack_provider.dart';
@@ -23,8 +24,13 @@ import 'fixtures/tile_pool.dart';
 
 void main() {
   group('placementProvider', () {
+    ProviderContainer makeContainer() => ProviderContainer(overrides: [
+          activeUpgradeEffectsProvider
+              .overrideWithValue(const ActiveUpgradeEffects()),
+        ]);
+
     test('aucune sélection initiale', () {
-      final container = ProviderContainer();
+      final container = makeContainer();
       addTearDown(container.dispose);
 
       final state = container.read(placementProvider);
@@ -37,7 +43,7 @@ void main() {
     });
 
     test('plateau vide → seule (0,0) est disponible, sélectionnable', () {
-      final container = ProviderContainer();
+      final container = makeContainer();
       addTearDown(container.dispose);
 
       final notifier = container.read(placementProvider.notifier);
@@ -52,7 +58,7 @@ void main() {
     });
 
     test('selectCell sur un emplacement indisponible est ignoré', () {
-      final container = ProviderContainer();
+      final container = makeContainer();
       addTearDown(container.dispose);
 
       final notifier = container.read(placementProvider.notifier);
@@ -94,7 +100,7 @@ void main() {
 
     test('rotate fait avancer rotationSteps modulo 6 (sens horaire et '
         'inverse)', () {
-      final container = ProviderContainer();
+      final container = makeContainer();
       addTearDown(container.dispose);
 
       final notifier = container.read(placementProvider.notifier);
@@ -113,7 +119,7 @@ void main() {
     });
 
     test('rotate ne fait rien sans sélection active', () {
-      final container = ProviderContainer();
+      final container = makeContainer();
       addTearDown(container.dispose);
 
       final notifier = container.read(placementProvider.notifier);
@@ -124,7 +130,7 @@ void main() {
     });
 
     test('previewTile reflète la tuile active tournée de rotationSteps', () {
-      final container = ProviderContainer();
+      final container = makeContainer();
       addTearDown(container.dispose);
 
       final notifier = container.read(placementProvider.notifier);
@@ -139,7 +145,7 @@ void main() {
     });
 
     test('clearSelection retire la sélection en cours', () {
-      final container = ProviderContainer();
+      final container = makeContainer();
       addTearDown(container.dispose);
 
       final notifier = container.read(placementProvider.notifier);
