@@ -56,6 +56,7 @@ class ActiveUpgradeEffects {
     this.waterCoinsBonus = 0.0,
     this.plainCoinsBonus = 0.0,
     this.mountainCoinsBonus = 0.0,
+    this.comboBonusTiles = 0,
   });
 
   /// Nombre de tuiles supplémentaires au début de la partie.
@@ -82,6 +83,10 @@ class ActiveUpgradeEffects {
 
   /// Bonus de pièces pour chaque côté connecté de type montagne (Violet+).
   final double mountainCoinsBonus;
+
+  /// Nombre de tuiles bonus ajoutées à chaque pallier de 5 dans la série de
+  /// connexions consécutives (Combo+ — Story B3).
+  final int comboBonusTiles;
 }
 
 final activeUpgradeEffectsProvider = Provider<ActiveUpgradeEffects>((ref) {
@@ -94,6 +99,7 @@ final activeUpgradeEffectsProvider = Provider<ActiveUpgradeEffects>((ref) {
   double waterBonus = 0.0;
   double plainBonus = 0.0;
   double mountainBonus = 0.0;
+  int comboBonus = 0;
 
   for (final u in selected) {
     final et = UpgradeEffectType.fromDb(u.effectType);
@@ -128,9 +134,7 @@ final activeUpgradeEffectsProvider = Provider<ActiveUpgradeEffects>((ref) {
         // Deuxième chance).
         break;
       case UpgradeEffectType.comboBonusTiles:
-        // Déblocage seulement (Story A11). Effet réel branché en
-        // Story B3 (utilise le compteur de série de Story B2).
-        break;
+        comboBonus += val.toInt();
     }
   }
 
@@ -143,6 +147,7 @@ final activeUpgradeEffectsProvider = Provider<ActiveUpgradeEffects>((ref) {
     waterCoinsBonus: waterBonus,
     plainCoinsBonus: plainBonus,
     mountainCoinsBonus: mountainBonus,
+    comboBonusTiles: comboBonus,
   );
 });
 

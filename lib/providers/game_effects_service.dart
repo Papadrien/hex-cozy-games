@@ -59,6 +59,12 @@ class GameEffectsService {
     return (withBiomeBonus * (1.0 + effects.coinsMultiplier)).round();
   }
 
+  /// Nombre de tuiles bonus ajoutées à chaque pallier de 5 dans la série de
+  /// connexions consécutives (Combo+ — Story B3).
+  int getComboBonusTiles() {
+    return _ref.read(activeUpgradeEffectsProvider).comboBonusTiles;
+  }
+
   /// Compte le nombre de côtés connectés dont le biome est [biome].
   int countBiomeSides(BiomeType biome, HexTile tile, List<int> connectedSides) {
     return connectedSides

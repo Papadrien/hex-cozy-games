@@ -347,6 +347,15 @@ PlacementReward _applyReward(WidgetRef ref, HexTile tile, PlacementReward reward
   if (reward.bonusTiles > 0) {
     ref.read(tileStackProvider.notifier).addBonusTiles(reward.bonusTiles);
   }
+  // Story B3 — Combo+ : à chaque multiple de 5 dans la série en cours,
+  // ajoute des tuiles bonus selon le niveau de l'amélioration.
+  final streak = ref.read(sessionProvider).currentStreak;
+  if (streak > 0 && streak % 5 == 0) {
+    final comboCount = effects.getComboBonusTiles();
+    if (comboCount > 0) {
+      ref.read(tileStackProvider.notifier).addBonusTiles(comboCount);
+    }
+  }
   return applied;
 }
 
@@ -394,6 +403,7 @@ void _checkGameOver(WidgetRef ref) {
     largestVillage: analysis.largestVillage,
     closedBiomes: analysis.closedBiomes,
     maxBiomeSizes: analysis.maxBiomeSizes,
+    bestStreak: session.bestStreak,
   );
   ref.read(cloudSaveServiceProvider).syncAfterGame();
 }
