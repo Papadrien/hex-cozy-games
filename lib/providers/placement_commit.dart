@@ -10,6 +10,7 @@ import '../game/hex_cell.dart';
 import '../game/hex_coords.dart';
 import '../game/hex_tile.dart';
 import '../services/cloud_save_service.dart';
+import 'build_provider.dart';
 import 'end_game_provider.dart';
 import '../services/ad_service.dart';
 import '../services/haptics_service.dart';
@@ -126,6 +127,11 @@ void startNewGame(WidgetRef ref) {
     ref.read(tileStackProvider.notifier).addStartingBonusTiles(bonus);
   }
 
+  // Initialiser les compteurs d'utilisations par partie (Story B9).
+  ref.read(sessionProvider.notifier).initPerGameUses(
+        ref.read(activeUpgradeEffectsProvider),
+      );
+
   // Pose automatique de la tuile centrale de départ.
   final initialTile = ref.read(tileStackProvider.notifier).drawInitialTile();
   if (initialTile != null) {
@@ -172,7 +178,7 @@ final previewRewardProvider = Provider<PlacementReward>((ref) {
 
   // Appliquer le multiplicateur de tuiles bonus (Story 2.8a).
   final effects = ref.read(gameEffectsServiceProvider);
-  final multipliedBonus = effects.applyConnectionMultiplier(baseBonus);
+  final multipliedBonus = effects.applyConnectionMultiplier(c, baseBonus);
 
   return PlacementReward(connectedSides: sides, bonusTiles: multipliedBonus);
 });

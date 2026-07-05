@@ -31,7 +31,7 @@ void main() {
       final container = _makeContainer();
       final effects = container.read(activeUpgradeEffectsProvider);
       expect(effects.startingTilesBonus, 0);
-      expect(effects.connectionMultiplier, 1.0);
+      expect(effects.connectionBonusLevel, 0);
       expect(effects.coinsMultiplier, 0.0);
       expect(effects.villageCoinsBonus, 0.0);
       expect(effects.forestCoinsBonus, 0.0);
@@ -74,34 +74,47 @@ void main() {
   });
 
   group('GameEffectsService.applyConnectionMultiplier', () {
-    test('aucune amélioration → facteur 1.0 (inchangé)', () {
+    test('aucune amélioration → inchangé', () {
       final container = _makeContainer();
       final service = container.read(gameEffectsServiceProvider);
-      expect(service.applyConnectionMultiplier(5), 5);
+      expect(service.applyConnectionMultiplier(5, 5), 5);
     });
 
-    test('multiplicateur 2.0 → double les tuiles bonus', () {
+    test('niveau 1 → quint+sext doublés, triple+quad inchangés', () {
       final container = _makeContainer(
-        const ActiveUpgradeEffects(connectionMultiplier: 2.0),
+        const ActiveUpgradeEffects(connectionBonusLevel: 1),
       );
       final service = container.read(gameEffectsServiceProvider);
-      expect(service.applyConnectionMultiplier(3), 6);
+      // 3 côtés (triple) : base 1 → inchangé
+      expect(service.applyConnectionMultiplier(3, 1), 1);
+      // 4 côtés (quad) : base 2 → inchangé
+      expect(service.applyConnectionMultiplier(4, 2), 2);
+      // 5 côtés (quint) : base 5 → doublé
+      expect(service.applyConnectionMultiplier(5, 5), 10);
+      // 6 côtés (sext) : base 10 → doublé
+      expect(service.applyConnectionMultiplier(6, 10), 20);
     });
 
-    test('multiplicateur 2.0 → 1 tuile → 2', () {
+    test('niveau 2 → quad+ doublés, triple inchangé', () {
       final container = _makeContainer(
-        const ActiveUpgradeEffects(connectionMultiplier: 2.0),
+        const ActiveUpgradeEffects(connectionBonusLevel: 2),
       );
       final service = container.read(gameEffectsServiceProvider);
-      expect(service.applyConnectionMultiplier(1), 2);
+      expect(service.applyConnectionMultiplier(3, 1), 1);
+      expect(service.applyConnectionMultiplier(4, 2), 4);
+      expect(service.applyConnectionMultiplier(5, 5), 10);
+      expect(service.applyConnectionMultiplier(6, 10), 20);
     });
 
-    test('multiplicateur 2.0 → 0 tuile → 0', () {
+    test('niveau 3 → triple+ doublés', () {
       final container = _makeContainer(
-        const ActiveUpgradeEffects(connectionMultiplier: 2.0),
+        const ActiveUpgradeEffects(connectionBonusLevel: 3),
       );
       final service = container.read(gameEffectsServiceProvider);
-      expect(service.applyConnectionMultiplier(0), 0);
+      expect(service.applyConnectionMultiplier(3, 1), 2);
+      expect(service.applyConnectionMultiplier(4, 2), 4);
+      expect(service.applyConnectionMultiplier(5, 5), 10);
+      expect(service.applyConnectionMultiplier(6, 10), 20);
     });
   });
 

@@ -6,6 +6,7 @@ import 'dart:math';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import 'build_provider.dart';
 import 'reward_model.dart';
 
 part 'session_provider.g.dart';
@@ -22,6 +23,8 @@ class SessionState {
     this.connections6 = 0,
     this.currentStreak = 0,
     this.bestStreak = 0,
+    this.holdSlotRemainingUses = 0,
+    this.secondChanceRemainingUses = 0,
   });
 
   final int coins;
@@ -39,6 +42,12 @@ class SessionState {
   /// Meilleure série atteinte dans cette session — Story B2.
   final int bestStreak;
 
+  /// Utilisations restantes d'Emplacement Joker pour cette partie (Story B9).
+  final int holdSlotRemainingUses;
+
+  /// Utilisations restantes de Deuxième chance pour cette partie (Story B9).
+  final int secondChanceRemainingUses;
+
   /// Sentinel utilisé par [copyWith] pour distinguer "non fourni" de "null".
   static const _sentinel = Object();
 
@@ -55,6 +64,8 @@ class SessionState {
     Object? connections6 = _sentinel,
     Object? currentStreak = _sentinel,
     Object? bestStreak = _sentinel,
+    Object? holdSlotRemainingUses = _sentinel,
+    Object? secondChanceRemainingUses = _sentinel,
   }) {
     return SessionState(
       coins: coins == _sentinel ? this.coins : coins as int,
@@ -76,6 +87,12 @@ class SessionState {
           currentStreak == _sentinel ? this.currentStreak : currentStreak as int,
       bestStreak:
           bestStreak == _sentinel ? this.bestStreak : bestStreak as int,
+      holdSlotRemainingUses: holdSlotRemainingUses == _sentinel
+          ? this.holdSlotRemainingUses
+          : holdSlotRemainingUses as int,
+      secondChanceRemainingUses: secondChanceRemainingUses == _sentinel
+          ? this.secondChanceRemainingUses
+          : secondChanceRemainingUses as int,
     );
   }
 }
@@ -127,6 +144,40 @@ class Session extends _$Session {
       connections4: state.connections4 - (connectedCount == 4 ? 1 : 0),
       connections5: state.connections5 - (connectedCount == 5 ? 1 : 0),
       connections6: state.connections6 - (connectedCount == 6 ? 1 : 0),
+    );
+  }
+
+  /// Initialise les compteurs d'utilisations par partie depuis les
+  /// améliorations actives (Story B9 — Hold + Deuxième chance).
+  void initPerGameUses(ActiveUpgradeEffects effects) {
+    state = SessionState(
+      coins: state.coins,
+      totalBonusTiles: state.totalBonusTiles,
+      lastReward: state.lastReward,
+      connections3: state.connections3,
+      connections4: state.connections4,
+      connections5: state.connections5,
+      connections6: state.connections6,
+      currentStreak: state.currentStreak,
+      bestStreak: state.bestStreak,
+      holdSlotRemainingUses: effects.holdSlotUses,
+      secondChanceRemainingUses: effects.secondChanceUses,
+    );
+  }
+
+  /// Consomme une utilisation d'Emplacement Joker (Story B10).
+  void consumeHoldSlot() {
+    if (state.holdSlotRemainingUses <= 0) return;
+    state = state.copyWith(
+      holdSlotRemainingUses: state.holdSlotRemainingUses - 1,
+    );
+  }
+
+  /// Consomme une utilisation de Deuxième chance (Story B11).
+  void consumeSecondChance() {
+    if (state.secondChanceRemainingUses <= 0) return;
+    state = state.copyWith(
+      secondChanceRemainingUses: state.secondChanceRemainingUses - 1,
     );
   }
 

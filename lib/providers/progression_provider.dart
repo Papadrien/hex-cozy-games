@@ -251,7 +251,7 @@ double upgradeEffectValue(UpgradeEffectType effectType, int level) {
     case UpgradeEffectType.startingTilesBonus:
       return [2.0, 5.0, 10.0][level.clamp(0, 2)];
     case UpgradeEffectType.connectionBonusMultiplier:
-      return 2.0;
+      return [1.0, 2.0, 3.0][level.clamp(0, 2)];
     case UpgradeEffectType.coinsPercentBonus:
       return [0.25, 0.50, 1.00][level.clamp(0, 2)];
     case UpgradeEffectType.villageCoinsPercentBonus:

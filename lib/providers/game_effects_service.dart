@@ -25,13 +25,18 @@ class GameEffectsService {
     return _ref.read(activeUpgradeEffectsProvider).startingTilesBonus;
   }
 
-  /// Applique le multiplicateur de connexions aux [bonusTiles].
+  /// Applique le bonus Connexions doublées (Story B8).
   ///
-  /// Retourne le nombre de tuiles bonus après application de
-  /// [ActiveUpgradeEffects.connectionMultiplier].
-  int applyConnectionMultiplier(int bonusTiles) {
-    final mult = _ref.read(activeUpgradeEffectsProvider).connectionMultiplier;
-    return (bonusTiles * mult).round();
+  /// Selon le niveau de l'amélioration, les connexions avec suffisamment de
+  /// côtés connectés reçoivent un ×2 sur leurs tuiles bonus. Niveau 1 : quint
+  /// + sext (5-6), niveau 2 : +quad (4), niveau 3 : +triple (3).
+  int applyConnectionMultiplier(int connectedSides, int baseBonus) {
+    final level =
+        _ref.read(activeUpgradeEffectsProvider).connectionBonusLevel;
+    if (level < 1) return baseBonus;
+    final threshold = [6, 5, 4, 3][level.clamp(0, 3)];
+    if (connectedSides < threshold) return baseBonus;
+    return baseBonus * 2;
   }
 
   /// Calcule les pièces finales après application des bonus — Story 2.8b / B1.
