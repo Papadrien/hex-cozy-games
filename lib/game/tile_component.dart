@@ -108,6 +108,14 @@ class TileComponent extends PositionComponent {
   bool _waveRampActive = false;
   double _waveRampSpeed = 0.0;
 
+  /// Temps écoulé depuis que l'ondulation a atteint son intensité maximale.
+  /// Après [kWaveDuration] secondes, elle s'estompe puis se fige pour ne plus
+  /// rien coûter à chaque frame.
+  double _waveActiveTime = 0.0;
+  bool _waveActive = false;
+  static const double kWaveDuration = 5.0;
+  static const double kWaveFadeDuration = 1.0;
+
   /// Démarre la montée en puissance progressive de l'ondulation du bord bas,
   /// de 0 jusqu'à son intensité maximale, sur [duration] secondes.
   void startWaveRampIn({double duration = 0.5}) {
@@ -403,6 +411,10 @@ class TileComponent extends PositionComponent {
   @override
   void update(double dt) {
     super.update(dt);
+
+    // Incrémente le temps d'animation tant que l'ondulation n'est pas figée
+    // (le temps continue de défiler durant le fade-out pour une transition
+    // fluide du mouvement jusqu'à l'arrêt).
     _waveTime += dt;
 
     if (_waveRampActive) {
@@ -410,6 +422,19 @@ class TileComponent extends PositionComponent {
       if (_waveIntensity >= 1.0) {
         _waveIntensity = 1.0;
         _waveRampActive = false;
+        _waveActive = true;
+        _waveActiveTime = 0.0;
+      }
+    }
+
+    // Fige l'ondulation après quelques secondes pour éviter un coût par frame
+    // linéaire avec le nombre de tuiles posées sur toute la durée de la partie.
+    if (_waveActive) {
+      _waveActiveTime += dt;
+      if (_waveActiveTime > kWaveDuration) {
+        final fadeT =
+            (_waveActiveTime - kWaveDuration) / kWaveFadeDuration;
+        _waveIntensity = (1.0 - fadeT).clamp(0.0, 1.0);
       }
     }
 
@@ -452,6 +477,7 @@ class TileComponent extends PositionComponent {
   /// milieu de l'arête ondule, comme une petite vague le long du pied de
   /// la tuile.
   List<Offset> _wavyEdge(Offset from, Offset to, double phase) {
+    if (_waveAmplitude < 0.001) return [from, to];
     final dx = to.dx - from.dx;
     final dy = to.dy - from.dy;
     final points = <Offset>[];
