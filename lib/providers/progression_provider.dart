@@ -93,6 +93,7 @@ class ProgressionService {
   }
 
   Future<bool> _isConditionMet(UpgradeRow upgrade, AppDatabase db) async {
+    if (upgrade.unlockConditionType == 'debug_only') return false;
     if (upgrade.unlockConditionType == 'tiles_placed') {
       return _isTilesPlacedMet(upgrade, db);
     }
@@ -202,6 +203,10 @@ IconData upgradeIconData(UpgradeEffectType effectType) {
       return Icons.undo;
     case UpgradeEffectType.comboBonusTiles:
       return Icons.bolt;
+    case UpgradeEffectType.millionaireCoins:
+      return Icons.monetization_on;
+    case UpgradeEffectType.warehouseStartingTiles:
+      return Icons.inventory_2;
   }
 }
 
@@ -242,6 +247,10 @@ List<String> upgradeAllLevelEffects(UpgradeEffectType effectType) {
       return ['1 usage/partie', '2 usages/partie', '3 usages/partie'];
     case UpgradeEffectType.comboBonusTiles:
       return ['+1 tuile/5 série', '+2 tuiles/5 série', '+3 tuiles/5 série'];
+    case UpgradeEffectType.millionaireCoins:
+      return ['1 000 000'];
+    case UpgradeEffectType.warehouseStartingTiles:
+      return ['500 tuiles'];
   }
 }
 
@@ -273,5 +282,9 @@ double upgradeEffectValue(UpgradeEffectType effectType, int level) {
       return [1.0, 2.0, 3.0][level.clamp(0, 2)];
     case UpgradeEffectType.comboBonusTiles:
       return [1.0, 2.0, 3.0][level.clamp(0, 2)];
+    case UpgradeEffectType.millionaireCoins:
+      return [1000000.0][level.clamp(0, 0)];
+    case UpgradeEffectType.warehouseStartingTiles:
+      return [500.0][level.clamp(0, 0)];
   }
 }

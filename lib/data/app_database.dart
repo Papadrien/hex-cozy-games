@@ -133,7 +133,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 10;
+  int get schemaVersion => 11;
 
   @override
   MigrationStrategy get migration {
@@ -335,6 +335,16 @@ class AppDatabase extends _$AppDatabase {
           await batch((b) => b.insertAll(
                 upgrades,
                 kClusterColorUpgrades,
+                mode: InsertMode.insertOrIgnore,
+              ));
+        }
+        if (from < 11) {
+          // Debug uniquement : améliorations Millionnaire et Entrepôt de
+          // tuiles, déblocables uniquement via le bouton "Tout débloquer"
+          // (`unlockConditionType: 'debug_only'`). insertOrIgnore idempotent.
+          await batch((b) => b.insertAll(
+                upgrades,
+                [kMillionaireUpgrade, kWarehouseUpgrade],
                 mode: InsertMode.insertOrIgnore,
               ));
         }

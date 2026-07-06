@@ -60,8 +60,11 @@ class TileStack extends _$TileStack {
     if (hatedDuration > 0) {
       excludeBiome = BiomeType.values[rng.nextInt(BiomeType.values.length)];
     }
+    final poolSize = effects.warehouseStartingTiles > 0
+        ? effects.warehouseStartingTiles
+        : kStartingTiles;
     final pool = generateTilePool(
-      kStartingTiles,
+      poolSize,
       rng,
       excludeBiome: excludeBiome,
       excludeDuration: hatedDuration,

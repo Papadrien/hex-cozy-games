@@ -48,7 +48,13 @@ enum UpgradeEffectType {
   /// Tuiles bonus ajoutées tous les 5 crans de la série de connexions en
   /// cours (Combo+) — déblocage en Story A11, effet réel branché en
   /// Story B3 (utilise le compteur de Story B2).
-  comboBonusTiles;
+  comboBonusTiles,
+
+  /// Millionnaire (debug) : crédite 1 000 000 pièces sur le profil.
+  millionaireCoins,
+
+  /// Entrepôt de tuiles (debug) : démarre une partie avec 500 tuiles.
+  warehouseStartingTiles;
 
   String get dbValue => name;
   static UpgradeEffectType fromDb(String value) =>

@@ -670,6 +670,9 @@ String _conditionLabel(
   if (upgrade.unlockConditionType == 'tiles_placed') {
     return 'Poser ${upgrade.unlockConditionValue} tuiles';
   }
+  if (upgrade.unlockConditionType == 'debug_only') {
+    return 'Mode développement uniquement';
+  }
   return questDescriptions[upgrade.unlockConditionType] ??
       upgrade.unlockConditionType;
 }

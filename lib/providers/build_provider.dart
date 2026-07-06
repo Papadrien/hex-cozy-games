@@ -62,6 +62,8 @@ class ActiveUpgradeEffects {
     this.closureBonusTiles = 0,
     this.holdSlotUses = 0,
     this.secondChanceUses = 0,
+    this.millionaireCoins = 0,
+    this.warehouseStartingTiles = 0,
   });
 
   /// Nombre de tuiles supplémentaires au début de la partie.
@@ -115,6 +117,13 @@ class ActiveUpgradeEffects {
   /// Nombre d'utilisations de Deuxième chance par partie (Story B9-B11).
   /// Valeurs : 1/2/3 selon niveau ; 0 = inactif.
   final int secondChanceUses;
+
+  /// Millionnaire (debug) : pièces créditées au démarrage d'une partie.
+  final int millionaireCoins;
+
+  /// Entrepôt de tuiles (debug) : nombre de tuiles initiales dans la pile
+  /// (remplace [kStartingTiles] si > 0).
+  final int warehouseStartingTiles;
 }
 
 final activeUpgradeEffectsProvider = Provider<ActiveUpgradeEffects>((ref) {
@@ -133,6 +142,8 @@ final activeUpgradeEffectsProvider = Provider<ActiveUpgradeEffects>((ref) {
   int closureBonus = 0;
   int holdSlotUses = 0;
   int secondChanceUses = 0;
+  int millionaireCoins = 0;
+  int warehouseStartingTiles = 0;
 
   for (final u in selected) {
     final et = UpgradeEffectType.fromDb(u.effectType);
@@ -171,6 +182,10 @@ final activeUpgradeEffectsProvider = Provider<ActiveUpgradeEffects>((ref) {
         break;
       case UpgradeEffectType.comboBonusTiles:
         comboBonus += val.toInt();
+      case UpgradeEffectType.millionaireCoins:
+        millionaireCoins = val.toInt();
+      case UpgradeEffectType.warehouseStartingTiles:
+        warehouseStartingTiles = val.toInt();
     }
   }
 
@@ -189,6 +204,8 @@ final activeUpgradeEffectsProvider = Provider<ActiveUpgradeEffects>((ref) {
     closureBonusTiles: closureBonus,
     holdSlotUses: holdSlotUses,
     secondChanceUses: secondChanceUses,
+    millionaireCoins: millionaireCoins,
+    warehouseStartingTiles: warehouseStartingTiles,
   );
 });
 

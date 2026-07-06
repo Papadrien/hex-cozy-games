@@ -19,12 +19,12 @@ import 'grid_state_provider.dart';
 import 'hold_slot_provider.dart';
 import 'placement_provider.dart';
 import 'player_profile_provider.dart';
-import 'player_stats_provider.dart';
-import 'quest_provider.dart';
-import 'reward_model.dart';
 import 'second_chance_provider.dart';
 import 'session_provider.dart';
 import 'tile_stack_provider.dart';
+import 'player_stats_provider.dart';
+import 'quest_provider.dart';
+import 'reward_model.dart';
 
 /// Vérifie si une session active existe en base (Story 1.7b).
 final activeSessionProvider = FutureProvider<bool>((ref) async {
@@ -129,6 +129,13 @@ void startNewGame(WidgetRef ref) {
   final bonus = effects.getStartingTilesBonus();
   if (bonus > 0) {
     ref.read(tileStackProvider.notifier).addStartingBonusTiles(bonus);
+  }
+
+  // Millionnaire (debug) : crédite les pièces au démarrage si l'amélioration
+  // est active — un seul·e coup suffit pour la session de test.
+  final activeEffects = ref.read(activeUpgradeEffectsProvider);
+  if (activeEffects.millionaireCoins > 0) {
+    addCoinsToProfile(ref.read(appDatabaseProvider), activeEffects.millionaireCoins);
   }
 
   // Initialiser les compteurs d'utilisations par partie (Story B9).

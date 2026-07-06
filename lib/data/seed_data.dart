@@ -474,6 +474,11 @@ final _upgrades = [
   // Story A11 — déblocage uniquement (Combo+). Effet réel branché en
   // Story B3 (utilise le compteur de série de Story B2).
   kComboPlusUpgrade,
+
+  // Debug uniquement — débloquées via le bouton "Tout débloquer", jamais
+  // par quête (unlockConditionType: 'debug_only').
+  kMillionaireUpgrade,
+  kWarehouseUpgrade,
 ];
 
 /// Amélioration débloquée par la quête record "best_streak_10" (série de
@@ -582,4 +587,22 @@ final kJackpotPlusUpgrade = UpgradesCompanion.insert(
   effectType: UpgradeEffectType.coinsPercentBonus.dbValue,
   unlockConditionType: 'best_game_coins_500',
   unlockConditionValue: 500,
+);
+
+/// Millionnaire (debug) : crédite 1 000 000 pièces sur le profil.
+final kMillionaireUpgrade = UpgradesCompanion.insert(
+  id: 'millionaire',
+  name: 'Millionnaire',
+  effectType: UpgradeEffectType.millionaireCoins.dbValue,
+  unlockConditionType: 'debug_only',
+  unlockConditionValue: 0,
+);
+
+/// Entrepôt de tuiles (debug) : démarre une partie avec 500 tuiles.
+final kWarehouseUpgrade = UpgradesCompanion.insert(
+  id: 'warehouse',
+  name: 'Entrepôt de tuiles',
+  effectType: UpgradeEffectType.warehouseStartingTiles.dbValue,
+  unlockConditionType: 'debug_only',
+  unlockConditionValue: 0,
 );
