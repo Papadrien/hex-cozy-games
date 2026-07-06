@@ -41,7 +41,7 @@ final class HoldSlotProvider
   }
 }
 
-String _$holdSlotHash() => r'6f2c3e1a9d7b4058f6d2e1c9a3b7f0248d5c9e1a';
+String _$holdSlotHash() => r'6ad196ed3ed7d2dcef3d35abafd7f134a787196e';
 
 abstract class _$HoldSlot extends $Notifier<HoldSlotState> {
   HoldSlotState build();

@@ -41,7 +41,7 @@ final class SecondChanceModeProvider
   }
 }
 
-String _$secondChanceModeHash() => r'a1f3c8e5b2d947106f8b3e2a5c9d1e4f7b8a0c3d';
+String _$secondChanceModeHash() => r'18fe178a600016d0b08b242630155052151142b6';
 
 abstract class _$SecondChanceMode extends $Notifier<bool> {
   bool build();
