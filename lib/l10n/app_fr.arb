@@ -77,7 +77,9 @@
       "count": {}
     }
   },
-  "shop_premium": "Premium",
+  "shop_bestValueBadge": "Meilleur rapport",
+"@shop_bestValueBadge": {},
+"shop_premium": "Premium",
   "@shop_premium": {},
   "shop_premiumDescription": "Supprime toutes les pubs + 50 pi\u00e8ces/jour automatiques",
   "@shop_premiumDescription": {},

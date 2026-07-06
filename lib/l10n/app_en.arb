@@ -138,7 +138,9 @@
       "count": {}
     }
   },
-  "shop_premium": "Premium",
+  "shop_bestValueBadge": "Best value",
+"@shop_bestValueBadge": {},
+"shop_premium": "Premium",
   "@shop_premium": {},
   "shop_premiumDescription": "Removes all ads + 50 coins/day automatically",
   "@shop_premiumDescription": {},

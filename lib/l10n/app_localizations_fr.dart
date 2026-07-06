@@ -87,11 +87,11 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get game_holdSlot_tooltip =>
-      'Emplacement Joker\u00a0: échanger avec la tuile active';
+      'Emplacement Joker : échanger avec la tuile active';
 
   @override
   String get game_secondChance_tooltip =>
-      'Deuxième chance\u00a0: reprendre une tuile posée';
+      'Deuxième chance : reprendre une tuile posée';
 
   @override
   String get game_secondChance_tooltipActive =>
@@ -217,7 +217,7 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get shop_bestValueBadge => 'MEILLEUR RAPPORT';
+  String get shop_bestValueBadge => 'Meilleur rapport';
 
   @override
   String get shop_premium => 'Premium';
