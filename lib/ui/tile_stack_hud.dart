@@ -27,14 +27,12 @@ const Color _kHudGlass = kTropicalTeal;
 const Color _kHudGlassBorder = Color(0xFF3DBFAF); // teal clair
 
 // Disposition horizontale avec chevauchement.
-//   [Active (1er plan)] [2e (2d plan)] [3e (3e plan)]
+//   [Active (1er plan)] [2e (2d plan)] [3e (3e plan)] ...
 final double _kActiveTileWidth = _kActiveTileRadius * sqrt(3);
 final double _kUpcomingTileWidth = _kUpcomingTileRadius * sqrt(3);
 const double _kTileOverlap = 14.0;
 
 final double _kStackHeight = _kActiveTileRadius * 2;
-final double _kStackWidth =
-    _kActiveTileWidth + _kUpcomingTileWidth * 2 - _kTileOverlap * 2;
 
 // ── Widget principal ─────────────────────────────────────────────────────────
 
@@ -50,7 +48,9 @@ class TileStackHud extends ConsumerWidget {
     if (visible.isEmpty) return const SizedBox.shrink();
 
     final activeTile = visible[0];
-    final nextTiles = visible.length > 1 ? visible.sublist(1) : <HexTile>[];
+    final upcomingCount = visible.length - 1;
+    final stackWidth = _kActiveTileWidth +
+        max(0, upcomingCount) * (_kUpcomingTileWidth - _kTileOverlap);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.end,
@@ -71,29 +71,20 @@ class TileStackHud extends ConsumerWidget {
                 ),
               ),
               child: SizedBox(
-                width: _kStackWidth,
+                width: stackWidth,
                 height: _kStackHeight,
                 child: Stack(
                   children: [
-                    // 3e tuile (fond / 3e plan) — rendue en premier
-                    if (nextTiles.length > 1)
+                    // Tuiles suivantes — de la plus éloignée (fond) à la plus
+                    // proche (milieu)
+                    for (var i = 0; i < upcomingCount; i++)
                       Positioned(
-                        left: _kActiveTileWidth + _kUpcomingTileWidth - _kTileOverlap * 2,
+                        left: _kActiveTileWidth +
+                            i * _kUpcomingTileWidth -
+                            (i + 1) * _kTileOverlap,
                         top: (_kStackHeight - _kUpcomingTileRadius * 2) / 2,
                         child: _HexTilePreview(
-                          tile: nextTiles[1],
-                          radius: _kUpcomingTileRadius,
-                          highlighted: false,
-                          dim: false,
-                        ),
-                      ),
-                    // 2e tuile (milieu / 2d plan)
-                    if (nextTiles.isNotEmpty)
-                      Positioned(
-                        left: _kActiveTileWidth - _kTileOverlap,
-                        top: (_kStackHeight - _kUpcomingTileRadius * 2) / 2,
-                        child: _HexTilePreview(
-                          tile: nextTiles[0],
+                          tile: visible[i + 1],
                           radius: _kUpcomingTileRadius,
                           highlighted: false,
                           dim: false,
@@ -110,17 +101,7 @@ class TileStackHud extends ConsumerWidget {
                         dim: false,
                       ),
                     ),
-                    // Croix d'annulation de sélection — centrée sur la tuile
-                    // active (qui occupe (_kActiveTileWidth, _kStackHeight)
-                    // depuis (0, 0)). Avant ce correctif, la croix était
-                    // positionnée à (0, 0) elle-même : elle apparaissait
-                    // donc collée au coin supérieur gauche de la tuile au
-                    // lieu d'être centrée dessus, ET son propre coin
-                    // supérieur gauche coïncidait avec le coin arrondi du
-                    // conteneur englobant (BorderRadius 14), qui la
-                    // rognait (ClipRRect) sur une bonne partie de sa
-                    // surface — ce qui rendait le tap peu fiable, voire
-                    // inopérant, à l'endroit où l'utilisateur voit l'icône.
+                    // Croix d'annulation de sélection
                     if (placement.hasSelection)
                       Positioned(
                         left: (_kActiveTileWidth - _kCrossSize) / 2,

@@ -6,19 +6,23 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/constants.dart';
 import '../data/app_database.dart';
+import '../game/hex_cell.dart';
 import '../game/hex_coords.dart';
 import '../game/hex_tile.dart';
 import '../services/cloud_save_service.dart';
+import 'build_provider.dart';
 import 'end_game_provider.dart';
 import '../services/ad_service.dart';
 import '../services/haptics_service.dart';
 import 'game_effects_service.dart';
 import 'grid_state_provider.dart';
+import 'hold_slot_provider.dart';
 import 'placement_provider.dart';
 import 'player_profile_provider.dart';
 import 'player_stats_provider.dart';
 import 'quest_provider.dart';
 import 'reward_model.dart';
+import 'second_chance_provider.dart';
 import 'session_provider.dart';
 import 'tile_stack_provider.dart';
 
@@ -112,6 +116,8 @@ void startNewGame(WidgetRef ref) {
   ref.invalidate(gridProvider);
   ref.invalidate(tileStackProvider);
   ref.invalidate(bannerAdProvider);
+  ref.invalidate(holdSlotProvider);
+  ref.invalidate(secondChanceModeProvider);
   ref.read(sessionProvider.notifier).reset();
   ref.read(lastPlacementProvider.notifier).set(null);
   ref.read(placementProvider.notifier).clearSelection();
@@ -124,6 +130,11 @@ void startNewGame(WidgetRef ref) {
   if (bonus > 0) {
     ref.read(tileStackProvider.notifier).addStartingBonusTiles(bonus);
   }
+
+  // Initialiser les compteurs d'utilisations par partie (Story B9).
+  ref.read(sessionProvider.notifier).initPerGameUses(
+        ref.read(activeUpgradeEffectsProvider),
+      );
 
   // Pose automatique de la tuile centrale de départ.
   final initialTile = ref.read(tileStackProvider.notifier).drawInitialTile();
@@ -171,7 +182,7 @@ final previewRewardProvider = Provider<PlacementReward>((ref) {
 
   // Appliquer le multiplicateur de tuiles bonus (Story 2.8a).
   final effects = ref.read(gameEffectsServiceProvider);
-  final multipliedBonus = effects.applyConnectionMultiplier(baseBonus);
+  final multipliedBonus = effects.applyConnectionMultiplier(c, baseBonus);
 
   return PlacementReward(connectedSides: sides, bonusTiles: multipliedBonus);
 });
@@ -272,7 +283,7 @@ Future<void> confirmPlacement(
 
   _placeTileOnGrid(ref, coords, tile);
   onConfirm(coords, tile, reward.connectedSides, reward.bonusTiles);
-  final appliedReward = _applyReward(ref, tile, reward);
+  final appliedReward = _applyReward(ref, coords, tile, reward);
   _recordPlacement(ref, coords, tile, appliedReward);
   _triggerPlacementHaptics(ref, appliedReward);
   _advanceStack(ref, reward.connectedSides.length);
@@ -316,17 +327,26 @@ void _recordPlacement(
   );
 }
 
-PlacementReward _applyReward(WidgetRef ref, HexTile tile, PlacementReward reward) {
+PlacementReward _applyReward(
+    WidgetRef ref, HexCoords pos, HexTile tile, PlacementReward reward) {
   if (reward.connectedSides.isEmpty && reward.bonusTiles == 0) {
     ref.read(sessionProvider.notifier).addReward(reward);
     return reward;
   }
   final effects = ref.read(gameEffectsServiceProvider);
-  final villageSides = effects.countVillageSides(tile, reward.connectedSides);
+  final villageSides = effects.countBiomeSides(BiomeType.village, tile, reward.connectedSides);
+  final forestSides = effects.countBiomeSides(BiomeType.forest, tile, reward.connectedSides);
+  final waterSides = effects.countBiomeSides(BiomeType.water, tile, reward.connectedSides);
+  final plainSides = effects.countBiomeSides(BiomeType.plain, tile, reward.connectedSides);
+  final mountainSides = effects.countBiomeSides(BiomeType.mountain, tile, reward.connectedSides);
   final baseCoins = reward.connectedSides.length + reward.bonusTiles;
   final totalCoins = effects.applyCoinBonuses(
     baseCoins: baseCoins,
     villageSides: villageSides,
+    forestSides: forestSides,
+    waterSides: waterSides,
+    plainSides: plainSides,
+    mountainSides: mountainSides,
   );
   final bonusCoins = totalCoins - baseCoins;
   final applied = PlacementReward(
@@ -337,6 +357,29 @@ PlacementReward _applyReward(WidgetRef ref, HexTile tile, PlacementReward reward
   ref.read(sessionProvider.notifier).addReward(applied, forcedCoins: totalCoins);
   if (reward.bonusTiles > 0) {
     ref.read(tileStackProvider.notifier).addBonusTiles(reward.bonusTiles);
+  }
+  // Story B3 — Combo+ : à chaque multiple de 5 dans la série en cours,
+  // ajoute des tuiles bonus selon le niveau de l'amélioration.
+  final streak = ref.read(sessionProvider).currentStreak;
+  if (streak > 0 && streak % 5 == 0) {
+    final comboCount = effects.getComboBonusTiles();
+    if (comboCount > 0) {
+      ref.read(tileStackProvider.notifier).addBonusTiles(comboCount);
+    }
+  }
+  // Story B7 — Bonus de clôture : détecte les biomes qui viennent de se
+  // fermer après cette pose et ajoute (taille ÷ 10) × niveau tuiles bonus.
+  final closureMult = effects.getClosureBonusTiles();
+  if (closureMult > 0) {
+    final grid = ref.read(gridProvider);
+    final closures = grid.biomesJustClosed(pos, tile);
+    var closureTiles = 0;
+    for (final entry in closures) {
+      closureTiles += (entry.value ~/ 10) * closureMult;
+    }
+    if (closureTiles > 0) {
+      ref.read(tileStackProvider.notifier).addBonusTiles(closureTiles);
+    }
   }
   return applied;
 }
@@ -385,6 +428,7 @@ void _checkGameOver(WidgetRef ref) {
     largestVillage: analysis.largestVillage,
     closedBiomes: analysis.closedBiomes,
     maxBiomeSizes: analysis.maxBiomeSizes,
+    bestStreak: session.bestStreak,
   );
   ref.read(cloudSaveServiceProvider).syncAfterGame();
 }
@@ -420,4 +464,112 @@ void undoPlacement(
 
   // 5. Effacer la mémoire d'annulation (1 seul niveau).
   ref.read(lastPlacementProvider.notifier).set(null);
+}
+
+/// Échange la tuile active avec la tuile en réserve de l'Emplacement Joker
+/// (Story B10).
+///
+/// - Aucune tuile en réserve : la tuile active part en réserve, et la
+///   suivante de la pile devient la nouvelle tuile active.
+/// - Une tuile est déjà en réserve : elle devient la nouvelle tuile active
+///   (réinsérée en tête de pile) et l'ancienne tuile active part en réserve
+///   à sa place — un échange à double sens.
+/// - Pile vide mais tuile en réserve présente : permet de la récupérer même
+///   sans tuile active à lui opposer.
+///
+/// Ne fait rien si aucune utilisation ne reste pour cette partie (Story B9)
+/// ou s'il n'y a ni tuile active ni tuile en réserve à échanger.
+///
+/// Note (limite connue, non bloquante) : si la pile ne contenait plus
+/// qu'une seule tuile et qu'aucune tuile n'était en réserve, la mettre en
+/// réserve vide la pile (`remaining` passe à 0) sans déclencher la fin de
+/// partie — elle attend que le joueur la récupère via un nouvel échange.
+/// [_checkGameOver] n'est donc pas appelé ici, à la différence de
+/// [confirmPlacement].
+void swapHoldSlot(WidgetRef ref) {
+  final session = ref.read(sessionProvider);
+  if (session.holdSlotRemainingUses <= 0) return;
+
+  final activeTile = ref.read(tileStackProvider).activeTile;
+  final heldTile = ref.read(holdSlotProvider).heldTile;
+  if (activeTile == null && heldTile == null) return;
+
+  final stackNotifier = ref.read(tileStackProvider.notifier);
+  if (activeTile != null) {
+    stackNotifier.consumeActiveTile();
+  }
+  if (heldTile != null) {
+    stackNotifier.returnTile(heldTile);
+  }
+  ref.read(holdSlotProvider.notifier).set(activeTile);
+
+  // La sélection de prévisualisation en cours (le cas échéant) portait sur
+  // l'ancienne tuile active : elle n'a plus de sens après l'échange.
+  ref.read(placementProvider.notifier).clearSelection();
+
+  ref.read(sessionProvider.notifier).consumeHoldSlot();
+}
+
+/// Active ou désactive le mode sélection de Deuxième chance (Story B11).
+///
+/// Activer le mode annule toute prévisualisation de placement en cours :
+/// les deux modes sont mutuellement exclusifs (un tap sur le plateau ne
+/// peut pas à la fois valider un placement et retirer une tuile). Ne fait
+/// rien à l'activation si aucune utilisation ne reste pour cette partie
+/// (Story B9) ; la désactivation, elle, est toujours possible (annulation).
+void toggleSecondChanceMode(WidgetRef ref) {
+  final notifier = ref.read(secondChanceModeProvider.notifier);
+  if (ref.read(secondChanceModeProvider)) {
+    notifier.cancel();
+    return;
+  }
+  if (ref.read(sessionProvider).secondChanceRemainingUses <= 0) return;
+  ref.read(placementProvider.notifier).clearSelection();
+  notifier.activate();
+}
+
+/// Retire la tuile posée en [coords] du plateau et la réinjecte en tête de
+/// pile (Story B11 — Deuxième chance).
+///
+/// [onRemove] : callback pour retirer la tuile du rendu Flame (même
+/// signature que le callback [onUndo] de [undoPlacement]).
+///
+/// Ne fait rien si aucune utilisation ne reste pour cette partie, ou si
+/// aucune tuile n'est posée à [coords] (tap dans le vide pendant le mode
+/// sélection — le mode reste actif, ce n'est pas une annulation).
+///
+/// Contrairement à [undoPlacement], les récompenses déjà gagnées pour cette
+/// tuile (pièces, tuiles bonus, série de connexions) ne sont PAS reprises :
+/// Deuxième chance permet de replacer une tuile existante ailleurs ou
+/// autrement tournée, pas d'annuler l'action passée dans son ensemble — à
+/// la différence du bouton Annuler, la tuile visée peut avoir été posée il
+/// y a plusieurs coups, et ses récompenses peuvent depuis s'être mêlées à
+/// celles d'autres tuiles connectées. Défaire cela proprement nécessiterait
+/// de rejouer tout l'historique des connexions, ce qui dépasse le
+/// périmètre de cette story.
+void removePlacedTile(
+  WidgetRef ref,
+  HexCoords coords, {
+  required void Function(HexCoords coords) onRemove,
+}) {
+  final session = ref.read(sessionProvider);
+  if (session.secondChanceRemainingUses <= 0) return;
+
+  final tile = ref.read(gridProvider).tileAt(coords);
+  if (tile == null) return;
+
+  // 1. Retirer du provider de grille (logique pure).
+  ref.read(gridProvider.notifier).removeTile(coords);
+
+  // 2. Retirer du rendu Flame via le callback.
+  onRemove(coords);
+
+  // 3. Remettre la tuile au sommet de la pile.
+  ref.read(tileStackProvider.notifier).returnTile(tile);
+
+  // 4. Consommer une utilisation (Story B9).
+  ref.read(sessionProvider.notifier).consumeSecondChance();
+
+  // 5. Sortir du mode sélection : le retrait est terminé.
+  ref.read(secondChanceModeProvider.notifier).cancel();
 }

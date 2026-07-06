@@ -193,6 +193,29 @@ class GridState {
     return closedCount;
   }
 
+  /// Après avoir placé une tuile à [pos], retourne les fermetures de biomes
+  /// (biome, taille du cluster) qui viennent de se produire en direct (B6).
+  ///
+  /// Chaque cluster connexe impliquant [pos] est testé ; seuls ceux qui sont
+  /// complètement entourés (6 voisins présents) sont considérés comme fermés.
+  /// [BiomeType.village] est toujours exclu.
+  List<MapEntry<BiomeType, int>> biomesJustClosed(
+      HexCoords pos, HexTile tile) {
+    final closures = <MapEntry<BiomeType, int>>[];
+    final uniqueBiomes = tile.sides.toSet();
+    final alreadyChecked = <BiomeType>{};
+    for (final biome in uniqueBiomes) {
+      if (biome == BiomeType.village) continue;
+      if (!alreadyChecked.add(biome)) continue;
+      final cluster = clusterAt(pos, biome);
+      if (cluster.isEmpty) continue;
+      if (_isClosed(cluster)) {
+        closures.add(MapEntry(biome, cluster.length));
+      }
+    }
+    return closures;
+  }
+
   bool _isClosed(Set<HexCoords> cluster) {
     for (final coords in cluster) {
       for (var side = 0; side < 6; side++) {

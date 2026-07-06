@@ -25,35 +25,62 @@ class GameEffectsService {
     return _ref.read(activeUpgradeEffectsProvider).startingTilesBonus;
   }
 
-  /// Applique le multiplicateur de connexions aux [bonusTiles].
+  /// Applique le bonus Connexions doublées (Story B8).
   ///
-  /// Retourne le nombre de tuiles bonus après application de
-  /// [ActiveUpgradeEffects.connectionMultiplier].
-  int applyConnectionMultiplier(int bonusTiles) {
-    final mult = _ref.read(activeUpgradeEffectsProvider).connectionMultiplier;
-    return (bonusTiles * mult).round();
+  /// Selon le niveau de l'amélioration, les connexions avec suffisamment de
+  /// côtés connectés reçoivent un ×2 sur leurs tuiles bonus. Niveau 1 : quint
+  /// + sext (5-6), niveau 2 : +quad (4), niveau 3 : +triple (3).
+  int applyConnectionMultiplier(int connectedSides, int baseBonus) {
+    final level =
+        _ref.read(activeUpgradeEffectsProvider).connectionBonusLevel;
+    if (level < 1) return baseBonus;
+    final threshold = [6, 5, 4, 3][level.clamp(0, 3)];
+    if (connectedSides < threshold) return baseBonus;
+    return baseBonus * 2;
   }
 
-  /// Calcule les pièces finales après application des bonus — Story 2.8b.
+  /// Calcule les pièces finales après application des bonus — Story 2.8b / B1.
   ///
-  /// 1. [villageSides] reçoivent un bonus de [villageCoinsBonus] en sus de
-  ///    leur pièce de base.
-  /// 2. Le total (pièces de base + bonus village) est multiplié par
-  ///    [coinsMultiplier].
+  /// Chaque biome dispose de son propre bonus par côté connecté :
+  /// [villageSides] × [villageCoinsBonus], [forestSides] × [forestCoinsBonus],
+  /// etc. Le total des bonus est ajouté aux pièces de base, puis le tout est
+  /// multiplié par (1 + [coinsMultiplier]).
   int applyCoinBonuses({
     required int baseCoins,
     required int villageSides,
+    int forestSides = 0,
+    int waterSides = 0,
+    int plainSides = 0,
+    int mountainSides = 0,
   }) {
     final effects = _ref.read(activeUpgradeEffectsProvider);
     final villageExtra = (villageSides * effects.villageCoinsBonus).round();
-    final withBiomeBonus = baseCoins + villageExtra;
+    final forestExtra = (forestSides * effects.forestCoinsBonus).round();
+    final waterExtra = (waterSides * effects.waterCoinsBonus).round();
+    final plainExtra = (plainSides * effects.plainCoinsBonus).round();
+    final mountainExtra = (mountainSides * effects.mountainCoinsBonus).round();
+    final withBiomeBonus =
+        baseCoins + villageExtra + forestExtra + waterExtra + plainExtra + mountainExtra;
     return (withBiomeBonus * (1.0 + effects.coinsMultiplier)).round();
   }
 
-  /// Compte le nombre de côtés connectés dont le biome est village.
-  int countVillageSides(HexTile tile, List<int> connectedSides) {
+  /// Nombre de tuiles bonus ajoutées à chaque pallier de 5 dans la série de
+  /// connexions consécutives (Combo+ — Story B3).
+  int getComboBonusTiles() {
+    return _ref.read(activeUpgradeEffectsProvider).comboBonusTiles;
+  }
+
+  /// Multiplicateur du Bonus de clôture (Story B7) : à chaque fermeture de
+  /// biome, [closureBonusTiles] tuiles bonus sont ajoutées par tranche de 10
+  /// tuiles du cluster fermé.
+  int getClosureBonusTiles() {
+    return _ref.read(activeUpgradeEffectsProvider).closureBonusTiles;
+  }
+
+  /// Compte le nombre de côtés connectés dont le biome est [biome].
+  int countBiomeSides(BiomeType biome, HexTile tile, List<int> connectedSides) {
     return connectedSides
-        .where((side) => tile.sides[side] == BiomeType.village)
+        .where((side) => tile.sides[side] == biome)
         .length;
   }
 }

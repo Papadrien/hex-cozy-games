@@ -108,15 +108,6 @@ class _QuestsList extends StatelessWidget {
             allQuests: quests,
           ),
         const SizedBox(height: 24),
-        if (grouped.containsKey(QuestCategory.villageSize.dbValue))
-          _CategorySection(
-            icon: Icons.home,
-            color: kDestructiveRed,
-            label: context.tr.quests_category_village,
-            quests: grouped[QuestCategory.villageSize.dbValue]!,
-            allQuests: quests,
-          ),
-        const SizedBox(height: 24),
         if (grouped.containsKey(QuestCategory.biomesClosed.dbValue))
           _CategorySection(
             icon: Icons.water_drop,
@@ -148,27 +139,74 @@ class _QuestsList extends StatelessWidget {
     );
   }
 
-  /// Rassemble les 4 quêtes de connexions (triple/quadruple/quintuple/
+  /// Rassemble les quêtes de connexions (triple/quadruple/quintuple/
   /// sextuple) dans un seul groupe affiché sous une même section, dans
   /// l'ordre croissant du nombre de côtés connectés.
+  ///
+  /// Pour triple/quad/quint, la catégorie contient à la fois la quête
+  /// one-shot de déblocage (ex. `connections_triple_first`) et la quête
+  /// répétable de farm (ex. `connections_triple`) — les deux s'affichaient
+  /// en double. On n'affiche que la quête de déblocage tant qu'elle n'est
+  /// pas acquise (c'est l'objectif courant), puis on bascule sur la quête
+  /// répétable une fois le déblocage obtenu. Sextuple n'a pas de variante
+  /// one-shot : elle s'affiche telle quelle.
   List<PermanentQuestRow> _connectionQuests(
     Map<String, List<PermanentQuestRow>> grouped,
   ) {
     return [
-      ...?grouped[QuestCategory.tripleConnections.dbValue],
-      ...?grouped[QuestCategory.quadConnections.dbValue],
-      ...?grouped[QuestCategory.quintConnections.dbValue],
+      ..._dedupedConnectionCategory(
+        grouped,
+        QuestCategory.tripleConnections.dbValue,
+        'connections_triple_first',
+      ),
+      ..._dedupedConnectionCategory(
+        grouped,
+        QuestCategory.quadConnections.dbValue,
+        'connections_quad_first',
+      ),
+      ..._dedupedConnectionCategory(
+        grouped,
+        QuestCategory.quintConnections.dbValue,
+        'connections_quint_first',
+      ),
       ...?grouped[QuestCategory.sextConnections.dbValue],
     ];
   }
 
-  /// Rassemble les 4 quêtes "cluster couleur" (forêt/eau/plaine/montagne)
-  /// dans un seul groupe affiché sous une même section — même principe
-  /// que [_connectionQuests].
+  /// Choisit une seule quête à afficher pour une catégorie de connexions
+  /// qui contient à la fois une quête one-shot ([oneShotId]) et une quête
+  /// répétable de farm.
+  List<PermanentQuestRow> _dedupedConnectionCategory(
+    Map<String, List<PermanentQuestRow>> grouped,
+    String category,
+    String oneShotId,
+  ) {
+    final quests = grouped[category] ?? const [];
+    PermanentQuestRow? oneShot;
+    PermanentQuestRow? repeatable;
+    for (final q in quests) {
+      if (q.id == oneShotId) {
+        oneShot = q;
+      } else {
+        repeatable = q;
+      }
+    }
+    if (oneShot != null && !oneShot.isCompleted) return [oneShot];
+    if (repeatable != null) return [repeatable];
+    if (oneShot != null) return [oneShot];
+    return const [];
+  }
+
+  /// Rassemble les 5 quêtes "cluster couleur" (rouge/village + forêt/eau/
+  /// plaine/montagne) dans un seul groupe affiché sous une même section —
+  /// même principe que [_connectionQuests]. Le village (rouge) rejoint ici
+  /// les autres couleurs, dont il partage exactement le même mécanisme
+  /// (plus grand amas connecté > 50 tuiles).
   List<PermanentQuestRow> _biomeColorQuests(
     Map<String, List<PermanentQuestRow>> grouped,
   ) {
     return [
+      ...?grouped[QuestCategory.villageSize.dbValue],
       ...?grouped[QuestCategory.forestClusterSize.dbValue],
       ...?grouped[QuestCategory.waterClusterSize.dbValue],
       ...?grouped[QuestCategory.plainClusterSize.dbValue],

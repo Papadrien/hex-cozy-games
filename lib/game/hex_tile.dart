@@ -37,15 +37,31 @@ class HexTile {
 
 // ── Générateur de pool aléatoire ──────────────────────────────────────────────
 
-List<HexTile> generateTilePool(int count, Random rng) {
+List<HexTile> generateTilePool(
+  int count,
+  Random rng, {
+  BiomeType? excludeBiome,
+  int excludeDuration = 0,
+}) {
   final biomeUsage = {for (final b in BiomeType.values) b: 0};
-  return List.generate(count, (_) => _generateTile(biomeUsage, rng));
+  return List.generate(count, (i) {
+    final useExclusion = excludeBiome != null && i < excludeDuration;
+    return _generateTile(
+      biomeUsage,
+      rng,
+      exclude: useExclusion ? excludeBiome : null,
+    );
+  });
 }
 
-HexTile _generateTile(Map<BiomeType, int> biomeUsage, Random rng) {
+HexTile _generateTile(
+  Map<BiomeType, int> biomeUsage,
+  Random rng, {
+  BiomeType? exclude,
+}) {
   final roll = rng.nextDouble();
   final biomeCount = roll < 0.20 ? 1 : (roll < 0.80 ? 2 : 3);
-  final biomes = _pickWeightedBiomes(biomeCount, biomeUsage, rng);
+  final biomes = _pickWeightedBiomes(biomeCount, biomeUsage, rng, exclude: exclude);
 
   final List<BiomeType> sides;
   if (biomeCount == 1) {
@@ -75,11 +91,15 @@ HexTile _generateTile(Map<BiomeType, int> biomeUsage, Random rng) {
 List<BiomeType> _pickWeightedBiomes(
   int count,
   Map<BiomeType, int> usage,
-  Random rng,
-) {
+  Random rng, {
+  BiomeType? exclude,
+}) {
   final all = BiomeType.values;
   final minUsage = usage.values.reduce(min);
-  final weights = all.map((b) => 1.0 / (1 + usage[b]! - minUsage)).toList();
+  final weights = all.map((b) {
+    if (b == exclude) return 0.0;
+    return 1.0 / (1 + usage[b]! - minUsage);
+  }).toList();
 
   final selected = <BiomeType>[];
   for (var i = 0; i < count; i++) {

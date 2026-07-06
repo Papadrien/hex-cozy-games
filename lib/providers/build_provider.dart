@@ -49,16 +49,27 @@ final selectedUpgradesProvider = Provider<List<UpgradeRow>>((ref) {
 class ActiveUpgradeEffects {
   const ActiveUpgradeEffects({
     this.startingTilesBonus = 0,
-    this.connectionMultiplier = 1.0,
+    this.connectionBonusLevel = 0,
     this.coinsMultiplier = 0.0,
     this.villageCoinsBonus = 0.0,
+    this.forestCoinsBonus = 0.0,
+    this.waterCoinsBonus = 0.0,
+    this.plainCoinsBonus = 0.0,
+    this.mountainCoinsBonus = 0.0,
+    this.comboBonusTiles = 0,
+    this.extendedPreviewCount = 0,
+    this.hatedColorExclusionDuration = 0,
+    this.closureBonusTiles = 0,
+    this.holdSlotUses = 0,
+    this.secondChanceUses = 0,
   });
 
   /// Nombre de tuiles supplémentaires au début de la partie.
   final int startingTilesBonus;
 
-  /// Multiplicateur des tuiles bonus gagnées par connexions (≥3 côtés).
-  final double connectionMultiplier;
+  /// Niveau du bonus Connexions doublées (Story B8).
+  /// 0 = inactif ; 1 = quint+sext ; 2 = +quad ; 3 = +triple.
+  final int connectionBonusLevel;
 
   /// Multiplicateur de toutes les pièces générées (ex: 0.10 = +10%).
   final double coinsMultiplier;
@@ -66,14 +77,62 @@ class ActiveUpgradeEffects {
   /// Bonus de pièces pour chaque côté connecté de type village
   /// (ex: 0.33 = +33% sur la pièce de base du côté).
   final double villageCoinsBonus;
+
+  /// Bonus de pièces pour chaque côté connecté de type forêt (Vert+).
+  final double forestCoinsBonus;
+
+  /// Bonus de pièces pour chaque côté connecté de type eau (Bleu+).
+  final double waterCoinsBonus;
+
+  /// Bonus de pièces pour chaque côté connecté de type plaine (Jaune+).
+  final double plainCoinsBonus;
+
+  /// Bonus de pièces pour chaque côté connecté de type montagne (Violet+).
+  final double mountainCoinsBonus;
+
+  /// Nombre de tuiles bonus ajoutées à chaque pallier de 5 dans la série de
+  /// connexions consécutives (Combo+ — Story B3).
+  final int comboBonusTiles;
+
+  /// Nombre de tuiles visibles dans la pile d'attente (Story B4 — Aperçu
+  /// prolongé). 0 = utiliser la valeur par défaut [kVisibleStackSize].
+  final int extendedPreviewCount;
+
+  /// Nombre de tuiles au début de la partie pendant lesquelles un biome
+  /// aléatoire est exclu du pool (Story B5 — Couleur détestée).
+  /// Valeurs : 5/8/10 selon niveau ; 0 = inactif.
+  final int hatedColorExclusionDuration;
+
+  /// Multiplicateur du Bonus de clôture (Story B7) : tuiles bonus = (taille du
+  /// biome ÷ 10) × [closureBonusTiles] pour chaque fermeture détectée.
+  /// Valeurs : 1/2/3 selon niveau ; 0 = inactif.
+  final int closureBonusTiles;
+
+  /// Nombre d'utilisations d'Emplacement Joker par partie (Story B9-B10).
+  /// Valeurs : 1/2/3 selon niveau ; 0 = inactif.
+  final int holdSlotUses;
+
+  /// Nombre d'utilisations de Deuxième chance par partie (Story B9-B11).
+  /// Valeurs : 1/2/3 selon niveau ; 0 = inactif.
+  final int secondChanceUses;
 }
 
 final activeUpgradeEffectsProvider = Provider<ActiveUpgradeEffects>((ref) {
   final selected = ref.watch(selectedUpgradesProvider);
   int startingBonus = 0;
-  double connectionMult = 1.0;
+  int connectionBonusLevel = 0;
   double coinsMult = 0.0;
   double villageBonus = 0.0;
+  double forestBonus = 0.0;
+  double waterBonus = 0.0;
+  double plainBonus = 0.0;
+  double mountainBonus = 0.0;
+  int comboBonus = 0;
+  int extendedPreviewCount = 0;
+  int hatedColorExclusionDuration = 0;
+  int closureBonus = 0;
+  int holdSlotUses = 0;
+  int secondChanceUses = 0;
 
   for (final u in selected) {
     final et = UpgradeEffectType.fromDb(u.effectType);
@@ -82,42 +141,54 @@ final activeUpgradeEffectsProvider = Provider<ActiveUpgradeEffects>((ref) {
       case UpgradeEffectType.startingTilesBonus:
         startingBonus += val.toInt();
       case UpgradeEffectType.connectionBonusMultiplier:
-        connectionMult *= val;
+        connectionBonusLevel = val.toInt();
       case UpgradeEffectType.coinsPercentBonus:
         coinsMult += val;
       case UpgradeEffectType.villageCoinsPercentBonus:
         villageBonus += val;
       case UpgradeEffectType.forestCoinsPercentBonus:
+        forestBonus += val;
       case UpgradeEffectType.waterCoinsPercentBonus:
+        waterBonus += val;
       case UpgradeEffectType.plainCoinsPercentBonus:
+        plainBonus += val;
       case UpgradeEffectType.mountainCoinsPercentBonus:
-        // Déblocage seulement (Story A5). L'application réelle du bonus
-        // au calcul des pièces par biome est branchée en Story B1.
+        mountainBonus += val;
+      case UpgradeEffectType.extendedPreviewCount:
+        extendedPreviewCount = val.toInt();
+        break;
+      case UpgradeEffectType.hatedColorExclusion:
+        hatedColorExclusionDuration = val.toInt();
         break;
       case UpgradeEffectType.closureBonusTiles:
-      case UpgradeEffectType.hatedColorExclusion:
-        // Déblocage seulement (Story A7). Effets réels branchés en
-        // Story B7 (Bonus de clôture) et Story B5 (Couleur détestée).
+        closureBonus = val.toInt();
         break;
-      case UpgradeEffectType.extendedPreviewCount:
       case UpgradeEffectType.holdSlotUses:
+        holdSlotUses = val.toInt();
+        break;
       case UpgradeEffectType.secondChanceUses:
-        // Déblocage seulement (Story A9). Effets réels branchés en
-        // Story B4 (Aperçu prolongé) et Story B9-B10-B11 (Hold /
-        // Deuxième chance).
+        secondChanceUses = val.toInt();
         break;
       case UpgradeEffectType.comboBonusTiles:
-        // Déblocage seulement (Story A11). Effet réel branché en
-        // Story B3 (utilise le compteur de série de Story B2).
-        break;
+        comboBonus += val.toInt();
     }
   }
 
   return ActiveUpgradeEffects(
     startingTilesBonus: startingBonus,
-    connectionMultiplier: connectionMult,
+    connectionBonusLevel: connectionBonusLevel,
     coinsMultiplier: coinsMult,
     villageCoinsBonus: villageBonus,
+    forestCoinsBonus: forestBonus,
+    waterCoinsBonus: waterBonus,
+    plainCoinsBonus: plainBonus,
+    mountainCoinsBonus: mountainBonus,
+    comboBonusTiles: comboBonus,
+    extendedPreviewCount: extendedPreviewCount,
+    hatedColorExclusionDuration: hatedColorExclusionDuration,
+    closureBonusTiles: closureBonus,
+    holdSlotUses: holdSlotUses,
+    secondChanceUses: secondChanceUses,
   );
 });
 

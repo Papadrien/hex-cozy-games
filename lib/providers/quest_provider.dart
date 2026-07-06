@@ -191,12 +191,15 @@ class QuestService {
   /// meilleure partie. [largestVillage], [closedBiomes] et [maxBiomeSizes]
   /// sont pré-calculés par [BoardAnalysis] pour éviter les traversées
   /// redondantes du plateau. [maxBiomeSizes] alimente les quêtes "cluster
-  /// couleur" (forêt/eau/plaine/montagne — Story A4).
+  /// couleur" (forêt/eau/plaine/montagne — Story A4). [bestStreak] est la
+  /// meilleure série de connexions consécutives atteinte dans cette partie
+  /// (Story B2).
   Future<void> onGameEnd({
     required int coinsEarned,
     required int largestVillage,
     required int closedBiomes,
     Map<String, int> maxBiomeSizes = const {},
+    int bestStreak = 0,
   }) async {
     await _updateCoinsEarned(coinsEarned);
     await _updateBestGameCoins(coinsEarned);
@@ -218,6 +221,7 @@ class QuestService {
       QuestCategory.mountainClusterSize,
       maxBiomeSizes['mountain'] ?? 0,
     );
+    await _updateBestConnectionStreak(bestStreak);
     await _updateDailyCoinsEarned(coinsEarned);
     await _updateDailyVillageSize(largestVillage);
     await _updateDailyBiomesClosed(closedBiomes);
@@ -357,6 +361,32 @@ class QuestService {
         final completed = newValue >= quest.targetValue;
         await db.update(db.permanentQuests).replace(quest.copyWith(
               currentValue: newValue,
+              isCompleted: completed,
+            ));
+        if (completed) await _handleCompletion(quest);
+      }
+    });
+  }
+
+  // ─── bestConnectionStreak (Story B2) ────────────────────────────────────
+
+  /// Met à jour la quête `best_streak_10` si [streak] dépasse la valeur
+  /// actuelle. Même logique record que `_updateBestGameCoins` : on ne
+  /// retient que le maximum jamais atteint, toutes parties confondues.
+  Future<void> _updateBestConnectionStreak(int streak) async {
+    if (streak <= 0) return;
+    final db = _ref.read(appDatabaseProvider);
+    final rows = await (db.select(db.permanentQuests)
+          ..where((q) =>
+              q.category.equals(QuestCategory.bestConnectionStreak.dbValue))
+          ..where((q) => q.isCompleted.equals(false)))
+        .get();
+    await db.transaction(() async {
+      for (final quest in rows) {
+        if (streak <= quest.currentValue) continue;
+        final completed = streak >= quest.targetValue;
+        await db.update(db.permanentQuests).replace(quest.copyWith(
+              currentValue: streak,
               isCompleted: completed,
             ));
         if (completed) await _handleCompletion(quest);

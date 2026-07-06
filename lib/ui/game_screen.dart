@@ -31,14 +31,17 @@ import '../providers/pause_provider.dart';
 import '../providers/placement_provider.dart';
 import '../providers/player_profile_provider.dart';
 import '../providers/placement_commit.dart';
+import '../providers/second_chance_provider.dart';
 import '../providers/session_provider.dart';
 import '../providers/tile_stack_provider.dart';
 import '../providers/tutorial_provider.dart';
 import '../services/ad_service.dart';
 import '../services/haptics_service.dart';
+import 'hold_slot_hud.dart';
 import 'pause_button.dart';
 import 'pause_modal.dart';
 import 'results_modal.dart';
+import 'second_chance_hud.dart';
 import 'tile_stack_hud.dart';
 import 'tutorial_overlay.dart';
 
@@ -339,6 +342,21 @@ class _GameScreenState extends ConsumerState<GameScreen> {
             child: PauseButton(),
           ),
 
+          // ── Emplacement Joker (Hold) + Deuxième chance — Story B10/B11 ──
+          const Positioned(
+            bottom: 24,
+            left: 16,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SecondChanceHud(),
+                SizedBox(height: 8),
+                HoldSlotHud(),
+              ],
+            ),
+          ),
+
           // ── HUD pile de tuiles + tag tuiles bonus (story 1.7g) ──────────
           Positioned(
             top: 96,
@@ -351,6 +369,14 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                 _BonusTileTag(opacity: _rewardOpacity),
               ],
             ),
+          ),
+
+          // ── Bannière d'indication du mode sélection Deuxième chance ─────
+          const Positioned(
+            top: 48,
+            left: 0,
+            right: 0,
+            child: Center(child: _SecondChanceHintBanner()),
           ),
 
           // ── Modale Pause ──────────────────────────────────────────────────
@@ -609,5 +635,43 @@ class _OceanPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_OceanPainter oldDelegate) => true;
+}
+
+/// Bannière d'indication affichée pendant le mode sélection de Deuxième
+/// chance (Story B11) — invisible sinon.
+class _SecondChanceHintBanner extends ConsumerWidget {
+  const _SecondChanceHintBanner();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isActive = ref.watch(secondChanceModeProvider);
+    if (!isActive) return const SizedBox.shrink();
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(20),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFFB300).withValues(alpha: 0.28),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: const Color(0xFFFFD54F).withValues(alpha: 0.6),
+              width: 1,
+            ),
+          ),
+          child: Text(
+            context.tr.game_secondChance_tooltipActive,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 

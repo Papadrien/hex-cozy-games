@@ -10,6 +10,10 @@
 ///              et on mesure la distance parcourue — si > 5 px, c'était un
 ///              swipe, pas un tap, donc on ignore.
 ///              Annulation via croix sur la pile HUD.
+/// Story B11 : mode sélection Deuxième chance — quand actif, un tap
+///             intercepte le flux normal pour retirer la tuile posée sous
+///             le doigt (voir [removePlacedTile]) au lieu de prévisualiser
+///             ou valider un placement.
 ///
 /// Gestes :
 ///  - [MultiTouchTapDetector.onTapDown/onTapUp] : tap immobile → sélection
@@ -39,6 +43,7 @@ import '../providers/grid_state_provider.dart';
 import '../providers/pause_provider.dart';
 import '../providers/placement_provider.dart';
 import '../providers/placement_commit.dart';
+import '../providers/second_chance_provider.dart';
 import '../services/haptics_service.dart';
 import 'hex_coords.dart';
 import 'hex_grid_component.dart';
@@ -271,6 +276,16 @@ class HexBoardGame extends FlameGame
     if (startPos != null && (endPos - startPos).distance > 5.0) return;
     final grid = _grid;
     if (grid == null) return;
+
+    // Mode sélection Deuxième chance (Story B11) : un tap sur une tuile
+    // posée la retire et la réinjecte en pile, plutôt que de suivre le
+    // flux normal de placement ci-dessous — les deux modes sont mutuellement
+    // exclusifs (voir [toggleSecondChanceMode]).
+    if (_ref.read(secondChanceModeProvider)) {
+      final coords = grid.hexAt(info.eventPosition.widget.toOffset());
+      removePlacedTile(_ref, coords, onRemove: removeTileFromFlame);
+      return;
+    }
 
     final placement = _ref.read(placementProvider);
     final placementNotifier = _ref.read(placementProvider.notifier);

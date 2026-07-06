@@ -86,6 +86,18 @@ class AppLocalizationsFr extends AppLocalizations {
   String get game_sessionCoins => 'Pièces de la partie';
 
   @override
+  String get game_holdSlot_tooltip =>
+      'Emplacement Joker\u00a0: échanger avec la tuile active';
+
+  @override
+  String get game_secondChance_tooltip =>
+      'Deuxième chance\u00a0: reprendre une tuile posée';
+
+  @override
+  String get game_secondChance_tooltipActive =>
+      'Touchez une tuile posée pour la reprendre';
+
+  @override
   String get home_totalCoins => 'Pièces totales';
 
   @override

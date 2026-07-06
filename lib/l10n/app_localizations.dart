@@ -248,6 +248,24 @@ abstract class AppLocalizations {
   /// **'Game coins'**
   String get game_sessionCoins;
 
+  /// No description provided for @game_holdSlot_tooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Hold slot: swap with your active tile'**
+  String get game_holdSlot_tooltip;
+
+  /// No description provided for @game_secondChance_tooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Second chance: take back a placed tile'**
+  String get game_secondChance_tooltip;
+
+  /// No description provided for @game_secondChance_tooltipActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap a placed tile to take it back'**
+  String get game_secondChance_tooltipActive;
+
   /// No description provided for @home_totalCoins.
   ///
   /// In en, this message translates to:

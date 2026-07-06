@@ -86,6 +86,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get game_sessionCoins => 'Game coins';
 
   @override
+  String get game_holdSlot_tooltip => 'Hold slot: swap with your active tile';
+
+  @override
+  String get game_secondChance_tooltip =>
+      'Second chance: take back a placed tile';
+
+  @override
+  String get game_secondChance_tooltipActive =>
+      'Tap a placed tile to take it back';
+
+  @override
   String get home_totalCoins => 'Total coins';
 
   @override
