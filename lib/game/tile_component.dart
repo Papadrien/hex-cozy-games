@@ -385,9 +385,18 @@ class TileComponent extends PositionComponent {
 
   }
 
+  // Cache pour _dominantBiomeColor : la tuile change rarement après la pose,
+  // on évite de recompter les biomes à chaque frame.
+  HexTile? _lastDominantTile;
+  Color? _cachedDominantColor;
+
   /// Retourne la couleur du biome majoritaire sur la tuile, ou null en cas
   /// d'égalité.
   Color? _dominantBiomeColor() {
+    if (identical(tile, _lastDominantTile)) {
+      return _cachedDominantColor;
+    }
+    _lastDominantTile = tile;
     final counts = <BiomeType, int>{};
     for (final b in tile.sides) {
       counts[b] = (counts[b] ?? 0) + 1;
@@ -404,8 +413,12 @@ class TileComponent extends PositionComponent {
         tie = true;
       }
     }
-    if (dominant == null || tie) return null;
-    return dominant.color;
+    if (dominant == null || tie) {
+      _cachedDominantColor = null;
+      return null;
+    }
+    _cachedDominantColor = dominant.color;
+    return _cachedDominantColor;
   }
 
   @override
