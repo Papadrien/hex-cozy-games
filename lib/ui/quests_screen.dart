@@ -4,8 +4,6 @@
 /// organisées par catégorie.
 library;
 
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -16,6 +14,7 @@ import '../core/strings.dart';
 import '../data/app_database.dart';
 import '../providers/quest_provider.dart';
 import '../services/haptics_service.dart';
+import 'glass_container.dart';
 
 class QuestsScreen extends ConsumerWidget {
   const QuestsScreen({super.key});
@@ -237,48 +236,41 @@ class _QuestsSummaryBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final progress = total > 0 ? completed / total : 0.0;
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(16),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '$completed / $total ${context.tr.quests_status_completed.toLowerCase()}',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(4),
-                      child: LinearProgressIndicator(
-                        value: progress,
-                        backgroundColor: Colors.white.withValues(alpha: 0.1),
-                        valueColor:
-                            AlwaysStoppedAnimation<Color>(kCoinAmber),
-                        minHeight: 6,
-                      ),
-                    ),
-                  ],
+    return GlassContainer(
+      borderRadius: 16,
+      tintColor: Colors.white,
+      tintAlpha: 0.08,
+      borderColor: Colors.white.withValues(alpha: 0.15),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '$completed / $total ${context.tr.quests_status_completed.toLowerCase()}',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 6),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: LinearProgressIndicator(
+                    value: progress,
+                    backgroundColor: Colors.white.withValues(alpha: 0.1),
+                    valueColor:
+                        AlwaysStoppedAnimation<Color>(kCoinAmber),
+                    minHeight: 6,
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -327,27 +319,14 @@ class _QuestsGlassIconButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(14),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-        child: Material(
-          color: Colors.white.withValues(alpha: 0.15),
-          borderRadius: BorderRadius.circular(14),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(14),
-            onTap: onPressed,
-            child: Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.35)),
-              ),
-              child: Icon(icon, color: Colors.white, size: 20),
-            ),
-          ),
-        ),
-      ),
+    return GlassContainer(
+      borderRadius: 14,
+      tintColor: Colors.white,
+      tintAlpha: 0.15,
+      borderColor: Colors.white.withValues(alpha: 0.35),
+      padding: const EdgeInsets.all(10),
+      onTap: onPressed,
+      child: Icon(icon, color: Colors.white, size: 20),
     );
   }
 }
@@ -450,23 +429,15 @@ class _QuestCard extends StatelessWidget {
         : 0.0;
     final isLocked = status == _QuestStatus.locked;
 
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(14),
-      child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-          child: Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: isLocked ? 0.04 : 0.08),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(
-                color: status == _QuestStatus.completed
-                    ? color.withValues(alpha: 0.5)
-                    : Colors.white.withValues(alpha: 0.15),
-                width: 1,
-              ),
-            ),
-            child: Row(
+    return GlassContainer(
+      borderRadius: 14,
+      tintColor: Colors.white,
+      tintAlpha: isLocked ? 0.04 : 0.08,
+      borderColor: status == _QuestStatus.completed
+          ? color.withValues(alpha: 0.5)
+          : Colors.white.withValues(alpha: 0.15),
+      padding: const EdgeInsets.all(14),
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Status icon
@@ -561,8 +532,6 @@ class _QuestCard extends StatelessWidget {
             ),
           ),
         ],
-          ),
-        ),
       ),
     );
   }

@@ -76,6 +76,16 @@ Future<void> updateLastDailyRewardDate(AppDatabase db) async {
   );
 }
 
+/// Met à jour la date du dernier reward quotidien premium (Story 3.5b).
+Future<void> updateLastPremiumDailyCoinsDate(AppDatabase db) async {
+  await _ensureProfileExists(db);
+  await (db.update(db.playerProfile)..where((t) => t.id.equals(1))).write(
+    PlayerProfileCompanion(
+      lastPremiumDailyCoinsDate: Value(DateTime.now()),
+    ),
+  );
+}
+
 /// Persiste le statut premium du joueur — Story 3.5a.
 Future<void> setPremiumStatus(AppDatabase db, bool premium) async {
   await _ensureProfileExists(db);

@@ -32,6 +32,7 @@ class PlayerProfile extends Table {
   IntColumn get totalTilesPlaced => integer().withDefault(const Constant(0))();
   BoolColumn get isPremium => boolean().withDefault(const Constant(false))();
   DateTimeColumn get lastDailyRewardDate => dateTime().nullable()();
+  DateTimeColumn get lastPremiumDailyCoinsDate => dateTime().nullable()();
 }
 
 /// Améliorations achetables/débloquables — Story 2.1a.
@@ -79,24 +80,6 @@ class DailyQuests extends Table {
   TextColumn get progressByQuestId => text()();    // JSON Map<String, int>
 }
 
-/// Session de jeu méta (Phase 2) — Story 2.1a.
-///
-/// Distincte de [ActiveBoardSession] (Phase 1) : ajoute les améliorations
-/// sélectionnées et les compteurs de run pour le méta-game.
-@DataClassName('MetaRunHistoryRow')
-class MetaRunHistory extends Table {
-  IntColumn get id => integer().autoIncrement()();
-  BoolColumn get isActive => boolean().withDefault(const Constant(true))();
-  IntColumn get tilesRemaining => integer()();
-  TextColumn get selectedUpgradeIds => text()();   // JSON List<String>
-  IntColumn get coinsEarned => integer().withDefault(const Constant(0))();
-  IntColumn get tilesPlaced => integer().withDefault(const Constant(0))();
-  TextColumn get gridState => text()();
-  TextColumn get tileStack => text()();
-  TextColumn get lastTilePlaced => text().nullable()();
-  IntColumn get seed => integer()();
-}
-
 /// Statistiques cumulées du joueur — Story 2.1a.
 @DataClassName('PlayerStatsRow')
 class PlayerStats extends Table {
@@ -114,7 +97,6 @@ class PlayerStats extends Table {
   Upgrades,
   PermanentQuests,
   DailyQuests,
-  MetaRunHistory,
   PlayerStats,
 ])
 class AppDatabase extends _$AppDatabase {
@@ -125,7 +107,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration {
@@ -133,6 +115,16 @@ class AppDatabase extends _$AppDatabase {
       onCreate: (m) async {
         await m.createAll();
         await seedDatabase(this);
+      },
+      onUpgrade: (m, from, to) async {
+        if (from < 2) {
+          await m.addColumn(
+            playerProfile,
+            playerProfile.lastPremiumDailyCoinsDate,
+          );
+        }
+        // MetaRunHistory table was removed — safe to ignore since
+        // no users in production and DB is recreated on reinstall.
       },
     );
   }

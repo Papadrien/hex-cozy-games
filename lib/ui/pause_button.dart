@@ -4,9 +4,9 @@
 /// homogène avec les autres éléments HUD.
 library;
 
-import 'dart:ui' show ImageFilter;
-
 import 'package:flutter/material.dart';
+
+import 'glass_container.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/colors.dart';
@@ -21,37 +21,21 @@ class PauseButton extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(10),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-        child: Material(
-          color: kTropicalTeal.withValues(alpha: 0.18),
-          borderRadius: BorderRadius.circular(10),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(10),
-            onTap: () {
-              buttonHapticTap(context);
-              ref.read(pauseProvider.notifier).pause();
-            },
-            child: Container(
-              width: _kPauseButtonSize,
-              height: _kPauseButtonSize,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(
-                  color: kTropicalTealBorder.withValues(alpha: 0.38),
-                  width: 1,
-                ),
-              ),
-              child: const Icon(
-                Icons.pause,
-                color: Colors.white,
-                size: 20,
-              ),
-            ),
-          ),
-        ),
+    return GlassContainer(
+      borderRadius: 10,
+      blurSigma: 10,
+      tintAlpha: 0.18,
+      borderColor: kTropicalTealBorder.withValues(alpha: 0.38),
+      width: _kPauseButtonSize,
+      height: _kPauseButtonSize,
+      onTap: () {
+        buttonHapticTap(context);
+        ref.read(pauseProvider.notifier).pause();
+      },
+      child: const Icon(
+        Icons.pause,
+        color: Colors.white,
+        size: 20,
       ),
     );
   }

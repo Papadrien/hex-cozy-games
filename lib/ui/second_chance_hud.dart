@@ -7,9 +7,9 @@
 /// (niveau ≥ 1).
 library;
 
-import 'dart:ui' show ImageFilter;
-
 import 'package:flutter/material.dart';
+
+import 'glass_container.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/colors.dart';
@@ -49,37 +49,24 @@ class SecondChanceHud extends ConsumerWidget {
       message: isActive
           ? context.tr.game_secondChance_tooltipActive
           : context.tr.game_secondChance_tooltip,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(14),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-          child: Material(
-            color: (isActive ? _kActiveGlass : _kHudGlass)
-                .withValues(alpha: 0.28),
-            borderRadius: BorderRadius.circular(14),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(14),
-              onTap: canTap
-                  ? () {
-                      buttonHapticTap(context);
-                      toggleSecondChanceMode(ref);
-                    }
-                  : null,
-              child: Container(
-                width: _kButtonSize,
-                height: _kButtonSize,
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(
-                    color: (isActive ? _kActiveBorder : _kHudGlassBorder)
-                        .withValues(alpha: 0.6),
-                    width: isActive ? 1.5 : 1,
-                  ),
-                ),
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
+        child: GlassContainer(
+          tintColor: isActive ? _kActiveGlass : _kHudGlass,
+          tintAlpha: 0.28,
+          borderColor: (isActive ? _kActiveBorder : _kHudGlassBorder)
+              .withValues(alpha: 0.6),
+          borderWidth: isActive ? 1.5 : 1,
+          width: _kButtonSize,
+          height: _kButtonSize,
+          padding: const EdgeInsets.all(4),
+          onTap: canTap
+              ? () {
+                  buttonHapticTap(context);
+                  toggleSecondChanceMode(ref);
+                }
+              : null,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
                     Opacity(
                       opacity: canTap ? 1.0 : 0.4,
                       child: Icon(
@@ -93,13 +80,9 @@ class SecondChanceHud extends ConsumerWidget {
                       bottom: -4,
                       child: _UsesBadge(remaining: remainingUses),
                     ),
-                  ],
-                ),
-              ),
-            ),
+            ],
           ),
-        ),
-      ),
+          ),
     );
   }
 }

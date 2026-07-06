@@ -6,9 +6,9 @@
 library;
 
 import 'dart:math';
-import 'dart:ui' show ImageFilter;
-
 import 'package:flutter/material.dart';
+
+import 'glass_container.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/colors.dart';
@@ -49,35 +49,20 @@ class HoldSlotHud extends ConsumerWidget {
 
     return Tooltip(
       message: context.tr.game_holdSlot_tooltip,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(14),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-          child: Material(
-            color: _kHudGlass.withValues(alpha: 0.22),
-            borderRadius: BorderRadius.circular(14),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(14),
-              onTap: canSwap
-                  ? () {
-                      buttonHapticTap(context);
-                      swapHoldSlot(ref);
-                    }
-                  : null,
-              child: Container(
-                width: _kSlotSize,
-                height: _kSlotSize,
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(
-                    color: _kHudGlassBorder.withValues(alpha: 0.45),
-                    width: 1,
-                  ),
-                ),
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
+        child: GlassContainer(
+          width: _kSlotSize,
+          height: _kSlotSize,
+          padding: const EdgeInsets.all(4),
+          borderColor: _kHudGlassBorder.withValues(alpha: 0.45),
+          onTap: canSwap
+              ? () {
+                  buttonHapticTap(context);
+                  swapHoldSlot(ref);
+                }
+              : null,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
                     Opacity(
                       opacity: canSwap ? 1.0 : 0.4,
                       child: heldTile != null
@@ -93,13 +78,9 @@ class HoldSlotHud extends ConsumerWidget {
                       bottom: -4,
                       child: _UsesBadge(remaining: remainingUses),
                     ),
-                  ],
-                ),
-              ),
-            ),
+            ],
           ),
-        ),
-      ),
+          ),
     );
   }
 }

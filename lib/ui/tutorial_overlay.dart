@@ -12,9 +12,9 @@
 library;
 
 import 'dart:math' show cos, pi, sin;
-import 'dart:ui' show ImageFilter;
-
 import 'package:flutter/material.dart';
+
+import 'glass_container.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/colors.dart';
@@ -186,38 +186,23 @@ class _TutorialOverlayState extends ConsumerState<TutorialOverlay>
           Positioned(
             top: MediaQuery.of(context).padding.top + 8,
             right: 12,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(10),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                child: Material(
-                  color: kGlassBlue.withValues(alpha: 0.18),
-                  borderRadius: BorderRadius.circular(10),
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(10),
-                    onTap: () {
-                      buttonHapticTap(context);
-                      notifier.skip();
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(
-                          color: kGlassBlueBorder.withValues(alpha: 0.38),
-                          width: 1,
-                        ),
-                      ),
-                      child: Text(
-                        context.tr.tutorial_skip,
-                        style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                  ),
+            child: GlassContainer(
+              borderRadius: 10,
+              blurSigma: 10,
+              tintColor: kGlassBlue,
+              tintAlpha: 0.18,
+              borderColor: kGlassBlueBorder.withValues(alpha: 0.38),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              onTap: () {
+                buttonHapticTap(context);
+                notifier.skip();
+              },
+              child: Text(
+                context.tr.tutorial_skip,
+                style: const TextStyle(
+                  color: Colors.white70,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ),
@@ -227,38 +212,23 @@ class _TutorialOverlayState extends ConsumerState<TutorialOverlay>
           Positioned(
             bottom: 96 + safeBottom,
             right: 32,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(14),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                child: Material(
-                  color: kGlassBlue.withValues(alpha: 0.22),
-                  borderRadius: BorderRadius.circular(14),
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(14),
-                    onTap: () {
-                      buttonHapticTap(context);
-                      notifier.next();
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(
-                          color: kGlassBlueBorder.withValues(alpha: 0.45),
-                          width: 1,
-                        ),
-                      ),
-                      child: Text(
-                        notifier.isLastStep ? 'OK' : '→',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ),
+            child: GlassContainer(
+              borderRadius: 14,
+              blurSigma: 10,
+              tintColor: kGlassBlue,
+              tintAlpha: 0.22,
+              borderColor: kGlassBlueBorder.withValues(alpha: 0.45),
+              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
+              onTap: () {
+                buttonHapticTap(context);
+                notifier.next();
+              },
+              child: Text(
+                notifier.isLastStep ? 'OK' : '→',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ),
@@ -343,32 +313,24 @@ class _InstructionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(16),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-          decoration: BoxDecoration(
-            color: kGlassBlue.withValues(alpha: 0.18),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: kGlassBlueBorder.withValues(alpha: 0.38),
-              width: 1.5,
-            ),
-          ),
-          child: Text(
-            text,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 16,
-              height: 1.4,
-              fontWeight: FontWeight.w500,
-            ),
-            textAlign: TextAlign.center,
-          ),
+    return GlassContainer(
+      borderRadius: 16,
+      blurSigma: 16,
+      tintColor: kGlassBlue,
+      tintAlpha: 0.18,
+      borderColor: kGlassBlueBorder.withValues(alpha: 0.38),
+      borderWidth: 1.5,
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+      child: Text(
+        text,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 16,
+          height: 1.4,
+          fontWeight: FontWeight.w500,
         ),
+        textAlign: TextAlign.center,
       ),
     );
   }

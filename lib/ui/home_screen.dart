@@ -20,6 +20,7 @@ import 'build_screen.dart';
 import 'quests_screen.dart';
 import 'shop_screen.dart';
 import 'stats_screen.dart';
+import 'glass_container.dart';
 
 // Bleu glacier pour les boutons secondaires — ni trop cyan (déjà pris par le
 // bouton Jouer en teal), ni trop violet (réservé au premium).
@@ -65,10 +66,12 @@ class HomeScreen extends ConsumerWidget {
                 const Spacer(),
                 _CenterContent(
                   activeSession: activeSession,
-                  onPlay: () {
-                    SessionSaver.endSession(ref);
+                  onPlay: () async {
+                    await SessionSaver.endSession(ref);
                     startNewGame(ref);
-                    Navigator.pushReplacementNamed(context, '/game');
+                    if (context.mounted) {
+                      Navigator.pushReplacementNamed(context, '/game');
+                    }
                   },
                   onResume: () async {
                     await restoreSession(ref);
@@ -242,7 +245,7 @@ class _CenterContent extends ConsumerStatefulWidget {
   });
 
   final AsyncValue<bool> activeSession;
-  final VoidCallback onPlay;
+  final Future<void> Function() onPlay;
   final Future<void> Function() onResume;
 
   @override
@@ -412,7 +415,7 @@ class _PlayButton extends StatelessWidget {
   });
 
   final AsyncValue<bool> activeSession;
-  final VoidCallback onPlay;
+  final Future<void> Function() onPlay;
   final Future<void> Function() onResume;
 
   @override
@@ -446,9 +449,9 @@ class _PlayButton extends StatelessWidget {
                   borderRadius: BorderRadius.circular(28),
                   onTap: onTap == null
                       ? null
-                      : () {
+                      : () async {
                           buttonHapticTap(context);
-                          onTap();
+                          await onTap();
                         },
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 18),
@@ -521,40 +524,31 @@ class _GlassButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(16),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-        child: Material(
-          // Fond bleu glacier de base — même quand tint = transparent
-          color: _kGlassBlue.withValues(alpha: 0.18),
-          borderRadius: BorderRadius.circular(16),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(16),
-            onTap: onPressed == null
-                ? null
-                : () {
-                    buttonHapticTap(context);
-                    onPressed!();
-                  },
-            child: Container(
-              padding: padding,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: _kGlassBlueBorder.withValues(alpha: 0.38),
-                  width: 1,
+    return GlassContainer(
+      tintColor: _kGlassBlue,
+      tintAlpha: 0.18,
+      borderColor: _kGlassBlueBorder.withValues(alpha: 0.38),
+      borderRadius: 16,
+      padding: padding,
+      blurSigma: 10,
+      onTap: onPressed,
+      child: tint == Colors.transparent
+          ? child
+          : Stack(
+              children: [
+                child,
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: tint.withValues(alpha: 0.10),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                  ),
                 ),
-                // Surcouche de teinte fonctionnelle (amber pub, purple premium…)
-                color: tint == Colors.transparent
-                    ? Colors.transparent
-                    : tint.withValues(alpha: 0.10),
-              ),
-              child: child,
+              ],
             ),
-          ),
-        ),
-      ),
     );
   }
 }
@@ -783,22 +777,14 @@ class _GlassPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(20),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-          decoration: BoxDecoration(
-            color: _kGlassBlue.withValues(alpha: 0.22),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: _kGlassBlueBorder.withValues(alpha: 0.40),
-            ),
-          ),
-          child: child,
-        ),
-      ),
+    return GlassContainer(
+      tintColor: _kGlassBlue,
+      tintAlpha: 0.22,
+      borderColor: _kGlassBlueBorder.withValues(alpha: 0.40),
+      borderRadius: 20,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      blurSigma: 10,
+      child: child,
     );
   }
 }
@@ -819,29 +805,15 @@ class _GlassIconButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Tooltip(
       message: tooltip,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(14),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-          child: Material(
-            color: kTropicalTeal.withValues(alpha: 0.22),
-            borderRadius: BorderRadius.circular(14),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(14),
-              onTap: onPressed,
-              child: Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(
-                    color: kTropicalTealBorder.withValues(alpha: 0.40),
-                  ),
-                ),
-                child: Icon(icon, color: Colors.white, size: 22),
-              ),
-            ),
-          ),
-        ),
+      child: GlassContainer(
+        tintColor: kTropicalTeal,
+        tintAlpha: 0.22,
+        borderColor: kTropicalTealBorder.withValues(alpha: 0.40),
+        borderRadius: 14,
+        padding: const EdgeInsets.all(10),
+        onTap: onPressed,
+        blurSigma: 10,
+        child: Icon(icon, color: Colors.white, size: 22),
       ),
     );
   }

@@ -13,7 +13,7 @@
 library;
 
 import 'dart:async';
-import 'dart:ui' show ImageFilter, FragmentProgram, FragmentShader, Offset;
+import 'dart:ui' show FragmentProgram, FragmentShader, Offset;
 import 'package:flame/game.dart' hide Matrix4;
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart' show Ticker;
@@ -37,6 +37,7 @@ import '../providers/tile_stack_provider.dart';
 import '../providers/tutorial_provider.dart';
 import '../services/ad_service.dart';
 import '../services/haptics_service.dart';
+import 'glass_container.dart';
 import 'hold_slot_hud.dart';
 import 'pause_button.dart';
 import 'pause_modal.dart';
@@ -237,48 +238,38 @@ class _GameScreenState extends ConsumerState<GameScreen> {
             left: 16,
             child: Consumer(builder: (context, ref, _) {
               final session = ref.watch(sessionProvider);
-              return ClipRRect(
-                borderRadius: BorderRadius.circular(14),
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                  child: Container(
-                    key: _coinsKey,
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: kTropicalTeal.withValues(alpha: 0.22),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                        color: const Color(0xFF3DBFAF).withValues(alpha: 0.45),
-                        width: 1,
+              return GlassContainer(
+                key: _coinsKey,
+                borderRadius: 14,
+                tintColor: kTropicalTeal,
+                tintAlpha: 0.22,
+                borderColor: const Color(0xFF3DBFAF).withValues(alpha: 0.45),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      context.tr.game_sessionCoins,
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.6),
+                        fontSize: 11,
                       ),
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          context.tr.game_sessionCoins,
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.6),
-                            fontSize: 11,
-                          ),
+                    Row(children: [
+                      const Icon(Icons.monetization_on, color: Colors.amber, size: 20),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${session.coins}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
                         ),
-                        Row(children: [
-                          const Icon(Icons.monetization_on, color: Colors.amber, size: 20),
-                          const SizedBox(width: 4),
-                          Text(
-                            '${session.coins}',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ]),
-                        _CoinRewardTag(opacity: _rewardOpacity),
-                      ],
-                    ),
-                  ),
+                      ),
+                    ]),
+                    _RewardTag(opacity: _rewardOpacity, isCoin: true),
+                  ],
                 ),
               );
             }),
@@ -288,48 +279,32 @@ class _GameScreenState extends ConsumerState<GameScreen> {
           Consumer(builder: (context, ref, _) {
             final canUndo = ref.watch(lastPlacementProvider) != null;
 
-            return Stack(children: [
+            return               Stack(children: [
               Positioned(
                 bottom: 24,
                 right: 16,
-                child: ClipRRect(
+                child: GlassContainer(
                   key: _undoKey,
-                  borderRadius: BorderRadius.circular(14),
-                  child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                    child: Material(
-                      color: kTropicalTeal.withValues(alpha: 0.22),
-                      borderRadius: BorderRadius.circular(14),
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(14),
-                        onTap: canUndo
-                            ? () {
-                                buttonHapticTap(context);
-                                final target = _stackHudFlyTarget();
-                                undoPlacement(
-                                  ref,
-                                  onUndo: (coords) => _game.removeTileFromFlame(
-                                    coords,
-                                    flyTarget: target,
-                                  ),
-                                );
-                              }
-                            : null,
-                        child: Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(
-                              color: const Color(0xFF3DBFAF).withValues(alpha: 0.45),
-                              width: 1,
+                  borderRadius: 14,
+                  tintColor: kTropicalTeal,
+                  tintAlpha: 0.22,
+                  borderColor: const Color(0xFF3DBFAF).withValues(alpha: 0.45),
+                  width: 40,
+                  height: 40,
+                  onTap: canUndo
+                      ? () {
+                          buttonHapticTap(context);
+                          final target = _stackHudFlyTarget();
+                          undoPlacement(
+                            ref,
+                            onUndo: (coords) => _game.removeTileFromFlame(
+                              coords,
+                              flyTarget: target,
                             ),
-                          ),
-                          child: const Icon(Icons.undo, color: Colors.white, size: 20),
-                        ),
-                      ),
-                    ),
-                  ),
+                          );
+                        }
+                      : null,
+                  child: const Icon(Icons.undo, color: Colors.white, size: 20),
                 ),
               ),
             ]);
@@ -366,7 +341,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 const TileStackHud(),
-                _BonusTileTag(opacity: _rewardOpacity),
+                _RewardTag(opacity: _rewardOpacity, isCoin: false),
               ],
             ),
           ),
@@ -400,107 +375,49 @@ class _GameScreenState extends ConsumerState<GameScreen> {
   }
 }
 
-/// Tag pièces bonus — affiché sous le compteur de pièces. Disparaît en fade
-/// out. N'affiche que les pièces bonus (améliorations), pas le total de base.
-class _CoinRewardTag extends ConsumerWidget {
-  const _CoinRewardTag({required this.opacity});
+/// Tag récompense unique — pièces ou tuiles bonus, selon [isCoin].
+/// Disparaît en fade out. N'affiche que la partie bonus de la récompense.
+class _RewardTag extends ConsumerWidget {
+  const _RewardTag({required this.opacity, required this.isCoin});
 
   final double opacity;
+  final bool isCoin;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final session = ref.watch(sessionProvider);
     final reward = session.lastReward;
-    if (reward == null || reward.bonusCoins <= 0) {
-      return const SizedBox.shrink();
-    }
+    if (reward == null) return const SizedBox.shrink();
+
+    final value = isCoin ? reward.bonusCoins : reward.bonusTiles;
+    if (value <= 0) return const SizedBox.shrink();
 
     return Opacity(
       opacity: opacity,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(10),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-          child: Container(
-            margin: const EdgeInsets.only(top: 4),
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              color: kTropicalTeal.withValues(alpha: 0.22),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                color: const Color(0xFF3DBFAF).withValues(alpha: 0.45),
-                width: 1,
+      child: GlassContainer(
+        borderRadius: 10,
+        tintColor: kTropicalTeal,
+        tintAlpha: 0.22,
+        borderColor: kTropicalTealBorder.withValues(alpha: 0.45),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              isCoin ? Icons.monetization_on : Icons.hexagon,
+              color: isCoin ? Colors.amber : Colors.lightBlue,
+              size: isCoin ? 16 : 14,
+            ),
+            const SizedBox(width: 4),
+            Text(
+              '+$value${isCoin ? context.tr.reward_coins : context.tr.reward_bonusTiles}',
+              style: TextStyle(
+                color: isCoin ? Colors.white : Colors.white70,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
               ),
             ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.monetization_on, color: Colors.amber, size: 16),
-                const SizedBox(width: 4),
-                Text(
-                  '+${reward.bonusCoins}${context.tr.reward_coins}',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Tag tuiles bonus — affiché sous la pile de tuiles. Disparaît en fade out.
-class _BonusTileTag extends ConsumerWidget {
-  const _BonusTileTag({required this.opacity});
-
-  final double opacity;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final session = ref.watch(sessionProvider);
-    final reward = session.lastReward;
-    if (reward == null || reward.bonusTiles <= 0) {
-      return const SizedBox.shrink();
-    }
-
-    return Opacity(
-      opacity: opacity,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(10),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-          child: Container(
-            margin: const EdgeInsets.only(top: 4),
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              color: kTropicalTeal.withValues(alpha: 0.22),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                color: const Color(0xFF3DBFAF).withValues(alpha: 0.45),
-                width: 1,
-              ),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.hexagon, color: Colors.lightBlue, size: 14),
-                const SizedBox(width: 4),
-                Text(
-                   '+${reward.bonusTiles}${context.tr.reward_bonusTiles}',
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
+          ],
         ),
       ),
     );
@@ -647,28 +564,18 @@ class _SecondChanceHintBanner extends ConsumerWidget {
     final isActive = ref.watch(secondChanceModeProvider);
     if (!isActive) return const SizedBox.shrink();
 
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(20),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          decoration: BoxDecoration(
-            color: const Color(0xFFFFB300).withValues(alpha: 0.28),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: const Color(0xFFFFD54F).withValues(alpha: 0.6),
-              width: 1,
-            ),
-          ),
-          child: Text(
-            context.tr.game_secondChance_tooltipActive,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
+    return GlassContainer(
+      borderRadius: 20,
+      tintColor: const Color(0xFFFFB300),
+      tintAlpha: 0.28,
+      borderColor: const Color(0xFFFFD54F).withValues(alpha: 0.6),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Text(
+        context.tr.game_secondChance_tooltipActive,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
         ),
       ),
     );

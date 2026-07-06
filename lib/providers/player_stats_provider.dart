@@ -14,7 +14,6 @@ import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/app_database.dart';
-import 'grid_state_provider.dart';
 
 /// Provider Riverpod streamant la ligne unique de [PlayerStats].
 /// Retourne une ligne à zéro si aucune statistique n'existe encore.
@@ -81,8 +80,3 @@ Future<void> recordGameEnd(
   );
 }
 
-/// Calcule la taille du plus grand groupe connexe pour chaque biome sur le
-/// plateau [grid]. Délègue à [GridState.maxBiomeSizes].
-Map<String, int> computeMaxBiomeSizes(GridState grid) {
-  return grid.maxBiomeSizes;
-}

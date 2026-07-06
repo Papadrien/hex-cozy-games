@@ -215,6 +215,9 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get shop_bestValueBadge => 'Best value';
+
+  @override
   String get shop_premium => 'Premium';
 
   @override

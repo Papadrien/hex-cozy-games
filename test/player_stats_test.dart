@@ -36,10 +36,10 @@ Future<AppDatabase> _makeDb() async {
 }
 
 void main() {
-  group('computeMaxBiomeSizes', () {
+  group('GridState.maxBiomeSizes', () {
     test('plateau vide → toutes les tailles à 0', () {
       final grid = GridState(placedTiles: {});
-      final sizes = computeMaxBiomeSizes(grid);
+      final sizes = grid.maxBiomeSizes;
       for (final biome in BiomeType.values) {
         expect(sizes[biome.name], 0);
       }
@@ -49,27 +49,22 @@ void main() {
       final grid = GridState(placedTiles: {
         HexCoords(0, 0): _mono(BiomeType.forest),
       });
-      final sizes = computeMaxBiomeSizes(grid);
+      final sizes = grid.maxBiomeSizes;
       expect(sizes['forest'], 1);
       expect(sizes['village'], 0);
     });
 
     test('deux tuiles forest adjacentes connectées → cluster de 2 forest', () {
-      // Tuile en (0,0) avec forest partout.
-      // Tuile en (1,0) avec forest partout.
-      // Elles sont adjacentes. Le côté 2 de (0,0) touche le côté 5 de (1,0).
       final t = _mono(BiomeType.forest);
       final grid = GridState(placedTiles: {
         HexCoords(0, 0): t,
         HexCoords(1, 0): t,
       });
-      final sizes = computeMaxBiomeSizes(grid);
+      final sizes = grid.maxBiomeSizes;
       expect(sizes['forest'], 2);
     });
 
     test('deux clusters forest séparés → max = le plus grand', () {
-      // Cluster A : (0,0) + (1,0) = 2
-      // Cluster B : (0,2) + (1,2) + (2,2) = 3
       final t = _mono(BiomeType.forest);
       final grid = GridState(placedTiles: {
         HexCoords(0, 0): t,
@@ -78,22 +73,17 @@ void main() {
         HexCoords(1, 2): t,
         HexCoords(2, 2): t,
       });
-      final sizes = computeMaxBiomeSizes(grid);
+      final sizes = grid.maxBiomeSizes;
       expect(sizes['forest'], 3);
     });
 
     test('tuile mixte forest+village → les deux biomes comptés', () {
-      // (0,0) mixte : côtés 0,1,4,5 = forest ; côtés 2,3 = village
-      // (1,0) mono forest → connecté côté 2 de (0,0) → forest
-      // (0,1) mono village → connecté côté 3 de (0,0) → village
       final grid = GridState(placedTiles: {
         HexCoords(0, 0): _mixed(),
         HexCoords(1, 0): _mono(BiomeType.forest),
         HexCoords(0, 1): _mono(BiomeType.village),
       });
-      final sizes = computeMaxBiomeSizes(grid);
-      // forest : (0,0)+côtés 0,1,4,5 + (1,0) = 2
-      // village : (0,0)+côtés 2,3 + (0,1) = 2
+      final sizes = grid.maxBiomeSizes;
       expect(sizes['forest'], 2);
       expect(sizes['village'], 2);
     });

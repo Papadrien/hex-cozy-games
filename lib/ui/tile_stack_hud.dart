@@ -5,12 +5,11 @@
 library;
 
 import 'dart:math';
-import 'dart:ui' show ImageFilter;
-
 import 'package:flutter/material.dart';
+
+import 'glass_container.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../core/colors.dart';
 import '../game/hex_tile.dart';
 import '../game/tile_component.dart' show BiomeColor;
 import '../providers/placement_provider.dart';
@@ -22,8 +21,7 @@ const double _kUpcomingTileRadius = 26.0;
 const double _kHudHexFlattenY = 1.0;
 const double _kCrossSize = 26.0;
 
-// Teinte glassmorphism teal pour le HUD (même teinte que boutons secondaires accueil).
-const Color _kHudGlass = kTropicalTeal;
+// Bordure teal claire pour les composants HUD.
 const Color _kHudGlassBorder = Color(0xFF3DBFAF); // teal clair
 
 // Disposition horizontale avec chevauchement.
@@ -56,25 +54,13 @@ class TileStackHud extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.end,
       mainAxisSize: MainAxisSize.min,
       children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(14),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-            child: Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: _kHudGlass.withValues(alpha: 0.22),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(
-                  color: _kHudGlassBorder.withValues(alpha: 0.45),
-                  width: 1,
-                ),
-              ),
-              child: SizedBox(
-                width: stackWidth,
-                height: _kStackHeight,
-                child: Stack(
-                  children: [
+        GlassContainer(
+          padding: const EdgeInsets.all(10),
+          child: SizedBox(
+            width: stackWidth,
+            height: _kStackHeight,
+            child: Stack(
+              children: [
                     // Tuiles suivantes — de la plus éloignée (fond) à la plus
                     // proche (milieu)
                     for (var i = 0; i < upcomingCount; i++)
@@ -106,42 +92,23 @@ class TileStackHud extends ConsumerWidget {
                       Positioned(
                         left: (_kActiveTileWidth - _kCrossSize) / 2,
                         top: (_kStackHeight - _kCrossSize) / 2,
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(13),
-                          child: BackdropFilter(
-                            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                            child: Material(
-                              color: _kHudGlass.withValues(alpha: 0.22),
-                              borderRadius: BorderRadius.circular(13),
-                              child: InkWell(
-                                borderRadius: BorderRadius.circular(13),
-                                onTap: () {
-                                  buttonHapticTap(context);
-                                  ref
-                                      .read(placementProvider.notifier)
-                                      .clearSelection();
-                                },
-                                child: Container(
-                                  width: _kCrossSize,
-                                  height: _kCrossSize,
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(13),
-                                    border: Border.all(
-                                      color: _kHudGlassBorder.withValues(alpha: 0.45),
-                                      width: 1,
-                                    ),
-                                  ),
-                                  child: const Icon(Icons.close,
-                                      size: 16, color: Colors.white70),
-                                ),
-                              ),
-                            ),
+                          child: GlassContainer(
+                            borderRadius: 13,
+                            blurSigma: 10,
+                            borderColor: _kHudGlassBorder.withValues(alpha: 0.45),
+                            width: _kCrossSize,
+                            height: _kCrossSize,
+                            onTap: () {
+                              buttonHapticTap(context);
+                              ref
+                                  .read(placementProvider.notifier)
+                                  .clearSelection();
+                            },
+                            child: const Icon(Icons.close,
+                                size: 16, color: Colors.white70),
                           ),
-                        ),
                       ),
-                  ],
-                ),
-              ),
+              ],
             ),
           ),
         ),
@@ -279,23 +246,14 @@ class _RemainingBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(10),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-          decoration: BoxDecoration(
-            color: _kHudGlass.withValues(alpha: 0.22),
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-              color: _kHudGlassBorder.withValues(alpha: 0.45),
-              width: 1,
-            ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
+    return GlassContainer(
+      borderRadius: 10,
+      blurSigma: 10,
+      borderColor: _kHudGlassBorder.withValues(alpha: 0.45),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
               Icon(Icons.layers,
                   size: 12, color: Colors.white.withValues(alpha: 0.85)),
               const SizedBox(width: 4),
@@ -307,10 +265,8 @@ class _RemainingBadge extends StatelessWidget {
                   fontWeight: FontWeight.w600,
                 ),
               ),
-            ],
-          ),
+          ],
         ),
-      ),
     );
   }
 }

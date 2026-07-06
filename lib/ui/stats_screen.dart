@@ -5,9 +5,9 @@
 library;
 
 import 'dart:convert';
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
+
+import 'glass_container.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -210,27 +210,14 @@ class _StatsGlassIconButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(14),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-        child: Material(
-          color: Colors.white.withValues(alpha: 0.15),
-          borderRadius: BorderRadius.circular(14),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(14),
-            onTap: onPressed,
-            child: Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.35)),
-              ),
-              child: Icon(icon, color: Colors.white, size: 20),
-            ),
-          ),
-        ),
-      ),
+    return GlassContainer(
+      borderRadius: 14,
+      blurSigma: 10,
+      tintAlpha: 0.15,
+      borderColor: kTropicalTealBorder.withValues(alpha: 0.35),
+      padding: const EdgeInsets.all(10),
+      onTap: onPressed,
+      child: Icon(icon, color: Colors.white, size: 20),
     );
   }
 }
@@ -250,21 +237,10 @@ class _StatCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(14),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-          child: Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.15),
-              ),
-            ),
-            child: Row(
-              children: [
+      child: GlassContainer(
+        padding: const EdgeInsets.all(14),
+        child: Row(
+          children: [
                 Container(
                   width: 36,
                   height: 36,
@@ -289,13 +265,11 @@ class _StatCard extends StatelessWidget {
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  fontWeight: FontWeight.w600,
                 ),
-              ],
-            ),
-          ),
-        ),
+              ),
+        ],
+      ),
       ),
     );
   }

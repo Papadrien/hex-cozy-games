@@ -689,6 +689,17 @@ class $PlayerProfileTable extends PlayerProfile
         type: DriftSqlType.dateTime,
         requiredDuringInsert: false,
       );
+  static const VerificationMeta _lastPremiumDailyCoinsDateMeta =
+      const VerificationMeta('lastPremiumDailyCoinsDate');
+  @override
+  late final GeneratedColumn<DateTime> lastPremiumDailyCoinsDate =
+      GeneratedColumn<DateTime>(
+        'last_premium_daily_coins_date',
+        aliasedName,
+        true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+      );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -696,6 +707,7 @@ class $PlayerProfileTable extends PlayerProfile
     totalTilesPlaced,
     isPremium,
     lastDailyRewardDate,
+    lastPremiumDailyCoinsDate,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -742,6 +754,15 @@ class $PlayerProfileTable extends PlayerProfile
         ),
       );
     }
+    if (data.containsKey('last_premium_daily_coins_date')) {
+      context.handle(
+        _lastPremiumDailyCoinsDateMeta,
+        lastPremiumDailyCoinsDate.isAcceptableOrUnknown(
+          data['last_premium_daily_coins_date']!,
+          _lastPremiumDailyCoinsDateMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -771,6 +792,10 @@ class $PlayerProfileTable extends PlayerProfile
         DriftSqlType.dateTime,
         data['${effectivePrefix}last_daily_reward_date'],
       ),
+      lastPremiumDailyCoinsDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}last_premium_daily_coins_date'],
+      ),
     );
   }
 
@@ -787,12 +812,14 @@ class PlayerProfileRow extends DataClass
   final int totalTilesPlaced;
   final bool isPremium;
   final DateTime? lastDailyRewardDate;
+  final DateTime? lastPremiumDailyCoinsDate;
   const PlayerProfileRow({
     required this.id,
     required this.coins,
     required this.totalTilesPlaced,
     required this.isPremium,
     this.lastDailyRewardDate,
+    this.lastPremiumDailyCoinsDate,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -803,6 +830,11 @@ class PlayerProfileRow extends DataClass
     map['is_premium'] = Variable<bool>(isPremium);
     if (!nullToAbsent || lastDailyRewardDate != null) {
       map['last_daily_reward_date'] = Variable<DateTime>(lastDailyRewardDate);
+    }
+    if (!nullToAbsent || lastPremiumDailyCoinsDate != null) {
+      map['last_premium_daily_coins_date'] = Variable<DateTime>(
+        lastPremiumDailyCoinsDate,
+      );
     }
     return map;
   }
@@ -816,6 +848,10 @@ class PlayerProfileRow extends DataClass
       lastDailyRewardDate: lastDailyRewardDate == null && nullToAbsent
           ? const Value.absent()
           : Value(lastDailyRewardDate),
+      lastPremiumDailyCoinsDate:
+          lastPremiumDailyCoinsDate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastPremiumDailyCoinsDate),
     );
   }
 
@@ -832,6 +868,9 @@ class PlayerProfileRow extends DataClass
       lastDailyRewardDate: serializer.fromJson<DateTime?>(
         json['lastDailyRewardDate'],
       ),
+      lastPremiumDailyCoinsDate: serializer.fromJson<DateTime?>(
+        json['lastPremiumDailyCoinsDate'],
+      ),
     );
   }
   @override
@@ -843,6 +882,9 @@ class PlayerProfileRow extends DataClass
       'totalTilesPlaced': serializer.toJson<int>(totalTilesPlaced),
       'isPremium': serializer.toJson<bool>(isPremium),
       'lastDailyRewardDate': serializer.toJson<DateTime?>(lastDailyRewardDate),
+      'lastPremiumDailyCoinsDate': serializer.toJson<DateTime?>(
+        lastPremiumDailyCoinsDate,
+      ),
     };
   }
 
@@ -852,6 +894,7 @@ class PlayerProfileRow extends DataClass
     int? totalTilesPlaced,
     bool? isPremium,
     Value<DateTime?> lastDailyRewardDate = const Value.absent(),
+    Value<DateTime?> lastPremiumDailyCoinsDate = const Value.absent(),
   }) => PlayerProfileRow(
     id: id ?? this.id,
     coins: coins ?? this.coins,
@@ -860,6 +903,9 @@ class PlayerProfileRow extends DataClass
     lastDailyRewardDate: lastDailyRewardDate.present
         ? lastDailyRewardDate.value
         : this.lastDailyRewardDate,
+    lastPremiumDailyCoinsDate: lastPremiumDailyCoinsDate.present
+        ? lastPremiumDailyCoinsDate.value
+        : this.lastPremiumDailyCoinsDate,
   );
   PlayerProfileRow copyWithCompanion(PlayerProfileCompanion data) {
     return PlayerProfileRow(
@@ -872,6 +918,9 @@ class PlayerProfileRow extends DataClass
       lastDailyRewardDate: data.lastDailyRewardDate.present
           ? data.lastDailyRewardDate.value
           : this.lastDailyRewardDate,
+      lastPremiumDailyCoinsDate: data.lastPremiumDailyCoinsDate.present
+          ? data.lastPremiumDailyCoinsDate.value
+          : this.lastPremiumDailyCoinsDate,
     );
   }
 
@@ -882,14 +931,21 @@ class PlayerProfileRow extends DataClass
           ..write('coins: $coins, ')
           ..write('totalTilesPlaced: $totalTilesPlaced, ')
           ..write('isPremium: $isPremium, ')
-          ..write('lastDailyRewardDate: $lastDailyRewardDate')
+          ..write('lastDailyRewardDate: $lastDailyRewardDate, ')
+          ..write('lastPremiumDailyCoinsDate: $lastPremiumDailyCoinsDate')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, coins, totalTilesPlaced, isPremium, lastDailyRewardDate);
+  int get hashCode => Object.hash(
+    id,
+    coins,
+    totalTilesPlaced,
+    isPremium,
+    lastDailyRewardDate,
+    lastPremiumDailyCoinsDate,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -898,7 +954,8 @@ class PlayerProfileRow extends DataClass
           other.coins == this.coins &&
           other.totalTilesPlaced == this.totalTilesPlaced &&
           other.isPremium == this.isPremium &&
-          other.lastDailyRewardDate == this.lastDailyRewardDate);
+          other.lastDailyRewardDate == this.lastDailyRewardDate &&
+          other.lastPremiumDailyCoinsDate == this.lastPremiumDailyCoinsDate);
 }
 
 class PlayerProfileCompanion extends UpdateCompanion<PlayerProfileRow> {
@@ -907,12 +964,14 @@ class PlayerProfileCompanion extends UpdateCompanion<PlayerProfileRow> {
   final Value<int> totalTilesPlaced;
   final Value<bool> isPremium;
   final Value<DateTime?> lastDailyRewardDate;
+  final Value<DateTime?> lastPremiumDailyCoinsDate;
   const PlayerProfileCompanion({
     this.id = const Value.absent(),
     this.coins = const Value.absent(),
     this.totalTilesPlaced = const Value.absent(),
     this.isPremium = const Value.absent(),
     this.lastDailyRewardDate = const Value.absent(),
+    this.lastPremiumDailyCoinsDate = const Value.absent(),
   });
   PlayerProfileCompanion.insert({
     this.id = const Value.absent(),
@@ -920,6 +979,7 @@ class PlayerProfileCompanion extends UpdateCompanion<PlayerProfileRow> {
     this.totalTilesPlaced = const Value.absent(),
     this.isPremium = const Value.absent(),
     this.lastDailyRewardDate = const Value.absent(),
+    this.lastPremiumDailyCoinsDate = const Value.absent(),
   });
   static Insertable<PlayerProfileRow> custom({
     Expression<int>? id,
@@ -927,6 +987,7 @@ class PlayerProfileCompanion extends UpdateCompanion<PlayerProfileRow> {
     Expression<int>? totalTilesPlaced,
     Expression<bool>? isPremium,
     Expression<DateTime>? lastDailyRewardDate,
+    Expression<DateTime>? lastPremiumDailyCoinsDate,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -935,6 +996,8 @@ class PlayerProfileCompanion extends UpdateCompanion<PlayerProfileRow> {
       if (isPremium != null) 'is_premium': isPremium,
       if (lastDailyRewardDate != null)
         'last_daily_reward_date': lastDailyRewardDate,
+      if (lastPremiumDailyCoinsDate != null)
+        'last_premium_daily_coins_date': lastPremiumDailyCoinsDate,
     });
   }
 
@@ -944,6 +1007,7 @@ class PlayerProfileCompanion extends UpdateCompanion<PlayerProfileRow> {
     Value<int>? totalTilesPlaced,
     Value<bool>? isPremium,
     Value<DateTime?>? lastDailyRewardDate,
+    Value<DateTime?>? lastPremiumDailyCoinsDate,
   }) {
     return PlayerProfileCompanion(
       id: id ?? this.id,
@@ -951,6 +1015,8 @@ class PlayerProfileCompanion extends UpdateCompanion<PlayerProfileRow> {
       totalTilesPlaced: totalTilesPlaced ?? this.totalTilesPlaced,
       isPremium: isPremium ?? this.isPremium,
       lastDailyRewardDate: lastDailyRewardDate ?? this.lastDailyRewardDate,
+      lastPremiumDailyCoinsDate:
+          lastPremiumDailyCoinsDate ?? this.lastPremiumDailyCoinsDate,
     );
   }
 
@@ -974,6 +1040,11 @@ class PlayerProfileCompanion extends UpdateCompanion<PlayerProfileRow> {
         lastDailyRewardDate.value,
       );
     }
+    if (lastPremiumDailyCoinsDate.present) {
+      map['last_premium_daily_coins_date'] = Variable<DateTime>(
+        lastPremiumDailyCoinsDate.value,
+      );
+    }
     return map;
   }
 
@@ -984,7 +1055,8 @@ class PlayerProfileCompanion extends UpdateCompanion<PlayerProfileRow> {
           ..write('coins: $coins, ')
           ..write('totalTilesPlaced: $totalTilesPlaced, ')
           ..write('isPremium: $isPremium, ')
-          ..write('lastDailyRewardDate: $lastDailyRewardDate')
+          ..write('lastDailyRewardDate: $lastDailyRewardDate, ')
+          ..write('lastPremiumDailyCoinsDate: $lastPremiumDailyCoinsDate')
           ..write(')'))
         .toString();
   }
@@ -2491,631 +2563,6 @@ class DailyQuestsCompanion extends UpdateCompanion<DailyQuestRow> {
   }
 }
 
-class $MetaRunHistoryTable extends MetaRunHistory
-    with TableInfo<$MetaRunHistoryTable, MetaRunHistoryRow> {
-  @override
-  final GeneratedDatabase attachedDatabase;
-  final String? _alias;
-  $MetaRunHistoryTable(this.attachedDatabase, [this._alias]);
-  static const VerificationMeta _idMeta = const VerificationMeta('id');
-  @override
-  late final GeneratedColumn<int> id = GeneratedColumn<int>(
-    'id',
-    aliasedName,
-    false,
-    hasAutoIncrement: true,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'PRIMARY KEY AUTOINCREMENT',
-    ),
-  );
-  static const VerificationMeta _isActiveMeta = const VerificationMeta(
-    'isActive',
-  );
-  @override
-  late final GeneratedColumn<bool> isActive = GeneratedColumn<bool>(
-    'is_active',
-    aliasedName,
-    false,
-    type: DriftSqlType.bool,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'CHECK ("is_active" IN (0, 1))',
-    ),
-    defaultValue: const Constant(true),
-  );
-  static const VerificationMeta _tilesRemainingMeta = const VerificationMeta(
-    'tilesRemaining',
-  );
-  @override
-  late final GeneratedColumn<int> tilesRemaining = GeneratedColumn<int>(
-    'tiles_remaining',
-    aliasedName,
-    false,
-    type: DriftSqlType.int,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _selectedUpgradeIdsMeta =
-      const VerificationMeta('selectedUpgradeIds');
-  @override
-  late final GeneratedColumn<String> selectedUpgradeIds =
-      GeneratedColumn<String>(
-        'selected_upgrade_ids',
-        aliasedName,
-        false,
-        type: DriftSqlType.string,
-        requiredDuringInsert: true,
-      );
-  static const VerificationMeta _coinsEarnedMeta = const VerificationMeta(
-    'coinsEarned',
-  );
-  @override
-  late final GeneratedColumn<int> coinsEarned = GeneratedColumn<int>(
-    'coins_earned',
-    aliasedName,
-    false,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-    defaultValue: const Constant(0),
-  );
-  static const VerificationMeta _tilesPlacedMeta = const VerificationMeta(
-    'tilesPlaced',
-  );
-  @override
-  late final GeneratedColumn<int> tilesPlaced = GeneratedColumn<int>(
-    'tiles_placed',
-    aliasedName,
-    false,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-    defaultValue: const Constant(0),
-  );
-  static const VerificationMeta _gridStateMeta = const VerificationMeta(
-    'gridState',
-  );
-  @override
-  late final GeneratedColumn<String> gridState = GeneratedColumn<String>(
-    'grid_state',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _tileStackMeta = const VerificationMeta(
-    'tileStack',
-  );
-  @override
-  late final GeneratedColumn<String> tileStack = GeneratedColumn<String>(
-    'tile_stack',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _lastTilePlacedMeta = const VerificationMeta(
-    'lastTilePlaced',
-  );
-  @override
-  late final GeneratedColumn<String> lastTilePlaced = GeneratedColumn<String>(
-    'last_tile_placed',
-    aliasedName,
-    true,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-  );
-  static const VerificationMeta _seedMeta = const VerificationMeta('seed');
-  @override
-  late final GeneratedColumn<int> seed = GeneratedColumn<int>(
-    'seed',
-    aliasedName,
-    false,
-    type: DriftSqlType.int,
-    requiredDuringInsert: true,
-  );
-  @override
-  List<GeneratedColumn> get $columns => [
-    id,
-    isActive,
-    tilesRemaining,
-    selectedUpgradeIds,
-    coinsEarned,
-    tilesPlaced,
-    gridState,
-    tileStack,
-    lastTilePlaced,
-    seed,
-  ];
-  @override
-  String get aliasedName => _alias ?? actualTableName;
-  @override
-  String get actualTableName => $name;
-  static const String $name = 'meta_run_history';
-  @override
-  VerificationContext validateIntegrity(
-    Insertable<MetaRunHistoryRow> instance, {
-    bool isInserting = false,
-  }) {
-    final context = VerificationContext();
-    final data = instance.toColumns(true);
-    if (data.containsKey('id')) {
-      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
-    }
-    if (data.containsKey('is_active')) {
-      context.handle(
-        _isActiveMeta,
-        isActive.isAcceptableOrUnknown(data['is_active']!, _isActiveMeta),
-      );
-    }
-    if (data.containsKey('tiles_remaining')) {
-      context.handle(
-        _tilesRemainingMeta,
-        tilesRemaining.isAcceptableOrUnknown(
-          data['tiles_remaining']!,
-          _tilesRemainingMeta,
-        ),
-      );
-    } else if (isInserting) {
-      context.missing(_tilesRemainingMeta);
-    }
-    if (data.containsKey('selected_upgrade_ids')) {
-      context.handle(
-        _selectedUpgradeIdsMeta,
-        selectedUpgradeIds.isAcceptableOrUnknown(
-          data['selected_upgrade_ids']!,
-          _selectedUpgradeIdsMeta,
-        ),
-      );
-    } else if (isInserting) {
-      context.missing(_selectedUpgradeIdsMeta);
-    }
-    if (data.containsKey('coins_earned')) {
-      context.handle(
-        _coinsEarnedMeta,
-        coinsEarned.isAcceptableOrUnknown(
-          data['coins_earned']!,
-          _coinsEarnedMeta,
-        ),
-      );
-    }
-    if (data.containsKey('tiles_placed')) {
-      context.handle(
-        _tilesPlacedMeta,
-        tilesPlaced.isAcceptableOrUnknown(
-          data['tiles_placed']!,
-          _tilesPlacedMeta,
-        ),
-      );
-    }
-    if (data.containsKey('grid_state')) {
-      context.handle(
-        _gridStateMeta,
-        gridState.isAcceptableOrUnknown(data['grid_state']!, _gridStateMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_gridStateMeta);
-    }
-    if (data.containsKey('tile_stack')) {
-      context.handle(
-        _tileStackMeta,
-        tileStack.isAcceptableOrUnknown(data['tile_stack']!, _tileStackMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_tileStackMeta);
-    }
-    if (data.containsKey('last_tile_placed')) {
-      context.handle(
-        _lastTilePlacedMeta,
-        lastTilePlaced.isAcceptableOrUnknown(
-          data['last_tile_placed']!,
-          _lastTilePlacedMeta,
-        ),
-      );
-    }
-    if (data.containsKey('seed')) {
-      context.handle(
-        _seedMeta,
-        seed.isAcceptableOrUnknown(data['seed']!, _seedMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_seedMeta);
-    }
-    return context;
-  }
-
-  @override
-  Set<GeneratedColumn> get $primaryKey => {id};
-  @override
-  MetaRunHistoryRow map(Map<String, dynamic> data, {String? tablePrefix}) {
-    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return MetaRunHistoryRow(
-      id: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}id'],
-      )!,
-      isActive: attachedDatabase.typeMapping.read(
-        DriftSqlType.bool,
-        data['${effectivePrefix}is_active'],
-      )!,
-      tilesRemaining: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}tiles_remaining'],
-      )!,
-      selectedUpgradeIds: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}selected_upgrade_ids'],
-      )!,
-      coinsEarned: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}coins_earned'],
-      )!,
-      tilesPlaced: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}tiles_placed'],
-      )!,
-      gridState: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}grid_state'],
-      )!,
-      tileStack: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}tile_stack'],
-      )!,
-      lastTilePlaced: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}last_tile_placed'],
-      ),
-      seed: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}seed'],
-      )!,
-    );
-  }
-
-  @override
-  $MetaRunHistoryTable createAlias(String alias) {
-    return $MetaRunHistoryTable(attachedDatabase, alias);
-  }
-}
-
-class MetaRunHistoryRow extends DataClass
-    implements Insertable<MetaRunHistoryRow> {
-  final int id;
-  final bool isActive;
-  final int tilesRemaining;
-  final String selectedUpgradeIds;
-  final int coinsEarned;
-  final int tilesPlaced;
-  final String gridState;
-  final String tileStack;
-  final String? lastTilePlaced;
-  final int seed;
-  const MetaRunHistoryRow({
-    required this.id,
-    required this.isActive,
-    required this.tilesRemaining,
-    required this.selectedUpgradeIds,
-    required this.coinsEarned,
-    required this.tilesPlaced,
-    required this.gridState,
-    required this.tileStack,
-    this.lastTilePlaced,
-    required this.seed,
-  });
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    map['id'] = Variable<int>(id);
-    map['is_active'] = Variable<bool>(isActive);
-    map['tiles_remaining'] = Variable<int>(tilesRemaining);
-    map['selected_upgrade_ids'] = Variable<String>(selectedUpgradeIds);
-    map['coins_earned'] = Variable<int>(coinsEarned);
-    map['tiles_placed'] = Variable<int>(tilesPlaced);
-    map['grid_state'] = Variable<String>(gridState);
-    map['tile_stack'] = Variable<String>(tileStack);
-    if (!nullToAbsent || lastTilePlaced != null) {
-      map['last_tile_placed'] = Variable<String>(lastTilePlaced);
-    }
-    map['seed'] = Variable<int>(seed);
-    return map;
-  }
-
-  MetaRunHistoryCompanion toCompanion(bool nullToAbsent) {
-    return MetaRunHistoryCompanion(
-      id: Value(id),
-      isActive: Value(isActive),
-      tilesRemaining: Value(tilesRemaining),
-      selectedUpgradeIds: Value(selectedUpgradeIds),
-      coinsEarned: Value(coinsEarned),
-      tilesPlaced: Value(tilesPlaced),
-      gridState: Value(gridState),
-      tileStack: Value(tileStack),
-      lastTilePlaced: lastTilePlaced == null && nullToAbsent
-          ? const Value.absent()
-          : Value(lastTilePlaced),
-      seed: Value(seed),
-    );
-  }
-
-  factory MetaRunHistoryRow.fromJson(
-    Map<String, dynamic> json, {
-    ValueSerializer? serializer,
-  }) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return MetaRunHistoryRow(
-      id: serializer.fromJson<int>(json['id']),
-      isActive: serializer.fromJson<bool>(json['isActive']),
-      tilesRemaining: serializer.fromJson<int>(json['tilesRemaining']),
-      selectedUpgradeIds: serializer.fromJson<String>(
-        json['selectedUpgradeIds'],
-      ),
-      coinsEarned: serializer.fromJson<int>(json['coinsEarned']),
-      tilesPlaced: serializer.fromJson<int>(json['tilesPlaced']),
-      gridState: serializer.fromJson<String>(json['gridState']),
-      tileStack: serializer.fromJson<String>(json['tileStack']),
-      lastTilePlaced: serializer.fromJson<String?>(json['lastTilePlaced']),
-      seed: serializer.fromJson<int>(json['seed']),
-    );
-  }
-  @override
-  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return <String, dynamic>{
-      'id': serializer.toJson<int>(id),
-      'isActive': serializer.toJson<bool>(isActive),
-      'tilesRemaining': serializer.toJson<int>(tilesRemaining),
-      'selectedUpgradeIds': serializer.toJson<String>(selectedUpgradeIds),
-      'coinsEarned': serializer.toJson<int>(coinsEarned),
-      'tilesPlaced': serializer.toJson<int>(tilesPlaced),
-      'gridState': serializer.toJson<String>(gridState),
-      'tileStack': serializer.toJson<String>(tileStack),
-      'lastTilePlaced': serializer.toJson<String?>(lastTilePlaced),
-      'seed': serializer.toJson<int>(seed),
-    };
-  }
-
-  MetaRunHistoryRow copyWith({
-    int? id,
-    bool? isActive,
-    int? tilesRemaining,
-    String? selectedUpgradeIds,
-    int? coinsEarned,
-    int? tilesPlaced,
-    String? gridState,
-    String? tileStack,
-    Value<String?> lastTilePlaced = const Value.absent(),
-    int? seed,
-  }) => MetaRunHistoryRow(
-    id: id ?? this.id,
-    isActive: isActive ?? this.isActive,
-    tilesRemaining: tilesRemaining ?? this.tilesRemaining,
-    selectedUpgradeIds: selectedUpgradeIds ?? this.selectedUpgradeIds,
-    coinsEarned: coinsEarned ?? this.coinsEarned,
-    tilesPlaced: tilesPlaced ?? this.tilesPlaced,
-    gridState: gridState ?? this.gridState,
-    tileStack: tileStack ?? this.tileStack,
-    lastTilePlaced: lastTilePlaced.present
-        ? lastTilePlaced.value
-        : this.lastTilePlaced,
-    seed: seed ?? this.seed,
-  );
-  MetaRunHistoryRow copyWithCompanion(MetaRunHistoryCompanion data) {
-    return MetaRunHistoryRow(
-      id: data.id.present ? data.id.value : this.id,
-      isActive: data.isActive.present ? data.isActive.value : this.isActive,
-      tilesRemaining: data.tilesRemaining.present
-          ? data.tilesRemaining.value
-          : this.tilesRemaining,
-      selectedUpgradeIds: data.selectedUpgradeIds.present
-          ? data.selectedUpgradeIds.value
-          : this.selectedUpgradeIds,
-      coinsEarned: data.coinsEarned.present
-          ? data.coinsEarned.value
-          : this.coinsEarned,
-      tilesPlaced: data.tilesPlaced.present
-          ? data.tilesPlaced.value
-          : this.tilesPlaced,
-      gridState: data.gridState.present ? data.gridState.value : this.gridState,
-      tileStack: data.tileStack.present ? data.tileStack.value : this.tileStack,
-      lastTilePlaced: data.lastTilePlaced.present
-          ? data.lastTilePlaced.value
-          : this.lastTilePlaced,
-      seed: data.seed.present ? data.seed.value : this.seed,
-    );
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('MetaRunHistoryRow(')
-          ..write('id: $id, ')
-          ..write('isActive: $isActive, ')
-          ..write('tilesRemaining: $tilesRemaining, ')
-          ..write('selectedUpgradeIds: $selectedUpgradeIds, ')
-          ..write('coinsEarned: $coinsEarned, ')
-          ..write('tilesPlaced: $tilesPlaced, ')
-          ..write('gridState: $gridState, ')
-          ..write('tileStack: $tileStack, ')
-          ..write('lastTilePlaced: $lastTilePlaced, ')
-          ..write('seed: $seed')
-          ..write(')'))
-        .toString();
-  }
-
-  @override
-  int get hashCode => Object.hash(
-    id,
-    isActive,
-    tilesRemaining,
-    selectedUpgradeIds,
-    coinsEarned,
-    tilesPlaced,
-    gridState,
-    tileStack,
-    lastTilePlaced,
-    seed,
-  );
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      (other is MetaRunHistoryRow &&
-          other.id == this.id &&
-          other.isActive == this.isActive &&
-          other.tilesRemaining == this.tilesRemaining &&
-          other.selectedUpgradeIds == this.selectedUpgradeIds &&
-          other.coinsEarned == this.coinsEarned &&
-          other.tilesPlaced == this.tilesPlaced &&
-          other.gridState == this.gridState &&
-          other.tileStack == this.tileStack &&
-          other.lastTilePlaced == this.lastTilePlaced &&
-          other.seed == this.seed);
-}
-
-class MetaRunHistoryCompanion extends UpdateCompanion<MetaRunHistoryRow> {
-  final Value<int> id;
-  final Value<bool> isActive;
-  final Value<int> tilesRemaining;
-  final Value<String> selectedUpgradeIds;
-  final Value<int> coinsEarned;
-  final Value<int> tilesPlaced;
-  final Value<String> gridState;
-  final Value<String> tileStack;
-  final Value<String?> lastTilePlaced;
-  final Value<int> seed;
-  const MetaRunHistoryCompanion({
-    this.id = const Value.absent(),
-    this.isActive = const Value.absent(),
-    this.tilesRemaining = const Value.absent(),
-    this.selectedUpgradeIds = const Value.absent(),
-    this.coinsEarned = const Value.absent(),
-    this.tilesPlaced = const Value.absent(),
-    this.gridState = const Value.absent(),
-    this.tileStack = const Value.absent(),
-    this.lastTilePlaced = const Value.absent(),
-    this.seed = const Value.absent(),
-  });
-  MetaRunHistoryCompanion.insert({
-    this.id = const Value.absent(),
-    this.isActive = const Value.absent(),
-    required int tilesRemaining,
-    required String selectedUpgradeIds,
-    this.coinsEarned = const Value.absent(),
-    this.tilesPlaced = const Value.absent(),
-    required String gridState,
-    required String tileStack,
-    this.lastTilePlaced = const Value.absent(),
-    required int seed,
-  }) : tilesRemaining = Value(tilesRemaining),
-       selectedUpgradeIds = Value(selectedUpgradeIds),
-       gridState = Value(gridState),
-       tileStack = Value(tileStack),
-       seed = Value(seed);
-  static Insertable<MetaRunHistoryRow> custom({
-    Expression<int>? id,
-    Expression<bool>? isActive,
-    Expression<int>? tilesRemaining,
-    Expression<String>? selectedUpgradeIds,
-    Expression<int>? coinsEarned,
-    Expression<int>? tilesPlaced,
-    Expression<String>? gridState,
-    Expression<String>? tileStack,
-    Expression<String>? lastTilePlaced,
-    Expression<int>? seed,
-  }) {
-    return RawValuesInsertable({
-      if (id != null) 'id': id,
-      if (isActive != null) 'is_active': isActive,
-      if (tilesRemaining != null) 'tiles_remaining': tilesRemaining,
-      if (selectedUpgradeIds != null)
-        'selected_upgrade_ids': selectedUpgradeIds,
-      if (coinsEarned != null) 'coins_earned': coinsEarned,
-      if (tilesPlaced != null) 'tiles_placed': tilesPlaced,
-      if (gridState != null) 'grid_state': gridState,
-      if (tileStack != null) 'tile_stack': tileStack,
-      if (lastTilePlaced != null) 'last_tile_placed': lastTilePlaced,
-      if (seed != null) 'seed': seed,
-    });
-  }
-
-  MetaRunHistoryCompanion copyWith({
-    Value<int>? id,
-    Value<bool>? isActive,
-    Value<int>? tilesRemaining,
-    Value<String>? selectedUpgradeIds,
-    Value<int>? coinsEarned,
-    Value<int>? tilesPlaced,
-    Value<String>? gridState,
-    Value<String>? tileStack,
-    Value<String?>? lastTilePlaced,
-    Value<int>? seed,
-  }) {
-    return MetaRunHistoryCompanion(
-      id: id ?? this.id,
-      isActive: isActive ?? this.isActive,
-      tilesRemaining: tilesRemaining ?? this.tilesRemaining,
-      selectedUpgradeIds: selectedUpgradeIds ?? this.selectedUpgradeIds,
-      coinsEarned: coinsEarned ?? this.coinsEarned,
-      tilesPlaced: tilesPlaced ?? this.tilesPlaced,
-      gridState: gridState ?? this.gridState,
-      tileStack: tileStack ?? this.tileStack,
-      lastTilePlaced: lastTilePlaced ?? this.lastTilePlaced,
-      seed: seed ?? this.seed,
-    );
-  }
-
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    if (id.present) {
-      map['id'] = Variable<int>(id.value);
-    }
-    if (isActive.present) {
-      map['is_active'] = Variable<bool>(isActive.value);
-    }
-    if (tilesRemaining.present) {
-      map['tiles_remaining'] = Variable<int>(tilesRemaining.value);
-    }
-    if (selectedUpgradeIds.present) {
-      map['selected_upgrade_ids'] = Variable<String>(selectedUpgradeIds.value);
-    }
-    if (coinsEarned.present) {
-      map['coins_earned'] = Variable<int>(coinsEarned.value);
-    }
-    if (tilesPlaced.present) {
-      map['tiles_placed'] = Variable<int>(tilesPlaced.value);
-    }
-    if (gridState.present) {
-      map['grid_state'] = Variable<String>(gridState.value);
-    }
-    if (tileStack.present) {
-      map['tile_stack'] = Variable<String>(tileStack.value);
-    }
-    if (lastTilePlaced.present) {
-      map['last_tile_placed'] = Variable<String>(lastTilePlaced.value);
-    }
-    if (seed.present) {
-      map['seed'] = Variable<int>(seed.value);
-    }
-    return map;
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('MetaRunHistoryCompanion(')
-          ..write('id: $id, ')
-          ..write('isActive: $isActive, ')
-          ..write('tilesRemaining: $tilesRemaining, ')
-          ..write('selectedUpgradeIds: $selectedUpgradeIds, ')
-          ..write('coinsEarned: $coinsEarned, ')
-          ..write('tilesPlaced: $tilesPlaced, ')
-          ..write('gridState: $gridState, ')
-          ..write('tileStack: $tileStack, ')
-          ..write('lastTilePlaced: $lastTilePlaced, ')
-          ..write('seed: $seed')
-          ..write(')'))
-        .toString();
-  }
-}
-
 class $PlayerStatsTable extends PlayerStats
     with TableInfo<$PlayerStatsTable, PlayerStatsRow> {
   @override
@@ -3545,7 +2992,6 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     this,
   );
   late final $DailyQuestsTable dailyQuests = $DailyQuestsTable(this);
-  late final $MetaRunHistoryTable metaRunHistory = $MetaRunHistoryTable(this);
   late final $PlayerStatsTable playerStats = $PlayerStatsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
@@ -3557,7 +3003,6 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     upgrades,
     permanentQuests,
     dailyQuests,
-    metaRunHistory,
     playerStats,
   ];
 }
@@ -3877,6 +3322,7 @@ typedef $$PlayerProfileTableCreateCompanionBuilder =
       Value<int> totalTilesPlaced,
       Value<bool> isPremium,
       Value<DateTime?> lastDailyRewardDate,
+      Value<DateTime?> lastPremiumDailyCoinsDate,
     });
 typedef $$PlayerProfileTableUpdateCompanionBuilder =
     PlayerProfileCompanion Function({
@@ -3885,6 +3331,7 @@ typedef $$PlayerProfileTableUpdateCompanionBuilder =
       Value<int> totalTilesPlaced,
       Value<bool> isPremium,
       Value<DateTime?> lastDailyRewardDate,
+      Value<DateTime?> lastPremiumDailyCoinsDate,
     });
 
 class $$PlayerProfileTableFilterComposer
@@ -3918,6 +3365,11 @@ class $$PlayerProfileTableFilterComposer
 
   ColumnFilters<DateTime> get lastDailyRewardDate => $composableBuilder(
     column: $table.lastDailyRewardDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get lastPremiumDailyCoinsDate => $composableBuilder(
+    column: $table.lastPremiumDailyCoinsDate,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -3955,6 +3407,11 @@ class $$PlayerProfileTableOrderingComposer
     column: $table.lastDailyRewardDate,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<DateTime> get lastPremiumDailyCoinsDate => $composableBuilder(
+    column: $table.lastPremiumDailyCoinsDate,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$PlayerProfileTableAnnotationComposer
@@ -3982,6 +3439,11 @@ class $$PlayerProfileTableAnnotationComposer
 
   GeneratedColumn<DateTime> get lastDailyRewardDate => $composableBuilder(
     column: $table.lastDailyRewardDate,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get lastPremiumDailyCoinsDate => $composableBuilder(
+    column: $table.lastPremiumDailyCoinsDate,
     builder: (column) => column,
   );
 }
@@ -4026,12 +3488,15 @@ class $$PlayerProfileTableTableManager
                 Value<int> totalTilesPlaced = const Value.absent(),
                 Value<bool> isPremium = const Value.absent(),
                 Value<DateTime?> lastDailyRewardDate = const Value.absent(),
+                Value<DateTime?> lastPremiumDailyCoinsDate =
+                    const Value.absent(),
               }) => PlayerProfileCompanion(
                 id: id,
                 coins: coins,
                 totalTilesPlaced: totalTilesPlaced,
                 isPremium: isPremium,
                 lastDailyRewardDate: lastDailyRewardDate,
+                lastPremiumDailyCoinsDate: lastPremiumDailyCoinsDate,
               ),
           createCompanionCallback:
               ({
@@ -4040,12 +3505,15 @@ class $$PlayerProfileTableTableManager
                 Value<int> totalTilesPlaced = const Value.absent(),
                 Value<bool> isPremium = const Value.absent(),
                 Value<DateTime?> lastDailyRewardDate = const Value.absent(),
+                Value<DateTime?> lastPremiumDailyCoinsDate =
+                    const Value.absent(),
               }) => PlayerProfileCompanion.insert(
                 id: id,
                 coins: coins,
                 totalTilesPlaced: totalTilesPlaced,
                 isPremium: isPremium,
                 lastDailyRewardDate: lastDailyRewardDate,
+                lastPremiumDailyCoinsDate: lastPremiumDailyCoinsDate,
               ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
@@ -4834,311 +4302,6 @@ typedef $$DailyQuestsTableProcessedTableManager =
       DailyQuestRow,
       PrefetchHooks Function()
     >;
-typedef $$MetaRunHistoryTableCreateCompanionBuilder =
-    MetaRunHistoryCompanion Function({
-      Value<int> id,
-      Value<bool> isActive,
-      required int tilesRemaining,
-      required String selectedUpgradeIds,
-      Value<int> coinsEarned,
-      Value<int> tilesPlaced,
-      required String gridState,
-      required String tileStack,
-      Value<String?> lastTilePlaced,
-      required int seed,
-    });
-typedef $$MetaRunHistoryTableUpdateCompanionBuilder =
-    MetaRunHistoryCompanion Function({
-      Value<int> id,
-      Value<bool> isActive,
-      Value<int> tilesRemaining,
-      Value<String> selectedUpgradeIds,
-      Value<int> coinsEarned,
-      Value<int> tilesPlaced,
-      Value<String> gridState,
-      Value<String> tileStack,
-      Value<String?> lastTilePlaced,
-      Value<int> seed,
-    });
-
-class $$MetaRunHistoryTableFilterComposer
-    extends Composer<_$AppDatabase, $MetaRunHistoryTable> {
-  $$MetaRunHistoryTableFilterComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnFilters<int> get id => $composableBuilder(
-    column: $table.id,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<bool> get isActive => $composableBuilder(
-    column: $table.isActive,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<int> get tilesRemaining => $composableBuilder(
-    column: $table.tilesRemaining,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get selectedUpgradeIds => $composableBuilder(
-    column: $table.selectedUpgradeIds,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<int> get coinsEarned => $composableBuilder(
-    column: $table.coinsEarned,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<int> get tilesPlaced => $composableBuilder(
-    column: $table.tilesPlaced,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get gridState => $composableBuilder(
-    column: $table.gridState,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get tileStack => $composableBuilder(
-    column: $table.tileStack,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get lastTilePlaced => $composableBuilder(
-    column: $table.lastTilePlaced,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<int> get seed => $composableBuilder(
-    column: $table.seed,
-    builder: (column) => ColumnFilters(column),
-  );
-}
-
-class $$MetaRunHistoryTableOrderingComposer
-    extends Composer<_$AppDatabase, $MetaRunHistoryTable> {
-  $$MetaRunHistoryTableOrderingComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnOrderings<int> get id => $composableBuilder(
-    column: $table.id,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<bool> get isActive => $composableBuilder(
-    column: $table.isActive,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<int> get tilesRemaining => $composableBuilder(
-    column: $table.tilesRemaining,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get selectedUpgradeIds => $composableBuilder(
-    column: $table.selectedUpgradeIds,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<int> get coinsEarned => $composableBuilder(
-    column: $table.coinsEarned,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<int> get tilesPlaced => $composableBuilder(
-    column: $table.tilesPlaced,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get gridState => $composableBuilder(
-    column: $table.gridState,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get tileStack => $composableBuilder(
-    column: $table.tileStack,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get lastTilePlaced => $composableBuilder(
-    column: $table.lastTilePlaced,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<int> get seed => $composableBuilder(
-    column: $table.seed,
-    builder: (column) => ColumnOrderings(column),
-  );
-}
-
-class $$MetaRunHistoryTableAnnotationComposer
-    extends Composer<_$AppDatabase, $MetaRunHistoryTable> {
-  $$MetaRunHistoryTableAnnotationComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  GeneratedColumn<int> get id =>
-      $composableBuilder(column: $table.id, builder: (column) => column);
-
-  GeneratedColumn<bool> get isActive =>
-      $composableBuilder(column: $table.isActive, builder: (column) => column);
-
-  GeneratedColumn<int> get tilesRemaining => $composableBuilder(
-    column: $table.tilesRemaining,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<String> get selectedUpgradeIds => $composableBuilder(
-    column: $table.selectedUpgradeIds,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<int> get coinsEarned => $composableBuilder(
-    column: $table.coinsEarned,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<int> get tilesPlaced => $composableBuilder(
-    column: $table.tilesPlaced,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<String> get gridState =>
-      $composableBuilder(column: $table.gridState, builder: (column) => column);
-
-  GeneratedColumn<String> get tileStack =>
-      $composableBuilder(column: $table.tileStack, builder: (column) => column);
-
-  GeneratedColumn<String> get lastTilePlaced => $composableBuilder(
-    column: $table.lastTilePlaced,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<int> get seed =>
-      $composableBuilder(column: $table.seed, builder: (column) => column);
-}
-
-class $$MetaRunHistoryTableTableManager
-    extends
-        RootTableManager<
-          _$AppDatabase,
-          $MetaRunHistoryTable,
-          MetaRunHistoryRow,
-          $$MetaRunHistoryTableFilterComposer,
-          $$MetaRunHistoryTableOrderingComposer,
-          $$MetaRunHistoryTableAnnotationComposer,
-          $$MetaRunHistoryTableCreateCompanionBuilder,
-          $$MetaRunHistoryTableUpdateCompanionBuilder,
-          (
-            MetaRunHistoryRow,
-            BaseReferences<
-              _$AppDatabase,
-              $MetaRunHistoryTable,
-              MetaRunHistoryRow
-            >,
-          ),
-          MetaRunHistoryRow,
-          PrefetchHooks Function()
-        > {
-  $$MetaRunHistoryTableTableManager(
-    _$AppDatabase db,
-    $MetaRunHistoryTable table,
-  ) : super(
-        TableManagerState(
-          db: db,
-          table: table,
-          createFilteringComposer: () =>
-              $$MetaRunHistoryTableFilterComposer($db: db, $table: table),
-          createOrderingComposer: () =>
-              $$MetaRunHistoryTableOrderingComposer($db: db, $table: table),
-          createComputedFieldComposer: () =>
-              $$MetaRunHistoryTableAnnotationComposer($db: db, $table: table),
-          updateCompanionCallback:
-              ({
-                Value<int> id = const Value.absent(),
-                Value<bool> isActive = const Value.absent(),
-                Value<int> tilesRemaining = const Value.absent(),
-                Value<String> selectedUpgradeIds = const Value.absent(),
-                Value<int> coinsEarned = const Value.absent(),
-                Value<int> tilesPlaced = const Value.absent(),
-                Value<String> gridState = const Value.absent(),
-                Value<String> tileStack = const Value.absent(),
-                Value<String?> lastTilePlaced = const Value.absent(),
-                Value<int> seed = const Value.absent(),
-              }) => MetaRunHistoryCompanion(
-                id: id,
-                isActive: isActive,
-                tilesRemaining: tilesRemaining,
-                selectedUpgradeIds: selectedUpgradeIds,
-                coinsEarned: coinsEarned,
-                tilesPlaced: tilesPlaced,
-                gridState: gridState,
-                tileStack: tileStack,
-                lastTilePlaced: lastTilePlaced,
-                seed: seed,
-              ),
-          createCompanionCallback:
-              ({
-                Value<int> id = const Value.absent(),
-                Value<bool> isActive = const Value.absent(),
-                required int tilesRemaining,
-                required String selectedUpgradeIds,
-                Value<int> coinsEarned = const Value.absent(),
-                Value<int> tilesPlaced = const Value.absent(),
-                required String gridState,
-                required String tileStack,
-                Value<String?> lastTilePlaced = const Value.absent(),
-                required int seed,
-              }) => MetaRunHistoryCompanion.insert(
-                id: id,
-                isActive: isActive,
-                tilesRemaining: tilesRemaining,
-                selectedUpgradeIds: selectedUpgradeIds,
-                coinsEarned: coinsEarned,
-                tilesPlaced: tilesPlaced,
-                gridState: gridState,
-                tileStack: tileStack,
-                lastTilePlaced: lastTilePlaced,
-                seed: seed,
-              ),
-          withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
-              .toList(),
-          prefetchHooksCallback: null,
-        ),
-      );
-}
-
-typedef $$MetaRunHistoryTableProcessedTableManager =
-    ProcessedTableManager<
-      _$AppDatabase,
-      $MetaRunHistoryTable,
-      MetaRunHistoryRow,
-      $$MetaRunHistoryTableFilterComposer,
-      $$MetaRunHistoryTableOrderingComposer,
-      $$MetaRunHistoryTableAnnotationComposer,
-      $$MetaRunHistoryTableCreateCompanionBuilder,
-      $$MetaRunHistoryTableUpdateCompanionBuilder,
-      (
-        MetaRunHistoryRow,
-        BaseReferences<_$AppDatabase, $MetaRunHistoryTable, MetaRunHistoryRow>,
-      ),
-      MetaRunHistoryRow,
-      PrefetchHooks Function()
-    >;
 typedef $$PlayerStatsTableCreateCompanionBuilder =
     PlayerStatsCompanion Function({
       Value<int> id,
@@ -5374,8 +4537,6 @@ class $AppDatabaseManager {
       $$PermanentQuestsTableTableManager(_db, _db.permanentQuests);
   $$DailyQuestsTableTableManager get dailyQuests =>
       $$DailyQuestsTableTableManager(_db, _db.dailyQuests);
-  $$MetaRunHistoryTableTableManager get metaRunHistory =>
-      $$MetaRunHistoryTableTableManager(_db, _db.metaRunHistory);
   $$PlayerStatsTableTableManager get playerStats =>
       $$PlayerStatsTableTableManager(_db, _db.playerStats);
 }

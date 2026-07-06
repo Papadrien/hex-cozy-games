@@ -1,7 +1,5 @@
 library;
 
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -14,6 +12,7 @@ import '../providers/player_profile_provider.dart';
 import '../providers/progression_provider.dart';
 import '../providers/quest_provider.dart';
 import '../services/haptics_service.dart';
+import 'glass_container.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ÉCRAN DES AMÉLIORATIONS — style glassmorphism (aligné sur ShopScreen)
@@ -139,27 +138,14 @@ class _UpgradesGlassIconButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(14),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-        child: Material(
-          color: Colors.white.withValues(alpha: 0.15),
-          borderRadius: BorderRadius.circular(14),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(14),
-            onTap: onPressed,
-            child: Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.35)),
-              ),
-              child: Icon(icon, color: Colors.white, size: 20),
-            ),
-          ),
-        ),
-      ),
+    return GlassContainer(
+      borderRadius: 14,
+      tintColor: Colors.white,
+      tintAlpha: 0.15,
+      borderColor: Colors.white.withValues(alpha: 0.35),
+      padding: const EdgeInsets.all(10),
+      onTap: onPressed,
+      child: Icon(icon, color: Colors.white, size: 20),
     );
   }
 }
@@ -298,112 +284,101 @@ class _UpgradeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(18),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: isLocked
-                ? Colors.white.withValues(alpha: 0.05)
-                : kBrandBlue.withValues(alpha: 0.10),
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(
-              color: isLocked
-                  ? Colors.white.withValues(alpha: 0.12)
-                  : Colors.white.withValues(alpha: 0.20),
-              width: 1,
-            ),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    return GlassContainer(
+      borderRadius: 18,
+      tintColor: isLocked ? Colors.white : kBrandBlue,
+      tintAlpha: isLocked ? 0.05 : 0.10,
+      borderColor: isLocked
+          ? Colors.white.withValues(alpha: 0.12)
+          : Colors.white.withValues(alpha: 0.20),
+      blurSigma: 12,
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             children: [
-              Row(
-                children: [
-                  _UpgradeIconBadge(isLocked: isLocked),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      upgrade.name,
-                      style: GoogleFonts.nunito(
-                        color: isLocked
-                            ? Colors.white.withValues(alpha: 0.5)
-                            : Colors.white,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
+              _UpgradeIconBadge(isLocked: isLocked),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  upgrade.name,
+                  style: GoogleFonts.nunito(
+                    color: isLocked
+                        ? Colors.white.withValues(alpha: 0.5)
+                        : Colors.white,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
                   ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Icon(Icons.tune,
-                      size: 14,
-                      color: isLocked
-                          ? Colors.white.withValues(alpha: 0.25)
-                          : Colors.white.withValues(alpha: 0.55)),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      isLocked ? context.tr.upgrades_hiddenEffect : _effectLabel(upgrade),
-                      style: TextStyle(
-                        color: isLocked
-                            ? Colors.white.withValues(alpha: 0.35)
-                            : Colors.white.withValues(alpha: 0.75),
-                        fontSize: 13,
-                        fontStyle: isLocked ? FontStyle.italic : FontStyle.normal,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              if (isLocked) ...[
-                Row(
-                  children: [
-                    Icon(Icons.info_outline,
-                        size: 14,
-                        color: Colors.white.withValues(alpha: 0.35)),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: Text(
-                        '${context.tr.upgrades_unlockCondition} : ${_conditionLabel(upgrade, questDescriptions)}',
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.5),
-                          fontSize: 12,
-                        ),
-                      ),
-                    ),
-                  ],
                 ),
-              ] else ...[
-                _LevelsPreview(upgrade: upgrade),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    Icon(Icons.stars,
-                        size: 14,
-                        color: kRewardGold.withValues(alpha: 0.85)),
-                    const SizedBox(width: 6),
-                    Text(
-                      '${context.tr.upgrades_level} ${upgrade.currentLevel + 1}',
-                      style: TextStyle(
-                        color: kRewardGold.withValues(alpha: 0.9),
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const Spacer(),
-                    _UpgradeButton(upgrade: upgrade, totalCoins: totalCoins),
-                  ],
-                ),
-              ],
+              ),
             ],
           ),
-        ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Icon(Icons.tune,
+                  size: 14,
+                  color: isLocked
+                      ? Colors.white.withValues(alpha: 0.25)
+                      : Colors.white.withValues(alpha: 0.55)),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  isLocked ? context.tr.upgrades_hiddenEffect : _effectLabel(upgrade),
+                  style: TextStyle(
+                    color: isLocked
+                        ? Colors.white.withValues(alpha: 0.35)
+                        : Colors.white.withValues(alpha: 0.75),
+                    fontSize: 13,
+                    fontStyle: isLocked ? FontStyle.italic : FontStyle.normal,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          if (isLocked) ...[
+            Row(
+              children: [
+                Icon(Icons.info_outline,
+                    size: 14,
+                    color: Colors.white.withValues(alpha: 0.35)),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    '${context.tr.upgrades_unlockCondition} : ${_conditionLabel(upgrade, questDescriptions)}',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.5),
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ] else ...[
+            _LevelsPreview(upgrade: upgrade),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Icon(Icons.stars,
+                    size: 14,
+                    color: kRewardGold.withValues(alpha: 0.85)),
+                const SizedBox(width: 6),
+                Text(
+                  '${context.tr.upgrades_level} ${upgrade.currentLevel + 1}',
+                  style: TextStyle(
+                    color: kRewardGold.withValues(alpha: 0.9),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const Spacer(),
+                _UpgradeButton(upgrade: upgrade, totalCoins: totalCoins),
+              ],
+            ),
+          ],
+        ],
       ),
     );
   }
@@ -415,33 +390,23 @@ class _UpgradeIconBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(12),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
-        child: Container(
-          width: 38,
-          height: 38,
-          decoration: BoxDecoration(
-            color: isLocked
-                ? Colors.white.withValues(alpha: 0.08)
-                : kUpgradePurple.withValues(alpha: 0.22),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: isLocked
-                  ? Colors.white.withValues(alpha: 0.14)
-                  : kUpgradePurple.withValues(alpha: 0.4),
-              width: 0.8,
-            ),
-          ),
-          child: Icon(
-            isLocked ? Icons.lock : Icons.auto_awesome,
-            size: 18,
-            color: isLocked
-                ? Colors.white.withValues(alpha: 0.4)
-                : kUpgradePurple,
-          ),
-        ),
+    return GlassContainer(
+      borderRadius: 12,
+      tintColor: isLocked ? Colors.white : kUpgradePurple,
+      tintAlpha: isLocked ? 0.08 : 0.22,
+      borderColor: isLocked
+          ? Colors.white.withValues(alpha: 0.14)
+          : kUpgradePurple.withValues(alpha: 0.4),
+      borderWidth: 0.8,
+      blurSigma: 6,
+      width: 38,
+      height: 38,
+      child: Icon(
+        isLocked ? Icons.lock : Icons.auto_awesome,
+        size: 18,
+        color: isLocked
+            ? Colors.white.withValues(alpha: 0.4)
+            : kUpgradePurple,
       ),
     );
   }
@@ -554,25 +519,19 @@ class _UpgradeButton extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final isMaxLevel = upgrade.currentLevel >= kUpgradeCosts.length;
     if (isMaxLevel) {
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(10),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.06),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
-            ),
-            child: Text(
-              context.tr.upgrades_max,
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.35),
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
+      return GlassContainer(
+        borderRadius: 10,
+        tintColor: Colors.white,
+        tintAlpha: 0.06,
+        borderColor: Colors.white.withValues(alpha: 0.12),
+        blurSigma: 6,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        child: Text(
+          context.tr.upgrades_max,
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.35),
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
           ),
         ),
       );
@@ -581,41 +540,24 @@ class _UpgradeButton extends ConsumerWidget {
     final cost = kUpgradeCosts[upgrade.currentLevel];
     final canAfford = totalCoins >= cost;
 
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(10),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-        child: Material(
+    return GlassContainer(
+      borderRadius: 10,
+      tintColor: canAfford ? kBrandBlue : Colors.white,
+      tintAlpha: canAfford ? 0.30 : 0.06,
+      borderColor: canAfford
+          ? kBrandBlue.withValues(alpha: 0.55)
+          : Colors.white.withValues(alpha: 0.12),
+      blurSigma: 8,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      onTap: canAfford ? () => _handleUpgrade(context, ref) : null,
+      child: Text(
+        '${context.tr.upgrades_cost} : $cost  ${context.tr.upgrades_upgradeButton}',
+        style: TextStyle(
           color: canAfford
-              ? kBrandBlue.withValues(alpha: 0.30)
-              : Colors.white.withValues(alpha: 0.06),
-          borderRadius: BorderRadius.circular(10),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(10),
-            onTap: canAfford ? () => _handleUpgrade(context, ref) : null,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(
-                  color: canAfford
-                      ? kBrandBlue.withValues(alpha: 0.55)
-                      : Colors.white.withValues(alpha: 0.12),
-                  width: 1,
-                ),
-              ),
-              child: Text(
-                '${context.tr.upgrades_cost} : $cost  ${context.tr.upgrades_upgradeButton}',
-                style: TextStyle(
-                  color: canAfford
-                      ? Colors.white
-                      : Colors.white.withValues(alpha: 0.35),
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-          ),
+              ? Colors.white
+              : Colors.white.withValues(alpha: 0.35),
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
         ),
       ),
     );

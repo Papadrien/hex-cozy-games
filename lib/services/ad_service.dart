@@ -227,7 +227,7 @@ final isPremiumDailyCoinsAvailableProvider = Provider<bool>((ref) {
   final row = profile.maybeWhen(data: (r) => r, orElse: () => null);
   if (row == null || !row.isPremium) return false;
 
-  final lastDate = row.lastDailyRewardDate;
+  final lastDate = row.lastPremiumDailyCoinsDate;
   if (lastDate == null) return true;
   final now = DateTime.now();
   return now.year != lastDate.year ||
@@ -245,6 +245,6 @@ Future<bool> claimPremiumDailyCoins(WidgetRef ref) async {
 
   final db = ref.read(appDatabaseProvider);
   await addCoinsToProfile(db, kAdRewardedCoins);
-  await updateLastDailyRewardDate(db);
+  await updateLastPremiumDailyCoinsDate(db);
   return true;
 }

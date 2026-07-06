@@ -18,6 +18,8 @@ library;
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+
+import 'glass_container.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/colors.dart';
@@ -67,25 +69,18 @@ class _PauseCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Container(
+    return GlassContainer(
       margin: const EdgeInsets.symmetric(horizontal: 40),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(24),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 28),
-            decoration: BoxDecoration(
-              color: const Color(0xFF5BA4D4).withValues(alpha: 0.18),
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(
-                color: const Color(0xFF7EC8E3).withValues(alpha: 0.38),
-                width: 1.5,
-              ),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
+      tintColor: kGlassBlue,
+      tintAlpha: 0.18,
+      borderColor: kGlassBlueBorder.withValues(alpha: 0.38),
+      borderWidth: 1.5,
+      borderRadius: 24,
+      blurSigma: 16,
+      padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 28),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
                 // Titre (sans décoration ni emoji)
                 Text(
                   showOptions ? context.tr.pause_options : 'Pause',
@@ -100,10 +95,7 @@ class _PauseCard extends ConsumerWidget {
                   _OptionsContent()
                 else
                   _MainContent(),
-              ],
-            ),
-          ),
-        ),
+        ],
       ),
     );
   }

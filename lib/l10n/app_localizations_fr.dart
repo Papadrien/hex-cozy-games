@@ -217,6 +217,9 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String get shop_bestValueBadge => 'MEILLEUR RAPPORT';
+
+  @override
   String get shop_premium => 'Premium';
 
   @override

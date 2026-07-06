@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -10,6 +8,7 @@ import '../core/strings.dart';
 import '../providers/player_profile_provider.dart';
 import '../services/iap_service.dart';
 import '../services/haptics_service.dart';
+import 'glass_container.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SHOP SCREEN
@@ -131,27 +130,14 @@ class _ShopGlassIconButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(14),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-        child: Material(
-          color: Colors.white.withValues(alpha: 0.15),
-          borderRadius: BorderRadius.circular(14),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(14),
-            onTap: onPressed,
-            child: Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.35)),
-              ),
-              child: Icon(icon, color: Colors.white, size: 20),
-            ),
-          ),
-        ),
-      ),
+    return GlassContainer(
+      borderRadius: 14,
+      tintColor: Colors.white,
+      tintAlpha: 0.15,
+      borderColor: Colors.white.withValues(alpha: 0.35),
+      padding: const EdgeInsets.all(10),
+      onTap: onPressed,
+      child: Icon(icon, color: Colors.white, size: 20),
     );
   }
 }
@@ -247,97 +233,81 @@ class _CoinPackCardState extends ConsumerState<_CoinPackCard> {
     final isBestValue = widget.index == kCoinPacks.length - 1;
     final iapAvailable = ref.watch(iapAvailableProvider);
 
-    return Container(
+    return GlassContainer(
       margin: const EdgeInsets.only(bottom: 12),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(18),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              // Teinte bleutée pour les cartes secondaires
-              color: isBestValue
-                  ? kRewardGold.withValues(alpha: 0.10)
-                  : kBrandBlue.withValues(alpha: 0.10),
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(
-                color: isBestValue
-                    ? kRewardGold.withValues(alpha: 0.45)
-                    : Colors.white.withValues(alpha: 0.20),
-                width: isBestValue ? 1.5 : 1,
-              ),
-            ),
-            child: Row(
+      borderRadius: 18,
+      tintColor: isBestValue ? kRewardGold : kBrandBlue,
+      tintAlpha: 0.10,
+      borderColor: isBestValue ? kRewardGold.withValues(alpha: 0.45) : Colors.white.withValues(alpha: 0.20),
+      borderWidth: isBestValue ? 1.5 : 1,
+      blurSigma: 12,
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        children: [
+          _CoinStackIcon(index: widget.index, isBestValue: isBestValue),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _CoinStackIcon(index: widget.index, isBestValue: isBestValue),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        context.tr.shop_coinCount(widget.pack.coins.toString()),
-                        style: GoogleFonts.nunito(
-                          color: Colors.white,
-                          fontSize: 17,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      if (isBestValue) ...[
-                        const SizedBox(height: 4),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 7, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: kRewardGold.withValues(alpha: 0.18),
-                            borderRadius: BorderRadius.circular(6),
-                            border: Border.all(
-                              color: kRewardGold.withValues(alpha: 0.4),
-                              width: 0.8,
-                            ),
-                          ),
-                          child: Text(
-                            'MEILLEUR RAPPORT',
-                            style: TextStyle(
-                              color: kRewardGold,
-                              fontSize: 9,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: 0.6,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ],
+                Text(
+                  context.tr.shop_coinCount(widget.pack.coins.toString()),
+                  style: GoogleFonts.nunito(
+                    color: Colors.white,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
-                // Bouton prix — glass bleuté
-                _PriceButton(
-                  price: widget.pack.price,
-                  loading: _loading,
-                  available: iapAvailable,
-                  onTap: (_loading || !iapAvailable)
-                      ? null
-                      : () async {
-                          buttonHapticTap(context);
-                          setState(() => _loading = true);
-                          try {
-                            final result =
-                                await purchaseCoinPack(ref, widget.index);
-                            if (!context.mounted) return;
-                            _showPurchaseResult(
-                                context, result, widget.pack.coins);
-                          } finally {
-                            if (context.mounted) {
-                              setState(() => _loading = false);
-                            }
-                          }
-                        },
-                ),
+                if (isBestValue) ...[
+                  const SizedBox(height: 4),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 7, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: kRewardGold.withValues(alpha: 0.18),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(
+                        color: kRewardGold.withValues(alpha: 0.4),
+                        width: 0.8,
+                      ),
+                    ),
+                    child: Text(
+                      context.tr.shop_bestValueBadge,
+                      style: TextStyle(
+                        color: kRewardGold,
+                        fontSize: 9,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.6,
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
-        ),
+          _PriceButton(
+            price: widget.pack.price,
+            loading: _loading,
+            available: iapAvailable,
+            onTap: (_loading || !iapAvailable)
+                ? null
+                : () async {
+                    buttonHapticTap(context);
+                    setState(() => _loading = true);
+                    try {
+                      final result =
+                          await purchaseCoinPack(ref, widget.index);
+                      if (!context.mounted) return;
+                      _showPurchaseResult(
+                          context, result, widget.pack.coins);
+                    } finally {
+                      if (context.mounted) {
+                        setState(() => _loading = false);
+                      }
+                    }
+                  },
+          ),
+        ],
       ),
     );
   }
@@ -361,51 +331,35 @@ class _PriceButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(12),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-        child: Material(
-          color: available
-              ? kBrandBlue.withValues(alpha: 0.30)
-              : Colors.white.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(12),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(12),
-            onTap: onTap,
-            child: Container(
-              height: 42,
-              padding: const EdgeInsets.symmetric(horizontal: 18),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
+    return GlassContainer(
+      borderRadius: 12,
+      tintColor: available ? kBrandBlue : Colors.white,
+      tintAlpha: available ? 0.30 : 0.08,
+      borderColor: available
+          ? kBrandBlue.withValues(alpha: 0.55)
+          : Colors.white.withValues(alpha: 0.12),
+      blurSigma: 8,
+      padding: const EdgeInsets.symmetric(horizontal: 18),
+      height: 42,
+      onTap: onTap,
+      child: Center(
+        child: loading
+            ? const SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(
+                    strokeWidth: 2, color: Colors.white),
+              )
+            : Text(
+                price,
+                style: TextStyle(
                   color: available
-                      ? kBrandBlue.withValues(alpha: 0.55)
-                      : Colors.white.withValues(alpha: 0.12),
-                  width: 1,
+                      ? Colors.white
+                      : Colors.white.withValues(alpha: 0.3),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
-              alignment: Alignment.center,
-              child: loading
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(
-                          strokeWidth: 2, color: Colors.white),
-                    )
-                  : Text(
-                      price,
-                      style: TextStyle(
-                        color: available
-                            ? Colors.white
-                            : Colors.white.withValues(alpha: 0.3),
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-            ),
-          ),
-        ),
       ),
     );
   }
@@ -424,31 +378,21 @@ class _CoinStackIcon extends StatelessWidget {
   Widget build(BuildContext context) {
     final iconSize = 20.0 + index * 4;
 
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(14),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
-        child: Container(
-          width: 48,
-          height: 48,
-          decoration: BoxDecoration(
-            color: isBestValue
-                ? kRewardGold.withValues(alpha: 0.18)
-                : kBrandBlue.withValues(alpha: 0.18),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: isBestValue
-                  ? kRewardGold.withValues(alpha: 0.35)
-                  : Colors.white.withValues(alpha: 0.18),
-              width: 0.8,
-            ),
-          ),
-          child: Icon(
-            Icons.monetization_on,
-            size: iconSize,
-            color: kRewardGold,
-          ),
-        ),
+    return GlassContainer(
+      borderRadius: 14,
+      tintColor: isBestValue ? kRewardGold : kBrandBlue,
+      tintAlpha: 0.18,
+      borderColor: isBestValue
+          ? kRewardGold.withValues(alpha: 0.35)
+          : Colors.white.withValues(alpha: 0.18),
+      borderWidth: 0.8,
+      blurSigma: 6,
+      width: 48,
+      height: 48,
+      child: Icon(
+        Icons.monetization_on,
+        size: iconSize,
+        color: kRewardGold,
       ),
     );
   }
@@ -473,173 +417,128 @@ class _PremiumCardState extends ConsumerState<_PremiumCard> {
   Widget build(BuildContext context) {
     final iapAvailable = ref.watch(iapAvailableProvider);
 
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(20),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
-        child: Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            // Teinte violette subtile sur fond verre bleuté
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: widget.isPremium
-                  ? [
-                      kUpgradePurple.withValues(alpha: 0.18),
-                      kBrandBlue.withValues(alpha: 0.12),
-                    ]
-                  : [
-                      kBrandBlue.withValues(alpha: 0.15),
-                      kUpgradePurple.withValues(alpha: 0.08),
-                    ],
-            ),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: widget.isPremium
-                  ? kUpgradePurple.withValues(alpha: 0.50)
-                  : Colors.white.withValues(alpha: 0.22),
-              width: widget.isPremium ? 1.5 : 1,
-            ),
-          ),
-          child: Column(
+    final buttonTint = _loading || (!widget.isPremium && iapAvailable)
+        ? kUpgradePurple
+        : Colors.white;
+    final buttonAlpha = (_loading || (!widget.isPremium && iapAvailable)) ? 0.35 : 0.07;
+
+    return GlassContainer(
+      borderRadius: 20,
+      tintColor: widget.isPremium ? kUpgradePurple : kBrandBlue,
+      tintAlpha: widget.isPremium ? 0.18 : 0.15,
+      borderColor: widget.isPremium
+          ? kUpgradePurple.withValues(alpha: 0.50)
+          : Colors.white.withValues(alpha: 0.22),
+      borderWidth: widget.isPremium ? 1.5 : 1,
+      blurSigma: 14,
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        children: [
+          Row(
             children: [
-              Row(
-                children: [
-                  // Icône étoile
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(14),
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
-                      child: Container(
-                        width: 52,
-                        height: 52,
-                        decoration: BoxDecoration(
-                          color: kUpgradePurple.withValues(alpha: 0.20),
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(
-                            color: kUpgradePurple.withValues(alpha: 0.40),
-                            width: 0.8,
-                          ),
-                        ),
-                        child: const Icon(
-                          Icons.star_rounded,
-                          size: 28,
-                          color: kUpgradePurple,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          context.tr.shop_premium,
-                          style: GoogleFonts.nunito(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          context.tr.shop_premiumDescription,
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.65),
-                            fontSize: 12.5,
-                            height: 1.4,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+              // Icône étoile
+              GlassContainer(
+                borderRadius: 14,
+                tintColor: kUpgradePurple,
+                tintAlpha: 0.20,
+                borderColor: kUpgradePurple.withValues(alpha: 0.40),
+                borderWidth: 0.8,
+                blurSigma: 6,
+                width: 52,
+                height: 52,
+                child: const Icon(
+                  Icons.star_rounded,
+                  size: 28,
+                  color: kUpgradePurple,
+                ),
               ),
-              const SizedBox(height: 18),
-              // Bouton Acheter — glassmorphism violet
-              ClipRRect(
-                borderRadius: BorderRadius.circular(14),
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-                  child: Material(
-                    color: _loading
-                        ? kUpgradePurple.withValues(alpha: 0.35)
-                        : widget.isPremium
-                            ? Colors.white.withValues(alpha: 0.07)
-                            : iapAvailable
-                                ? kUpgradePurple.withValues(alpha: 0.35)
-                                : Colors.white.withValues(alpha: 0.07),
-                    borderRadius: BorderRadius.circular(14),
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(14),
-                      onTap: (widget.isPremium || _loading || !iapAvailable)
-                          ? null
-                          : () async {
-                              buttonHapticTap(context);
-                              setState(() => _loading = true);
-                              try {
-                                final result = await purchasePremium(ref);
-                                if (!context.mounted) return;
-                                if (result == IapResult.success) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(context.tr.shop_premium),
-                                      backgroundColor:
-                                          Colors.green.withValues(alpha: 0.3),
-                                      behavior: SnackBarBehavior.floating,
-                                    ),
-                                  );
-                                } else {
-                                  _showPremiumResult(context, result);
-                                }
-                              } finally {
-                                if (context.mounted) {
-                                  setState(() => _loading = false);
-                                }
-                              }
-                            },
-                      child: Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(vertical: 15),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(
-                            color: widget.isPremium
-                                ? Colors.white.withValues(alpha: 0.12)
-                                : kUpgradePurple.withValues(alpha: 0.55),
-                            width: 1,
-                          ),
-                        ),
-                        alignment: Alignment.center,
-                        child: _loading
-                            ? const SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: CircularProgressIndicator(
-                                    strokeWidth: 2, color: Colors.white),
-                              )
-                            : Text(
-                                widget.isPremium
-                                    ? context.tr.shop_alreadyPremium
-                                    : context.tr.shop_buy,
-                                style: GoogleFonts.nunito(
-                                  color: widget.isPremium
-                                      ? Colors.white.withValues(alpha: 0.35)
-                                      : Colors.white,
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      context.tr.shop_premium,
+                      style: GoogleFonts.nunito(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
-                  ),
+                    const SizedBox(height: 4),
+                    Text(
+                      context.tr.shop_premiumDescription,
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.65),
+                        fontSize: 12.5,
+                        height: 1.4,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
-        ),
+          const SizedBox(height: 18),
+          // Bouton Acheter — glassmorphism violet
+          GlassContainer(
+            borderRadius: 14,
+            tintColor: buttonTint,
+            tintAlpha: buttonAlpha,
+            borderColor: widget.isPremium
+                ? Colors.white.withValues(alpha: 0.12)
+                : kUpgradePurple.withValues(alpha: 0.55),
+            blurSigma: 8,
+            padding: const EdgeInsets.symmetric(vertical: 15),
+            onTap: (widget.isPremium || _loading || !iapAvailable)
+                ? null
+                : () async {
+                    buttonHapticTap(context);
+                    setState(() => _loading = true);
+                    try {
+                      final result = await purchasePremium(ref);
+                      if (!context.mounted) return;
+                      if (result == IapResult.success) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(context.tr.shop_premium),
+                            backgroundColor:
+                                Colors.green.withValues(alpha: 0.3),
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                      } else {
+                        _showPremiumResult(context, result);
+                      }
+                    } finally {
+                      if (context.mounted) {
+                        setState(() => _loading = false);
+                      }
+                    }
+                  },
+            child: Center(
+              child: _loading
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white),
+                    )
+                  : Text(
+                      widget.isPremium
+                          ? context.tr.shop_alreadyPremium
+                          : context.tr.shop_buy,
+                      style: GoogleFonts.nunito(
+                        color: widget.isPremium
+                            ? Colors.white.withValues(alpha: 0.35)
+                            : Colors.white,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -687,76 +586,63 @@ class _RestoreButtonState extends ConsumerState<_RestoreButton> {
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(14),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-        child: Material(
-          color: Colors.white.withValues(alpha: 0.07),
-          borderRadius: BorderRadius.circular(14),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(14),
-            onTap: _loading
-                ? null
-                : () async {
-                    buttonHapticTap(context);
-                    setState(() => _loading = true);
-                    try {
-                      final ok = await restoreAllPurchases(ref);
-                      if (!context.mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(ok
-                              ? context.tr.shop_restoreCompleted
-                              : context.tr.shop_restoreError),
-                          backgroundColor: ok
-                              ? Colors.green.withValues(alpha: 0.3)
-                              : Colors.red.withValues(alpha: 0.3),
-                          behavior: SnackBarBehavior.floating,
-                        ),
-                      );
-                    } finally {
-                      if (context.mounted) {
-                        setState(() => _loading = false);
-                      }
-                    }
-                  },
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.14), width: 1),
-              ),
-              alignment: Alignment.center,
-              child: _loading
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(
-                          strokeWidth: 2, color: Colors.white),
-                    )
-                  : Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.restore,
-                            size: 16,
-                            color: Colors.white.withValues(alpha: 0.45)),
-                        const SizedBox(width: 8),
-                        Text(
-                          context.tr.shop_restorePurchases,
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.45),
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
+    return GlassContainer(
+      borderRadius: 14,
+      tintColor: Colors.white,
+      tintAlpha: 0.07,
+      borderColor: Colors.white.withValues(alpha: 0.14),
+      blurSigma: 8,
+      padding: const EdgeInsets.symmetric(vertical: 14),
+      onTap: _loading
+          ? null
+          : () async {
+              buttonHapticTap(context);
+              setState(() => _loading = true);
+              try {
+                final ok = await restoreAllPurchases(ref);
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(ok
+                        ? context.tr.shop_restoreCompleted
+                        : context.tr.shop_restoreError),
+                    backgroundColor: ok
+                        ? Colors.green.withValues(alpha: 0.3)
+                        : Colors.red.withValues(alpha: 0.3),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              } finally {
+                if (context.mounted) {
+                  setState(() => _loading = false);
+                }
+              }
+            },
+      child: Center(
+        child: _loading
+            ? const SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(
+                    strokeWidth: 2, color: Colors.white),
+              )
+            : Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.restore,
+                      size: 16,
+                      color: Colors.white.withValues(alpha: 0.45)),
+                  const SizedBox(width: 8),
+                  Text(
+                    context.tr.shop_restorePurchases,
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.45),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
                     ),
-            ),
-          ),
-        ),
+                  ),
+                ],
+              ),
       ),
     );
   }

@@ -488,6 +488,12 @@ abstract class AppLocalizations {
   /// **'{count} coins'**
   String shop_coinCount(Object count);
 
+  /// No description provided for @shop_bestValueBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'Best value'**
+  String get shop_bestValueBadge;
+
   /// No description provided for @shop_premium.
   ///
   /// In en, this message translates to:

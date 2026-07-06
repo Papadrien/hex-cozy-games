@@ -6,8 +6,6 @@
 /// Style glassmorphism, aligné sur ShopScreen / UpgradesScreen.
 library;
 
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -20,6 +18,7 @@ import '../data/app_database.dart';
 import '../providers/build_provider.dart';
 import '../providers/progression_provider.dart';
 import '../services/haptics_service.dart';
+import 'glass_container.dart';
 
 class BuildScreen extends ConsumerWidget {
   const BuildScreen({super.key});
@@ -151,27 +150,14 @@ class _BuildGlassIconButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(14),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-        child: Material(
-          color: Colors.white.withValues(alpha: 0.15),
-          borderRadius: BorderRadius.circular(14),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(14),
-            onTap: onPressed,
-            child: Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.35)),
-              ),
-              child: Icon(icon, color: Colors.white, size: 20),
-            ),
-          ),
-        ),
-      ),
+    return GlassContainer(
+      borderRadius: 14,
+      tintColor: Colors.white,
+      tintAlpha: 0.15,
+      borderColor: Colors.white.withValues(alpha: 0.35),
+      padding: const EdgeInsets.all(10),
+      onTap: onPressed,
+      child: Icon(icon, color: Colors.white, size: 20),
     );
   }
 }
@@ -183,25 +169,19 @@ class _SelectionCountBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(12),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-            color: kBrandBlue.withValues(alpha: 0.20),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: kBrandBlue.withValues(alpha: 0.5)),
-          ),
-          child: Text(
-            '$count / $kMaxSelectedUpgrades',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
+    return GlassContainer(
+      borderRadius: 12,
+      tintColor: kBrandBlue,
+      tintAlpha: 0.20,
+      borderColor: kBrandBlue.withValues(alpha: 0.5),
+      blurSigma: 8,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      child: Text(
+        '$count / $kMaxSelectedUpgrades',
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: 13,
+          fontWeight: FontWeight.w700,
         ),
       ),
     );
@@ -225,69 +205,52 @@ class _BuildCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(18),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-        child: Material(
-          color: isSelected
-              ? kBrandBlue.withValues(alpha: 0.18)
-              : Colors.white.withValues(alpha: 0.05),
-          borderRadius: BorderRadius.circular(18),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(18),
-            onTap: onTap,
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(18),
-                border: Border.all(
-                  color: isSelected
-                      ? kBrandBlue.withValues(alpha: 0.65)
-                      : Colors.white.withValues(alpha: 0.12),
-                  width: isSelected ? 1.5 : 1,
+    return GlassContainer(
+      borderRadius: 14,
+      tintColor: isSelected ? kUpgradePurple : kGlassBlue,
+      tintAlpha: isSelected ? 0.18 : 0.22,
+      borderColor: isSelected
+          ? kUpgradePurple.withValues(alpha: 0.65)
+          : kGlassBlueBorder.withValues(alpha: 0.45),
+      borderWidth: isSelected ? 1.5 : 1,
+      blurSigma: 12,
+      padding: const EdgeInsets.all(16),
+      onTap: onTap,
+      child: Row(
+        children: [
+          _BuildIconBadge(
+            upgrade: upgrade,
+            isSelected: isSelected,
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  upgrade.name,
+                  style: GoogleFonts.nunito(
+                    color: isSelected
+                        ? Colors.white
+                        : Colors.white.withValues(alpha: 0.85),
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
-              ),
-              child: Row(
-                children: [
-                  _BuildIconBadge(
-                    upgrade: upgrade,
-                    isSelected: isSelected,
+                const SizedBox(height: 4),
+                Text(
+                  upgradeEffectLabel(upgrade),
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.6),
+                    fontSize: 13,
                   ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          upgrade.name,
-                          style: GoogleFonts.nunito(
-                            color: isSelected
-                                ? Colors.white
-                                : Colors.white.withValues(alpha: 0.85),
-                            fontSize: 15,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          upgradeEffectLabel(upgrade),
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.6),
-                            fontSize: 13,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  _SelectionCheck(isSelected: isSelected),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
-        ),
+          const SizedBox(width: 8),
+          _SelectionCheck(isSelected: isSelected),
+        ],
       ),
     );
   }
@@ -300,31 +263,21 @@ class _BuildIconBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(12),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
-        child: Container(
-          width: 42,
-          height: 42,
-          decoration: BoxDecoration(
-            color: isSelected
-                ? kBrandBlue.withValues(alpha: 0.28)
-                : Colors.white.withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: isSelected
-                  ? kBrandBlue.withValues(alpha: 0.5)
-                  : Colors.white.withValues(alpha: 0.14),
-              width: 0.8,
-            ),
-          ),
-          child: Icon(
-            upgradeIconData(UpgradeEffectType.fromDb(upgrade.effectType)),
-            color: isSelected ? Colors.white : Colors.white.withValues(alpha: 0.55),
-            size: 20,
-          ),
-        ),
+    return GlassContainer(
+      borderRadius: 12,
+      tintColor: isSelected ? kBrandBlue : Colors.white,
+      tintAlpha: isSelected ? 0.28 : 0.08,
+      borderColor: isSelected
+          ? kBrandBlue.withValues(alpha: 0.5)
+          : Colors.white.withValues(alpha: 0.14),
+      borderWidth: 0.8,
+      blurSigma: 6,
+      width: 42,
+      height: 42,
+      child: Icon(
+        upgradeIconData(UpgradeEffectType.fromDb(upgrade.effectType)),
+        color: isSelected ? Colors.white : Colors.white.withValues(alpha: 0.55),
+        size: 20,
       ),
     );
   }
