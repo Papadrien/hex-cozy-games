@@ -201,6 +201,12 @@ class GridState {
   /// [BiomeType.village] est toujours exclu.
   List<MapEntry<BiomeType, int>> biomesJustClosed(
       HexCoords pos, HexTile tile) {
+    // Early exit : si la cellule posée a un voisin vide, aucun cluster
+    // contenant [pos] ne peut être fermé — on évite le(s) BFS inutile(s).
+    for (var side = 0; side < 6; side++) {
+      if (!placedTiles.containsKey(pos.neighbor(side))) return const [];
+    }
+
     final closures = <MapEntry<BiomeType, int>>[];
     final uniqueBiomes = tile.sides.toSet();
     final alreadyChecked = <BiomeType>{};
