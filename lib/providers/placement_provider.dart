@@ -47,13 +47,24 @@ class Placement extends _$Placement {
   @override
   PlacementState build() => const PlacementState();
 
+  GridState? _lastGridState;
+  Set<HexCoords>? _cachedAvailableCells;
+
   /// Les emplacements actuellement disponibles, calculés à partir de l'état
   /// de grille — toute cellule vide adjacente à une tuile posée (sans
   /// contrainte de compatibilité de biome, story 1.6a).
+  ///
+  /// Le résultat est mis en cache tant que l'identité de [gridProvider] ne
+  /// change pas, évitant une réallocation O(n) à chaque frame.
   Set<HexCoords> get availableCells {
     if (ref.read(tileStackProvider).activeTile == null) return const {};
     final grid = ref.read(gridProvider);
-    return grid.availableCellsFor();
+    if (identical(grid, _lastGridState)) {
+      return _cachedAvailableCells ?? const {};
+    }
+    _lastGridState = grid;
+    _cachedAvailableCells = grid.availableCellsFor();
+    return _cachedAvailableCells!;
   }
 
   /// Tuile active actuellement prévisualisée, avec la rotation en cours
