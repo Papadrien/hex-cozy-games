@@ -283,8 +283,9 @@ Future<void> confirmPlacement(
 
   _placeTileOnGrid(ref, coords, tile);
   onConfirm(coords, tile, reward.connectedSides, reward.bonusTiles);
-  final appliedReward = _applyReward(ref, coords, tile, reward);
-  _recordPlacement(ref, coords, tile, appliedReward);
+  final (appliedReward, totalBonusTilesAdded) =
+      _applyReward(ref, coords, tile, reward);
+  _recordPlacement(ref, coords, tile, appliedReward, totalBonusTilesAdded);
   _triggerPlacementHaptics(ref, appliedReward);
   _advanceStack(ref, reward.connectedSides.length);
   await SessionSaver.save(ref);
@@ -317,21 +318,33 @@ void _recordPlacement(
   HexCoords coords,
   HexTile tile,
   PlacementReward reward,
+  int totalBonusTilesAdded,
 ) {
+  // Les pièces annulables ne comptent que le bonus de connexion (reward
+  // .bonusTiles) : les tuiles bonus Combo+/Clôture n'ont jamais été
+  // converties en pièces, seulement ajoutées physiquement à la pile — voir
+  // [totalBonusTilesAdded] ci-dessous pour leur annulation.
   final coins = reward.connectedSides.length + reward.bonusTiles + reward.bonusCoins;
   ref.read(lastPlacementProvider.notifier).set(
     LastPlacement(coords, tile,
-        bonusTiles: reward.bonusTiles,
+        // Total réellement ajouté à la pile (connexion + Combo+ + Bonus de
+        // clôture) : Annuler doit retirer exactement ce nombre de tuiles,
+        // pas seulement celles du bonus de connexion (voir undoPlacement).
+        bonusTiles: totalBonusTilesAdded,
         connectedSides: List.of(reward.connectedSides),
         coins: coins),
   );
 }
 
-PlacementReward _applyReward(
+/// Retourne la récompense appliquée (pour l'UI/session, pièces uniquement)
+/// et le nombre TOTAL de tuiles bonus effectivement ajoutées à la pile pour
+/// cette pose (connexion + Combo+ + Bonus de clôture) — ce second nombre
+/// sert uniquement à ce qu'[undoPlacement] puisse toutes les retirer.
+(PlacementReward, int) _applyReward(
     WidgetRef ref, HexCoords pos, HexTile tile, PlacementReward reward) {
   if (reward.connectedSides.isEmpty && reward.bonusTiles == 0) {
     ref.read(sessionProvider.notifier).addReward(reward);
-    return reward;
+    return (reward, 0);
   }
   final effects = ref.read(gameEffectsServiceProvider);
   final villageSides = effects.countBiomeSides(BiomeType.village, tile, reward.connectedSides);
@@ -355,8 +368,10 @@ PlacementReward _applyReward(
     bonusCoins: bonusCoins,
   );
   ref.read(sessionProvider.notifier).addReward(applied, forcedCoins: totalCoins);
+  var totalBonusTilesAdded = 0;
   if (reward.bonusTiles > 0) {
     ref.read(tileStackProvider.notifier).addBonusTiles(reward.bonusTiles);
+    totalBonusTilesAdded += reward.bonusTiles;
   }
   // Story B3 — Combo+ : à chaque multiple de 5 dans la série en cours,
   // ajoute des tuiles bonus selon le niveau de l'amélioration.
@@ -365,6 +380,8 @@ PlacementReward _applyReward(
     final comboCount = effects.getComboBonusTiles();
     if (comboCount > 0) {
       ref.read(tileStackProvider.notifier).addBonusTiles(comboCount);
+      ref.read(sessionProvider.notifier).addExtraBonusTiles(comboCount);
+      totalBonusTilesAdded += comboCount;
     }
   }
   // Story B7 — Bonus de clôture : détecte les biomes qui viennent de se
@@ -379,9 +396,11 @@ PlacementReward _applyReward(
     }
     if (closureTiles > 0) {
       ref.read(tileStackProvider.notifier).addBonusTiles(closureTiles);
+      ref.read(sessionProvider.notifier).addExtraBonusTiles(closureTiles);
+      totalBonusTilesAdded += closureTiles;
     }
   }
-  return applied;
+  return (applied, totalBonusTilesAdded);
 }
 
 void _advanceStack(WidgetRef ref, int connectedSidesCount) {

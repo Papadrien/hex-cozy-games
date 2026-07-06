@@ -114,7 +114,11 @@ class Session extends _$Session {
   void addReward(PlacementReward reward, {int? forcedCoins}) {
     final c = reward.connectedSides.length;
     final nextStreak = c >= 1 ? state.currentStreak + 1 : 0;
-    state = SessionState(
+    // copyWith (et non un SessionState(...) nu) : sinon les champs non
+    // listés ici (holdSlotRemainingUses, secondChanceRemainingUses)
+    // retombent silencieusement à leur valeur par défaut (0) à chaque pose,
+    // cassant l'Emplacement Joker et Deuxième chance dès la 2e tuile.
+    state = state.copyWith(
       coins: state.coins + (forcedCoins ?? c + reward.bonusTiles),
       totalBonusTiles: state.totalBonusTiles + reward.bonusTiles,
       lastReward: reward,
@@ -127,6 +131,19 @@ class Session extends _$Session {
     );
   }
 
+  /// Ajoute au compteur cumulé de tuiles bonus de la session des tuiles qui
+  /// ne proviennent pas directement de la connexion de la tuile posée
+  /// (Combo+, Bonus de clôture — Story B3/B7). Séparé d'[addReward] car ces
+  /// bonus sont calculés après coup (ils dépendent de l'état de la session
+  /// mis à jour par [addReward], ex: le streak courant). Garde
+  /// [SessionState.totalBonusTiles] cohérent avec ce que [removeReward]
+  /// retire lors d'un Annuler (voir [totalBonusTilesAdded] côté
+  /// `placement_commit.dart`).
+  void addExtraBonusTiles(int amount) {
+    if (amount <= 0) return;
+    state = state.copyWith(totalBonusTiles: state.totalBonusTiles + amount);
+  }
+
   /// Efface la dernière récompense affichée (après l'animation de confirmation).
   void clearLastReward() {
     state = state.copyWith(lastReward: null);
@@ -136,7 +153,10 @@ class Session extends _$Session {
   /// bouton Annuler pour inverser les récompenses — story 1.6b / 1.7c).
   /// [connectedCount] est le nombre de côtés connectés du placement annulé.
   void removeReward(int coins, int bonusTiles, {int connectedCount = 0}) {
-    state = SessionState(
+    // copyWith : même raison que dans addReward — sinon currentStreak,
+    // bestStreak, holdSlotRemainingUses et secondChanceRemainingUses
+    // retombent à 0 à chaque Annuler.
+    state = state.copyWith(
       coins: max(0, state.coins - coins),
       totalBonusTiles: max(0, state.totalBonusTiles - bonusTiles),
       lastReward: null,
@@ -150,16 +170,7 @@ class Session extends _$Session {
   /// Initialise les compteurs d'utilisations par partie depuis les
   /// améliorations actives (Story B9 — Hold + Deuxième chance).
   void initPerGameUses(ActiveUpgradeEffects effects) {
-    state = SessionState(
-      coins: state.coins,
-      totalBonusTiles: state.totalBonusTiles,
-      lastReward: state.lastReward,
-      connections3: state.connections3,
-      connections4: state.connections4,
-      connections5: state.connections5,
-      connections6: state.connections6,
-      currentStreak: state.currentStreak,
-      bestStreak: state.bestStreak,
+    state = state.copyWith(
       holdSlotRemainingUses: effects.holdSlotUses,
       secondChanceRemainingUses: effects.secondChanceUses,
     );
