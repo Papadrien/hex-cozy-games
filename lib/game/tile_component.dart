@@ -116,11 +116,6 @@ class TileComponent extends PositionComponent {
   bool _waveRampActive = false;
   double _waveRampSpeed = 0.0;
 
-  /// Temps écoulé depuis que l'ondulation a atteint son intensité maximale.
-  /// Après [kWaveDuration] secondes, elle s'estompe puis se fige pour ne plus
-  /// rien coûter à chaque frame.
-  double _waveActiveTime = 0.0;
-  bool _waveActive = false;
   static const double kWaveDuration = 5.0;
   static const double kWaveFadeDuration = 1.0;
 
@@ -443,14 +438,8 @@ class TileComponent extends PositionComponent {
       if (_waveIntensity >= 1.0) {
         _waveIntensity = 1.0;
         _waveRampActive = false;
-        _waveActive = true;
-        _waveActiveTime = 0.0;
       }
     }
-
-    // Note : l'ondulation reste active en continu (pas de figement après
-    // quelques secondes) — voir kWaveDuration/kWaveFadeDuration, désormais
-    // inutilisés, conservés au cas où ce comportement serait réactivé.
 
     if (_rotationAnimating) {
       _rotationAnimElapsed += dt;
