@@ -132,9 +132,9 @@ class _ShopGlassIconButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return GlassContainer(
       borderRadius: 14,
-      tintColor: Colors.white,
-      tintAlpha: 0.15,
-      borderColor: Colors.white.withValues(alpha: 0.35),
+      tintColor: kGlassBlue,
+      tintAlpha: 0.22,
+      borderColor: kGlassBlueBorder.withValues(alpha: 0.38),
       padding: const EdgeInsets.all(10),
       onTap: onPressed,
       child: Icon(icon, color: Colors.white, size: 20),
@@ -236,9 +236,9 @@ class _CoinPackCardState extends ConsumerState<_CoinPackCard> {
     return GlassContainer(
       margin: const EdgeInsets.only(bottom: 12),
       borderRadius: 18,
-      tintColor: isBestValue ? kRewardGold : kBrandBlue,
+      tintColor: isBestValue ? kRewardGold : kGlassBlue,
       tintAlpha: 0.10,
-      borderColor: isBestValue ? kRewardGold.withValues(alpha: 0.45) : Colors.white.withValues(alpha: 0.20),
+      borderColor: isBestValue ? kRewardGold.withValues(alpha: 0.45) : kGlassBlueBorder.withValues(alpha: 0.38),
       borderWidth: isBestValue ? 1.5 : 1,
       blurSigma: 12,
       padding: const EdgeInsets.all(16),
@@ -333,10 +333,10 @@ class _PriceButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return GlassContainer(
       borderRadius: 12,
-      tintColor: available ? kBrandBlue : Colors.white,
-      tintAlpha: available ? 0.30 : 0.08,
+      tintColor: available ? kGlassBlue : Colors.white,
+      tintAlpha: available ? 0.32 : 0.08,
       borderColor: available
-          ? kBrandBlue.withValues(alpha: 0.55)
+          ? kGlassBlueBorder.withValues(alpha: 0.55)
           : Colors.white.withValues(alpha: 0.12),
       blurSigma: 8,
       padding: const EdgeInsets.symmetric(horizontal: 18),
@@ -380,11 +380,11 @@ class _CoinStackIcon extends StatelessWidget {
 
     return GlassContainer(
       borderRadius: 14,
-      tintColor: isBestValue ? kRewardGold : kBrandBlue,
-      tintAlpha: 0.18,
+      tintColor: isBestValue ? kRewardGold : kGlassBlue,
+      tintAlpha: 0.22,
       borderColor: isBestValue
           ? kRewardGold.withValues(alpha: 0.35)
-          : Colors.white.withValues(alpha: 0.18),
+          : kGlassBlueBorder.withValues(alpha: 0.35),
       borderWidth: 0.8,
       blurSigma: 6,
       width: 48,
@@ -424,11 +424,11 @@ class _PremiumCardState extends ConsumerState<_PremiumCard> {
 
     return GlassContainer(
       borderRadius: 20,
-      tintColor: widget.isPremium ? kUpgradePurple : kBrandBlue,
-      tintAlpha: widget.isPremium ? 0.18 : 0.15,
+      tintColor: widget.isPremium ? kUpgradePurple : kGlassBlue,
+      tintAlpha: widget.isPremium ? 0.18 : 0.22,
       borderColor: widget.isPremium
           ? kUpgradePurple.withValues(alpha: 0.50)
-          : Colors.white.withValues(alpha: 0.22),
+          : kGlassBlueBorder.withValues(alpha: 0.38),
       borderWidth: widget.isPremium ? 1.5 : 1,
       blurSigma: 14,
       padding: const EdgeInsets.all(20),
@@ -588,9 +588,9 @@ class _RestoreButtonState extends ConsumerState<_RestoreButton> {
   Widget build(BuildContext context) {
     return GlassContainer(
       borderRadius: 14,
-      tintColor: Colors.white,
-      tintAlpha: 0.07,
-      borderColor: Colors.white.withValues(alpha: 0.14),
+      tintColor: kGlassBlue,
+      tintAlpha: 0.18,
+      borderColor: kGlassBlueBorder.withValues(alpha: 0.30),
       blurSigma: 8,
       padding: const EdgeInsets.symmetric(vertical: 14),
       onTap: _loading

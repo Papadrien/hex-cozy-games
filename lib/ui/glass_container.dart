@@ -7,14 +7,14 @@ import '../core/colors.dart';
 /// Composant glassmorphism réutilisable — applique [BackdropFilter] avec
 /// flou, fond semi-transparent et bordure assortie.
 ///
-/// Paramètres par défaut : teinte teal tropicale, rayon 14, blur 10.
+/// Paramètres par défaut : bleu nuit tealisé, rayon 14, blur 10.
 /// Fournir [onTap] pour rendre le container cliquable (InkWell).
 class GlassContainer extends StatelessWidget {
   const GlassContainer({
     super.key,
     required this.child,
     this.borderRadius = 14,
-    this.tintColor = kTropicalTeal,
+    this.tintColor = kGlassBlue,
     this.tintAlpha = 0.22,
     this.borderColor,
     this.borderWidth = 1.0,

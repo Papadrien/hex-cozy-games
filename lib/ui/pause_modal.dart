@@ -383,7 +383,7 @@ Future<void> _showAbandonConfirmDialog(
           },
           child: Text(
             context.tr.pause_abandonConfirmCancel,
-            style: const TextStyle(color: Colors.white70),
+            style: const TextStyle(color: Colors.white),
           ),
         ),
         TextButton(

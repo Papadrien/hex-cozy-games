@@ -576,7 +576,7 @@ class _BuildButton extends StatelessWidget {
           children: [
             if (selected.isEmpty)
               Icon(Icons.build_outlined,
-                  size: 18, color: kTropicalTeal)
+                  size: 18, color: Colors.white)
             else
               ...selected.map((u) => Padding(
                     padding: const EdgeInsets.only(right: 4),
@@ -593,7 +593,7 @@ class _BuildButton extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 maxLines: 1,
                 style: GoogleFonts.nunito(
-                  color: kTropicalTeal,
+                  color: Colors.white,
                   fontSize: 14,
                   fontWeight: FontWeight.w800,
                 ),
@@ -653,7 +653,7 @@ class _RewardedAdButton extends ConsumerWidget {
                   : context.tr.ads_comeBackTomorrow,
               style: GoogleFonts.nunito(
                 color: adAvailable
-                    ? kTropicalTeal
+                    ? Colors.white
                     : Colors.white.withValues(alpha: 0.5),
                 fontSize: 14,
                 fontWeight: FontWeight.w800,
@@ -712,7 +712,7 @@ class _PremiumDailyCoinsButton extends ConsumerWidget {
                   : context.tr.ads_comeBackTomorrow,
               style: GoogleFonts.nunito(
                 color: available
-                    ? kTropicalTeal
+                    ? Colors.white
                     : Colors.white.withValues(alpha: 0.5),
                 fontSize: 14,
                 fontWeight: FontWeight.w800,
@@ -748,12 +748,12 @@ class _NavButton extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, size: 18, color: kTropicalTeal),
+          Icon(icon, size: 18, color: Colors.white),
           const SizedBox(width: 8),
           Text(
             label,
             style: GoogleFonts.nunito(
-              color: kTropicalTeal,
+              color: Colors.white,
               fontSize: 14,
               fontWeight: FontWeight.w800,
             ),
@@ -805,9 +805,9 @@ class _GlassIconButton extends StatelessWidget {
     return Tooltip(
       message: tooltip,
       child: GlassContainer(
-        tintColor: kTropicalTeal,
+        tintColor: _kGlassBlue,
         tintAlpha: 0.22,
-        borderColor: kTropicalTealBorder.withValues(alpha: 0.40),
+        borderColor: _kGlassBlueBorder.withValues(alpha: 0.40),
         borderRadius: 14,
         padding: const EdgeInsets.all(10),
         onTap: onPressed,

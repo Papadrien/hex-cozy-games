@@ -140,9 +140,9 @@ class _UpgradesGlassIconButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return GlassContainer(
       borderRadius: 14,
-      tintColor: Colors.white,
-      tintAlpha: 0.15,
-      borderColor: Colors.white.withValues(alpha: 0.35),
+      tintColor: kGlassBlue,
+      tintAlpha: 0.22,
+      borderColor: kGlassBlueBorder.withValues(alpha: 0.38),
       padding: const EdgeInsets.all(10),
       onTap: onPressed,
       child: Icon(icon, color: Colors.white, size: 20),
@@ -286,11 +286,11 @@ class _UpgradeCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return GlassContainer(
       borderRadius: 18,
-      tintColor: isLocked ? Colors.white : kBrandBlue,
-      tintAlpha: isLocked ? 0.05 : 0.10,
+      tintColor: isLocked ? Colors.white : kGlassBlue,
+      tintAlpha: isLocked ? 0.05 : 0.22,
       borderColor: isLocked
           ? Colors.white.withValues(alpha: 0.12)
-          : Colors.white.withValues(alpha: 0.20),
+          : kGlassBlueBorder.withValues(alpha: 0.38),
       blurSigma: 12,
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -542,10 +542,10 @@ class _UpgradeButton extends ConsumerWidget {
 
     return GlassContainer(
       borderRadius: 10,
-      tintColor: canAfford ? kBrandBlue : Colors.white,
-      tintAlpha: canAfford ? 0.30 : 0.06,
+      tintColor: canAfford ? kGlassBlue : Colors.white,
+      tintAlpha: canAfford ? 0.32 : 0.06,
       borderColor: canAfford
-          ? kBrandBlue.withValues(alpha: 0.55)
+          ? kGlassBlueBorder.withValues(alpha: 0.55)
           : Colors.white.withValues(alpha: 0.12),
       blurSigma: 8,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),

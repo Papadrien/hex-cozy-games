@@ -24,8 +24,9 @@ class PauseButton extends ConsumerWidget {
     return GlassContainer(
       borderRadius: 10,
       blurSigma: 10,
-      tintAlpha: 0.18,
-      borderColor: kTropicalTealBorder.withValues(alpha: 0.38),
+      tintColor: kGlassBlue,
+      tintAlpha: 0.22,
+      borderColor: kGlassBlueBorder.withValues(alpha: 0.38),
       width: _kPauseButtonSize,
       height: _kPauseButtonSize,
       onTap: () {

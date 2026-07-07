@@ -24,8 +24,8 @@ const double _kButtonSize = 48.0;
 
 // Même teinte glassmorphism teal que le reste du HUD de jeu ; le mode actif
 // bascule vers un accent ambre pour bien signaler l'état spécial.
-const Color _kHudGlass = kTropicalTeal;
-const Color _kHudGlassBorder = Color(0xFF3DBFAF);
+const Color _kHudGlass = kGlassBlue;
+const Color _kHudGlassBorder = kGlassBlueBorder;
 const Color _kActiveGlass = Color(0xFFFFB300);
 const Color _kActiveBorder = Color(0xFFFFD54F);
 

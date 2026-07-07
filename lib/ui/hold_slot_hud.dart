@@ -25,9 +25,9 @@ import '../services/haptics_service.dart';
 const double _kSlotSize = 48.0;
 const double _kTileRadius = 18.0;
 
-// Même teinte glassmorphism teal que le reste du HUD de jeu.
-const Color _kHudGlass = kTropicalTeal;
-const Color _kHudGlassBorder = Color(0xFF3DBFAF);
+// Même teinte glassmorphism bleu nuit tealisé que le reste du HUD de jeu.
+const Color _kHudGlass = kGlassBlue;
+const Color _kHudGlassBorder = kGlassBlueBorder;
 
 class HoldSlotHud extends ConsumerWidget {
   const HoldSlotHud({super.key});
@@ -55,6 +55,7 @@ class HoldSlotHud extends ConsumerWidget {
           width: _kSlotSize,
           height: _kSlotSize,
           padding: const EdgeInsets.all(4),
+          tintColor: _kHudGlass,
           borderColor: _kHudGlassBorder.withValues(alpha: 0.45),
           onTap: canSwap
               ? () {
@@ -71,7 +72,7 @@ class HoldSlotHud extends ConsumerWidget {
                           ? _HeldTilePreview(tile: heldTile)
                           : const Icon(
                               Icons.swap_horiz,
-                              color: Colors.white70,
+                              color: Colors.white,
                               size: 24,
                             ),
                     ),

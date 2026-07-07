@@ -200,7 +200,7 @@ class _TutorialOverlayState extends ConsumerState<TutorialOverlay>
               child: Text(
                 context.tr.tutorial_skip,
                 style: const TextStyle(
-                  color: Colors.white70,
+                  color: Colors.white,
                   fontSize: 15,
                   fontWeight: FontWeight.w500,
                 ),

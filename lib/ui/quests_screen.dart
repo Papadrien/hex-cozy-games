@@ -238,9 +238,9 @@ class _QuestsSummaryBar extends StatelessWidget {
     final progress = total > 0 ? completed / total : 0.0;
     return GlassContainer(
       borderRadius: 16,
-      tintColor: Colors.white,
-      tintAlpha: 0.08,
-      borderColor: Colors.white.withValues(alpha: 0.15),
+      tintColor: kGlassBlue,
+      tintAlpha: 0.22,
+      borderColor: kGlassBlueBorder.withValues(alpha: 0.38),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       child: Row(
         children: [
@@ -321,9 +321,9 @@ class _QuestsGlassIconButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return GlassContainer(
       borderRadius: 14,
-      tintColor: Colors.white,
-      tintAlpha: 0.15,
-      borderColor: Colors.white.withValues(alpha: 0.35),
+      tintColor: kGlassBlue,
+      tintAlpha: 0.22,
+      borderColor: kGlassBlueBorder.withValues(alpha: 0.38),
       padding: const EdgeInsets.all(10),
       onTap: onPressed,
       child: Icon(icon, color: Colors.white, size: 20),
@@ -431,11 +431,11 @@ class _QuestCard extends StatelessWidget {
 
     return GlassContainer(
       borderRadius: 14,
-      tintColor: Colors.white,
-      tintAlpha: isLocked ? 0.04 : 0.08,
+      tintColor: kGlassBlue,
+      tintAlpha: isLocked ? 0.10 : 0.22,
       borderColor: status == _QuestStatus.completed
           ? color.withValues(alpha: 0.5)
-          : Colors.white.withValues(alpha: 0.15),
+          : kGlassBlueBorder.withValues(alpha: 0.30),
       padding: const EdgeInsets.all(14),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,

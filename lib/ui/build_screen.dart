@@ -152,9 +152,9 @@ class _BuildGlassIconButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return GlassContainer(
       borderRadius: 14,
-      tintColor: Colors.white,
-      tintAlpha: 0.15,
-      borderColor: Colors.white.withValues(alpha: 0.35),
+      tintColor: kGlassBlue,
+      tintAlpha: 0.22,
+      borderColor: kGlassBlueBorder.withValues(alpha: 0.38),
       padding: const EdgeInsets.all(10),
       onTap: onPressed,
       child: Icon(icon, color: Colors.white, size: 20),
@@ -171,9 +171,9 @@ class _SelectionCountBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     return GlassContainer(
       borderRadius: 12,
-      tintColor: kBrandBlue,
-      tintAlpha: 0.20,
-      borderColor: kBrandBlue.withValues(alpha: 0.5),
+      tintColor: kGlassBlue,
+      tintAlpha: 0.22,
+      borderColor: kGlassBlueBorder.withValues(alpha: 0.45),
       blurSigma: 8,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       child: Text(
@@ -265,10 +265,10 @@ class _BuildIconBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     return GlassContainer(
       borderRadius: 12,
-      tintColor: isSelected ? kBrandBlue : Colors.white,
+      tintColor: isSelected ? kUpgradePurple : Colors.white,
       tintAlpha: isSelected ? 0.28 : 0.08,
       borderColor: isSelected
-          ? kBrandBlue.withValues(alpha: 0.5)
+          ? kUpgradePurple.withValues(alpha: 0.5)
           : Colors.white.withValues(alpha: 0.14),
       borderWidth: 0.8,
       blurSigma: 6,
@@ -295,11 +295,11 @@ class _SelectionCheck extends StatelessWidget {
       width: 26,
       height: 26,
       decoration: BoxDecoration(
-        color: isSelected ? kBrandBlue : Colors.white.withValues(alpha: 0.08),
+        color: isSelected ? kUpgradePurple : Colors.white.withValues(alpha: 0.08),
         shape: BoxShape.circle,
         border: Border.all(
           color: isSelected
-              ? kBrandBlue.withValues(alpha: 0.8)
+              ? kUpgradePurple.withValues(alpha: 0.8)
               : Colors.white.withValues(alpha: 0.25),
           width: 1,
         ),

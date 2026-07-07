@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'glass_container.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/colors.dart';
 import '../game/hex_tile.dart';
 import '../game/tile_component.dart' show BiomeColor;
 import '../providers/placement_provider.dart';
@@ -21,8 +22,9 @@ const double _kUpcomingTileRadius = 26.0;
 const double _kHudHexFlattenY = 1.0;
 const double _kCrossSize = 26.0;
 
-// Bordure teal claire pour les composants HUD.
-const Color _kHudGlassBorder = Color(0xFF3DBFAF); // teal clair
+// Bleu nuit tealisé pour les composants HUD.
+const Color _kHudGlass = kGlassBlue;
+const Color _kHudGlassBorder = kGlassBlueBorder;
 
 // Disposition horizontale avec chevauchement.
 //   [Active (1er plan)] [2e (2d plan)] [3e (3e plan)] ...
@@ -55,6 +57,8 @@ class TileStackHud extends ConsumerWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         GlassContainer(
+          tintColor: _kHudGlass,
+          borderColor: _kHudGlassBorder.withValues(alpha: 0.45),
           padding: const EdgeInsets.all(10),
           child: SizedBox(
             width: stackWidth,
@@ -97,6 +101,7 @@ class TileStackHud extends ConsumerWidget {
                           child: GlassContainer(
                             borderRadius: 13,
                             blurSigma: 10,
+                            tintColor: _kHudGlass,
                             borderColor: _kHudGlassBorder.withValues(alpha: 0.45),
                             width: _kCrossSize,
                             height: _kCrossSize,
@@ -107,7 +112,7 @@ class TileStackHud extends ConsumerWidget {
                                   .clearSelection();
                             },
                             child: const Icon(Icons.close,
-                                size: 16, color: Colors.white70),
+                                size: 16, color: Colors.white),
                           ),
                       ),
               ],
@@ -251,6 +256,7 @@ class _RemainingBadge extends StatelessWidget {
     return GlassContainer(
       borderRadius: 10,
       blurSigma: 10,
+      tintColor: _kHudGlass,
       borderColor: _kHudGlassBorder.withValues(alpha: 0.45),
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       child: Row(

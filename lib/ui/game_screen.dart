@@ -245,9 +245,9 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                   GlassContainer(
                     key: _coinsKey,
                     borderRadius: 14,
-                    tintColor: kTropicalTeal,
+                    tintColor: kGlassBlue,
                     tintAlpha: 0.22,
-                    borderColor: const Color(0xFF3DBFAF).withValues(alpha: 0.45),
+                    borderColor: kGlassBlueBorder.withValues(alpha: 0.45),
                     padding:
                         const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     child: Column(
@@ -295,9 +295,9 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                 child: GlassContainer(
                   key: _undoKey,
                   borderRadius: 14,
-                  tintColor: kTropicalTeal,
+                  tintColor: kGlassBlue,
                   tintAlpha: 0.22,
-                  borderColor: const Color(0xFF3DBFAF).withValues(alpha: 0.45),
+                  borderColor: kGlassBlueBorder.withValues(alpha: 0.45),
                   width: 40,
                   height: 40,
                   onTap: canUndo
@@ -405,9 +405,9 @@ class _RewardTag extends ConsumerWidget {
       opacity: opacity,
       child: GlassContainer(
         borderRadius: 10,
-        tintColor: kTropicalTeal,
+        tintColor: kGlassBlue,
         tintAlpha: 0.22,
-        borderColor: kTropicalTealBorder.withValues(alpha: 0.45),
+        borderColor: kGlassBlueBorder.withValues(alpha: 0.45),
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -421,7 +421,7 @@ class _RewardTag extends ConsumerWidget {
             Text(
               '+$value${isCoin ? context.tr.reward_coins : context.tr.reward_bonusTiles}',
               style: TextStyle(
-                color: isCoin ? Colors.white : Colors.white70,
+                color: Colors.white,
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
               ),
