@@ -22,11 +22,10 @@ import 'shop_screen.dart';
 import 'stats_screen.dart';
 import 'glass_container.dart';
 
-// Bleu glacier pour les boutons secondaires — ni trop cyan (déjà pris par le
-// bouton Jouer en teal), ni trop violet (réservé au premium).
-// Ce bleu cobalt doux ressort bien sur le fond tropical chaud.
-const Color _kGlassBlue = Color(0xFF5BA4D4);
-const Color _kGlassBlueBorder = Color(0xFF7EC8E3);
+// Bleu nuit tealisé pour les boutons secondaires — foncé pour la lisibilité
+// du texte blanc, bordure teal assortie au bouton Jouer.
+const Color _kGlassBlue = Color(0xFF2E3B52);
+const Color _kGlassBlueBorder = Color(0xFF3DBFAF);
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});

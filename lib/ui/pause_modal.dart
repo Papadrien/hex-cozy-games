@@ -242,11 +242,11 @@ class _OptionsButton extends ConsumerWidget {
         style: TextButton.styleFrom(
           padding: const EdgeInsets.symmetric(vertical: 14),
           foregroundColor: Colors.white,
-          backgroundColor: const Color(0xFF5BA4D4).withValues(alpha: 0.22),
+          backgroundColor: const Color(0xFF2E3B52).withValues(alpha: 0.22),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
             side: BorderSide(
-              color: const Color(0xFF7EC8E3).withValues(alpha: 0.38),
+              color: const Color(0xFF3DBFAF).withValues(alpha: 0.38),
             ),
           ),
         ),
@@ -298,11 +298,11 @@ class _SaveAndQuitButton extends ConsumerWidget {
         style: TextButton.styleFrom(
           padding: const EdgeInsets.symmetric(vertical: 14),
           foregroundColor: Colors.white,
-          backgroundColor: const Color(0xFF5BA4D4).withValues(alpha: 0.22),
+          backgroundColor: const Color(0xFF2E3B52).withValues(alpha: 0.22),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
             side: BorderSide(
-              color: const Color(0xFF7EC8E3).withValues(alpha: 0.38),
+              color: const Color(0xFF3DBFAF).withValues(alpha: 0.38),
             ),
           ),
         ),
