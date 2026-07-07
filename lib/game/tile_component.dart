@@ -440,16 +440,9 @@ class TileComponent extends PositionComponent {
       }
     }
 
-    // Fige l'ondulation après quelques secondes pour éviter un coût par frame
-    // linéaire avec le nombre de tuiles posées sur toute la durée de la partie.
-    if (_waveActive) {
-      _waveActiveTime += dt;
-      if (_waveActiveTime > kWaveDuration) {
-        final fadeT =
-            (_waveActiveTime - kWaveDuration) / kWaveFadeDuration;
-        _waveIntensity = (1.0 - fadeT).clamp(0.0, 1.0);
-      }
-    }
+    // Note : l'ondulation reste active en continu (pas de figement après
+    // quelques secondes) — voir kWaveDuration/kWaveFadeDuration, désormais
+    // inutilisés, conservés au cas où ce comportement serait réactivé.
 
     if (_rotationAnimating) {
       _rotationAnimElapsed += dt;

@@ -139,9 +139,25 @@ class Session extends _$Session {
   /// [SessionState.totalBonusTiles] cohérent avec ce que [removeReward]
   /// retire lors d'un Annuler (voir [totalBonusTilesAdded] côté
   /// `placement_commit.dart`).
+  ///
+  /// Met aussi à jour [lastReward] (en additionnant ces tuiles à son
+  /// bonusTiles) : sans ça, ces bonus sont ajoutés à la pile en silence,
+  /// sans jamais apparaître dans le tag de récompense affiché à l'écran
+  /// (voir [_RewardTag] dans game_screen.dart), donnant l'impression que
+  /// Combo+/Bonus de clôture ne fonctionnent pas.
   void addExtraBonusTiles(int amount) {
     if (amount <= 0) return;
-    state = state.copyWith(totalBonusTiles: state.totalBonusTiles + amount);
+    final current = state.lastReward;
+    state = state.copyWith(
+      totalBonusTiles: state.totalBonusTiles + amount,
+      lastReward: current == null
+          ? current
+          : PlacementReward(
+              connectedSides: current.connectedSides,
+              bonusTiles: current.bonusTiles + amount,
+              bonusCoins: current.bonusCoins,
+            ),
+    );
   }
 
   /// Efface la dernière récompense affichée (après l'animation de confirmation).

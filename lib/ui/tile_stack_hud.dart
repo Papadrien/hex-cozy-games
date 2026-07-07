@@ -62,8 +62,10 @@ class TileStackHud extends ConsumerWidget {
             child: Stack(
               children: [
                     // Tuiles suivantes — de la plus éloignée (fond) à la plus
-                    // proche (milieu)
-                    for (var i = 0; i < upcomingCount; i++)
+                    // proche (milieu). On les ajoute au Stack en partant de
+                    // la plus éloignée pour que la plus proche (à gauche)
+                    // se retrouve au-dessus des autres.
+                    for (var i = upcomingCount - 1; i >= 0; i--)
                       Positioned(
                         left: _kActiveTileWidth +
                             i * _kUpcomingTileWidth -

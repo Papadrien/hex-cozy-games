@@ -273,7 +273,7 @@ final kConnectionQuests = [
     description: 'Sextuple connexion réalisée',
     targetValue: 10,
     rewardType: RewardType.coins.dbValue,
-    rewardValue: 500,
+    rewardValue: 50000,
     isRepeatable: const Value(true),
   ),
 ];

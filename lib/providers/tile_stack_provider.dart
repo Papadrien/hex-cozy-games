@@ -42,7 +42,15 @@ class TileStackState {
   HexTile? get activeTile => visible.isEmpty ? null : visible.first;
 }
 
-@riverpod
+// keepAlive: indispensable — sans ça, ce provider autoDispose se
+// réinitialise (build() par défaut, pile "max") entre le moment où
+// startNewGame()/restoreSession() le modifient via ref.read (juste avant la
+// navigation vers /game) et le moment où GameScreen le watch réellement :
+// aucun listener actif entre les deux, Riverpod le dispose et le reconstruit
+// depuis zéro, ce qui effaçait le bonus de tuiles de départ et la pile
+// restaurée à la reprise. Même traitement que gridProvider/sessionProvider,
+// qui partagent le même cycle de vie explicite (invalidate/reset).
+@Riverpod(keepAlive: true)
 class TileStack extends _$TileStack {
   /// File complète des tuiles restant à tirer, dans l'ordre de tirage.
   /// `visible` est toujours égal aux [kVisibleStackSize] premiers éléments

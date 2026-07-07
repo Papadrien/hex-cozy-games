@@ -47,7 +47,6 @@ class GlassContainer extends StatelessWidget {
     final container = Container(
       width: width,
       height: height,
-      margin: margin,
       padding: padding,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(borderRadius),
@@ -77,12 +76,14 @@ class GlassContainer extends StatelessWidget {
             child: container,
           );
 
-    return ClipRRect(
+    final glass = ClipRRect(
       borderRadius: BorderRadius.circular(borderRadius),
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: blurSigma, sigmaY: blurSigma),
         child: inner,
       ),
     );
+
+    return margin != null ? Padding(padding: margin!, child: glass) : glass;
   }
 }

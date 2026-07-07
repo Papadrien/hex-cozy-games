@@ -44,8 +44,10 @@ class HoldSlotHud extends ConsumerWidget {
     final hasActiveTile =
         ref.watch(tileStackProvider.select((s) => s.activeTile != null));
 
-    final canSwap =
-        remainingUses > 0 && (hasActiveTile || heldTile != null);
+    // Reprendre une tuile déjà en réserve est gratuit (ne consomme pas
+    // d'utilisation) : possible même si remainingUses == 0. Mettre une
+    // tuile EN réserve, en revanche, requiert un usage disponible.
+    final canSwap = heldTile != null || (remainingUses > 0 && hasActiveTile);
 
     return Tooltip(
       message: context.tr.game_holdSlot_tooltip,

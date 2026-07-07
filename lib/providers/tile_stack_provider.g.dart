@@ -20,7 +20,7 @@ final class TileStackProvider
         argument: null,
         retry: null,
         name: r'tileStackProvider',
-        isAutoDispose: true,
+        isAutoDispose: false,
         dependencies: null,
         $allTransitiveDependencies: null,
       );

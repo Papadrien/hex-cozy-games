@@ -238,39 +238,48 @@ class _GameScreenState extends ConsumerState<GameScreen> {
             left: 16,
             child: Consumer(builder: (context, ref, _) {
               final session = ref.watch(sessionProvider);
-              return GlassContainer(
-                key: _coinsKey,
-                borderRadius: 14,
-                tintColor: kTropicalTeal,
-                tintAlpha: 0.22,
-                borderColor: const Color(0xFF3DBFAF).withValues(alpha: 0.45),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      context.tr.game_sessionCoins,
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.6),
-                        fontSize: 11,
-                      ),
-                    ),
-                    Row(children: [
-                      const Icon(Icons.monetization_on, color: Colors.amber, size: 20),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${session.coins}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  GlassContainer(
+                    key: _coinsKey,
+                    borderRadius: 14,
+                    tintColor: kTropicalTeal,
+                    tintAlpha: 0.22,
+                    borderColor: const Color(0xFF3DBFAF).withValues(alpha: 0.45),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          context.tr.game_sessionCoins,
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.6),
+                            fontSize: 11,
+                          ),
                         ),
-                      ),
-                    ]),
-                    _RewardTag(opacity: _rewardOpacity, isCoin: true),
-                  ],
-                ),
+                        Row(children: [
+                          const Icon(Icons.monetization_on,
+                              color: Colors.amber, size: 20),
+                          const SizedBox(width: 4),
+                          Text(
+                            '${session.coins}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ]),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  _RewardTag(opacity: _rewardOpacity, isCoin: true),
+                ],
               );
             }),
           ),
@@ -517,7 +526,7 @@ class _OceanBackgroundState extends State<_OceanBackground>
   Widget build(BuildContext context) {
     final program = _program;
     if (program == null) {
-      return const ColoredBox(color: Color(0xFF48B2DB));
+      return const ColoredBox(color: Color(0xFF42E0F5));
     }
 
     final size = MediaQuery.sizeOf(context);
