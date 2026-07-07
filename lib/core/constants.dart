@@ -5,6 +5,8 @@
 /// 01_contexte_architecture.md, section 9 — risques et mitigation).
 library;
 
+import '../game/hex_cell.dart';
+
 /// Nombre de tuiles données au joueur au départ d'une partie (avant bonus
 /// d'amélioration "Tuiles de départ+"). Valeur à équilibrer via playtests.
 const int kStartingTiles = 21;
@@ -93,4 +95,37 @@ class CoinPack {
     required this.price,
     required this.productId,
   });
+}
+
+// ── Couleurs bonus progressives ──────────────────────────────────────────
+
+/// Seuil (nombre de tuiles posées EN PARTIE, cumul de la session en cours)
+/// à partir duquel chaque couleur bonus peut apparaître sur les tuiles de
+/// la pile à poser. [BiomeType.forest], [BiomeType.village], [BiomeType.plain],
+/// [BiomeType.water] et [BiomeType.mountain] sont disponibles dès le début
+/// (absents de cette map = toujours débloqués).
+///
+/// Les tuiles déjà posées sur le plateau ne sont jamais modifiées : seule la
+/// génération des NOUVELLES tuiles de la pile est concernée. Comme la pile
+/// affiche les [kVisibleStackSize] prochaines tuiles à l'avance, une couleur
+/// peut apparaître dans la pile visible un peu avant que le seuil ne soit
+/// effectivement atteint (ex. seuil à 50 → visible dès la 47ᵉ tuile posée
+/// avec kVisibleStackSize = 3), ce qui est le comportement voulu.
+const Map<BiomeType, int> kBiomeUnlockThresholds = {
+  BiomeType.orange: 50,
+  BiomeType.pink: 100,
+  BiomeType.black: 150,
+  BiomeType.white: 300,
+};
+
+/// Renvoie la liste des [BiomeType] utilisables pour une tuile qui occupera
+/// la position [placementPosition] dans l'ordre de pose (1 = première tuile
+/// posée en partie). Les biomes de base sont toujours inclus ; les couleurs
+/// bonus sont ajoutées dès que [placementPosition] atteint leur seuil dans
+/// [kBiomeUnlockThresholds].
+List<BiomeType> unlockedBiomesAt(int placementPosition) {
+  return BiomeType.values.where((b) {
+    final threshold = kBiomeUnlockThresholds[b];
+    return threshold == null || placementPosition >= threshold;
+  }).toList();
 }

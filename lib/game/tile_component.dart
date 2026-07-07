@@ -45,6 +45,14 @@ extension BiomeColor on BiomeType {
         return const Color(0xFF1E88E5);
       case BiomeType.mountain:
         return const Color(0xFF8E24AA);
+      case BiomeType.orange:
+        return const Color(0xFFFB8C00);
+      case BiomeType.pink:
+        return const Color(0xFFEC407A);
+      case BiomeType.black:
+        return const Color(0xFF212121);
+      case BiomeType.white:
+        return const Color(0xFFF5F5F5);
     }
   }
 }

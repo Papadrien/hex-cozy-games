@@ -7,6 +7,7 @@ library;
 
 import 'dart:math';
 
+import '../core/constants.dart';
 import 'hex_cell.dart';
 
 /// Une tuile hexagonale posable sur le plateau.
@@ -42,14 +43,17 @@ List<HexTile> generateTilePool(
   Random rng, {
   BiomeType? excludeBiome,
   int excludeDuration = 0,
+  int startPosition = 1,
 }) {
   final biomeUsage = {for (final b in BiomeType.values) b: 0};
   return List.generate(count, (i) {
     final useExclusion = excludeBiome != null && i < excludeDuration;
+    final allowedBiomes = unlockedBiomesAt(startPosition + i);
     return _generateTile(
       biomeUsage,
       rng,
       exclude: useExclusion ? excludeBiome : null,
+      allowedBiomes: allowedBiomes,
     );
   });
 }
@@ -58,10 +62,18 @@ HexTile _generateTile(
   Map<BiomeType, int> biomeUsage,
   Random rng, {
   BiomeType? exclude,
+  required List<BiomeType> allowedBiomes,
 }) {
   final roll = rng.nextDouble();
-  final biomeCount = roll < 0.20 ? 1 : (roll < 0.80 ? 2 : 3);
-  final biomes = _pickWeightedBiomes(biomeCount, biomeUsage, rng, exclude: exclude);
+  final biomeCount =
+      min(roll < 0.20 ? 1 : (roll < 0.80 ? 2 : 3), allowedBiomes.length);
+  final biomes = _pickWeightedBiomes(
+    biomeCount,
+    biomeUsage,
+    rng,
+    exclude: exclude,
+    allowedBiomes: allowedBiomes,
+  );
 
   final List<BiomeType> sides;
   if (biomeCount == 1) {
@@ -93,9 +105,14 @@ List<BiomeType> _pickWeightedBiomes(
   Map<BiomeType, int> usage,
   Random rng, {
   BiomeType? exclude,
+  required List<BiomeType> allowedBiomes,
 }) {
-  final all = BiomeType.values;
-  final minUsage = usage.values.reduce(min);
+  final all = allowedBiomes;
+  // La normalisation par minUsage ne doit porter que sur les biomes
+  // actuellement débloqués : sinon les couleurs bonus pas encore
+  // débloquées (usage toujours à 0) fausseraient la pondération relative
+  // des biomes déjà en jeu.
+  final minUsage = all.map((b) => usage[b]!).reduce(min);
   final weights = all.map((b) {
     if (b == exclude) return 0.0;
     return 1.0 / (1 + usage[b]! - minUsage);

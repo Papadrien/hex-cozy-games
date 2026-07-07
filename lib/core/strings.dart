@@ -27,6 +27,14 @@ String biomeName(BuildContext context, String biome) {
       return 'Eau';
     case 'mountain':
       return 'Montagne';
+    case 'orange':
+      return 'Orange';
+    case 'pink':
+      return 'Rose';
+    case 'black':
+      return 'Noir';
+    case 'white':
+      return 'Blanc';
     default:
       return biome;
   }

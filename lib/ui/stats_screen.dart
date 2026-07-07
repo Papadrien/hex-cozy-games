@@ -161,6 +161,14 @@ class StatsScreen extends ConsumerWidget {
         return Icons.water_drop;
       case 'mountain':
         return Icons.terrain;
+      case 'orange':
+        return Icons.brightness_5;
+      case 'pink':
+        return Icons.favorite;
+      case 'black':
+        return Icons.circle;
+      case 'white':
+        return Icons.circle_outlined;
       default:
         return Icons.circle;
     }

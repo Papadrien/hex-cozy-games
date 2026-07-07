@@ -9,6 +9,10 @@ enum BiomeType {
   plain,    // jaune
   water,    // bleu
   mountain, // violet
+  orange,   // orange — débloqué après [kBiomeUnlockThresholds]
+  pink,     // rose — débloqué après [kBiomeUnlockThresholds]
+  black,    // noir — débloqué après [kBiomeUnlockThresholds]
+  white,    // blanc — débloqué après [kBiomeUnlockThresholds]
 }
 
 /// Cellule hexagonale du plateau.

@@ -15,6 +15,7 @@ import '../core/constants.dart';
 import '../game/hex_cell.dart';
 import '../game/hex_tile.dart';
 import 'build_provider.dart';
+import 'grid_state_provider.dart';
 
 part 'tile_stack_provider.g.dart';
 
@@ -71,11 +72,16 @@ class TileStack extends _$TileStack {
     final poolSize = effects.warehouseStartingTiles > 0
         ? effects.warehouseStartingTiles
         : kStartingTiles;
+    // Nombre de tuiles déjà posées dans la partie en cours (0 au tout début) —
+    // détermine à partir de quelle position les couleurs bonus progressives
+    // (Story couleurs déblocables) peuvent apparaître dans le pool généré.
+    final placedCount = ref.read(gridProvider).placedTiles.length;
     final pool = generateTilePool(
       poolSize,
       rng,
       excludeBiome: excludeBiome,
       excludeDuration: hatedDuration,
+      startPosition: placedCount + 1,
     );
     _shuffle(pool, rng);
     _queue
@@ -96,10 +102,14 @@ class TileStack extends _$TileStack {
   }
 
   /// Génère un petit pool frais pour les tuiles bonus en dérivant le seed.
-  List<HexTile> _bonusPool(int count) {
+  ///
+  /// [startPosition] est la position (1-indexée, dans l'ordre de pose) que
+  /// la première tuile de ce pool occupera une fois posée — nécessaire pour
+  /// déterminer quelles couleurs bonus progressives sont déjà débloquées.
+  List<HexTile> _bonusPool(int count, {required int startPosition}) {
     final bonusSeed = (state.seed ?? 0) + _queue.length + 1;
     final rng = Random(bonusSeed);
-    return generateTilePool(count, rng);
+    return generateTilePool(count, rng, startPosition: startPosition);
   }
 
   TileStackState _buildState({int? seed, int? visibleCount}) {
@@ -151,7 +161,10 @@ class TileStack extends _$TileStack {
   /// que le joueur les voie immédiatement.
   void addStartingBonusTiles(int count) {
     if (count <= 0) return;
-    final pool = _bonusPool(count);
+    // Ces tuiles sont insérées en tête de file : elles seront posées juste
+    // après les tuiles déjà posées, avant le reste de la pile actuelle.
+    final placedCount = ref.read(gridProvider).placedTiles.length;
+    final pool = _bonusPool(count, startPosition: placedCount + 1);
     for (final tile in pool.reversed) {
       _queue.addFirst(tile);
     }
@@ -166,7 +179,11 @@ class TileStack extends _$TileStack {
   /// arriver une fois la file courante épuisée.
   void addBonusTiles(int count) {
     if (count <= 0) return;
-    _queue.addAll(_bonusPool(count));
+    // Ces tuiles sont ajoutées en fin de file : elles ne seront posées
+    // qu'après les tuiles déjà posées ET le reste de la pile actuelle.
+    final placedCount = ref.read(gridProvider).placedTiles.length;
+    final startPosition = placedCount + _queue.length + 1;
+    _queue.addAll(_bonusPool(count, startPosition: startPosition));
     state = _buildState();
   }
 
