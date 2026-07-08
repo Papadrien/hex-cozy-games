@@ -117,7 +117,7 @@ class ProgressionService {
     return quest?.isCompleted ?? false;
   }
 
-  /// Force toutes les améliorations à être débloquées au niveau max — debug.
+  /// Force toutes les améliorations à être débloquées au niveau 1 — debug.
   ///
   /// Utile pour le développement : permet de tester toutes les améliorations
   /// sans avoir à remplir les conditions de déblocage.
@@ -126,7 +126,7 @@ class ProgressionService {
     await (db.update(db.upgrades)).write(
       const UpgradesCompanion(
         isUnlocked: Value(true),
-        currentLevel: Value(2),
+        currentLevel: Value(0),
       ),
     );
   }

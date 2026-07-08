@@ -268,16 +268,24 @@ class _BuildCard extends ConsumerStatefulWidget {
   ConsumerState<_BuildCard> createState() => _BuildCardState();
 }
 
-class _BuildCardState extends ConsumerState<_BuildCard> {
+class _BuildCardState extends ConsumerState<_BuildCard>
+    with AutomaticKeepAliveClientMixin {
   bool _expanded = false;
+
+  // Garde la carte en vie (état préservé) tant qu'elle est dépliée, pour
+  // qu'elle ne se replie pas quand elle sort du viewport puis y revient.
+  @override
+  bool get wantKeepAlive => _expanded;
 
   void _toggleExpanded() {
     buttonHapticTap(context);
     setState(() => _expanded = !_expanded);
+    updateKeepAlive();
   }
 
   @override
   Widget build(BuildContext context) {
+    super.build(context); // requis par AutomaticKeepAliveClientMixin
     final upgrade = widget.upgrade;
     final isSelected = widget.isSelected;
     final isDebugOnly = upgrade.unlockConditionType == 'debug_only';

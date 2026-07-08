@@ -76,11 +76,17 @@ class GlassContainer extends StatelessWidget {
             child: container,
           );
 
-    final glass = ClipRRect(
-      borderRadius: BorderRadius.circular(borderRadius),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: blurSigma, sigmaY: blurSigma),
-        child: inner,
+    // RepaintBoundary : évite que le BackdropFilter perde son flou pendant
+    // l'animation de rebond (bounce-back) en haut/bas d'un scroll. Sans ça,
+    // le layer du flou est invalidé/mal recomposé pendant l'interpolation
+    // de retour à l'extrémité de scroll, ce qui le fait disparaître un instant.
+    final glass = RepaintBoundary(
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(borderRadius),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: blurSigma, sigmaY: blurSigma),
+          child: inner,
+        ),
       ),
     );
 
