@@ -276,4 +276,9 @@ class Grid extends _$Grid {
   void setState(Map<HexCoords, HexTile> tiles) {
     state = GridState(placedTiles: tiles);
   }
+
+  /// Remet le plateau à zéro (nouvelle partie).
+  void reset() {
+    state = const GridState(placedTiles: {});
+  }
 }

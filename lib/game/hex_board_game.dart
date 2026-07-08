@@ -58,6 +58,10 @@ class HexBoardGame extends FlameGame
 
   final WidgetRef _ref;
 
+  /// Retourne la position (coordonnées jeu) vers laquelle les tuiles bonus
+  /// doivent voler après placement. Null = animation stationnaire par défaut.
+  Vector2? Function()? getBonusFlyTarget;
+
   double get zoom => _grid?.zoom ?? 1.0;
 
   HexGridComponent? _grid;
@@ -182,7 +186,9 @@ class HexBoardGame extends FlameGame
     _grid?.placeTile(coords, tile,
         connectedSides: connectedSides);
     if (connectedSides.isNotEmpty || bonusTiles > 0) {
-      _grid?.showRewardIndicators(coords, connectedSides, bonusTiles: bonusTiles);
+      _grid?.showRewardIndicators(coords, connectedSides,
+          bonusTiles: bonusTiles,
+          bonusFlyTarget: getBonusFlyTarget?.call());
     }
   }
 

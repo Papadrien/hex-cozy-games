@@ -48,7 +48,7 @@ extension BiomeColor on BiomeType {
       case BiomeType.orange:
         return const Color(0xFFFB8C00);
       case BiomeType.pink:
-        return const Color(0xFFEC407A);
+        return const Color(0xFFFFABE6);
       case BiomeType.black:
         return const Color(0xFF212121);
       case BiomeType.white:

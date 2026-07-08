@@ -120,8 +120,13 @@ Future<void> restoreSession(WidgetRef ref) async {
 /// deux flux oublie de vider le dernier placement (bug du bouton Annuler
 /// permettant de regagner une tuile gratuite après une nouvelle partie).
 void startNewGame(WidgetRef ref) {
-  ref.invalidate(gridProvider);
-  ref.invalidate(tileStackProvider);
+  // Appels directs à reset() (et non invalidate + mutation sur notifier
+  // stale) : les providers @Riverpod(keepAlive: true) ne se reconstruisent
+  // pas immédiatement sur simple invalidate — sans ça, drawInitialTile()
+  // et placeTile() opèrent sur l'ancienne instance, et les modifications
+  // sont perdues au premier watch() de GameScreen.
+  ref.read(gridProvider.notifier).reset();
+  ref.read(tileStackProvider.notifier).reset();
   ref.invalidate(bannerAdProvider);
   ref.invalidate(holdSlotProvider);
   ref.invalidate(secondChanceModeProvider);

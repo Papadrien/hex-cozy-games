@@ -208,4 +208,13 @@ class TileStack extends _$TileStack {
 
   /// Retourne la file complète (pour sérialisation).
   List<HexTile> get queue => List.unmodifiable(_queue.toList());
+
+  /// Réinitialise complètement la pile : efface la file interne et en génère
+  /// une nouvelle via [build] (appel explicite pour servir de « reset »
+  /// depuis [startNewGame] sans passer par [invalidate] qui ne force pas la
+  /// reconstruction immédiate d'un provider [keepAlive]).
+  void reset() {
+    _queue.clear();
+    state = build();
+  }
 }
