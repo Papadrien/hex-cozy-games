@@ -201,6 +201,80 @@ class AppLocalizationsEn extends AppLocalizations {
   String get upgrades_max => 'MAX';
 
   @override
+  String get upgrades_noneUnlocked => 'No upgrades unlocked yet';
+
+  @override
+  String get upgrades_confirmButton => 'Confirm?';
+
+  @override
+  String get upgrade_desc_starting_tiles_plus =>
+      'Increases the number of tiles you start each game with.';
+
+  @override
+  String get upgrade_desc_doubled_connections =>
+      'Multiplies the bonus tiles earned on every successful connection.';
+
+  @override
+  String get upgrade_desc_coins_plus =>
+      'Increases the percentage of coins earned on every tile you place.';
+
+  @override
+  String get upgrade_desc_villages_plus =>
+      'Increases coins earned from Village (red) tiles.';
+
+  @override
+  String get upgrade_desc_combo_plus =>
+      'Grants bonus tiles every 5 steps of an ongoing connection streak.';
+
+  @override
+  String get upgrade_desc_extended_preview =>
+      'Reveals more upcoming tiles in the stack, so you can plan further ahead.';
+
+  @override
+  String get upgrade_desc_hold_slot =>
+      'Lets you swap your active tile with a reserved one, a limited number of times per game.';
+
+  @override
+  String get upgrade_desc_second_chance =>
+      'Lets you take back a tile you\'ve already placed, a limited number of times per game.';
+
+  @override
+  String get upgrade_desc_forest_plus =>
+      'Increases coins earned from Forest (green) tiles.';
+
+  @override
+  String get upgrade_desc_water_plus =>
+      'Increases coins earned from Water (blue) tiles.';
+
+  @override
+  String get upgrade_desc_plain_plus =>
+      'Increases coins earned from Plain (yellow) tiles.';
+
+  @override
+  String get upgrade_desc_mountain_plus =>
+      'Increases coins earned from Mountain (purple) tiles.';
+
+  @override
+  String get upgrade_desc_closure_bonus =>
+      'Grants bonus tiles every time a biome closes completely.';
+
+  @override
+  String get upgrade_desc_hated_color =>
+      'Temporarily excludes a color of your choice from the tile stack.';
+
+  @override
+  String get upgrade_desc_jackpot_plus =>
+      'Further boosts the percentage of coins earned on every tile placed — unlocked as a reward for a standout game.';
+
+  @override
+  String get upgrade_desc_millionaire =>
+      'Instantly credits 1,000,000 coins to your profile (developer tool).';
+
+  @override
+  String get upgrade_desc_warehouse =>
+      'Starts a game with 500 tiles in reserve (developer tool).';
+
+  @override
   String get shop_title => 'Shop';
 
   @override

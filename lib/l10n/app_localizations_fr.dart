@@ -203,6 +203,80 @@ class AppLocalizationsFr extends AppLocalizations {
   String get upgrades_max => 'MAX';
 
   @override
+  String get upgrades_noneUnlocked => 'Aucune amélioration débloquée pour l\'instant';
+
+  @override
+  String get upgrades_confirmButton => 'Confirmer\u00a0?';
+
+  @override
+  String get upgrade_desc_starting_tiles_plus =>
+      'Augmente le nombre de tuiles en main au début de chaque partie.';
+
+  @override
+  String get upgrade_desc_doubled_connections =>
+      'Multiplie les tuiles bonus gagnées à chaque connexion réussie.';
+
+  @override
+  String get upgrade_desc_coins_plus =>
+      'Augmente le pourcentage de pièces gagnées sur chaque tuile posée.';
+
+  @override
+  String get upgrade_desc_villages_plus =>
+      'Augmente les pièces gagnées sur les tuiles Village (rouge).';
+
+  @override
+  String get upgrade_desc_combo_plus =>
+      'Ajoute des tuiles bonus tous les 5 crans d\'une série de connexions en cours.';
+
+  @override
+  String get upgrade_desc_extended_preview =>
+      'Affiche plus de tuiles à venir dans la pile, pour mieux anticiper tes placements.';
+
+  @override
+  String get upgrade_desc_hold_slot =>
+      'Permet d\'échanger la tuile active avec une tuile en réserve, un nombre limité de fois par partie.';
+
+  @override
+  String get upgrade_desc_second_chance =>
+      'Permet de retirer une tuile déjà posée, un nombre limité de fois par partie.';
+
+  @override
+  String get upgrade_desc_forest_plus =>
+      'Augmente les pièces gagnées sur les tuiles Forêt (vert).';
+
+  @override
+  String get upgrade_desc_water_plus =>
+      'Augmente les pièces gagnées sur les tuiles Eau (bleu).';
+
+  @override
+  String get upgrade_desc_plain_plus =>
+      'Augmente les pièces gagnées sur les tuiles Plaine (jaune).';
+
+  @override
+  String get upgrade_desc_mountain_plus =>
+      'Augmente les pièces gagnées sur les tuiles Montagne (violet).';
+
+  @override
+  String get upgrade_desc_closure_bonus =>
+      'Offre des tuiles bonus à chaque fermeture complète d\'un biome.';
+
+  @override
+  String get upgrade_desc_hated_color =>
+      'Exclut temporairement une couleur de ton choix de la pile de tuiles à poser.';
+
+  @override
+  String get upgrade_desc_jackpot_plus =>
+      'Booste encore le pourcentage de pièces gagnées sur chaque tuile posée — débloqué en récompense d\'une partie exceptionnelle.';
+
+  @override
+  String get upgrade_desc_millionaire =>
+      'Crédite instantanément 1\u00a0000\u00a0000 de pièces sur ton profil (outil de développement).';
+
+  @override
+  String get upgrade_desc_warehouse =>
+      'Démarre une partie avec 500 tuiles en réserve (outil de développement).';
+
+  @override
   String get shop_title => 'Boutique';
 
   @override

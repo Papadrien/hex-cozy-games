@@ -182,20 +182,22 @@ void main() {
     // cohérente) pour ne jamais donner d'impression de tangage.
     vec2 driftUv = uvWarped * 0.24 + vec2(tBase * 0.4, -tBase * 0.28);
     float waveLife = fbm(driftUv + vec2(0.0, time * 0.07), 3);
-    float waveMask = smoothstep(-0.25, 0.6, waveLife);
+    float waveMask = smoothstep(-0.35, 0.5, waveLife);
 
-    // Le masque module l'intensité des veines (0.35 → 1.15) : les vagues
-    // ressortent nettement là où le masque est haut, et s'effacent presque
-    // complètement là où il est bas, sans jamais disparaître totalement
+    // Le masque module l'intensité des veines (0.45 → 1.25) : plage relevée
+    // par rapport à l'ancienne version pour que les vagues claires ressortent
+    // plus souvent et plus franchement, sans jamais disparaître totalement
     // (garde un peu de vie partout).
-    float causticVisible = caustic * mix(0.35, 1.15, waveMask);
+    float causticVisible = caustic * mix(0.45, 1.25, waveMask);
 
-    // Deux couleurs proches → variation quasi imperceptible, juste vivante.
-    // Couleur de fond dominante = #42E0F5 exact (demande utilisateur) ;
-    // l'éclat des caustiques est une variante plus claire de ce même ton.
+    // Couleur de fond dominante = #42E0F5 exact (demande utilisateur).
+    // L'éclat des caustiques ("vagues claires") est éclairci nettement plus
+    // que cA (quasi blanc-cyan) afin de rester bien visible même sur le
+    // nouveau fond bleu nuit tealisé de l'UI — l'ancienne variante cB était
+    // trop proche de cA en luminosité et devenait quasi invisible.
     vec3 cA = vec3(0.259, 0.878, 0.961); // #42E0F5 — couleur de fond
-    vec3 cB = vec3(0.444, 0.909, 0.971); // éclat plus clair du même ton
-    vec3 color = mix(cA, cB, smoothstep(0.55, 0.95, causticVisible));
+    vec3 cB = mix(cA, vec3(1.0), 0.55);  // éclat très lumineux, presque blanc
+    vec3 color = mix(cA, cB, smoothstep(0.45, 0.9, causticVisible));
 
     // ── Taches sombres ────────────────────────────────────────────────────
     // Même champ et même animation que les taches claires ci-dessus

@@ -464,6 +464,120 @@ abstract class AppLocalizations {
   /// **'MAX'**
   String get upgrades_max;
 
+  /// No description provided for @upgrades_noneUnlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'No upgrades unlocked yet'**
+  String get upgrades_noneUnlocked;
+
+  /// No description provided for @upgrades_confirmButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm?'**
+  String get upgrades_confirmButton;
+
+  /// No description provided for @upgrade_desc_starting_tiles_plus.
+  ///
+  /// In en, this message translates to:
+  /// **'Increases the number of tiles you start each game with.'**
+  String get upgrade_desc_starting_tiles_plus;
+
+  /// No description provided for @upgrade_desc_doubled_connections.
+  ///
+  /// In en, this message translates to:
+  /// **'Multiplies the bonus tiles earned on every successful connection.'**
+  String get upgrade_desc_doubled_connections;
+
+  /// No description provided for @upgrade_desc_coins_plus.
+  ///
+  /// In en, this message translates to:
+  /// **'Increases the percentage of coins earned on every tile you place.'**
+  String get upgrade_desc_coins_plus;
+
+  /// No description provided for @upgrade_desc_villages_plus.
+  ///
+  /// In en, this message translates to:
+  /// **'Increases coins earned from Village (red) tiles.'**
+  String get upgrade_desc_villages_plus;
+
+  /// No description provided for @upgrade_desc_combo_plus.
+  ///
+  /// In en, this message translates to:
+  /// **'Grants bonus tiles every 5 steps of an ongoing connection streak.'**
+  String get upgrade_desc_combo_plus;
+
+  /// No description provided for @upgrade_desc_extended_preview.
+  ///
+  /// In en, this message translates to:
+  /// **'Reveals more upcoming tiles in the stack, so you can plan further ahead.'**
+  String get upgrade_desc_extended_preview;
+
+  /// No description provided for @upgrade_desc_hold_slot.
+  ///
+  /// In en, this message translates to:
+  /// **'Lets you swap your active tile with a reserved one, a limited number of times per game.'**
+  String get upgrade_desc_hold_slot;
+
+  /// No description provided for @upgrade_desc_second_chance.
+  ///
+  /// In en, this message translates to:
+  /// **'Lets you take back a tile you've already placed, a limited number of times per game.'**
+  String get upgrade_desc_second_chance;
+
+  /// No description provided for @upgrade_desc_forest_plus.
+  ///
+  /// In en, this message translates to:
+  /// **'Increases coins earned from Forest (green) tiles.'**
+  String get upgrade_desc_forest_plus;
+
+  /// No description provided for @upgrade_desc_water_plus.
+  ///
+  /// In en, this message translates to:
+  /// **'Increases coins earned from Water (blue) tiles.'**
+  String get upgrade_desc_water_plus;
+
+  /// No description provided for @upgrade_desc_plain_plus.
+  ///
+  /// In en, this message translates to:
+  /// **'Increases coins earned from Plain (yellow) tiles.'**
+  String get upgrade_desc_plain_plus;
+
+  /// No description provided for @upgrade_desc_mountain_plus.
+  ///
+  /// In en, this message translates to:
+  /// **'Increases coins earned from Mountain (purple) tiles.'**
+  String get upgrade_desc_mountain_plus;
+
+  /// No description provided for @upgrade_desc_closure_bonus.
+  ///
+  /// In en, this message translates to:
+  /// **'Grants bonus tiles every time a biome closes completely.'**
+  String get upgrade_desc_closure_bonus;
+
+  /// No description provided for @upgrade_desc_hated_color.
+  ///
+  /// In en, this message translates to:
+  /// **'Temporarily excludes a color of your choice from the tile stack.'**
+  String get upgrade_desc_hated_color;
+
+  /// No description provided for @upgrade_desc_jackpot_plus.
+  ///
+  /// In en, this message translates to:
+  /// **'Further boosts the percentage of coins earned on every tile placed — unlocked as a reward for a standout game.'**
+  String get upgrade_desc_jackpot_plus;
+
+  /// No description provided for @upgrade_desc_millionaire.
+  ///
+  /// In en, this message translates to:
+  /// **'Instantly credits 1,000,000 coins to your profile (developer tool).'**
+  String get upgrade_desc_millionaire;
+
+  /// No description provided for @upgrade_desc_warehouse.
+  ///
+  /// In en, this message translates to:
+  /// **'Starts a game with 500 tiles in reserve (developer tool).'**
+  String get upgrade_desc_warehouse;
+
   /// No description provided for @shop_title.
   ///
   /// In en, this message translates to:
