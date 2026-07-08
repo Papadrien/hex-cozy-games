@@ -266,6 +266,54 @@ void main() {
     });
   });
 
+  group('GameEffectsService.getComboBonusTiles', () {
+    test('aucune amélioration → 0', () {
+      final container = _makeContainer();
+      final service = container.read(gameEffectsServiceProvider);
+      expect(service.getComboBonusTiles(), 0);
+    });
+
+    test('niveau 1 → 1 tuile', () {
+      final container = _makeContainer(
+        const ActiveUpgradeEffects(comboBonusTiles: 1),
+      );
+      final service = container.read(gameEffectsServiceProvider);
+      expect(service.getComboBonusTiles(), 1);
+    });
+
+    test('niveau 3 → 3 tuiles', () {
+      final container = _makeContainer(
+        const ActiveUpgradeEffects(comboBonusTiles: 3),
+      );
+      final service = container.read(gameEffectsServiceProvider);
+      expect(service.getComboBonusTiles(), 3);
+    });
+  });
+
+  group('GameEffectsService.getClosureBonusTiles', () {
+    test('aucune amélioration → 0', () {
+      final container = _makeContainer();
+      final service = container.read(gameEffectsServiceProvider);
+      expect(service.getClosureBonusTiles(), 0);
+    });
+
+    test('niveau 1 → 1 tuile/10', () {
+      final container = _makeContainer(
+        const ActiveUpgradeEffects(closureBonusTiles: 1),
+      );
+      final service = container.read(gameEffectsServiceProvider);
+      expect(service.getClosureBonusTiles(), 1);
+    });
+
+    test('niveau 3 → 3 tuiles/10', () {
+      final container = _makeContainer(
+        const ActiveUpgradeEffects(closureBonusTiles: 3),
+      );
+      final service = container.read(gameEffectsServiceProvider);
+      expect(service.getClosureBonusTiles(), 3);
+    });
+  });
+
   group('GameEffectsService.countBiomeSides', () {
     late GameEffectsService service;
 

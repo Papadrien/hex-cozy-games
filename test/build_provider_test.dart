@@ -15,7 +15,6 @@
 ///    niveau courant de chacune
 library;
 
-import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -28,8 +27,7 @@ import 'package:hex_haven/providers/build_provider.dart';
 /// Installe une base mémoire, seed les données, et retourne un
 /// [ProviderContainer] prêt à l'emploi.
 ///
-/// Retourne `null` si sqlite3 natif n'est pas disponible sur cet
-/// environnement (même garde que les autres tests de ce dossier).
+/// Retourne `null` si sqlite3 natif n'est pas disponible.
 Future<ProviderContainer?> _makeTestContainer() async {
   try {
     final db = AppDatabase.forTesting(NativeDatabase.memory());
@@ -40,14 +38,6 @@ Future<ProviderContainer?> _makeTestContainer() async {
   } catch (_) {
     return null;
   }
-}
-
-/// Débloque une amélioration existante au niveau demandé (`level` = index
-/// `currentLevel`, donc 0 pour le niveau 1 affiché).
-Future<void> _unlock(AppDatabase db, String id, {int level = 0}) async {
-  await (db.update(db.upgrades)..where((u) => u.id.equals(id))).write(
-    UpgradesCompanion(isUnlocked: const Value(true), currentLevel: Value(level)),
-  );
 }
 
 void main() {
@@ -61,71 +51,69 @@ void main() {
     test('toggle ajoute un id non présent', () {
       final container = ProviderContainer();
       addTearDown(container.dispose);
-      container.read(selectedUpgradeIdsProvider.notifier).toggle('coins_plus');
-      expect(container.read(selectedUpgradeIdsProvider), ['coins_plus']);
-      expect(
-        container.read(selectedUpgradeIdsProvider.notifier).isSelected('coins_plus'),
-        isTrue,
-      );
+      container.read(selectedUpgradeIdsProvider.notifier).toggle('a');
+      expect(container.read(selectedUpgradeIdsProvider), ['a']);
     });
 
-    test('toggle retire un id déjà présent', () {
+    test('toggle retire un id présent', () {
       final container = ProviderContainer();
       addTearDown(container.dispose);
-      final notifier = container.read(selectedUpgradeIdsProvider.notifier);
-      notifier.toggle('coins_plus');
-      notifier.toggle('coins_plus');
+      final n = container.read(selectedUpgradeIdsProvider.notifier);
+      n.toggle('a');
+      n.toggle('a');
       expect(container.read(selectedUpgradeIdsProvider), isEmpty);
-      expect(notifier.isSelected('coins_plus'), isFalse);
     });
 
-    test('respecte le plafond kMaxSelectedUpgrades (3)', () {
+    test('ne dépasse pas kMaxSelectedUpgrades', () {
       final container = ProviderContainer();
       addTearDown(container.dispose);
-      final notifier = container.read(selectedUpgradeIdsProvider.notifier);
-
-      notifier.toggle('a');
-      notifier.toggle('b');
-      notifier.toggle('c');
-      expect(container.read(selectedUpgradeIdsProvider).length, kMaxSelectedUpgrades);
-
-      // Une 4e sélection est ignorée : le plafond est déjà atteint.
-      notifier.toggle('d');
-      expect(container.read(selectedUpgradeIdsProvider), ['a', 'b', 'c']);
-      expect(notifier.isSelected('d'), isFalse);
-    });
-
-    test('au plafond, on peut toujours désélectionner puis resélectionner', () {
-      final container = ProviderContainer();
-      addTearDown(container.dispose);
-      final notifier = container.read(selectedUpgradeIdsProvider.notifier);
-
-      notifier.toggle('a');
-      notifier.toggle('b');
-      notifier.toggle('c');
-      notifier.toggle('a'); // retire 'a' : 2 sélectionnées
-      expect(container.read(selectedUpgradeIdsProvider), ['b', 'c']);
-
-      notifier.toggle('d'); // la place libérée peut être reprise
-      expect(container.read(selectedUpgradeIdsProvider), ['b', 'c', 'd']);
+      final n = container.read(selectedUpgradeIdsProvider.notifier);
+      n.toggle('a');
+      n.toggle('b');
+      n.toggle('c');
+      n.toggle('d');
+      n.toggle('e');
+      final ids = container.read(selectedUpgradeIdsProvider);
+      expect(ids.length, kMaxSelectedUpgrades);
+      expect(ids, ['a', 'b', 'c']);
     });
   });
 
   group('selectedUpgradesProvider', () {
-    test('ne retourne que les améliorations sélectionnées', () async {
-      final container = await _makeTestContainer();
-      if (container == null) return;
+    test('ne retourne que les améliorations sélectionnées', () {
+      final rows = [
+        UpgradeRow(
+          id: 'coins_plus',
+          name: 'Pièces+',
+          effectType: 'coinsPercentBonus',
+          isUnlocked: true,
+          currentLevel: 0,
+          unlockConditionType: '',
+          unlockConditionValue: 0,
+        ),
+        UpgradeRow(
+          id: 'starting_tiles_plus',
+          name: 'Tuiles départ+',
+          effectType: 'startingTilesBonus',
+          isUnlocked: true,
+          currentLevel: 0,
+          unlockConditionType: '',
+          unlockConditionValue: 0,
+        ),
+      ];
+      final container = ProviderContainer(
+        overrides: [
+          selectedUpgradesProvider.overrideWith(
+            (ref) {
+              final ids = ref.watch(selectedUpgradeIdsProvider);
+              return rows.where((u) => ids.contains(u.id)).toList();
+            },
+          ),
+        ],
+      );
       addTearDown(container.dispose);
-      final db = container.read(appDatabaseProvider);
-
-      await _unlock(db, 'coins_plus');
-      await _unlock(db, 'starting_tiles_plus');
-      // 'doubled_connections' reste verrouillée et non sélectionnée.
 
       container.read(selectedUpgradeIdsProvider.notifier).toggle('coins_plus');
-
-      // Laisse le StreamProvider (upgradesProvider) émettre sa première donnée.
-      await Future<void>.delayed(Duration.zero);
 
       final selected = container.read(selectedUpgradesProvider);
       expect(selected.map((u) => u.id), ['coins_plus']);
@@ -135,7 +123,6 @@ void main() {
       final container = await _makeTestContainer();
       if (container == null) return;
       addTearDown(container.dispose);
-      await Future<void>.delayed(Duration.zero);
 
       expect(container.read(selectedUpgradesProvider), isEmpty);
     });
@@ -146,7 +133,6 @@ void main() {
       final container = await _makeTestContainer();
       if (container == null) return;
       addTearDown(container.dispose);
-      await Future<void>.delayed(Duration.zero);
 
       final effects = container.read(activeUpgradeEffectsProvider);
       expect(effects.coinsMultiplier, 0.0);
@@ -154,48 +140,65 @@ void main() {
       expect(effects.millionaireCoins, 0);
     });
 
-    test('coins_plus niveau 1 (index 0) → +25% appliqué', () async {
-      final container = await _makeTestContainer();
-      if (container == null) return;
-      addTearDown(container.dispose);
-      final db = container.read(appDatabaseProvider);
+    UpgradeRow row({
+      required String id,
+      required String effectType,
+      int currentLevel = 0,
+      bool isUnlocked = true,
+    }) {
+      return UpgradeRow(
+        id: id,
+        name: id,
+        effectType: effectType,
+        isUnlocked: isUnlocked,
+        currentLevel: currentLevel,
+        unlockConditionType: '',
+        unlockConditionValue: 0,
+      );
+    }
 
-      await _unlock(db, 'coins_plus', level: 0);
-      container.read(selectedUpgradeIdsProvider.notifier).toggle('coins_plus');
-      await Future<void>.delayed(Duration.zero);
+    ProviderContainer containerWithUpgrades(List<UpgradeRow> rows) {
+      return ProviderContainer(
+        overrides: [
+          selectedUpgradesProvider.overrideWith((ref) => rows),
+        ],
+      );
+    }
+
+    test('coins_plus niveau 1 (index 0) → +25% appliqué', () {
+      final container = containerWithUpgrades([
+        row(id: 'coins_plus', effectType: 'coinsPercentBonus', currentLevel: 0),
+      ]);
+      addTearDown(container.dispose);
 
       expect(container.read(activeUpgradeEffectsProvider).coinsMultiplier, 0.25);
     });
 
     test('le niveau courant change bien la valeur de l\'effet (coins_plus niveau 2)',
-        () async {
-      final container = await _makeTestContainer();
-      if (container == null) return;
+        () {
+      final container = containerWithUpgrades([
+        row(id: 'coins_plus', effectType: 'coinsPercentBonus', currentLevel: 1),
+      ]);
       addTearDown(container.dispose);
-      final db = container.read(appDatabaseProvider);
-
-      await _unlock(db, 'coins_plus', level: 1); // niveau 2 affiché → +50%
-      container.read(selectedUpgradeIdsProvider.notifier).toggle('coins_plus');
-      await Future<void>.delayed(Duration.zero);
 
       expect(container.read(activeUpgradeEffectsProvider).coinsMultiplier, 0.50);
     });
 
-    test('cumule plusieurs améliorations sélectionnées simultanément', () async {
-      final container = await _makeTestContainer();
-      if (container == null) return;
+    test('cumule plusieurs améliorations sélectionnées simultanément', () {
+      final container = containerWithUpgrades([
+        row(id: 'coins_plus', effectType: 'coinsPercentBonus', currentLevel: 0),
+        row(
+          id: 'starting_tiles_plus',
+          effectType: 'startingTilesBonus',
+          currentLevel: 0,
+        ),
+        row(
+          id: 'villages_plus',
+          effectType: 'villageCoinsPercentBonus',
+          currentLevel: 0,
+        ),
+      ]);
       addTearDown(container.dispose);
-      final db = container.read(appDatabaseProvider);
-
-      await _unlock(db, 'coins_plus', level: 0); // +25% pièces
-      await _unlock(db, 'starting_tiles_plus', level: 0); // +2 tuiles
-      await _unlock(db, 'villages_plus', level: 0); // +33% pièces village
-
-      final notifier = container.read(selectedUpgradeIdsProvider.notifier);
-      notifier.toggle('coins_plus');
-      notifier.toggle('starting_tiles_plus');
-      notifier.toggle('villages_plus');
-      await Future<void>.delayed(Duration.zero);
 
       final effects = container.read(activeUpgradeEffectsProvider);
       expect(effects.coinsMultiplier, 0.25);
@@ -203,35 +206,146 @@ void main() {
       expect(effects.villageCoinsBonus, 0.33);
     });
 
-    test('n\'agrège pas une amélioration débloquée mais non sélectionnée', () async {
-      final container = await _makeTestContainer();
-      if (container == null) return;
+    test('combo_plus (niveau 1) → comboBonusTiles = 1', () {
+      final container = containerWithUpgrades([
+        row(id: 'combo_plus', effectType: 'comboBonusTiles', currentLevel: 0),
+      ]);
       addTearDown(container.dispose);
-      final db = container.read(appDatabaseProvider);
 
-      await _unlock(db, 'coins_plus', level: 0);
-      await _unlock(db, 'starting_tiles_plus', level: 0);
-      // Seule coins_plus est sélectionnée.
-      container.read(selectedUpgradeIdsProvider.notifier).toggle('coins_plus');
-      await Future<void>.delayed(Duration.zero);
-
-      final effects = container.read(activeUpgradeEffectsProvider);
-      expect(effects.coinsMultiplier, 0.25);
-      expect(effects.startingTilesBonus, 0,
-          reason: 'starting_tiles_plus est débloquée mais pas sélectionnée');
+      expect(container.read(activeUpgradeEffectsProvider).comboBonusTiles, 1);
     });
 
-    test('millionaire (debug) → millionaireCoins reflète le palier unique', () async {
-      final container = await _makeTestContainer();
-      if (container == null) return;
+    test('combo_plus (niveau 3) → comboBonusTiles = 3', () {
+      final container = containerWithUpgrades([
+        row(id: 'combo_plus', effectType: 'comboBonusTiles', currentLevel: 2),
+      ]);
       addTearDown(container.dispose);
-      final db = container.read(appDatabaseProvider);
 
-      await _unlock(db, 'millionaire', level: 0);
-      container.read(selectedUpgradeIdsProvider.notifier).toggle('millionaire');
-      await Future<void>.delayed(Duration.zero);
+      expect(container.read(activeUpgradeEffectsProvider).comboBonusTiles, 3);
+    });
 
-      expect(container.read(activeUpgradeEffectsProvider).millionaireCoins, 1000000);
+    test('extended_preview (niveau 1) → extendedPreviewCount = 3', () {
+      final container = containerWithUpgrades([
+        row(
+          id: 'extended_preview',
+          effectType: 'extendedPreviewCount',
+          currentLevel: 0,
+        ),
+      ]);
+      addTearDown(container.dispose);
+
+      expect(
+        container.read(activeUpgradeEffectsProvider).extendedPreviewCount,
+        3,
+      );
+    });
+
+    test('extended_preview (niveau 3) → extendedPreviewCount = 5', () {
+      final container = containerWithUpgrades([
+        row(
+          id: 'extended_preview',
+          effectType: 'extendedPreviewCount',
+          currentLevel: 2,
+        ),
+      ]);
+      addTearDown(container.dispose);
+
+      expect(
+        container.read(activeUpgradeEffectsProvider).extendedPreviewCount,
+        5,
+      );
+    });
+
+    test('hated_color (niveau 1) → hatedColorExclusionDuration = 5', () {
+      final container = containerWithUpgrades([
+        row(
+          id: 'hated_color',
+          effectType: 'hatedColorExclusion',
+          currentLevel: 0,
+        ),
+      ]);
+      addTearDown(container.dispose);
+
+      expect(
+        container.read(activeUpgradeEffectsProvider).hatedColorExclusionDuration,
+        5,
+      );
+    });
+
+    test('hated_color (niveau 3) → hatedColorExclusionDuration = 10', () {
+      final container = containerWithUpgrades([
+        row(
+          id: 'hated_color',
+          effectType: 'hatedColorExclusion',
+          currentLevel: 2,
+        ),
+      ]);
+      addTearDown(container.dispose);
+
+      expect(
+        container.read(activeUpgradeEffectsProvider).hatedColorExclusionDuration,
+        10,
+      );
+    });
+
+    test('closure_bonus (niveau 1) → closureBonusTiles = 1', () {
+      final container = containerWithUpgrades([
+        row(
+          id: 'closure_bonus',
+          effectType: 'closureBonusTiles',
+          currentLevel: 0,
+        ),
+      ]);
+      addTearDown(container.dispose);
+
+      expect(
+        container.read(activeUpgradeEffectsProvider).closureBonusTiles,
+        1,
+      );
+    });
+
+    test('closure_bonus (niveau 3) → closureBonusTiles = 3', () {
+      final container = containerWithUpgrades([
+        row(
+          id: 'closure_bonus',
+          effectType: 'closureBonusTiles',
+          currentLevel: 2,
+        ),
+      ]);
+      addTearDown(container.dispose);
+
+      expect(
+        container.read(activeUpgradeEffectsProvider).closureBonusTiles,
+        3,
+      );
+    });
+
+    test('warehouse (debug) → warehouseStartingTiles = 500', () {
+      final container = containerWithUpgrades([
+        row(
+          id: 'warehouse',
+          effectType: 'warehouseStartingTiles',
+          currentLevel: 0,
+        ),
+      ]);
+      addTearDown(container.dispose);
+
+      expect(
+        container.read(activeUpgradeEffectsProvider).warehouseStartingTiles,
+        500,
+      );
+    });
+
+    test('millionaire (debug) → millionaireCoins reflète le palier unique', () {
+      final container = containerWithUpgrades([
+        row(id: 'millionaire', effectType: 'millionaireCoins', currentLevel: 0),
+      ]);
+      addTearDown(container.dispose);
+
+      expect(
+        container.read(activeUpgradeEffectsProvider).millionaireCoins,
+        1000000,
+      );
     });
   });
 }

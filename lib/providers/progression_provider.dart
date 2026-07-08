@@ -204,7 +204,7 @@ IconData upgradeIconData(UpgradeEffectType effectType) {
     case UpgradeEffectType.comboBonusTiles:
       return Icons.bolt;
     case UpgradeEffectType.millionaireCoins:
-      return Icons.monetization_on;
+      return Icons.workspace_premium;
     case UpgradeEffectType.warehouseStartingTiles:
       return Icons.inventory_2;
   }
