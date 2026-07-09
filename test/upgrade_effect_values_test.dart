@@ -32,7 +32,7 @@ void main() {
       );
     });
 
-    test('connectionBonusMultiplier → 1, 2, 3 (niveaux de threshold)', () {
+    test('connectionBonusMultiplier → 1, 2, 3 (palier transmis à applyBonusTileUpgrade)', () {
       expect(
         upgradeEffectValue(UpgradeEffectType.connectionBonusMultiplier, 0),
         1.0,
@@ -62,14 +62,14 @@ void main() {
       );
     });
 
-    test('villageCoinsPercentBonus → 0.33, 0.66, 1.00', () {
+    test('villageCoinsPercentBonus → 0.25, 0.50, 1.00', () {
       expect(
         upgradeEffectValue(UpgradeEffectType.villageCoinsPercentBonus, 0),
-        0.33,
+        0.25,
       );
       expect(
         upgradeEffectValue(UpgradeEffectType.villageCoinsPercentBonus, 1),
-        0.66,
+        0.50,
       );
       expect(
         upgradeEffectValue(UpgradeEffectType.villageCoinsPercentBonus, 2),
@@ -272,10 +272,10 @@ void main() {
       );
     });
 
-    test('connectionBonusMultiplier → x2, x2, x2', () {
+    test('connectionBonusMultiplier → +1 tuile, +2 tuiles, +5 tuiles', () {
       expect(
         upgradeAllLevelEffects(UpgradeEffectType.connectionBonusMultiplier),
-        ['x2', 'x2', 'x2'],
+        ['+1 tuile', '+2 tuiles', '+5 tuiles'],
       );
     });
 
@@ -286,10 +286,10 @@ void main() {
       );
     });
 
-    test('villageCoinsPercentBonus → +33%, +66%, +100%', () {
+    test('villageCoinsPercentBonus → +25%, +50%, +100%', () {
       expect(
         upgradeAllLevelEffects(UpgradeEffectType.villageCoinsPercentBonus),
-        ['+33%', '+66%', '+100%'],
+        ['+25%', '+50%', '+100%'],
       );
     });
 
@@ -378,10 +378,10 @@ void main() {
       }
     });
 
-    test('chaque type a une icône différente', () {
+    test('chaque type d\'effet non-biome a une icône différente', () {
       final icons = UpgradeEffectType.values.map(upgradeIconData).toSet();
-      expect(icons.length, UpgradeEffectType.values.length,
-          reason: 'chaque type d\'effet devrait avoir une icône unique');
+      expect(icons.length, 12,
+          reason: 'les 5 types biome partagent Icons.circle → 12 icônes uniques');
     });
   });
 }

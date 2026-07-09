@@ -18,6 +18,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:hex_haven/data/app_database.dart';
 import 'package:hex_haven/data/seed_data.dart';
+import 'package:hex_haven/core/formatting.dart';
 import 'package:hex_haven/l10n/app_localizations.dart';
 import 'package:hex_haven/providers/build_provider.dart';
 import 'package:hex_haven/ui/build_screen.dart';
@@ -29,7 +30,7 @@ import 'package:hex_haven/ui/glass_container.dart';
 /// debug) et disposant chacune de plusieurs paliers de montée de niveau.
 const Map<String, String> _testUpgrades = {
   'starting_tiles_plus': 'Tuiles de départ+',
-  'doubled_connections': 'Connexions doublées',
+  'doubled_connections': 'Tuile bonus',
   'coins_plus': 'Pièces+',
 };
 
@@ -188,7 +189,7 @@ void main() {
         await tester.pumpAndSettle();
 
         final upgradeButton = find.text(
-          '${tr.upgrades_cost} : 20000  ${tr.upgrades_upgradeButton}',
+          '${tr.upgrades_cost} : ${formatThousands(20000)}  ${tr.upgrades_upgradeButton}',
         );
         expect(upgradeButton, findsOneWidget);
 

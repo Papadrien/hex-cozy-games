@@ -73,48 +73,48 @@ void main() {
     });
   });
 
-  group('GameEffectsService.applyConnectionMultiplier', () {
+  group('GameEffectsService.applyBonusTileUpgrade', () {
     test('aucune amélioration → inchangé', () {
       final container = _makeContainer();
       final service = container.read(gameEffectsServiceProvider);
-      expect(service.applyConnectionMultiplier(5, 5), 5);
+      expect(service.applyBonusTileUpgrade(5, 5), 5);
     });
 
-    test('niveau 1 → quint+sext doublés, triple+quad inchangés', () {
+    test('niveau 1 → quint+sext +1, triple+quad inchangés', () {
       final container = _makeContainer(
         const ActiveUpgradeEffects(connectionBonusLevel: 1),
       );
       final service = container.read(gameEffectsServiceProvider);
       // 3 côtés (triple) : base 1 → inchangé
-      expect(service.applyConnectionMultiplier(3, 1), 1);
+      expect(service.applyBonusTileUpgrade(3, 1), 1);
       // 4 côtés (quad) : base 2 → inchangé
-      expect(service.applyConnectionMultiplier(4, 2), 2);
-      // 5 côtés (quint) : base 5 → doublé
-      expect(service.applyConnectionMultiplier(5, 5), 10);
-      // 6 côtés (sext) : base 10 → doublé
-      expect(service.applyConnectionMultiplier(6, 10), 20);
+      expect(service.applyBonusTileUpgrade(4, 2), 2);
+      // 5 côtés (quint) : base 5 → +1
+      expect(service.applyBonusTileUpgrade(5, 5), 6);
+      // 6 côtés (sext) : base 10 → +1
+      expect(service.applyBonusTileUpgrade(6, 10), 11);
     });
 
-    test('niveau 2 → quad+ doublés, triple inchangé', () {
+    test('niveau 2 → quint+sext +2, triple+quad inchangés', () {
       final container = _makeContainer(
         const ActiveUpgradeEffects(connectionBonusLevel: 2),
       );
       final service = container.read(gameEffectsServiceProvider);
-      expect(service.applyConnectionMultiplier(3, 1), 1);
-      expect(service.applyConnectionMultiplier(4, 2), 4);
-      expect(service.applyConnectionMultiplier(5, 5), 10);
-      expect(service.applyConnectionMultiplier(6, 10), 20);
+      expect(service.applyBonusTileUpgrade(3, 1), 1);
+      expect(service.applyBonusTileUpgrade(4, 2), 2);
+      expect(service.applyBonusTileUpgrade(5, 5), 7);
+      expect(service.applyBonusTileUpgrade(6, 10), 12);
     });
 
-    test('niveau 3 → triple+ doublés', () {
+    test('niveau 3 → quint+sext +5, triple+quad inchangés', () {
       final container = _makeContainer(
         const ActiveUpgradeEffects(connectionBonusLevel: 3),
       );
       final service = container.read(gameEffectsServiceProvider);
-      expect(service.applyConnectionMultiplier(3, 1), 2);
-      expect(service.applyConnectionMultiplier(4, 2), 4);
-      expect(service.applyConnectionMultiplier(5, 5), 10);
-      expect(service.applyConnectionMultiplier(6, 10), 20);
+      expect(service.applyBonusTileUpgrade(3, 1), 1);
+      expect(service.applyBonusTileUpgrade(4, 2), 2);
+      expect(service.applyBonusTileUpgrade(5, 5), 10);
+      expect(service.applyBonusTileUpgrade(6, 10), 15);
     });
   });
 

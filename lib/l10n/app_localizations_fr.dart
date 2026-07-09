@@ -203,10 +203,11 @@ class AppLocalizationsFr extends AppLocalizations {
   String get upgrades_max => 'MAX';
 
   @override
-  String get upgrades_noneUnlocked => 'Aucune amélioration débloquée pour l\'instant';
+  String get upgrades_noneUnlocked =>
+      'Aucune amélioration débloquée pour l\'instant';
 
   @override
-  String get upgrades_confirmButton => 'Confirmer\u00a0?';
+  String get upgrades_confirmButton => 'Confirmer ?';
 
   @override
   String get upgrade_desc_starting_tiles_plus =>
@@ -270,7 +271,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get upgrade_desc_millionaire =>
-      'Crédite instantanément 1\u00a0000\u00a0000 de pièces sur ton profil (outil de développement).';
+      'Crédite instantanément 1 000 000 de pièces sur ton profil (outil de développement).';
 
   @override
   String get upgrade_desc_warehouse =>

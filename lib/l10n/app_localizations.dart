@@ -521,7 +521,7 @@ abstract class AppLocalizations {
   /// No description provided for @upgrade_desc_second_chance.
   ///
   /// In en, this message translates to:
-  /// **'Lets you take back a tile you've already placed, a limited number of times per game.'**
+  /// **'Lets you take back a tile you\'ve already placed, a limited number of times per game.'**
   String get upgrade_desc_second_chance;
 
   /// No description provided for @upgrade_desc_forest_plus.

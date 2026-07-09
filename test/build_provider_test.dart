@@ -203,7 +203,7 @@ void main() {
       final effects = container.read(activeUpgradeEffectsProvider);
       expect(effects.coinsMultiplier, 0.25);
       expect(effects.startingTilesBonus, 2);
-      expect(effects.villageCoinsBonus, 0.33);
+      expect(effects.villageCoinsBonus, 0.25);
     });
 
     test('combo_plus (niveau 1) → comboBonusTiles = 1', () {
