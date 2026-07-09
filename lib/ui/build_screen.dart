@@ -23,6 +23,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../core/colors.dart';
 import '../core/game_enums.dart';
 import '../core/constants.dart';
+import '../core/formatting.dart';
 import '../core/strings.dart';
 import '../data/app_database.dart';
 import '../providers/build_provider.dart';
@@ -432,6 +433,12 @@ class _BuildIconBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tintOverride =
+        upgradeIconColor(UpgradeEffectType.fromDb(upgrade.effectType));
+    final iconColor = tintOverride != null
+        ? (isSelected ? tintOverride : tintOverride.withValues(alpha: 0.55))
+        : (isSelected ? Colors.white : Colors.white.withValues(alpha: 0.55));
+
     return GlassContainer(
       borderRadius: 12,
       tintColor: isSelected ? kUpgradePurple : Colors.white,
@@ -445,7 +452,7 @@ class _BuildIconBadge extends StatelessWidget {
       height: 42,
       child: Icon(
         upgradeIconData(UpgradeEffectType.fromDb(upgrade.effectType)),
-        color: isSelected ? Colors.white : Colors.white.withValues(alpha: 0.55),
+        color: iconColor,
         size: 20,
       ),
     );
@@ -773,7 +780,7 @@ class _UpgradeButtonState extends ConsumerState<_UpgradeButton> {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
       onTap: canAfford ? _startConfirm : null,
       child: Text(
-        '${context.tr.upgrades_cost} : $cost  ${context.tr.upgrades_upgradeButton}',
+        '${context.tr.upgrades_cost} : ${formatThousands(cost)}  ${context.tr.upgrades_upgradeButton}',
         style: TextStyle(
           color: canAfford ? Colors.white : Colors.white.withValues(alpha: 0.35),
           fontSize: 12,

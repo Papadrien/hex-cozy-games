@@ -87,6 +87,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
         });
       },
     );
+    _game.getBonusFlyTarget = () => _stackHudFlyTarget();
     Future.microtask(
       () => ref.read(tutorialProvider.notifier).checkAndStart(),
     );

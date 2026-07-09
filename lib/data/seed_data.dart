@@ -99,7 +99,7 @@ final kBiomesClosedExtensionQuests = [
   PermanentQuestsCompanion.insert(
     id: 'biomes_50',
     category: QuestCategory.biomesClosed.dbValue,
-    description: 'Fermer 50 biomes',
+    description: 'Fermer 50 zones de couleur',
     targetValue: 50,
     rewardType: RewardType.upgradeUnlock.dbValue,
     rewardValue: 0,
@@ -108,7 +108,7 @@ final kBiomesClosedExtensionQuests = [
   PermanentQuestsCompanion.insert(
     id: 'biomes_100',
     category: QuestCategory.biomesClosed.dbValue,
-    description: 'Fermer 100 biomes',
+    description: 'Fermer 100 zones de couleur',
     targetValue: 100,
     rewardType: RewardType.upgradeUnlock.dbValue,
     rewardValue: 0,
@@ -185,12 +185,12 @@ final _permanentQuests = [
   // réutilisables depuis la migration de schéma (version 9).
   ...kClusterColorQuests,
 
-  // Chaîne "biomes_closed" — débloque pièces, puis Connexions doublées,
+  // Chaîne "biomes_closed" — débloque pièces, puis Tuile bonus,
   // puis Bonus de clôture, puis Couleur détestée (Story A6).
   PermanentQuestsCompanion.insert(
     id: 'biomes_10',
     category: QuestCategory.biomesClosed.dbValue,
-    description: 'Fermer 10 biomes',
+    description: 'Fermer 10 zones de couleur',
     targetValue: 10,
     rewardType: RewardType.coins.dbValue,
     rewardValue: 75,
@@ -199,7 +199,7 @@ final _permanentQuests = [
   PermanentQuestsCompanion.insert(
     id: 'biomes_25',
     category: QuestCategory.biomesClosed.dbValue,
-    description: 'Fermer 25 biomes',
+    description: 'Fermer 25 zones de couleur',
     targetValue: 25,
     rewardType: RewardType.upgradeUnlock.dbValue,
     rewardValue: 0,
@@ -374,7 +374,7 @@ final kDailyQuestPool = [
   DailyQuestDef(
     id: 'daily_village_3',
     category: QuestCategory.villageSize,
-    description: 'Faire un village de 3 maisons',
+    description: 'Faire un groupe rouge de 3 tuiles',
     targetValue: 3,
     rewardType: RewardType.coins,
     rewardValue: 8,
@@ -382,7 +382,7 @@ final kDailyQuestPool = [
   DailyQuestDef(
     id: 'daily_village_5',
     category: QuestCategory.villageSize,
-    description: 'Faire un village de 5 maisons',
+    description: 'Faire un groupe rouge de 5 tuiles',
     targetValue: 5,
     rewardType: RewardType.coins,
     rewardValue: 10,
@@ -390,7 +390,7 @@ final kDailyQuestPool = [
   DailyQuestDef(
     id: 'daily_village_8',
     category: QuestCategory.villageSize,
-    description: 'Faire un village de 8 maisons',
+    description: 'Faire un groupe rouge de 8 tuiles',
     targetValue: 8,
     rewardType: RewardType.coins,
     rewardValue: 12,
@@ -398,7 +398,7 @@ final kDailyQuestPool = [
   DailyQuestDef(
     id: 'daily_biomes_2',
     category: QuestCategory.biomesClosed,
-    description: 'Fermer 2 biomes',
+    description: 'Fermer 2 zones de couleur',
     targetValue: 2,
     rewardType: RewardType.coins,
     rewardValue: 6,
@@ -406,7 +406,7 @@ final kDailyQuestPool = [
   DailyQuestDef(
     id: 'daily_biomes_3',
     category: QuestCategory.biomesClosed,
-    description: 'Fermer 3 biomes',
+    description: 'Fermer 3 zones de couleur',
     targetValue: 3,
     rewardType: RewardType.coins,
     rewardValue: 8,
@@ -414,7 +414,7 @@ final kDailyQuestPool = [
   DailyQuestDef(
     id: 'daily_biomes_5',
     category: QuestCategory.biomesClosed,
-    description: 'Fermer 5 biomes',
+    description: 'Fermer 5 zones de couleur',
     targetValue: 5,
     rewardType: RewardType.coins,
     rewardValue: 10,
@@ -436,7 +436,7 @@ final _upgrades = [
   ),
   UpgradesCompanion.insert(
     id: 'doubled_connections',
-    name: 'Connexions doublées',
+    name: 'Tuile bonus',
     effectType: UpgradeEffectType.connectionBonusMultiplier.dbValue,
     unlockConditionType: 'biomes_25',
     unlockConditionValue: 25,
@@ -453,7 +453,7 @@ final _upgrades = [
     name: 'Rouge+',
     effectType: UpgradeEffectType.villageCoinsPercentBonus.dbValue,
     unlockConditionType: 'village_100',
-    unlockConditionValue: 100,
+    unlockConditionValue: 51,
   ),
   kJackpotPlusUpgrade,
 

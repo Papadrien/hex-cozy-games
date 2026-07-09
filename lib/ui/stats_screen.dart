@@ -106,7 +106,7 @@ class StatsScreen extends ConsumerWidget {
                                 ),
                                 const SizedBox(width: 8),
                                 Text(
-                                  'BIOMES',
+                                  'GROUPES DE COULEUR',
                                   style: TextStyle(
                                     color: Colors.white.withValues(alpha: 0.65),
                                     fontSize: 11,
@@ -120,7 +120,8 @@ class StatsScreen extends ConsumerWidget {
                           const SizedBox(height: 8),
                           ...biomeSizes.entries.map(
                             (e) => _StatCard(
-                              icon: _biomeIcon(e.key),
+                              icon: Icons.circle,
+                              iconColor: _biomeColor(e.key),
                               label: biomeName(context, e.key),
                               value: context.tr.stats_biomeMax(e.key, e.value),
                             ),
@@ -149,28 +150,28 @@ class StatsScreen extends ConsumerWidget {
     );
   }
 
-  IconData _biomeIcon(String biome) {
+  Color _biomeColor(String biome) {
     switch (biome) {
       case 'forest':
-        return Icons.forest;
+        return const Color(0xFF43A047);
       case 'village':
-        return Icons.home;
+        return const Color(0xFFE53935);
       case 'plain':
-        return Icons.landscape;
+        return const Color(0xFFFFD600);
       case 'water':
-        return Icons.water_drop;
+        return const Color(0xFF1E88E5);
       case 'mountain':
-        return Icons.terrain;
+        return const Color(0xFF8E24AA);
       case 'orange':
-        return Icons.brightness_5;
+        return const Color(0xFFFB8C00);
       case 'pink':
-        return Icons.favorite;
+        return const Color(0xFFFFABE6);
       case 'black':
-        return Icons.circle;
+        return const Color(0xFF212121);
       case 'white':
-        return Icons.circle_outlined;
+        return const Color(0xFFF5F5F5);
       default:
-        return Icons.circle;
+        return kBrandBlue;
     }
   }
 }
@@ -236,14 +237,17 @@ class _StatCard extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.value,
+    this.iconColor,
   });
 
   final IconData icon;
   final String label;
   final String value;
+  final Color? iconColor;
 
   @override
   Widget build(BuildContext context) {
+    final color = iconColor ?? kBrandBlue;
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       child: GlassContainer(
@@ -256,10 +260,10 @@ class _StatCard extends StatelessWidget {
                   width: 36,
                   height: 36,
                   decoration: BoxDecoration(
-                    color: kBrandBlue.withValues(alpha: 0.15),
+                    color: color.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: Icon(icon, color: kBrandBlue, size: 20),
+                  child: Icon(icon, color: color, size: 20),
                 ),
                 const SizedBox(width: 12),
                 Expanded(

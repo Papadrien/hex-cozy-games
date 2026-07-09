@@ -48,7 +48,7 @@ extension BiomeColor on BiomeType {
       case BiomeType.orange:
         return const Color(0xFFFB8C00);
       case BiomeType.pink:
-        return const Color(0xFFEC407A);
+        return const Color(0xFFFFABE6);
       case BiomeType.black:
         return const Color(0xFF212121);
       case BiomeType.white:
@@ -74,6 +74,13 @@ const double kEdgeWaveSpeed = 1.3;
 
 /// Nombre de segments utilisés pour dessiner la ligne ondulée.
 const int kEdgeWaveSegments = 8;
+
+/// Palier du nombre de tuiles posées au-delà duquel l'ondulation du bord
+/// bas est désactivée pour toutes les tuiles — le calcul de la ligne
+/// ondulée (sin + Path par face, par tuile, par frame) devient coûteux sur
+/// un plateau qui grossit indéfiniment, donc on la fige au-delà de ce
+/// palier pour préserver les performances. Voir [HexGridComponent.placeTile].
+const int kEdgeWaveTileCountThreshold = 150;
 
 const int kTileDepthPriorityBase = 100000;
 const int kTileDepthPriorityPreview = kTileDepthPriorityBase + 1000000;
@@ -125,6 +132,15 @@ class TileComponent extends PositionComponent {
     _waveIntensity = 0.0;
     _waveRampActive = true;
     _waveRampSpeed = duration > 0 ? 1.0 / duration : double.infinity;
+  }
+
+  /// Fige immédiatement l'ondulation du bord bas (intensité à 0, pas de
+  /// ramp-in en cours) — utilisé au-delà de [kEdgeWaveTileCountThreshold]
+  /// tuiles posées pour économiser le calcul de la ligne ondulée à chaque
+  /// frame.
+  void freezeWave() {
+    _waveRampActive = false;
+    _waveIntensity = 0.0;
   }
 
   // ── Animation de rotation ────────────────────────────────────────────────

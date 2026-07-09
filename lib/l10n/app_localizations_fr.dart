@@ -140,10 +140,10 @@ class AppLocalizationsFr extends AppLocalizations {
   String get quests_category_record => 'Record de pièces';
 
   @override
-  String get quests_category_village => 'Village';
+  String get quests_category_village => 'Rouge';
 
   @override
-  String get quests_category_biomes => 'Biomes fermés';
+  String get quests_category_biomes => 'Zones de couleur fermées';
 
   @override
   String get quests_category_connections => 'Connexions multiples';
@@ -214,7 +214,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get upgrade_desc_doubled_connections =>
-      'Multiplie les tuiles bonus gagnées à chaque connexion réussie.';
+      'Augmente le nombre de tuiles bonus obtenues sur les connexions quintuple et sextuple.';
 
   @override
   String get upgrade_desc_coins_plus =>
@@ -222,7 +222,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get upgrade_desc_villages_plus =>
-      'Augmente les pièces gagnées sur les tuiles Village (rouge).';
+      'Augmente les pièces gagnées sur les tuiles rouges.';
 
   @override
   String get upgrade_desc_combo_plus =>
@@ -242,23 +242,23 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get upgrade_desc_forest_plus =>
-      'Augmente les pièces gagnées sur les tuiles Forêt (vert).';
+      'Augmente les pièces gagnées sur les tuiles vertes.';
 
   @override
   String get upgrade_desc_water_plus =>
-      'Augmente les pièces gagnées sur les tuiles Eau (bleu).';
+      'Augmente les pièces gagnées sur les tuiles bleues.';
 
   @override
   String get upgrade_desc_plain_plus =>
-      'Augmente les pièces gagnées sur les tuiles Plaine (jaune).';
+      'Augmente les pièces gagnées sur les tuiles jaunes.';
 
   @override
   String get upgrade_desc_mountain_plus =>
-      'Augmente les pièces gagnées sur les tuiles Montagne (violet).';
+      'Augmente les pièces gagnées sur les tuiles violettes.';
 
   @override
   String get upgrade_desc_closure_bonus =>
-      'Offre des tuiles bonus à chaque fermeture complète d\'un biome.';
+      'Offre des tuiles bonus à chaque fermeture complète d\'une zone de couleur.';
 
   @override
   String get upgrade_desc_hated_color =>
@@ -332,6 +332,10 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get home_buildSelection => 'Sélection des améliorations';
+
+  @override
+  String get home_buildSelectionLockedResume =>
+      'Termine ou abandonne ta partie en cours avant de choisir de nouvelles améliorations.';
 
   @override
   String get home_quests => 'Quêtes';

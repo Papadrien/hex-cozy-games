@@ -322,7 +322,10 @@ class _CenterContentState extends ConsumerState<_CenterContent>
               const SizedBox(height: 14),
 
               // ── Bouton Build ───────────────────────────────────────────────
-              _BuildButton(selected: selected),
+              _BuildButton(
+                selected: selected,
+                activeSession: widget.activeSession,
+              ),
               const SizedBox(height: 10),
 
               // ── Bouton Pub / Premium ───────────────────────────────────────
@@ -456,9 +459,14 @@ class _PlayButton extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(vertical: 18),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(28),
+                      // Alpha relevé (0.3 -> 0.85) : à faible opacité, un
+                      // liseré blanc posé sur le fond teal du bouton se
+                      // teintait visuellement de vert au lieu de lire comme
+                      // blanc. Épaisseur doublée (1.5 -> 3) pour rester
+                      // cohérent avec les autres contours glassmorphism.
                       border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.3),
-                        width: 1.5,
+                        color: Colors.white.withValues(alpha: 0.85),
+                        width: 3,
                       ),
                     ),
                     child: Center(
@@ -557,31 +565,54 @@ class _GlassButton extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _BuildButton extends StatelessWidget {
-  const _BuildButton({required this.selected});
+  const _BuildButton({required this.selected, required this.activeSession});
 
   final List<UpgradeRow> selected;
+  final AsyncValue<bool> activeSession;
 
   @override
   Widget build(BuildContext context) {
+    // Tant qu'une partie est à reprendre, on empêche l'accès à la sélection
+    // d'améliorations : le choix d'améliorations ne s'applique qu'à une
+    // nouvelle partie et ne doit pas pouvoir être modifié pendant qu'une
+    // partie en cours attend d'être reprise.
+    final hasResumableGame =
+        activeSession.maybeWhen(data: (active) => active, orElse: () => false);
+
     return SizedBox(
       width: double.infinity,
       child: _GlassButton(
         // Pas de surcouche — le bleu de base suffit pour ce bouton
-        tint: Colors.transparent,
-        onPressed: () => Navigator.of(context).push(
-          MaterialPageRoute<void>(builder: (_) => const BuildScreen()),
-        ),
+        tint: hasResumableGame ? Colors.grey : Colors.transparent,
+        onPressed: hasResumableGame
+            ? () => ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(context.tr.home_buildSelectionLockedResume),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                )
+            : () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(builder: (_) => const BuildScreen()),
+                ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             if (selected.isEmpty)
-              Icon(Icons.build_outlined,
-                  size: 18, color: Colors.white)
+              Icon(
+                Icons.build_outlined,
+                size: 18,
+                color: hasResumableGame
+                    ? Colors.white.withValues(alpha: 0.4)
+                    : Colors.white,
+              )
             else
               ...selected.map((u) => Padding(
                     padding: const EdgeInsets.only(right: 4),
-                    child: _BuildMiniIcon(
-                      effectType: UpgradeEffectType.fromDb(u.effectType),
+                    child: Opacity(
+                      opacity: hasResumableGame ? 0.4 : 1,
+                      child: _BuildMiniIcon(
+                        effectType: UpgradeEffectType.fromDb(u.effectType),
+                      ),
                     ),
                   )),
             const SizedBox(width: 8),
@@ -593,7 +624,9 @@ class _BuildButton extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 maxLines: 1,
                 style: GoogleFonts.nunito(
-                  color: Colors.white,
+                  color: hasResumableGame
+                      ? Colors.white.withValues(alpha: 0.5)
+                      : Colors.white,
                   fontSize: 14,
                   fontWeight: FontWeight.w800,
                 ),
@@ -826,6 +859,7 @@ class _BuildMiniIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tintOverride = upgradeIconColor(effectType);
     return Container(
       width: 26,
       height: 26,
@@ -835,7 +869,7 @@ class _BuildMiniIcon extends StatelessWidget {
       ),
       child: Icon(
         upgradeIconData(effectType),
-        color: Colors.white,
+        color: tintOverride ?? Colors.white,
         size: 14,
       ),
     );

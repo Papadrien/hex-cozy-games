@@ -66,17 +66,10 @@ void main() {
       // (voir seed_data.dart) — non complétée par défaut.
       expect(await _isUnlocked(db, 'starting_tiles_plus'), isFalse);
 
-      await db.into(db.permanentQuests).insert(
-            const PermanentQuestsCompanion.insert(
-              id: 'coins_2000',
-              category: 'coins',
-              description: 'test',
-              targetValue: 2000,
-              rewardType: 'coins',
-              rewardValue: 0,
-              isCompleted: Value(true),
-            ),
-          );
+      // Marquer la quête existante comme complétée
+      await (db.update(db.permanentQuests)
+            ..where((q) => q.id.equals('coins_2000')))
+          .write(const PermanentQuestsCompanion(isCompleted: Value(true)));
 
       await container.read(progressionServiceProvider).checkUnlocks();
 
@@ -89,18 +82,7 @@ void main() {
       addTearDown(container.dispose);
       final db = container.read(appDatabaseProvider);
 
-      await db.into(db.permanentQuests).insert(
-            const PermanentQuestsCompanion.insert(
-              id: 'coins_2000',
-              category: 'coins',
-              description: 'test',
-              targetValue: 2000,
-              rewardType: 'coins',
-              rewardValue: 0,
-              isCompleted: Value(false),
-            ),
-          );
-
+      // 'coins_2000' existe déjà dans les seed data, non complétée par défaut
       await container.read(progressionServiceProvider).checkUnlocks();
 
       expect(await _isUnlocked(db, 'starting_tiles_plus'), isFalse);

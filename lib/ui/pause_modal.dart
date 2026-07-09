@@ -406,8 +406,13 @@ void _abandonGame(BuildContext context, WidgetRef ref) {
   SessionSaver.endSession(ref);
   ref.read(sessionProvider.notifier).reset();
   ref.read(lastPlacementProvider.notifier).set(null);
-  ref.invalidate(gridProvider);
-  ref.invalidate(tileStackProvider);
+  // reset() direct plutôt qu'invalidate : même raison que dans
+  // startNewGame — les keepAlive ne se reconstruisent pas immédiatement
+  // avec invalidate, ce qui laisserait les anciennes données en mémoire
+  // et provoquerait une tuile de départ manquante + AdWidget déjà instancié
+  // lors de la prochaine partie.
+  ref.read(gridProvider.notifier).reset();
+  ref.read(tileStackProvider.notifier).reset();
   // Idem : sans ça, isPaused reste true et la prochaine partie démarre
   // directement sur la modale de pause.
   ref.read(pauseProvider.notifier).resume();

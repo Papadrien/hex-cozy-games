@@ -686,6 +686,12 @@ abstract class AppLocalizations {
   /// **'Upgrade selection'**
   String get home_buildSelection;
 
+  /// No description provided for @home_buildSelectionLockedResume.
+  ///
+  /// In en, this message translates to:
+  /// **'Finish or abandon your current run before picking new upgrades.'**
+  String get home_buildSelectionLockedResume;
+
   /// No description provided for @home_quests.
   ///
   /// In en, this message translates to:

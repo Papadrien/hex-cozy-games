@@ -138,10 +138,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get quests_category_record => 'Coins record';
 
   @override
-  String get quests_category_village => 'Village';
+  String get quests_category_village => 'Red';
 
   @override
-  String get quests_category_biomes => 'Closed biomes';
+  String get quests_category_biomes => 'Closed color zones';
 
   @override
   String get quests_category_connections => 'Multi-side connections';
@@ -212,7 +212,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get upgrade_desc_doubled_connections =>
-      'Multiplies the bonus tiles earned on every successful connection.';
+      'Increases the bonus tiles earned from five-side and six-side connections.';
 
   @override
   String get upgrade_desc_coins_plus =>
@@ -220,7 +220,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get upgrade_desc_villages_plus =>
-      'Increases coins earned from Village (red) tiles.';
+      'Increases coins earned from red tiles.';
 
   @override
   String get upgrade_desc_combo_plus =>
@@ -240,23 +240,23 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get upgrade_desc_forest_plus =>
-      'Increases coins earned from Forest (green) tiles.';
+      'Increases coins earned from green tiles.';
 
   @override
   String get upgrade_desc_water_plus =>
-      'Increases coins earned from Water (blue) tiles.';
+      'Increases coins earned from blue tiles.';
 
   @override
   String get upgrade_desc_plain_plus =>
-      'Increases coins earned from Plain (yellow) tiles.';
+      'Increases coins earned from yellow tiles.';
 
   @override
   String get upgrade_desc_mountain_plus =>
-      'Increases coins earned from Mountain (purple) tiles.';
+      'Increases coins earned from purple tiles.';
 
   @override
   String get upgrade_desc_closure_bonus =>
-      'Grants bonus tiles every time a biome closes completely.';
+      'Grants bonus tiles every time a color zone closes completely.';
 
   @override
   String get upgrade_desc_hated_color =>
@@ -330,6 +330,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get home_buildSelection => 'Upgrade selection';
+
+  @override
+  String get home_buildSelectionLockedResume =>
+      'Finish or abandon your current run before picking new upgrades.';
 
   @override
   String get home_quests => 'Quests';

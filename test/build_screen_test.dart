@@ -20,7 +20,6 @@ import 'package:hex_haven/data/app_database.dart';
 import 'package:hex_haven/data/seed_data.dart';
 import 'package:hex_haven/l10n/app_localizations.dart';
 import 'package:hex_haven/providers/build_provider.dart';
-import 'package:hex_haven/providers/progression_provider.dart';
 import 'package:hex_haven/ui/build_screen.dart';
 import 'package:hex_haven/ui/glass_container.dart';
 

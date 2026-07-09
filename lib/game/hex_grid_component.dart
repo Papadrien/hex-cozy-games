@@ -329,6 +329,11 @@ class HexGridComponent extends PositionComponent {
     final center = _layout.hexToPixel(coords, isoScaleY: kIsoScaleY);
     final finalPosition = Vector2(center.x, center.y);
 
+    // Au-delà d'un certain nombre de tuiles posées, l'ondulation du bord bas
+    // est désactivée (perf) — voir [kEdgeWaveTileCountThreshold].
+    final waveEnabled =
+        placedTiles.length + 1 <= kEdgeWaveTileCountThreshold;
+
     final component = TileComponent(
       tile: tile,
       coords: coords,
@@ -339,8 +344,8 @@ class HexGridComponent extends PositionComponent {
       highlightedSides: const {},
       // En pose animée, l'ondulation n'apparaît qu'une fois la tuile arrivée
       // (voir plus bas) ; sans animation (restauration de partie), elle est
-      // visible immédiatement.
-      initialWaveIntensity: animated ? 0.0 : 1.0,
+      // visible immédiatement — sauf si le palier de tuiles est dépassé.
+      initialWaveIntensity: (animated || !waveEnabled) ? 0.0 : 1.0,
     );
     // Calculée sur la position finale (et non la position de départ
     // surélevée) pour que l'empilement visuel reste correct pendant toute
@@ -369,9 +374,19 @@ class HexGridComponent extends PositionComponent {
         finalPosition,
         EffectController(duration: kDropBounceDurationSec, curve: Curves.easeOut),
       )..onComplete = () {
-          component.startWaveRampIn(duration: kDropWaveRampInDurationSec);
+          if (waveEnabled) {
+            component.startWaveRampIn(duration: kDropWaveRampInDurationSec);
+          }
         };
       component.add(SequenceEffect([descend, bounceBack]));
+    }
+
+    // Le palier vient d'être franchi avec cette pose : on fige aussi
+    // l'ondulation des tuiles déjà posées pour maximiser le gain de perf.
+    if (!waveEnabled) {
+      for (final t in placedTiles.values) {
+        t.freezeWave();
+      }
     }
 
     placedCells[coords] = HexCell(
@@ -430,7 +445,7 @@ class HexGridComponent extends PositionComponent {
   /// et des particules pour les connexions parfaites.
   /// Les indicateurs disparaissent automatiquement après animation.
   void showRewardIndicators(HexCoords coords, List<int> connectedSides,
-      {int bonusTiles = 0}) {
+      {int bonusTiles = 0, Vector2? bonusFlyTarget}) {
     final layout = _layout;
     final center = layout.hexToPixel(coords, isoScaleY: kIsoScaleY);
     final centerVec = Vector2(center.x, center.y);
@@ -455,12 +470,13 @@ class HexGridComponent extends PositionComponent {
       ));
     }
 
-    // Icône de tuile bonus qui flotte et disparaît.
+    // Icône de tuile bonus qui vole vers la pile HUD.
     if (bonusTiles > 0) {
       add(_BonusTileAnimComponent(
         position: centerVec,
         hexSize: hexSize,
         bonusCount: bonusTiles,
+        flyTarget: bonusFlyTarget,
       ));
     }
 
@@ -764,18 +780,22 @@ class _PreviewBonusComponent extends PositionComponent {
   }
 }
 
-/// Icône de tuile bonus animée après placement — flotte vers le haut
-/// puis disparaît (Story 4.2b).
+/// Icône de tuile bonus animée après placement — vole vers la pile HUD
+/// comme les pièces (Story 4.2b).
 class _BonusTileAnimComponent extends PositionComponent {
   _BonusTileAnimComponent({
     required super.position,
     required double hexSize,
     required this.bonusCount,
+    this.flyTarget,
   })  : _radius = hexSize * 0.22,
         super(priority: kTileDepthPriorityPreview + 1);
 
   final double _radius;
   final int bonusCount;
+
+  /// Position cible pour le vol vers la pile HUD (null = vol stationnaire).
+  final Vector2? flyTarget;
 
   double _life = 0.0;
   static const double _kDuration = 0.9;
@@ -783,10 +803,17 @@ class _BonusTileAnimComponent extends PositionComponent {
   @override
   Future<void> onLoad() async {
     await super.onLoad();
-    add(MoveEffect.by(
-      Vector2(0, -40),
-      EffectController(duration: _kDuration, curve: Curves.easeOut),
-    ));
+    if (flyTarget != null) {
+      add(MoveEffect.to(
+        flyTarget!,
+        EffectController(duration: 0.6, curve: Curves.easeInOut),
+      ));
+    } else {
+      add(MoveEffect.by(
+        Vector2(0, -40),
+        EffectController(duration: _kDuration, curve: Curves.easeOut),
+      ));
+    }
   }
 
   @override
@@ -801,8 +828,12 @@ class _BonusTileAnimComponent extends PositionComponent {
   @override
   void render(Canvas canvas) {
     final progress = (_life / _kDuration).clamp(0.0, 1.0);
-    final alpha = 0.9 * (1.0 - progress);
-    final r = _radius;
+    final alpha = flyTarget != null
+        ? (_life < 0.3)
+            ? (_life / 0.3)
+            : (1.0 - (_life - 0.3) / (_kDuration - 0.3))
+        : 0.9 * (1.0 - progress);
+    final r = flyTarget != null ? _radius + _life * 2.0 : _radius;
 
     // Cercle extérieur (fond).
     canvas.drawCircle(

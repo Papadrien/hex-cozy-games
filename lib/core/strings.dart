@@ -13,20 +13,23 @@ extension AppLocalizationsX on BuildContext {
   AppLocalizations get tr => AppLocalizations.of(this)!;
 }
 
-/// Traduit un nom de biome (clé technique anglaise) vers l'affichage localisé.
+/// Traduit une couleur de tuile (clé technique anglaise) vers l'affichage
+/// localisé. Les tuiles n'ont pas de rendu thématique (village, forêt...) —
+/// seule la couleur est visible, donc on affiche uniquement des noms de
+/// couleur.
 String biomeName(BuildContext context, String biome) {
   if (!AppLocalizations.of(context)!.localeName.startsWith('fr')) return biome;
   switch (biome) {
     case 'forest':
-      return 'Forêt';
+      return 'Vert';
     case 'village':
-      return 'Village';
+      return 'Rouge';
     case 'plain':
-      return 'Plaine';
+      return 'Jaune';
     case 'water':
-      return 'Eau';
+      return 'Bleu';
     case 'mountain':
-      return 'Montagne';
+      return 'Violet';
     case 'orange':
       return 'Orange';
     case 'pink':

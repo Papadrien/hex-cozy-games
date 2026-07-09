@@ -2,7 +2,8 @@
 ///
 /// Centralise les effets des améliorations dans le game loop :
 ///   - STARTING_TILES : modifie le stock initial
-///   - CONNECTION_BONUS_MULTIPLIER : multiplie les tuiles bonus des connexions
+///   - CONNECTION_BONUS_MULTIPLIER : ajoute des tuiles bonus fixes sur les
+///     connexions quintuple/sextuple (Tuile bonus)
 ///   - COINS_MULTIPLIER : multiplie les pièces générées
 ///   - BIOME_COINS_BONUS : bonus de pièces pour le biome village
 library;
@@ -25,18 +26,19 @@ class GameEffectsService {
     return _ref.read(activeUpgradeEffectsProvider).startingTilesBonus;
   }
 
-  /// Applique le bonus Connexions doublées (Story B8).
+  /// Applique le bonus Tuile bonus (remanié — ex "Connexions doublées").
   ///
-  /// Selon le niveau de l'amélioration, les connexions avec suffisamment de
-  /// côtés connectés reçoivent un ×2 sur leurs tuiles bonus. Niveau 1 : quint
-  /// + sext (5-6), niveau 2 : +quad (4), niveau 3 : +triple (3).
-  int applyConnectionMultiplier(int connectedSides, int baseBonus) {
+  /// Ajoute un nombre fixe de tuiles bonus supplémentaires sur les
+  /// connexions quintuple (5 côtés) et sextuple (6 côtés) uniquement,
+  /// selon le niveau de l'amélioration : niveau 1 → +1, niveau 2 → +2,
+  /// niveau 3 → +5. Base [kBonusScale] : quint +5, sext +10 → au niveau 3,
+  /// ça donne +10 et +15.
+  int applyBonusTileUpgrade(int connectedSides, int baseBonus) {
+    if (connectedSides != 5 && connectedSides != 6) return baseBonus;
     final level =
         _ref.read(activeUpgradeEffectsProvider).connectionBonusLevel;
-    if (level < 1) return baseBonus;
-    final threshold = [6, 5, 4, 3][level.clamp(0, 3)];
-    if (connectedSides < threshold) return baseBonus;
-    return baseBonus * 2;
+    const extraByLevel = {1: 1, 2: 2, 3: 5};
+    return baseBonus + (extraByLevel[level] ?? 0);
   }
 
   /// Calcule les pièces finales après application des bonus — Story 2.8b / B1.

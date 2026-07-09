@@ -178,19 +178,15 @@ IconData upgradeIconData(UpgradeEffectType effectType) {
     case UpgradeEffectType.startingTilesBonus:
       return Icons.grid_on;
     case UpgradeEffectType.connectionBonusMultiplier:
-      return Icons.link;
+      return Icons.auto_awesome;
     case UpgradeEffectType.coinsPercentBonus:
       return Icons.monetization_on;
     case UpgradeEffectType.villageCoinsPercentBonus:
-      return Icons.home;
     case UpgradeEffectType.forestCoinsPercentBonus:
-      return Icons.park;
     case UpgradeEffectType.waterCoinsPercentBonus:
-      return Icons.water_drop;
     case UpgradeEffectType.plainCoinsPercentBonus:
-      return Icons.grass;
     case UpgradeEffectType.mountainCoinsPercentBonus:
-      return Icons.terrain;
+      return Icons.circle;
     case UpgradeEffectType.closureBonusTiles:
       return Icons.all_inclusive;
     case UpgradeEffectType.hatedColorExclusion:
@@ -204,9 +200,29 @@ IconData upgradeIconData(UpgradeEffectType effectType) {
     case UpgradeEffectType.comboBonusTiles:
       return Icons.bolt;
     case UpgradeEffectType.millionaireCoins:
-      return Icons.monetization_on;
+      return Icons.workspace_premium;
     case UpgradeEffectType.warehouseStartingTiles:
       return Icons.inventory_2;
+  }
+}
+
+/// Couleur de teinte du rond pour les améliorations "couleur" (Rouge+,
+/// Vert+, Bleu+, Jaune+, Violet+) — `null` pour les autres améliorations,
+/// qui gardent l'icône neutre blanche du badge.
+Color? upgradeIconColor(UpgradeEffectType effectType) {
+  switch (effectType) {
+    case UpgradeEffectType.villageCoinsPercentBonus:
+      return const Color(0xFFE53935);
+    case UpgradeEffectType.forestCoinsPercentBonus:
+      return const Color(0xFF43A047);
+    case UpgradeEffectType.waterCoinsPercentBonus:
+      return const Color(0xFF1E88E5);
+    case UpgradeEffectType.plainCoinsPercentBonus:
+      return const Color(0xFFFFD600);
+    case UpgradeEffectType.mountainCoinsPercentBonus:
+      return const Color(0xFF8E24AA);
+    default:
+      return null;
   }
 }
 
@@ -225,11 +241,10 @@ List<String> upgradeAllLevelEffects(UpgradeEffectType effectType) {
     case UpgradeEffectType.startingTilesBonus:
       return ['+2', '+5', '+10'];
     case UpgradeEffectType.connectionBonusMultiplier:
-      return ['x2', 'x2', 'x2'];
+      return ['+1 tuile', '+2 tuiles', '+5 tuiles'];
     case UpgradeEffectType.coinsPercentBonus:
       return ['+25%', '+50%', '+100%'];
     case UpgradeEffectType.villageCoinsPercentBonus:
-      return ['+33%', '+66%', '+100%'];
     case UpgradeEffectType.forestCoinsPercentBonus:
     case UpgradeEffectType.waterCoinsPercentBonus:
     case UpgradeEffectType.plainCoinsPercentBonus:
@@ -260,11 +275,12 @@ double upgradeEffectValue(UpgradeEffectType effectType, int level) {
     case UpgradeEffectType.startingTilesBonus:
       return [2.0, 5.0, 10.0][level.clamp(0, 2)];
     case UpgradeEffectType.connectionBonusMultiplier:
+      // Palier (1/2/3) transmis à `connectionBonusLevel`, traduit en tuiles
+      // bonus supplémentaires (+1/+2/+5) par [GameEffectsService.applyBonusTileUpgrade].
       return [1.0, 2.0, 3.0][level.clamp(0, 2)];
     case UpgradeEffectType.coinsPercentBonus:
       return [0.25, 0.50, 1.00][level.clamp(0, 2)];
     case UpgradeEffectType.villageCoinsPercentBonus:
-      return [0.33, 0.66, 1.00][level.clamp(0, 2)];
     case UpgradeEffectType.forestCoinsPercentBonus:
     case UpgradeEffectType.waterCoinsPercentBonus:
     case UpgradeEffectType.plainCoinsPercentBonus:

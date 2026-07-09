@@ -93,27 +93,36 @@ class TileStackHud extends ConsumerWidget {
                         dim: false,
                       ),
                     ),
-                    // Croix d'annulation de sélection
+                    // Croix d'annulation de sélection — la zone d'effet
+                    // couvre toute la première tuile (Story 4.2b).
                     if (placement.hasSelection)
                       Positioned(
-                        left: (_kActiveTileWidth - _kCrossSize) / 2,
-                        top: (_kStackHeight - _kCrossSize) / 2,
-                          child: GlassContainer(
-                            borderRadius: 13,
-                            blurSigma: 10,
-                            tintColor: _kHudGlass,
-                            borderColor: _kHudGlassBorder.withValues(alpha: 0.45),
-                            width: _kCrossSize,
-                            height: _kCrossSize,
-                            onTap: () {
-                              buttonHapticTap(context);
-                              ref
-                                  .read(placementProvider.notifier)
-                                  .clearSelection();
-                            },
-                            child: const Icon(Icons.close,
-                                size: 16, color: Colors.white),
+                        left: 0,
+                        top: 0,
+                        width: _kActiveTileWidth,
+                        height: _kStackHeight,
+                        child: GestureDetector(
+                          behavior: HitTestBehavior.translucent,
+                          onTap: () {
+                            buttonHapticTap(context);
+                            ref
+                                .read(placementProvider.notifier)
+                                .clearSelection();
+                          },
+                          child: Center(
+                            child: GlassContainer(
+                              borderRadius: 13,
+                              blurSigma: 10,
+                              tintColor: _kHudGlass,
+                              borderColor:
+                                  _kHudGlassBorder.withValues(alpha: 0.45),
+                              width: _kCrossSize,
+                              height: _kCrossSize,
+                              child: const Icon(Icons.close,
+                                  size: 16, color: Colors.white),
+                            ),
                           ),
+                        ),
                       ),
               ],
             ),

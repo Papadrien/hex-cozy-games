@@ -69,8 +69,9 @@ class ActiveUpgradeEffects {
   /// Nombre de tuiles supplémentaires au début de la partie.
   final int startingTilesBonus;
 
-  /// Niveau du bonus Connexions doublées (Story B8).
-  /// 0 = inactif ; 1 = quint+sext ; 2 = +quad ; 3 = +triple.
+  /// Niveau du bonus Tuile bonus (ex "Connexions doublées", Story B8).
+  /// 0 = inactif ; 1 = +1 tuile ; 2 = +2 tuiles ; 3 = +5 tuiles — sur les
+  /// connexions quintuple/sextuple uniquement.
   final int connectionBonusLevel;
 
   /// Multiplicateur de toutes les pièces générées (ex: 0.10 = +10%).
