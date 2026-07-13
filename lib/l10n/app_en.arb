@@ -138,7 +138,7 @@
   "@upgrade_desc_coins_plus": {},
   "upgrade_desc_villages_plus": "Increases coins earned from red tiles.",
   "@upgrade_desc_villages_plus": {},
-  "upgrade_desc_combo_plus": "Grants bonus tiles every 5 steps of an ongoing connection streak.",
+  "upgrade_desc_combo_plus": "Grants 1 bonus tile every N double connections in a row (15/13/10 depending on level).",
   "@upgrade_desc_combo_plus": {},
   "upgrade_desc_extended_preview": "Reveals more upcoming tiles in the stack, so you can plan further ahead.",
   "@upgrade_desc_extended_preview": {},

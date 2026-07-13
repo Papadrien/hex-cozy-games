@@ -180,7 +180,7 @@ class _BuildGlassIconButton extends StatelessWidget {
       borderRadius: 14,
       tintColor: kGlassBlue,
       tintAlpha: 0.22,
-      borderColor: kGlassBlueBorder.withValues(alpha: 0.38),
+      borderColor: kGlassBlueBorder,
       padding: const EdgeInsets.all(10),
       onTap: onPressed,
       child: Icon(icon, color: Colors.white, size: 20),
@@ -199,7 +199,7 @@ class _SelectionCountBadge extends StatelessWidget {
       borderRadius: 12,
       tintColor: kGlassBlue,
       tintAlpha: 0.22,
-      borderColor: kGlassBlueBorder.withValues(alpha: 0.45),
+      borderColor: kGlassBlueBorder,
       blurSigma: 8,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       child: Text(
@@ -297,7 +297,7 @@ class _BuildCardState extends ConsumerState<_BuildCard>
       tintAlpha: isSelected ? 0.18 : 0.22,
       borderColor: isSelected
           ? kUpgradePurple.withValues(alpha: 0.65)
-          : kGlassBlueBorder.withValues(alpha: 0.45),
+          : kGlassBlueBorder,
       borderWidth: isSelected ? 1.5 : 1,
       blurSigma: 12,
       padding: const EdgeInsets.all(16),
@@ -774,7 +774,7 @@ class _UpgradeButtonState extends ConsumerState<_UpgradeButton> {
       tintColor: canAfford ? kGlassBlue : Colors.white,
       tintAlpha: canAfford ? 0.32 : 0.06,
       borderColor: canAfford
-          ? kGlassBlueBorder.withValues(alpha: 0.55)
+          ? kGlassBlueBorder
           : Colors.white.withValues(alpha: 0.12),
       blurSigma: 8,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),

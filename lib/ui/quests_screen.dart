@@ -240,7 +240,7 @@ class _QuestsSummaryBar extends StatelessWidget {
       borderRadius: 16,
       tintColor: kGlassBlue,
       tintAlpha: 0.22,
-      borderColor: kGlassBlueBorder.withValues(alpha: 0.38),
+      borderColor: kGlassBlueBorder,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       child: Row(
         children: [
@@ -323,7 +323,7 @@ class _QuestsGlassIconButton extends StatelessWidget {
       borderRadius: 14,
       tintColor: kGlassBlue,
       tintAlpha: 0.22,
-      borderColor: kGlassBlueBorder.withValues(alpha: 0.38),
+      borderColor: kGlassBlueBorder,
       padding: const EdgeInsets.all(10),
       onTap: onPressed,
       child: Icon(icon, color: Colors.white, size: 20),
@@ -435,7 +435,7 @@ class _QuestCard extends StatelessWidget {
       tintAlpha: isLocked ? 0.10 : 0.22,
       borderColor: status == _QuestStatus.completed
           ? color.withValues(alpha: 0.5)
-          : kGlassBlueBorder.withValues(alpha: 0.30),
+          : kGlassBlueBorder,
       padding: const EdgeInsets.all(14),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,

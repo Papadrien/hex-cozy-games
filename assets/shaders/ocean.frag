@@ -190,12 +190,12 @@ void main() {
     // (garde un peu de vie partout).
     float causticVisible = caustic * mix(0.45, 1.25, waveMask);
 
-    // Couleur de fond dominante = #42E0F5 exact (demande utilisateur).
+    // Couleur de fond dominante = #40D2FF exact (demande utilisateur).
     // L'éclat des caustiques ("vagues claires") est éclairci nettement plus
     // que cA (quasi blanc-cyan) afin de rester bien visible même sur le
     // nouveau fond bleu nuit tealisé de l'UI — l'ancienne variante cB était
     // trop proche de cA en luminosité et devenait quasi invisible.
-    vec3 cA = vec3(0.259, 0.878, 0.961); // #42E0F5 — couleur de fond
+    vec3 cA = vec3(0.251, 0.824, 1.000); // #40D2FF — couleur de fond
     vec3 cB = mix(cA, vec3(1.0), 0.55);  // éclat très lumineux, presque blanc
     vec3 color = mix(cA, cB, smoothstep(0.45, 0.9, causticVisible));
 

@@ -134,7 +134,7 @@ class _ShopGlassIconButton extends StatelessWidget {
       borderRadius: 14,
       tintColor: kGlassBlue,
       tintAlpha: 0.22,
-      borderColor: kGlassBlueBorder.withValues(alpha: 0.38),
+      borderColor: kGlassBlueBorder,
       padding: const EdgeInsets.all(10),
       onTap: onPressed,
       child: Icon(icon, color: Colors.white, size: 20),
@@ -238,7 +238,7 @@ class _CoinPackCardState extends ConsumerState<_CoinPackCard> {
       borderRadius: 18,
       tintColor: isBestValue ? kRewardGold : kGlassBlue,
       tintAlpha: 0.10,
-      borderColor: isBestValue ? kRewardGold.withValues(alpha: 0.45) : kGlassBlueBorder.withValues(alpha: 0.38),
+      borderColor: isBestValue ? kRewardGold.withValues(alpha: 0.45) : kGlassBlueBorder,
       borderWidth: isBestValue ? 1.5 : 1,
       blurSigma: 12,
       padding: const EdgeInsets.all(16),
@@ -336,7 +336,7 @@ class _PriceButton extends StatelessWidget {
       tintColor: available ? kGlassBlue : Colors.white,
       tintAlpha: available ? 0.32 : 0.08,
       borderColor: available
-          ? kGlassBlueBorder.withValues(alpha: 0.55)
+          ? kGlassBlueBorder
           : Colors.white.withValues(alpha: 0.12),
       blurSigma: 8,
       padding: const EdgeInsets.symmetric(horizontal: 18),
@@ -384,7 +384,7 @@ class _CoinStackIcon extends StatelessWidget {
       tintAlpha: 0.22,
       borderColor: isBestValue
           ? kRewardGold.withValues(alpha: 0.35)
-          : kGlassBlueBorder.withValues(alpha: 0.35),
+          : kGlassBlueBorder,
       borderWidth: 0.8,
       blurSigma: 6,
       width: 48,
@@ -428,7 +428,7 @@ class _PremiumCardState extends ConsumerState<_PremiumCard> {
       tintAlpha: widget.isPremium ? 0.18 : 0.22,
       borderColor: widget.isPremium
           ? kUpgradePurple.withValues(alpha: 0.50)
-          : kGlassBlueBorder.withValues(alpha: 0.38),
+          : kGlassBlueBorder,
       borderWidth: widget.isPremium ? 1.5 : 1,
       blurSigma: 14,
       padding: const EdgeInsets.all(20),
@@ -590,7 +590,7 @@ class _RestoreButtonState extends ConsumerState<_RestoreButton> {
       borderRadius: 14,
       tintColor: kGlassBlue,
       tintAlpha: 0.18,
-      borderColor: kGlassBlueBorder.withValues(alpha: 0.30),
+      borderColor: kGlassBlueBorder,
       blurSigma: 8,
       padding: const EdgeInsets.symmetric(vertical: 14),
       onTap: _loading

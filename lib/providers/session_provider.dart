@@ -23,6 +23,7 @@ class SessionState {
     this.connections6 = 0,
     this.currentStreak = 0,
     this.bestStreak = 0,
+    this.currentDoubleStreak = 0,
     this.holdSlotRemainingUses = 0,
     this.secondChanceRemainingUses = 0,
   });
@@ -41,6 +42,12 @@ class SessionState {
 
   /// Meilleure série atteinte dans cette session — Story B2.
   final int bestStreak;
+
+  /// Série actuelle de doubles connexions consécutives (exactement 2 côtés
+  /// connectés). Remise à 0 dès qu'une pose ne connecte pas exactement 2
+  /// côtés — utilisée par Combo+ (Story B3), qui se déclenche tous les N
+  /// crans de cette série (N = 15/13/10 selon le niveau de l'amélioration).
+  final int currentDoubleStreak;
 
   /// Utilisations restantes d'Emplacement Joker pour cette partie (Story B9).
   final int holdSlotRemainingUses;
@@ -64,6 +71,7 @@ class SessionState {
     Object? connections6 = _sentinel,
     Object? currentStreak = _sentinel,
     Object? bestStreak = _sentinel,
+    Object? currentDoubleStreak = _sentinel,
     Object? holdSlotRemainingUses = _sentinel,
     Object? secondChanceRemainingUses = _sentinel,
   }) {
@@ -87,6 +95,9 @@ class SessionState {
           currentStreak == _sentinel ? this.currentStreak : currentStreak as int,
       bestStreak:
           bestStreak == _sentinel ? this.bestStreak : bestStreak as int,
+      currentDoubleStreak: currentDoubleStreak == _sentinel
+          ? this.currentDoubleStreak
+          : currentDoubleStreak as int,
       holdSlotRemainingUses: holdSlotRemainingUses == _sentinel
           ? this.holdSlotRemainingUses
           : holdSlotRemainingUses as int,
@@ -114,6 +125,7 @@ class Session extends _$Session {
   void addReward(PlacementReward reward, {int? forcedCoins}) {
     final c = reward.connectedSides.length;
     final nextStreak = c >= 1 ? state.currentStreak + 1 : 0;
+    final nextDoubleStreak = c == 2 ? state.currentDoubleStreak + 1 : 0;
     // copyWith (et non un SessionState(...) nu) : sinon les champs non
     // listés ici (holdSlotRemainingUses, secondChanceRemainingUses)
     // retombent silencieusement à leur valeur par défaut (0) à chaque pose,
@@ -128,6 +140,7 @@ class Session extends _$Session {
       connections6: state.connections6 + (c == 6 ? 1 : 0),
       currentStreak: nextStreak,
       bestStreak: nextStreak > state.bestStreak ? nextStreak : state.bestStreak,
+      currentDoubleStreak: nextDoubleStreak,
     );
   }
 

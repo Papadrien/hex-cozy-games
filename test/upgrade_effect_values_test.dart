@@ -212,18 +212,18 @@ void main() {
       );
     });
 
-    test('comboBonusTiles → 1, 2, 3', () {
+    test('comboBonusTiles → 15, 13, 10 (intervalle)', () {
       expect(
         upgradeEffectValue(UpgradeEffectType.comboBonusTiles, 0),
-        1.0,
+        15.0,
       );
       expect(
         upgradeEffectValue(UpgradeEffectType.comboBonusTiles, 1),
-        2.0,
+        13.0,
       );
       expect(
         upgradeEffectValue(UpgradeEffectType.comboBonusTiles, 2),
-        3.0,
+        10.0,
       );
     });
 
@@ -348,10 +348,10 @@ void main() {
       );
     });
 
-    test('comboBonusTiles → +1, +2, +3 tuiles/5 série', () {
+    test('comboBonusTiles → Toutes les 15/13/10 tuiles', () {
       expect(
         upgradeAllLevelEffects(UpgradeEffectType.comboBonusTiles),
-        ['+1 tuile/5 série', '+2 tuiles/5 série', '+3 tuiles/5 série'],
+        ['Toutes les 15 tuiles', 'Toutes les 13 tuiles', 'Toutes les 10 tuiles'],
       );
     });
 

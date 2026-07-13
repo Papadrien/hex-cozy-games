@@ -224,7 +224,7 @@ class _StatsGlassIconButton extends StatelessWidget {
       blurSigma: 10,
       tintColor: kGlassBlue,
       tintAlpha: 0.22,
-      borderColor: kGlassBlueBorder.withValues(alpha: 0.38),
+      borderColor: kGlassBlueBorder,
       padding: const EdgeInsets.all(10),
       onTap: onPressed,
       child: Icon(icon, color: Colors.white, size: 20),
@@ -252,7 +252,7 @@ class _StatCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 8),
       child: GlassContainer(
         tintColor: kGlassBlue,
-        borderColor: kGlassBlueBorder.withValues(alpha: 0.38),
+        borderColor: kGlassBlueBorder,
         padding: const EdgeInsets.all(14),
         child: Row(
           children: [

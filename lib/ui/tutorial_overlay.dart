@@ -136,7 +136,7 @@ class _TutorialOverlayState extends ConsumerState<TutorialOverlay>
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: kGlassBlueBorder.withValues(alpha: 0.35),
+                          color: kGlassBlueBorder,
                           blurRadius: 24,
                           spreadRadius: 6,
                         ),
@@ -191,7 +191,7 @@ class _TutorialOverlayState extends ConsumerState<TutorialOverlay>
               blurSigma: 10,
               tintColor: kGlassBlue,
               tintAlpha: 0.18,
-              borderColor: kGlassBlueBorder.withValues(alpha: 0.38),
+              borderColor: kGlassBlueBorder,
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               onTap: () {
                 buttonHapticTap(context);
@@ -217,7 +217,7 @@ class _TutorialOverlayState extends ConsumerState<TutorialOverlay>
               blurSigma: 10,
               tintColor: kGlassBlue,
               tintAlpha: 0.22,
-              borderColor: kGlassBlueBorder.withValues(alpha: 0.45),
+              borderColor: kGlassBlueBorder,
               padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
               onTap: () {
                 buttonHapticTap(context);
@@ -318,7 +318,7 @@ class _InstructionCard extends StatelessWidget {
       blurSigma: 16,
       tintColor: kGlassBlue,
       tintAlpha: 0.18,
-      borderColor: kGlassBlueBorder.withValues(alpha: 0.38),
+      borderColor: kGlassBlueBorder,
       borderWidth: 1.5,
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),

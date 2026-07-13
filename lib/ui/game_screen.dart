@@ -248,7 +248,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                     borderRadius: 14,
                     tintColor: kGlassBlue,
                     tintAlpha: 0.22,
-                    borderColor: kGlassBlueBorder.withValues(alpha: 0.45),
+                    borderColor: kGlassBlueBorder,
                     padding:
                         const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     child: Column(
@@ -298,7 +298,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                   borderRadius: 14,
                   tintColor: kGlassBlue,
                   tintAlpha: 0.22,
-                  borderColor: kGlassBlueBorder.withValues(alpha: 0.45),
+                  borderColor: kGlassBlueBorder,
                   width: 40,
                   height: 40,
                   onTap: canUndo
@@ -322,8 +322,8 @@ class _GameScreenState extends ConsumerState<GameScreen> {
 
           // ── Bouton Pause ──────────────────────────────────────────────────
           const Positioned(
-            top: 48,
-            right: 12,
+            top: 42,
+            right: 6,
             child: PauseButton(),
           ),
 
@@ -408,7 +408,7 @@ class _RewardTag extends ConsumerWidget {
         borderRadius: 10,
         tintColor: kGlassBlue,
         tintAlpha: 0.22,
-        borderColor: kGlassBlueBorder.withValues(alpha: 0.45),
+        borderColor: kGlassBlueBorder,
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         child: Row(
           mainAxisSize: MainAxisSize.min,

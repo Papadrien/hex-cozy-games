@@ -61,7 +61,7 @@ class _ResultsCard extends ConsumerWidget {
       margin: const EdgeInsets.symmetric(horizontal: 40),
       tintColor: kGlassBlue,
       tintAlpha: 0.18,
-      borderColor: kGlassBlueBorder.withValues(alpha: 0.38),
+      borderColor: kGlassBlueBorder,
       borderWidth: 1.5,
       borderRadius: 24,
       blurSigma: 16,

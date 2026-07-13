@@ -66,15 +66,17 @@ class GameEffectsService {
     return (withBiomeBonus * (1.0 + effects.coinsMultiplier)).round();
   }
 
-  /// Nombre de tuiles bonus ajoutées à chaque pallier de 5 dans la série de
-  /// connexions consécutives (Combo+ — Story B3).
-  int getComboBonusTiles() {
-    return _ref.read(activeUpgradeEffectsProvider).comboBonusTiles;
+  /// Nombre de tuiles bonus ajoutées à chaque palier de 5 dans la série de
+  /// doubles connexions (2 côtés connectés) consécutives (Combo+ —
+  /// Story B3). Valeurs : 15/13/10 selon niveau ; 0 = inactif.
+  int getComboStreakInterval() {
+    return _ref.read(activeUpgradeEffectsProvider).comboStreakInterval;
   }
 
   /// Multiplicateur du Bonus de clôture (Story B7) : à chaque fermeture de
   /// biome, [closureBonusTiles] tuiles bonus sont ajoutées par tranche de 10
-  /// tuiles du cluster fermé.
+  /// tuiles du cluster fermé, avec un minimum garanti de [closureBonusTiles]
+  /// tuiles même si le cluster fait moins de 10 tuiles.
   int getClosureBonusTiles() {
     return _ref.read(activeUpgradeEffectsProvider).closureBonusTiles;
   }

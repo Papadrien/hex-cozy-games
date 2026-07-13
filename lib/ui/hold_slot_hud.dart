@@ -56,7 +56,7 @@ class HoldSlotHud extends ConsumerWidget {
           height: _kSlotSize,
           padding: const EdgeInsets.all(4),
           tintColor: _kHudGlass,
-          borderColor: _kHudGlassBorder.withValues(alpha: 0.45),
+          borderColor: _kHudGlassBorder,
           onTap: canSwap
               ? () {
                   buttonHapticTap(context);
@@ -165,7 +165,7 @@ class _UsesBadge extends StatelessWidget {
             ? _kHudGlass.withValues(alpha: 0.9)
             : Colors.black.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.6), width: 1),
+        border: Border.all(color: kGlassBlueBorder, width: 1),
       ),
       child: Text(
         '$remaining',

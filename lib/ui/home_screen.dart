@@ -25,7 +25,7 @@ import 'glass_container.dart';
 // Bleu nuit tealisé pour les boutons secondaires — foncé pour la lisibilité
 // du texte blanc, bordure teal assortie au bouton Jouer.
 const Color _kGlassBlue = Color(0xFF2E3B52);
-const Color _kGlassBlueBorder = Color(0xFF3DBFAF);
+const Color _kGlassBlueBorder = kGlassBlueBorder;
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -459,13 +459,11 @@ class _PlayButton extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(vertical: 18),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(28),
-                      // Alpha relevé (0.3 -> 0.85) : à faible opacité, un
-                      // liseré blanc posé sur le fond teal du bouton se
-                      // teintait visuellement de vert au lieu de lire comme
-                      // blanc. Épaisseur doublée (1.5 -> 3) pour rester
-                      // cohérent avec les autres contours glassmorphism.
+                      // Aligné sur le contour glassmorphism commun
+                      // (kGlassBlueBorder, blanc 20%) pour rester cohérent
+                      // avec le reste des composants.
                       border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.85),
+                        color: kGlassBlueBorder,
                         width: 3,
                       ),
                     ),
@@ -534,7 +532,7 @@ class _GlassButton extends StatelessWidget {
     return GlassContainer(
       tintColor: _kGlassBlue,
       tintAlpha: 0.18,
-      borderColor: _kGlassBlueBorder.withValues(alpha: 0.38),
+      borderColor: _kGlassBlueBorder,
       borderRadius: 16,
       padding: padding,
       blurSigma: 10,
@@ -616,6 +614,15 @@ class _BuildButton extends StatelessWidget {
                     ),
                   )),
             const SizedBox(width: 8),
+            if (hasResumableGame)
+              Padding(
+                padding: const EdgeInsets.only(right: 6),
+                child: Icon(
+                  Icons.lock,
+                  size: 14,
+                  color: Colors.white.withValues(alpha: 0.5),
+                ),
+              ),
             Flexible(
               child: Text(
                 selected.isEmpty
@@ -650,9 +657,17 @@ class _RewardedAdButton extends ConsumerWidget {
 
     return SizedBox(
       width: double.infinity,
-      child: _GlassButton(
-        tint: adAvailable ? Colors.amber : Colors.grey,
-        onPressed: adAvailable
+      child: GlassContainer(
+        borderRadius: 16,
+        tintColor: adAvailable ? kRewardGold : _kGlassBlue,
+        tintAlpha: adAvailable ? 0.10 : 0.18,
+        borderColor: adAvailable
+            ? kRewardGold.withValues(alpha: 0.45)
+            : _kGlassBlueBorder,
+        borderWidth: adAvailable ? 1.5 : 1,
+        blurSigma: 10,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+        onTap: adAvailable
             ? () async {
                 final rewarded = await claimDailyReward(ref);
                 if (rewarded && context.mounted) {
@@ -676,7 +691,7 @@ class _RewardedAdButton extends ConsumerWidget {
                   : Icons.check_circle_outline,
               size: 20,
               color: adAvailable
-                  ? Colors.amber
+                  ? kRewardGold
                   : Colors.white.withValues(alpha: 0.4),
             ),
             const SizedBox(width: 8),
@@ -812,7 +827,7 @@ class _GlassPill extends StatelessWidget {
     return GlassContainer(
       tintColor: _kGlassBlue,
       tintAlpha: 0.22,
-      borderColor: _kGlassBlueBorder.withValues(alpha: 0.40),
+      borderColor: _kGlassBlueBorder,
       borderRadius: 20,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
       blurSigma: 10,
@@ -840,7 +855,7 @@ class _GlassIconButton extends StatelessWidget {
       child: GlassContainer(
         tintColor: _kGlassBlue,
         tintAlpha: 0.22,
-        borderColor: _kGlassBlueBorder.withValues(alpha: 0.40),
+        borderColor: _kGlassBlueBorder,
         borderRadius: 14,
         padding: const EdgeInsets.all(10),
         onTap: onPressed,

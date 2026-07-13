@@ -41,8 +41,7 @@ class GlassContainer extends StatelessWidget {
 
   /// Couleur de bordure « brute », avant garantie de lisibilité par rapport
   /// au fond (voir [_lightenAboveBackground]).
-  Color get _rawBorderColor =>
-      borderColor ?? tintColor.withValues(alpha: tintAlpha + 0.2);
+  Color get _rawBorderColor => borderColor ?? kGlassBlueBorder;
 
   /// Couleur de bordure finale : toujours plus claire que le fond du
   /// composant (teinte/opacité d'origine conservées, seule la clarté est

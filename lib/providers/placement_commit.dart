@@ -392,26 +392,31 @@ void _recordPlacement(
     ref.read(tileStackProvider.notifier).addBonusTiles(reward.bonusTiles);
     totalBonusTilesAdded += reward.bonusTiles;
   }
-  // Story B3 — Combo+ : à chaque multiple de 5 dans la série en cours,
-  // ajoute des tuiles bonus selon le niveau de l'amélioration.
-  final streak = ref.read(sessionProvider).currentStreak;
-  if (streak > 0 && streak % 5 == 0) {
-    final comboCount = effects.getComboBonusTiles();
-    if (comboCount > 0) {
-      ref.read(tileStackProvider.notifier).addBonusTiles(comboCount);
-      ref.read(sessionProvider.notifier).addExtraBonusTiles(comboCount);
-      totalBonusTilesAdded += comboCount;
-    }
+  // Story B3 — Combo+ : à chaque palier de N dans la série de doubles
+  // connexions (exactement 2 côtés connectés) d'affilée, ajoute 1 tuile
+  // bonus. N dépend du niveau de l'amélioration (15/13/10 aux niveaux
+  // 1/2/3).
+  final doubleStreak = ref.read(sessionProvider).currentDoubleStreak;
+  final comboInterval = effects.getComboStreakInterval();
+  if (comboInterval > 0 && doubleStreak > 0 && doubleStreak % comboInterval == 0) {
+    const comboCount = 1;
+    ref.read(tileStackProvider.notifier).addBonusTiles(comboCount);
+    ref.read(sessionProvider.notifier).addExtraBonusTiles(comboCount);
+    totalBonusTilesAdded += comboCount;
   }
   // Story B7 — Bonus de clôture : détecte les biomes qui viennent de se
-  // fermer après cette pose et ajoute (taille ÷ 10) × niveau tuiles bonus.
+  // fermer après cette pose et ajoute (taille ÷ 10) × niveau tuiles bonus,
+  // avec un minimum garanti de [closureMult] tuiles par fermeture (sinon
+  // une petite zone refermée sans avoir atteint 10 tuiles ne rapportait
+  // rien, alors que la fermeture a bien eu lieu).
   final closureMult = effects.getClosureBonusTiles();
   if (closureMult > 0) {
     final grid = ref.read(gridProvider);
     final closures = grid.biomesJustClosed(pos, tile);
     var closureTiles = 0;
     for (final entry in closures) {
-      closureTiles += (entry.value ~/ 10) * closureMult;
+      final ratioBonus = (entry.value ~/ 10) * closureMult;
+      closureTiles += ratioBonus > 0 ? ratioBonus : closureMult;
     }
     if (closureTiles > 0) {
       ref.read(tileStackProvider.notifier).addBonusTiles(closureTiles);

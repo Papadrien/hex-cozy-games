@@ -60,9 +60,10 @@ const Color kGlassBorder = Color(0x4DFFFFFF);
 /// texte blanc améliorée par rapport à l'ancien bleu glacier clair).
 const Color kGlassBlue = Color(0xFF2E3B52);
 
-/// Bordure teal glassmorphism — assortie à [kTropicalTealBorder] pour
-/// raccorder visuellement les composants HUD au bouton Jouer.
-const Color kGlassBlueBorder = Color(0xFF3DBFAF);
+/// Bordure glassmorphism commune — blanc translucide à 20% d'opacité,
+/// utilisée comme contour par défaut de tous les composants vitrés (écran
+/// d'accueil, sous-pages, HUD de jeu).
+const Color kGlassBlueBorder = Color(0x33FFFFFF);
 
 /// Orange pour les quêtes de type connexions multiples (répétables).
 const Color kConnectionOrange = Color(0xFFFFB74D);

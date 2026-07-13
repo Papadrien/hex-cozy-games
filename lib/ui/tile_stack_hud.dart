@@ -58,7 +58,7 @@ class TileStackHud extends ConsumerWidget {
       children: [
         GlassContainer(
           tintColor: _kHudGlass,
-          borderColor: _kHudGlassBorder.withValues(alpha: 0.45),
+          borderColor: _kHudGlassBorder,
           padding: const EdgeInsets.all(10),
           child: SizedBox(
             width: stackWidth,
@@ -115,7 +115,7 @@ class TileStackHud extends ConsumerWidget {
                               blurSigma: 10,
                               tintColor: _kHudGlass,
                               borderColor:
-                                  _kHudGlassBorder.withValues(alpha: 0.45),
+                                  _kHudGlassBorder,
                               width: _kCrossSize,
                               height: _kCrossSize,
                               child: const Icon(Icons.close,
@@ -210,31 +210,6 @@ class _HexTilePainter extends CustomPainter {
           ..style = PaintingStyle.fill,
       );
     }
-
-    // Contour
-    final outline = Path()..moveTo(corners[0].dx, corners[0].dy);
-    for (var i = 1; i < 6; i++) {
-      outline.lineTo(corners[i].dx, corners[i].dy);
-    }
-    outline.close();
-
-    canvas.drawPath(
-      outline,
-      Paint()
-        ..color = Colors.black.withValues(alpha: alpha * 0.45)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.2,
-    );
-
-    if (highlighted) {
-      canvas.drawPath(
-        outline,
-        Paint()
-          ..color = Colors.white.withValues(alpha: 0.85)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 2.0,
-      );
-    }
   }
 
   List<Offset> _corners(Offset center, double radius) {
@@ -266,7 +241,7 @@ class _RemainingBadge extends StatelessWidget {
       borderRadius: 10,
       blurSigma: 10,
       tintColor: _kHudGlass,
-      borderColor: _kHudGlassBorder.withValues(alpha: 0.45),
+      borderColor: _kHudGlassBorder,
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       child: Row(
         mainAxisSize: MainAxisSize.min,

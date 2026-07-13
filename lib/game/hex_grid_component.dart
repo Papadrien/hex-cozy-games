@@ -743,17 +743,15 @@ class _PreviewBonusComponent extends PositionComponent {
     const alpha = 0.9;
     final r = _radius;
 
-    // Cercle extérieur (fond).
-    canvas.drawCircle(
-      Offset.zero,
-      r,
+    // Hexagone extérieur (fond).
+    canvas.drawPath(
+      _hexagonPath(r),
       Paint()
         ..color = kBonusBlueLight.withValues(alpha: alpha)
         ..style = PaintingStyle.fill,
     );
-    canvas.drawCircle(
-      Offset.zero,
-      r * 0.75,
+    canvas.drawPath(
+      _hexagonPath(r * 0.75),
       Paint()
         ..color = kBonusBlueLighter.withValues(alpha: alpha * 0.7)
         ..style = PaintingStyle.fill,
@@ -777,6 +775,24 @@ class _PreviewBonusComponent extends PositionComponent {
       canvas,
       Offset(-textPainter.width / 2, -textPainter.height / 2),
     );
+  }
+
+  /// Sommets d'un hexagone pointy-top de rayon [radius], centré sur
+  /// l'origine — même orientation que les tuiles du plateau.
+  Path _hexagonPath(double radius) {
+    final path = Path();
+    for (var i = 0; i < 6; i++) {
+      final angle = (60.0 * i - 90.0) * pi / 180.0;
+      final x = radius * cos(angle);
+      final y = radius * sin(angle);
+      if (i == 0) {
+        path.moveTo(x, y);
+      } else {
+        path.lineTo(x, y);
+      }
+    }
+    path.close();
+    return path;
   }
 }
 

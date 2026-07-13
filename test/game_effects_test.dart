@@ -266,27 +266,27 @@ void main() {
     });
   });
 
-  group('GameEffectsService.getComboBonusTiles', () {
+  group('GameEffectsService.getComboStreakInterval', () {
     test('aucune amélioration → 0', () {
       final container = _makeContainer();
       final service = container.read(gameEffectsServiceProvider);
-      expect(service.getComboBonusTiles(), 0);
+      expect(service.getComboStreakInterval(), 0);
     });
 
-    test('niveau 1 → 1 tuile', () {
+    test('niveau 1 → intervalle de 15', () {
       final container = _makeContainer(
-        const ActiveUpgradeEffects(comboBonusTiles: 1),
+        const ActiveUpgradeEffects(comboStreakInterval: 15),
       );
       final service = container.read(gameEffectsServiceProvider);
-      expect(service.getComboBonusTiles(), 1);
+      expect(service.getComboStreakInterval(), 15);
     });
 
-    test('niveau 3 → 3 tuiles', () {
+    test('niveau 3 → intervalle de 10', () {
       final container = _makeContainer(
-        const ActiveUpgradeEffects(comboBonusTiles: 3),
+        const ActiveUpgradeEffects(comboStreakInterval: 10),
       );
       final service = container.read(gameEffectsServiceProvider);
-      expect(service.getComboBonusTiles(), 3);
+      expect(service.getComboStreakInterval(), 10);
     });
   });
 

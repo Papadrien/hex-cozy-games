@@ -227,7 +227,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get upgrade_desc_combo_plus =>
-      'Ajoute des tuiles bonus tous les 5 crans d\'une série de connexions en cours.';
+      'Ajoute une tuile bonus tous les N doubles connexions d\'affilée (15/13/10 selon le niveau).';
 
   @override
   String get upgrade_desc_extended_preview =>
@@ -332,7 +332,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get home_shop => 'Boutique';
 
   @override
-  String get home_buildSelection => 'Sélection des améliorations';
+  String get home_buildSelection => 'Améliorations';
 
   @override
   String get home_buildSelectionLockedResume =>

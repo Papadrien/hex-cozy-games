@@ -503,7 +503,7 @@ abstract class AppLocalizations {
   /// No description provided for @upgrade_desc_combo_plus.
   ///
   /// In en, this message translates to:
-  /// **'Grants bonus tiles every 5 steps of an ongoing connection streak.'**
+  /// **'Grants bonus tiles every 5 double connections in a row.'**
   String get upgrade_desc_combo_plus;
 
   /// No description provided for @upgrade_desc_extended_preview.

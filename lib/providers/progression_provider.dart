@@ -261,7 +261,7 @@ List<String> upgradeAllLevelEffects(UpgradeEffectType effectType) {
     case UpgradeEffectType.secondChanceUses:
       return ['1 usage/partie', '2 usages/partie', '3 usages/partie'];
     case UpgradeEffectType.comboBonusTiles:
-      return ['+1 tuile/5 série', '+2 tuiles/5 série', '+3 tuiles/5 série'];
+      return ['Toutes les 15 tuiles', 'Toutes les 13 tuiles', 'Toutes les 10 tuiles'];
     case UpgradeEffectType.millionaireCoins:
       return ['1 000 000'];
     case UpgradeEffectType.warehouseStartingTiles:
@@ -297,7 +297,10 @@ double upgradeEffectValue(UpgradeEffectType effectType, int level) {
     case UpgradeEffectType.secondChanceUses:
       return [1.0, 2.0, 3.0][level.clamp(0, 2)];
     case UpgradeEffectType.comboBonusTiles:
-      return [1.0, 2.0, 3.0][level.clamp(0, 2)];
+      // Représente désormais l'intervalle (en doubles connexions
+      // consécutives) entre deux octrois d'une tuile bonus, et non plus
+      // le nombre de tuiles accordées (toujours 1 désormais).
+      return [15.0, 13.0, 10.0][level.clamp(0, 2)];
     case UpgradeEffectType.millionaireCoins:
       return [1000000.0][level.clamp(0, 0)];
     case UpgradeEffectType.warehouseStartingTiles:

@@ -56,7 +56,7 @@ class ActiveUpgradeEffects {
     this.waterCoinsBonus = 0.0,
     this.plainCoinsBonus = 0.0,
     this.mountainCoinsBonus = 0.0,
-    this.comboBonusTiles = 0,
+    this.comboStreakInterval = 0,
     this.extendedPreviewCount = 0,
     this.hatedColorExclusionDuration = 0,
     this.closureBonusTiles = 0,
@@ -93,9 +93,11 @@ class ActiveUpgradeEffects {
   /// Bonus de pièces pour chaque côté connecté de type montagne (Violet+).
   final double mountainCoinsBonus;
 
-  /// Nombre de tuiles bonus ajoutées à chaque pallier de 5 dans la série de
-  /// connexions consécutives (Combo+ — Story B3).
-  final int comboBonusTiles;
+  /// Intervalle (en doubles connexions consécutives) entre deux octrois
+  /// d'une tuile bonus (Combo+ — Story B3). Valeurs : 15/13/10 selon
+  /// niveau ; 0 = inactif. Une seule tuile bonus est accordée à chaque
+  /// palier, quel que soit le niveau.
+  final int comboStreakInterval;
 
   /// Nombre de tuiles visibles dans la pile d'attente (Story B4 — Aperçu
   /// prolongé). 0 = utiliser la valeur par défaut [kVisibleStackSize].
@@ -137,7 +139,7 @@ final activeUpgradeEffectsProvider = Provider<ActiveUpgradeEffects>((ref) {
   double waterBonus = 0.0;
   double plainBonus = 0.0;
   double mountainBonus = 0.0;
-  int comboBonus = 0;
+  int comboStreakInterval = 0;
   int extendedPreviewCount = 0;
   int hatedColorExclusionDuration = 0;
   int closureBonus = 0;
@@ -182,7 +184,7 @@ final activeUpgradeEffectsProvider = Provider<ActiveUpgradeEffects>((ref) {
         secondChanceUses = val.toInt();
         break;
       case UpgradeEffectType.comboBonusTiles:
-        comboBonus += val.toInt();
+        comboStreakInterval = val.toInt();
       case UpgradeEffectType.millionaireCoins:
         millionaireCoins = val.toInt();
       case UpgradeEffectType.warehouseStartingTiles:
@@ -199,7 +201,7 @@ final activeUpgradeEffectsProvider = Provider<ActiveUpgradeEffects>((ref) {
     waterCoinsBonus: waterBonus,
     plainCoinsBonus: plainBonus,
     mountainCoinsBonus: mountainBonus,
-    comboBonusTiles: comboBonus,
+    comboStreakInterval: comboStreakInterval,
     extendedPreviewCount: extendedPreviewCount,
     hatedColorExclusionDuration: hatedColorExclusionDuration,
     closureBonusTiles: closureBonus,

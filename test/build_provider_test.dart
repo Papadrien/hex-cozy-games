@@ -206,22 +206,28 @@ void main() {
       expect(effects.villageCoinsBonus, 0.25);
     });
 
-    test('combo_plus (niveau 1) → comboBonusTiles = 1', () {
+    test('combo_plus (niveau 1) → comboStreakInterval = 15', () {
       final container = containerWithUpgrades([
         row(id: 'combo_plus', effectType: 'comboBonusTiles', currentLevel: 0),
       ]);
       addTearDown(container.dispose);
 
-      expect(container.read(activeUpgradeEffectsProvider).comboBonusTiles, 1);
+      expect(
+        container.read(activeUpgradeEffectsProvider).comboStreakInterval,
+        15,
+      );
     });
 
-    test('combo_plus (niveau 3) → comboBonusTiles = 3', () {
+    test('combo_plus (niveau 3) → comboStreakInterval = 10', () {
       final container = containerWithUpgrades([
         row(id: 'combo_plus', effectType: 'comboBonusTiles', currentLevel: 2),
       ]);
       addTearDown(container.dispose);
 
-      expect(container.read(activeUpgradeEffectsProvider).comboBonusTiles, 3);
+      expect(
+        container.read(activeUpgradeEffectsProvider).comboStreakInterval,
+        10,
+      );
     });
 
     test('extended_preview (niveau 1) → extendedPreviewCount = 3', () {
