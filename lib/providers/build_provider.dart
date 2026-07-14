@@ -50,12 +50,12 @@ class ActiveUpgradeEffects {
   const ActiveUpgradeEffects({
     this.startingTilesBonus = 0,
     this.connectionBonusLevel = 0,
-    this.coinsMultiplier = 0.0,
-    this.villageCoinsBonus = 0.0,
-    this.forestCoinsBonus = 0.0,
-    this.waterCoinsBonus = 0.0,
-    this.plainCoinsBonus = 0.0,
-    this.mountainCoinsBonus = 0.0,
+    this.coinsThreshold = 0,
+    this.villageCoinsThreshold = 0,
+    this.forestCoinsThreshold = 0,
+    this.waterCoinsThreshold = 0,
+    this.plainCoinsThreshold = 0,
+    this.mountainCoinsThreshold = 0,
     this.comboStreakInterval = 0,
     this.extendedPreviewCount = 0,
     this.hatedColorExclusionDuration = 0,
@@ -74,24 +74,30 @@ class ActiveUpgradeEffects {
   /// connexions quintuple/sextuple uniquement.
   final int connectionBonusLevel;
 
-  /// Multiplicateur de toutes les pièces générées (ex: 0.10 = +10%).
-  final double coinsMultiplier;
+  /// Seuil (en pièces de base gagnées sur une pose) au-delà duquel 1 pièce
+  /// bonus est accordée (Pièces+, Jackpot+). 0 = inactif ; 4/2/1 selon niveau.
+  /// Non-cumulable : une seule pièce bonus par pose, même si baseCoins >> seuil.
+  final int coinsThreshold;
 
-  /// Bonus de pièces pour chaque côté connecté de type village
-  /// (ex: 0.33 = +33% sur la pièce de base du côté).
-  final double villageCoinsBonus;
+  /// Seuil (en côtés village connectés sur une pose) au-delà duquel 1 pièce
+  /// bonus est accordée (Rouge+). 0 = inactif ; 4/2/1 selon niveau.
+  final int villageCoinsThreshold;
 
-  /// Bonus de pièces pour chaque côté connecté de type forêt (Vert+).
-  final double forestCoinsBonus;
+  /// Seuil (en côtés forêt connectés sur une pose) au-delà duquel 1 pièce
+  /// bonus est accordée (Vert+). 0 = inactif ; 4/2/1 selon niveau.
+  final int forestCoinsThreshold;
 
-  /// Bonus de pièces pour chaque côté connecté de type eau (Bleu+).
-  final double waterCoinsBonus;
+  /// Seuil (en côtés eau connectés sur une pose) au-delà duquel 1 pièce
+  /// bonus est accordée (Bleu+). 0 = inactif ; 4/2/1 selon niveau.
+  final int waterCoinsThreshold;
 
-  /// Bonus de pièces pour chaque côté connecté de type plaine (Jaune+).
-  final double plainCoinsBonus;
+  /// Seuil (en côtés plaine connectés sur une pose) au-delà duquel 1 pièce
+  /// bonus est accordée (Jaune+). 0 = inactif ; 4/2/1 selon niveau.
+  final int plainCoinsThreshold;
 
-  /// Bonus de pièces pour chaque côté connecté de type montagne (Violet+).
-  final double mountainCoinsBonus;
+  /// Seuil (en côtés montagne connectés sur une pose) au-delà duquel 1 pièce
+  /// bonus est accordée (Violet+). 0 = inactif ; 4/2/1 selon niveau.
+  final int mountainCoinsThreshold;
 
   /// Intervalle (en doubles connexions consécutives) entre deux octrois
   /// d'une tuile bonus (Combo+ — Story B3). Valeurs : 15/13/10 selon
@@ -133,12 +139,12 @@ final activeUpgradeEffectsProvider = Provider<ActiveUpgradeEffects>((ref) {
   final selected = ref.watch(selectedUpgradesProvider);
   int startingBonus = 0;
   int connectionBonusLevel = 0;
-  double coinsMult = 0.0;
-  double villageBonus = 0.0;
-  double forestBonus = 0.0;
-  double waterBonus = 0.0;
-  double plainBonus = 0.0;
-  double mountainBonus = 0.0;
+  int coinsThreshold = 0;
+  int villageThreshold = 0;
+  int forestThreshold = 0;
+  int waterThreshold = 0;
+  int plainThreshold = 0;
+  int mountainThreshold = 0;
   int comboStreakInterval = 0;
   int extendedPreviewCount = 0;
   int hatedColorExclusionDuration = 0;
@@ -157,17 +163,37 @@ final activeUpgradeEffectsProvider = Provider<ActiveUpgradeEffects>((ref) {
       case UpgradeEffectType.connectionBonusMultiplier:
         connectionBonusLevel = val.toInt();
       case UpgradeEffectType.coinsPercentBonus:
-        coinsMult += val;
+        // En cas de multiples améliorations globales sélectionnées (Pièces+ +
+        // Jackpot+), on conserve le seuil le plus permissif (le plus petit).
+        final v = val.toInt();
+        if (v > 0 && (coinsThreshold == 0 || v < coinsThreshold)) {
+          coinsThreshold = v;
+        }
       case UpgradeEffectType.villageCoinsPercentBonus:
-        villageBonus += val;
+        final v = val.toInt();
+        if (v > 0 && (villageThreshold == 0 || v < villageThreshold)) {
+          villageThreshold = v;
+        }
       case UpgradeEffectType.forestCoinsPercentBonus:
-        forestBonus += val;
+        final v = val.toInt();
+        if (v > 0 && (forestThreshold == 0 || v < forestThreshold)) {
+          forestThreshold = v;
+        }
       case UpgradeEffectType.waterCoinsPercentBonus:
-        waterBonus += val;
+        final v = val.toInt();
+        if (v > 0 && (waterThreshold == 0 || v < waterThreshold)) {
+          waterThreshold = v;
+        }
       case UpgradeEffectType.plainCoinsPercentBonus:
-        plainBonus += val;
+        final v = val.toInt();
+        if (v > 0 && (plainThreshold == 0 || v < plainThreshold)) {
+          plainThreshold = v;
+        }
       case UpgradeEffectType.mountainCoinsPercentBonus:
-        mountainBonus += val;
+        final v = val.toInt();
+        if (v > 0 && (mountainThreshold == 0 || v < mountainThreshold)) {
+          mountainThreshold = v;
+        }
       case UpgradeEffectType.extendedPreviewCount:
         extendedPreviewCount = val.toInt();
         break;
@@ -195,12 +221,12 @@ final activeUpgradeEffectsProvider = Provider<ActiveUpgradeEffects>((ref) {
   return ActiveUpgradeEffects(
     startingTilesBonus: startingBonus,
     connectionBonusLevel: connectionBonusLevel,
-    coinsMultiplier: coinsMult,
-    villageCoinsBonus: villageBonus,
-    forestCoinsBonus: forestBonus,
-    waterCoinsBonus: waterBonus,
-    plainCoinsBonus: plainBonus,
-    mountainCoinsBonus: mountainBonus,
+    coinsThreshold: coinsThreshold,
+    villageCoinsThreshold: villageThreshold,
+    forestCoinsThreshold: forestThreshold,
+    waterCoinsThreshold: waterThreshold,
+    plainCoinsThreshold: plainThreshold,
+    mountainCoinsThreshold: mountainThreshold,
     comboStreakInterval: comboStreakInterval,
     extendedPreviewCount: extendedPreviewCount,
     hatedColorExclusionDuration: hatedColorExclusionDuration,

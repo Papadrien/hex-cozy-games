@@ -47,93 +47,93 @@ void main() {
       );
     });
 
-    test('coinsPercentBonus → 0.25, 0.50, 1.00', () {
+    test('coinsPercentBonus → 4, 2, 1 (seuils)', () {
       expect(
         upgradeEffectValue(UpgradeEffectType.coinsPercentBonus, 0),
-        0.25,
+        4.0,
       );
       expect(
         upgradeEffectValue(UpgradeEffectType.coinsPercentBonus, 1),
-        0.50,
+        2.0,
       );
       expect(
         upgradeEffectValue(UpgradeEffectType.coinsPercentBonus, 2),
-        1.00,
+        1.0,
       );
     });
 
-    test('villageCoinsPercentBonus → 0.25, 0.50, 1.00', () {
+    test('villageCoinsPercentBonus → 4, 2, 1 (seuils)', () {
       expect(
         upgradeEffectValue(UpgradeEffectType.villageCoinsPercentBonus, 0),
-        0.25,
+        4.0,
       );
       expect(
         upgradeEffectValue(UpgradeEffectType.villageCoinsPercentBonus, 1),
-        0.50,
+        2.0,
       );
       expect(
         upgradeEffectValue(UpgradeEffectType.villageCoinsPercentBonus, 2),
-        1.00,
+        1.0,
       );
     });
 
-    test('forestCoinsPercentBonus → 0.25, 0.50, 1.00', () {
+    test('forestCoinsPercentBonus → 4, 2, 1 (seuils)', () {
       expect(
         upgradeEffectValue(UpgradeEffectType.forestCoinsPercentBonus, 0),
-        0.25,
+        4.0,
       );
       expect(
         upgradeEffectValue(UpgradeEffectType.forestCoinsPercentBonus, 1),
-        0.50,
+        2.0,
       );
       expect(
         upgradeEffectValue(UpgradeEffectType.forestCoinsPercentBonus, 2),
-        1.00,
+        1.0,
       );
     });
 
-    test('waterCoinsPercentBonus → 0.25, 0.50, 1.00', () {
+    test('waterCoinsPercentBonus → 4, 2, 1 (seuils)', () {
       expect(
         upgradeEffectValue(UpgradeEffectType.waterCoinsPercentBonus, 0),
-        0.25,
+        4.0,
       );
       expect(
         upgradeEffectValue(UpgradeEffectType.waterCoinsPercentBonus, 1),
-        0.50,
+        2.0,
       );
       expect(
         upgradeEffectValue(UpgradeEffectType.waterCoinsPercentBonus, 2),
-        1.00,
+        1.0,
       );
     });
 
-    test('plainCoinsPercentBonus → 0.25, 0.50, 1.00', () {
+    test('plainCoinsPercentBonus → 4, 2, 1 (seuils)', () {
       expect(
         upgradeEffectValue(UpgradeEffectType.plainCoinsPercentBonus, 0),
-        0.25,
+        4.0,
       );
       expect(
         upgradeEffectValue(UpgradeEffectType.plainCoinsPercentBonus, 1),
-        0.50,
+        2.0,
       );
       expect(
         upgradeEffectValue(UpgradeEffectType.plainCoinsPercentBonus, 2),
-        1.00,
+        1.0,
       );
     });
 
-    test('mountainCoinsPercentBonus → 0.25, 0.50, 1.00', () {
+    test('mountainCoinsPercentBonus → 4, 2, 1 (seuils)', () {
       expect(
         upgradeEffectValue(UpgradeEffectType.mountainCoinsPercentBonus, 0),
-        0.25,
+        4.0,
       );
       expect(
         upgradeEffectValue(UpgradeEffectType.mountainCoinsPercentBonus, 1),
-        0.50,
+        2.0,
       );
       expect(
         upgradeEffectValue(UpgradeEffectType.mountainCoinsPercentBonus, 2),
-        1.00,
+        1.0,
       );
     });
 
@@ -255,7 +255,7 @@ void main() {
     test('se clamps si level négatif', () {
       expect(
         upgradeEffectValue(UpgradeEffectType.coinsPercentBonus, -1),
-        0.25,
+        4.0,
       );
       expect(
         upgradeEffectValue(UpgradeEffectType.startingTilesBonus, -5),
@@ -279,22 +279,22 @@ void main() {
       );
     });
 
-    test('coinsPercentBonus → +25%, +50%, +100%', () {
+    test('coinsPercentBonus → +1 dès 4/2/1 pièces', () {
       expect(
         upgradeAllLevelEffects(UpgradeEffectType.coinsPercentBonus),
-        ['+25%', '+50%', '+100%'],
+        ['+1 dès 4 pièces', '+1 dès 2 pièces', '+1 dès 1 pièce'],
       );
     });
 
-    test('villageCoinsPercentBonus → +25%, +50%, +100%', () {
+    test('villageCoinsPercentBonus → +1 dès 4/2/1 côtés', () {
       expect(
         upgradeAllLevelEffects(UpgradeEffectType.villageCoinsPercentBonus),
-        ['+25%', '+50%', '+100%'],
+        ['+1 dès 4 côtés', '+1 dès 2 côtés', '+1 dès 1 côté'],
       );
     });
 
-    test('forest/water/plain/mountain → +25%, +50%, +100%', () {
-      const expected = ['+25%', '+50%', '+100%'];
+    test('forest/water/plain/mountain → +1 dès 4/2/1 côtés', () {
+      const expected = ['+1 dès 4 côtés', '+1 dès 2 côtés', '+1 dès 1 côté'];
       expect(
         upgradeAllLevelEffects(UpgradeEffectType.forestCoinsPercentBonus),
         expected,

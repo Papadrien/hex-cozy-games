@@ -4,8 +4,11 @@
 ///   - STARTING_TILES : modifie le stock initial
 ///   - CONNECTION_BONUS_MULTIPLIER : ajoute des tuiles bonus fixes sur les
 ///     connexions quintuple/sextuple (Tuile bonus)
-///   - COINS_MULTIPLIER : multiplie les pièces générées
-///   - BIOME_COINS_BONUS : bonus de pièces pour le biome village
+///   - COINS_THRESHOLD : accorde 1 pièce bonus si le nombre de pièces de base
+///     gagnées sur la pose atteint un seuil (Pièces+, Jackpot+)
+///   - BIOME_COINS_THRESHOLD : accorde 1 pièce bonus si le nombre de côtés
+///     d'un biome connectés sur la pose atteint un seuil (Rouge+/Vert+/Bleu+/
+///     Jaune+/Violet+)
 library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -41,12 +44,21 @@ class GameEffectsService {
     return baseBonus + (extraByLevel[level] ?? 0);
   }
 
-  /// Calcule les pièces finales après application des bonus — Story 2.8b / B1.
+  /// Calcule les pièces finales après application des bonus — Story 2.8b / B1
+  /// (revisité : modèle seuil « 1 pièce bonus si ≥ N » non-cumulable).
   ///
-  /// Chaque biome dispose de son propre bonus par côté connecté :
-  /// [villageSides] × [villageCoinsBonus], [forestSides] × [forestCoinsBonus],
-  /// etc. Le total des bonus est ajouté aux pièces de base, puis le tout est
-  /// multiplié par (1 + [coinsMultiplier]).
+  /// Pour chaque type d'amélioration active (Pièces+/Jackpot+ global, et
+  /// Rouge+/Vert+/Bleu+/Jaune+/Violet+ par biome), accorde exactement 1 pièce
+  /// bonus si la condition de seuil est remplie :
+  ///   - bonus global : [baseCoins] ≥ [coinsThreshold]
+  ///   - bonus village : [villageSides] ≥ [villageCoinsThreshold]
+  ///   - bonus forêt   : [forestSides]  ≥ [forestCoinsThreshold]
+  ///   - bonus eau     : [waterSides]   ≥ [waterCoinsThreshold]
+  ///   - bonus plaine  : [plainSides]   ≥ [plainCoinsThreshold]
+  ///   - bonus montagne: [mountainSides]≥ [mountainCoinsThreshold]
+  ///
+  /// Non-cumulable : un seul bonus par type est accordé par pose, même si la
+  /// quantité mesurée est très supérieure au seuil.
   int applyCoinBonuses({
     required int baseCoins,
     required int villageSides,
@@ -56,14 +68,31 @@ class GameEffectsService {
     int mountainSides = 0,
   }) {
     final effects = _ref.read(activeUpgradeEffectsProvider);
-    final villageExtra = (villageSides * effects.villageCoinsBonus).round();
-    final forestExtra = (forestSides * effects.forestCoinsBonus).round();
-    final waterExtra = (waterSides * effects.waterCoinsBonus).round();
-    final plainExtra = (plainSides * effects.plainCoinsBonus).round();
-    final mountainExtra = (mountainSides * effects.mountainCoinsBonus).round();
-    final withBiomeBonus =
-        baseCoins + villageExtra + forestExtra + waterExtra + plainExtra + mountainExtra;
-    return (withBiomeBonus * (1.0 + effects.coinsMultiplier)).round();
+    var total = baseCoins;
+    if (effects.coinsThreshold > 0 && baseCoins >= effects.coinsThreshold) {
+      total += 1;
+    }
+    if (effects.villageCoinsThreshold > 0 &&
+        villageSides >= effects.villageCoinsThreshold) {
+      total += 1;
+    }
+    if (effects.forestCoinsThreshold > 0 &&
+        forestSides >= effects.forestCoinsThreshold) {
+      total += 1;
+    }
+    if (effects.waterCoinsThreshold > 0 &&
+        waterSides >= effects.waterCoinsThreshold) {
+      total += 1;
+    }
+    if (effects.plainCoinsThreshold > 0 &&
+        plainSides >= effects.plainCoinsThreshold) {
+      total += 1;
+    }
+    if (effects.mountainCoinsThreshold > 0 &&
+        mountainSides >= effects.mountainCoinsThreshold) {
+      total += 1;
+    }
+    return total;
   }
 
   /// Nombre de tuiles bonus ajoutées à chaque palier de 5 dans la série de

@@ -216,11 +216,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get upgrade_desc_coins_plus =>
-      'Increases the percentage of coins earned on every tile you place.';
+      'Grants 1 bonus coin whenever you earn at least N coins on a placement (4/2/1 coins depending on level). Non-stacking.';
 
   @override
   String get upgrade_desc_villages_plus =>
-      'Increases coins earned from red tiles.';
+      'Grants 1 bonus coin whenever you connect at least N red sides on a placement (4/2/1 depending on level). Non-stacking.';
 
   @override
   String get upgrade_desc_combo_plus =>
@@ -240,19 +240,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get upgrade_desc_forest_plus =>
-      'Increases coins earned from green tiles.';
+      'Grants 1 bonus coin whenever you connect at least N green sides on a placement (4/2/1 depending on level). Non-stacking.';
 
   @override
   String get upgrade_desc_water_plus =>
-      'Increases coins earned from blue tiles.';
+      'Grants 1 bonus coin whenever you connect at least N blue sides on a placement (4/2/1 depending on level). Non-stacking.';
 
   @override
   String get upgrade_desc_plain_plus =>
-      'Increases coins earned from yellow tiles.';
+      'Grants 1 bonus coin whenever you connect at least N yellow sides on a placement (4/2/1 depending on level). Non-stacking.';
 
   @override
   String get upgrade_desc_mountain_plus =>
-      'Increases coins earned from purple tiles.';
+      'Grants 1 bonus coin whenever you connect at least N purple sides on a placement (4/2/1 depending on level). Non-stacking.';
 
   @override
   String get upgrade_desc_closure_bonus =>
@@ -264,7 +264,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get upgrade_desc_jackpot_plus =>
-      'Further boosts the percentage of coins earned on every tile placed — unlocked as a reward for a standout game.';
+      'Further boosts the coin bonus: grants 1 bonus coin whenever you earn at least N coins on a placement (4/2/1 depending on level). Non-stacking — unlocked as a reward for a standout game.';
 
   @override
   String get upgrade_desc_millionaire =>

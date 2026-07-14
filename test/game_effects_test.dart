@@ -32,12 +32,12 @@ void main() {
       final effects = container.read(activeUpgradeEffectsProvider);
       expect(effects.startingTilesBonus, 0);
       expect(effects.connectionBonusLevel, 0);
-      expect(effects.coinsMultiplier, 0.0);
-      expect(effects.villageCoinsBonus, 0.0);
-      expect(effects.forestCoinsBonus, 0.0);
-      expect(effects.waterCoinsBonus, 0.0);
-      expect(effects.plainCoinsBonus, 0.0);
-      expect(effects.mountainCoinsBonus, 0.0);
+      expect(effects.coinsThreshold, 0);
+      expect(effects.villageCoinsThreshold, 0);
+      expect(effects.forestCoinsThreshold, 0);
+      expect(effects.waterCoinsThreshold, 0);
+      expect(effects.plainCoinsThreshold, 0);
+      expect(effects.mountainCoinsThreshold, 0);
     });
   });
 
@@ -129,131 +129,118 @@ void main() {
       expect(coins, 10);
     });
 
-    test('coinsMultiplier 10% → 10% de bonus', () {
+    test('coinsThreshold=4 + baseCoins=3 → pas de bonus (sous le seuil)', () {
       final container = _makeContainer(
-        const ActiveUpgradeEffects(coinsMultiplier: 0.10),
+        const ActiveUpgradeEffects(coinsThreshold: 4),
+      );
+      final service = container.read(gameEffectsServiceProvider);
+      final coins = service.applyCoinBonuses(
+        baseCoins: 3,
+        villageSides: 0,
+      );
+      expect(coins, 3);
+    });
+
+    test('coinsThreshold=4 + baseCoins=4 → +1 pièce bonus (au seuil)', () {
+      final container = _makeContainer(
+        const ActiveUpgradeEffects(coinsThreshold: 4),
+      );
+      final service = container.read(gameEffectsServiceProvider);
+      final coins = service.applyCoinBonuses(
+        baseCoins: 4,
+        villageSides: 0,
+      );
+      expect(coins, 5);
+    });
+
+    test('coinsThreshold=4 + baseCoins=10 → +1 seul (non-cumulable)', () {
+      final container = _makeContainer(
+        const ActiveUpgradeEffects(coinsThreshold: 4),
       );
       final service = container.read(gameEffectsServiceProvider);
       final coins = service.applyCoinBonuses(
         baseCoins: 10,
         villageSides: 0,
       );
-      expect(coins, 11); // 10 * 1.10 = 11
-    });
-
-    test('coinsMultiplier 20% → +20%', () {
-      final container = _makeContainer(
-        const ActiveUpgradeEffects(coinsMultiplier: 0.20),
-      );
-      final service = container.read(gameEffectsServiceProvider);
-      final coins = service.applyCoinBonuses(baseCoins: 10, villageSides: 0);
-      expect(coins, 12);
-    });
-
-    test('villageCoinsBonus 33% → +1 pour 3 côtés village', () {
-      final container = _makeContainer(
-        const ActiveUpgradeEffects(villageCoinsBonus: 0.33),
-      );
-      final service = container.read(gameEffectsServiceProvider);
-      // 3 côtés village × 0.33 = 0.99 → arrondi à 1
-      final coins = service.applyCoinBonuses(baseCoins: 10, villageSides: 3);
-      expect(coins, 11); // 10 + (3 * 0.33).round() = 10 + 1 = 11
-    });
-
-    test('cumul coinsMultiplier + villageCoinsBonus', () {
-      final container = _makeContainer(
-        const ActiveUpgradeEffects(
-          coinsMultiplier: 0.10,
-          villageCoinsBonus: 0.33,
-        ),
-      );
-      final service = container.read(gameEffectsServiceProvider);
-      // base 10, 3 côtés village
-      // villageExtra = (3 * 0.33).round() = 1
-      // withBiomeBonus = 10 + 1 = 11
-      // total = (11 * 1.10).round() = 12.1 → 12
-      final coins = service.applyCoinBonuses(baseCoins: 10, villageSides: 3);
-      expect(coins, 12);
-    });
-
-    test('max 3 upgrades cumulés (100% village + 30% coins)', () {
-      final container = _makeContainer(
-        const ActiveUpgradeEffects(
-          coinsMultiplier: 0.30,
-          villageCoinsBonus: 1.00,
-        ),
-      );
-      final service = container.read(gameEffectsServiceProvider);
-      // base 10, 2 côtés village
-      // villageExtra = (2 * 1.00).round() = 2
-      // withBiomeBonus = 10 + 2 = 12
-      // total = (12 * 1.30).round() = 15.6 → 16
-      final coins = service.applyCoinBonuses(baseCoins: 10, villageSides: 2);
-      expect(coins, 16);
-    });
-
-    test('forestCoinsBonus 25% → +1 pour 3 côtés forêt', () {
-      final container = _makeContainer(
-        const ActiveUpgradeEffects(forestCoinsBonus: 0.25),
-      );
-      final service = container.read(gameEffectsServiceProvider);
-      final coins = service.applyCoinBonuses(
-        baseCoins: 10, villageSides: 0, forestSides: 3,
-      );
+      // 10 pièces dépassent largement le seuil de 4 mais une seule pièce
+      // bonus est accordée (règle « non-cumulable »).
       expect(coins, 11);
     });
 
-    test('waterCoinsBonus 50% → +1 pour 2 côtés eau', () {
+    test('coinsThreshold=2 + baseCoins=2 → +1 pièce bonus', () {
       final container = _makeContainer(
-        const ActiveUpgradeEffects(waterCoinsBonus: 0.50),
+        const ActiveUpgradeEffects(coinsThreshold: 2),
       );
       final service = container.read(gameEffectsServiceProvider);
-      final coins = service.applyCoinBonuses(
-        baseCoins: 10, villageSides: 0, waterSides: 2,
-      );
-      expect(coins, 11);
+      final coins = service.applyCoinBonuses(baseCoins: 2, villageSides: 0);
+      expect(coins, 3);
     });
 
-    test('plainCoinsBonus 100% → +2 pour 2 côtés plaine', () {
+    test('coinsThreshold=1 → +1 dès la première pièce', () {
       final container = _makeContainer(
-        const ActiveUpgradeEffects(plainCoinsBonus: 1.00),
+        const ActiveUpgradeEffects(coinsThreshold: 1),
       );
       final service = container.read(gameEffectsServiceProvider);
-      final coins = service.applyCoinBonuses(
-        baseCoins: 10, villageSides: 0, plainSides: 2,
+      expect(
+        service.applyCoinBonuses(baseCoins: 1, villageSides: 0),
+        2,
       );
-      expect(coins, 12);
+      expect(
+        service.applyCoinBonuses(baseCoins: 5, villageSides: 0),
+        6,
+      );
     });
 
-    test('mountainCoinsBonus 25% → 0 pour 0 côté montagne', () {
+    test('villageCoinsThreshold=4 + 3 côtés village → 0 (sous le seuil)', () {
       final container = _makeContainer(
-        const ActiveUpgradeEffects(mountainCoinsBonus: 0.25),
+        const ActiveUpgradeEffects(villageCoinsThreshold: 4),
       );
       final service = container.read(gameEffectsServiceProvider);
-      final coins = service.applyCoinBonuses(
-        baseCoins: 10, villageSides: 0, mountainSides: 0,
-      );
+      final coins = service.applyCoinBonuses(baseCoins: 10, villageSides: 3);
       expect(coins, 10);
+    });
+
+    test('villageCoinsThreshold=2 + 2 côtés village → +1', () {
+      final container = _makeContainer(
+        const ActiveUpgradeEffects(villageCoinsThreshold: 2),
+      );
+      final service = container.read(gameEffectsServiceProvider);
+      final coins = service.applyCoinBonuses(baseCoins: 10, villageSides: 2);
+      expect(coins, 11);
+    });
+
+    test('cumul coinsThreshold + villageCoinsThreshold', () {
+      final container = _makeContainer(
+        const ActiveUpgradeEffects(
+          coinsThreshold: 4,
+          villageCoinsThreshold: 2,
+        ),
+      );
+      final service = container.read(gameEffectsServiceProvider);
+      // base 10 (≥4) → +1 (global)
+      // 3 côtés village (≥2) → +1 (village)
+      // total = 10 + 1 + 1 = 12
+      final coins = service.applyCoinBonuses(baseCoins: 10, villageSides: 3);
+      expect(coins, 12);
     });
 
     test('tous les bonus biome cumulés', () {
       final container = _makeContainer(
         const ActiveUpgradeEffects(
-          villageCoinsBonus: 0.33,
-          forestCoinsBonus: 0.25,
-          waterCoinsBonus: 0.25,
-          plainCoinsBonus: 0.25,
-          mountainCoinsBonus: 0.25,
+          villageCoinsThreshold: 2,
+          forestCoinsThreshold: 2,
+          waterCoinsThreshold: 2,
+          plainCoinsThreshold: 2,
+          mountainCoinsThreshold: 2,
         ),
       );
       final service = container.read(gameEffectsServiceProvider);
-      // village: 3 * 0.33 = 0.99 → 1
-      // forest: 2 * 0.25 = 0.50 → 1 (0.5 arrondi → 1)
-      // water: 1 * 0.25 = 0.25 → 0
-      // plain: 0 * 0.25 = 0 → 0
-      // mountain: 1 * 0.25 = 0.25 → 0
-      // total biome bonus = 1 + 1 + 0 + 0 + 0 = 2
-      // withBiomeBonus = 10 + 2 = 12
+      // village: 3 côtés (≥2) → +1
+      // forest: 2 côtés (≥2) → +1
+      // water: 1 côté (<2) → 0
+      // plain: 0 côté (<2) → 0
+      // mountain: 1 côté (<2) → 0
+      // total = 10 + 2 = 12
       final coins = service.applyCoinBonuses(
         baseCoins: 10,
         villageSides: 3,
@@ -263,6 +250,50 @@ void main() {
         mountainSides: 1,
       );
       expect(coins, 12);
+    });
+
+    test('forestCoinsThreshold=4 + 3 côtés forêt → 0', () {
+      final container = _makeContainer(
+        const ActiveUpgradeEffects(forestCoinsThreshold: 4),
+      );
+      final service = container.read(gameEffectsServiceProvider);
+      final coins = service.applyCoinBonuses(
+        baseCoins: 10, villageSides: 0, forestSides: 3,
+      );
+      expect(coins, 10);
+    });
+
+    test('waterCoinsThreshold=2 + 2 côtés eau → +1', () {
+      final container = _makeContainer(
+        const ActiveUpgradeEffects(waterCoinsThreshold: 2),
+      );
+      final service = container.read(gameEffectsServiceProvider);
+      final coins = service.applyCoinBonuses(
+        baseCoins: 10, villageSides: 0, waterSides: 2,
+      );
+      expect(coins, 11);
+    });
+
+    test('plainCoinsThreshold=1 + 2 côtés plaine → +1 (non-cumulable)', () {
+      final container = _makeContainer(
+        const ActiveUpgradeEffects(plainCoinsThreshold: 1),
+      );
+      final service = container.read(gameEffectsServiceProvider);
+      final coins = service.applyCoinBonuses(
+        baseCoins: 10, villageSides: 0, plainSides: 2,
+      );
+      expect(coins, 11);
+    });
+
+    test('mountainCoinsThreshold=4 + 0 côté montagne → 0', () {
+      final container = _makeContainer(
+        const ActiveUpgradeEffects(mountainCoinsThreshold: 4),
+      );
+      final service = container.read(gameEffectsServiceProvider);
+      final coins = service.applyCoinBonuses(
+        baseCoins: 10, villageSides: 0, mountainSides: 0,
+      );
+      expect(coins, 10);
     });
   });
 

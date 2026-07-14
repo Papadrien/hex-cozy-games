@@ -135,7 +135,7 @@ void main() {
       addTearDown(container.dispose);
 
       final effects = container.read(activeUpgradeEffectsProvider);
-      expect(effects.coinsMultiplier, 0.0);
+      expect(effects.coinsThreshold, 0);
       expect(effects.startingTilesBonus, 0);
       expect(effects.millionaireCoins, 0);
     });
@@ -165,13 +165,13 @@ void main() {
       );
     }
 
-    test('coins_plus niveau 1 (index 0) → +25% appliqué', () {
+    test('coins_plus niveau 1 (index 0) → seuil 4 appliqué', () {
       final container = containerWithUpgrades([
         row(id: 'coins_plus', effectType: 'coinsPercentBonus', currentLevel: 0),
       ]);
       addTearDown(container.dispose);
 
-      expect(container.read(activeUpgradeEffectsProvider).coinsMultiplier, 0.25);
+      expect(container.read(activeUpgradeEffectsProvider).coinsThreshold, 4);
     });
 
     test('le niveau courant change bien la valeur de l\'effet (coins_plus niveau 2)',
@@ -181,7 +181,7 @@ void main() {
       ]);
       addTearDown(container.dispose);
 
-      expect(container.read(activeUpgradeEffectsProvider).coinsMultiplier, 0.50);
+      expect(container.read(activeUpgradeEffectsProvider).coinsThreshold, 2);
     });
 
     test('cumule plusieurs améliorations sélectionnées simultanément', () {
@@ -201,9 +201,9 @@ void main() {
       addTearDown(container.dispose);
 
       final effects = container.read(activeUpgradeEffectsProvider);
-      expect(effects.coinsMultiplier, 0.25);
+      expect(effects.coinsThreshold, 4);
       expect(effects.startingTilesBonus, 2);
-      expect(effects.villageCoinsBonus, 0.25);
+      expect(effects.villageCoinsThreshold, 4);
     });
 
     test('combo_plus (niveau 1) → comboStreakInterval = 15', () {

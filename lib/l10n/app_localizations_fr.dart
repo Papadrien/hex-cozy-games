@@ -219,11 +219,11 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get upgrade_desc_coins_plus =>
-      'Augmente le pourcentage de pièces gagnées sur chaque tuile posée.';
+      'Octroie une pièce bonus dès que tu gagnes au moins N pièces sur une pose (4/2/1 pièces selon le niveau). Non-cumulable.';
 
   @override
   String get upgrade_desc_villages_plus =>
-      'Augmente les pièces gagnées sur les tuiles rouges.';
+      'Octroie une pièce bonus dès que tu connectes au moins N côtés rouges sur une pose (4/2/1 selon le niveau). Non-cumulable.';
 
   @override
   String get upgrade_desc_combo_plus =>
@@ -243,19 +243,19 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get upgrade_desc_forest_plus =>
-      'Augmente les pièces gagnées sur les tuiles vertes.';
+      'Octroie une pièce bonus dès que tu connectes au moins N côtés verts sur une pose (4/2/1 selon le niveau). Non-cumulable.';
 
   @override
   String get upgrade_desc_water_plus =>
-      'Augmente les pièces gagnées sur les tuiles bleues.';
+      'Octroie une pièce bonus dès que tu connectes au moins N côtés bleus sur une pose (4/2/1 selon le niveau). Non-cumulable.';
 
   @override
   String get upgrade_desc_plain_plus =>
-      'Augmente les pièces gagnées sur les tuiles jaunes.';
+      'Octroie une pièce bonus dès que tu connectes au moins N côtés jaunes sur une pose (4/2/1 selon le niveau). Non-cumulable.';
 
   @override
   String get upgrade_desc_mountain_plus =>
-      'Augmente les pièces gagnées sur les tuiles violettes.';
+      'Octroie une pièce bonus dès que tu connectes au moins N côtés violets sur une pose (4/2/1 selon le niveau). Non-cumulable.';
 
   @override
   String get upgrade_desc_closure_bonus =>
@@ -267,7 +267,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get upgrade_desc_jackpot_plus =>
-      'Booste encore le pourcentage de pièces gagnées sur chaque tuile posée — débloqué en récompense d\'une partie exceptionnelle.';
+      'Booste encore le bonus de pièces : octroie une pièce bonus dès que tu gagnes au moins N pièces sur une pose (4/2/1 selon le niveau). Non-cumulable — débloqué en récompense d\'une partie exceptionnelle.';
 
   @override
   String get upgrade_desc_millionaire =>
