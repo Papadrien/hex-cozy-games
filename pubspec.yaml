@@ -69,12 +69,12 @@ dependencies:
   in_app_purchase: ^3.2.4
 
   # Fonts
-  google_fonts: ^6.2.1
+  google_fonts: ^8.1.0
 
   # Firebase
-  firebase_core: ^4.1.1
-  firebase_analytics: ^12.1.0
-  firebase_crashlytics: ^5.0.3
+  firebase_core: ^4.12.1
+  firebase_analytics: ^12.4.4
+  firebase_crashlytics: ^5.2.5
 
 dev_dependencies:
   flutter_test:
