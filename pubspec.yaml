@@ -69,7 +69,7 @@ dependencies:
   in_app_purchase: ^3.2.4
 
   # Fonts
-  google_fonts: ^6.2.1
+  google_fonts: ^8.1.0
 
   # Firebase
   firebase_core: ^4.1.1
