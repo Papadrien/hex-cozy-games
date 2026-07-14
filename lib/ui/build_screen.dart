@@ -24,6 +24,7 @@ import '../core/colors.dart';
 import '../core/game_enums.dart';
 import '../core/constants.dart';
 import '../core/formatting.dart';
+import '../core/snackbar_utils.dart';
 import '../core/strings.dart';
 import '../data/app_database.dart';
 import '../providers/build_provider.dart';
@@ -813,7 +814,7 @@ class _UpgradeButtonState extends ConsumerState<_UpgradeButton> {
       ),
     };
 
-    ScaffoldMessenger.of(context).showSnackBar(
+    showAppSnackBar(
       SnackBar(
         content: Text(message),
         backgroundColor: color,
@@ -858,8 +859,6 @@ String _upgradeDescription(BuildContext context, String upgradeId) {
       return tr.upgrade_desc_closure_bonus;
     case 'hated_color':
       return tr.upgrade_desc_hated_color;
-    case 'jackpot_plus':
-      return tr.upgrade_desc_jackpot_plus;
     case 'millionaire':
       return tr.upgrade_desc_millionaire;
     case 'warehouse':

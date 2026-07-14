@@ -8,6 +8,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../core/colors.dart';
 import '../core/game_enums.dart';
 import '../core/constants.dart';
+import '../core/snackbar_utils.dart';
 import '../core/strings.dart';
 import '../data/app_database.dart';
 import '../providers/build_provider.dart';
@@ -69,12 +70,14 @@ class HomeScreen extends ConsumerWidget {
                     await SessionSaver.endSession(ref);
                     startNewGame(ref);
                     if (context.mounted) {
+                      clearAppSnackBars();
                       Navigator.pushReplacementNamed(context, '/game');
                     }
                   },
                   onResume: () async {
                     await restoreSession(ref);
                     if (context.mounted) {
+                      clearAppSnackBars();
                       Navigator.pushReplacementNamed(context, '/game');
                     }
                   },
@@ -139,6 +142,7 @@ class _TopBar extends StatelessWidget {
             tooltip: context.tr.home_shop,
             onPressed: () {
               buttonHapticTap(context);
+              clearAppSnackBars();
               Navigator.of(context).push(
                 MaterialPageRoute<void>(builder: (_) => const ShopScreen()),
               );
@@ -150,7 +154,7 @@ class _TopBar extends StatelessWidget {
   }
 
   void _notYet(BuildContext context, String label) {
-    ScaffoldMessenger.of(context).showSnackBar(
+    showAppSnackBar(
       SnackBar(
         content: Text(label),
         backgroundColor: Colors.white.withValues(alpha: 0.1),
@@ -342,10 +346,13 @@ class _CenterContentState extends ConsumerState<_CenterContent>
                     child: _NavButton(
                       icon: Icons.flag_outlined,
                       label: context.tr.quests_title,
-                      onTap: () => Navigator.of(context).push(
-                        MaterialPageRoute<void>(
-                            builder: (_) => const QuestsScreen()),
-                      ),
+                      onTap: () {
+                        clearAppSnackBars();
+                        Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                              builder: (_) => const QuestsScreen()),
+                        );
+                      },
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -353,10 +360,13 @@ class _CenterContentState extends ConsumerState<_CenterContent>
                     child: _NavButton(
                       icon: Icons.bar_chart_outlined,
                       label: context.tr.home_stats,
-                      onTap: () => Navigator.of(context).push(
-                        MaterialPageRoute<void>(
-                            builder: (_) => const StatsScreen()),
-                      ),
+                      onTap: () {
+                        clearAppSnackBars();
+                        Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                              builder: (_) => const StatsScreen()),
+                        );
+                      },
                     ),
                   ),
                 ],
@@ -583,15 +593,18 @@ class _BuildButton extends StatelessWidget {
         // Pas de surcouche — le bleu de base suffit pour ce bouton
         tint: hasResumableGame ? Colors.grey : Colors.transparent,
         onPressed: hasResumableGame
-            ? () => ScaffoldMessenger.of(context).showSnackBar(
+            ? () => showAppSnackBar(
                   SnackBar(
                     content: Text(context.tr.home_buildSelectionLockedResume),
                     behavior: SnackBarBehavior.floating,
                   ),
                 )
-            : () => Navigator.of(context).push(
+            : () {
+                clearAppSnackBars();
+                Navigator.of(context).push(
                   MaterialPageRoute<void>(builder: (_) => const BuildScreen()),
-                ),
+                );
+              },
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -671,7 +684,7 @@ class _RewardedAdButton extends ConsumerWidget {
             ? () async {
                 final rewarded = await claimDailyReward(ref);
                 if (rewarded && context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  showAppSnackBar(
                     SnackBar(
                       content: Text(
                           '+$kAdRewardedCoins ${context.tr.reward_coins}'),
@@ -911,7 +924,7 @@ class _DebugButton extends StatelessWidget {
           buttonHapticTap(context);
           await ref.read(progressionServiceProvider).unlockAllUpgrades();
           if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
+            showAppSnackBar(
               const SnackBar(
                   content: Text('Toutes les améliorations débloquées')),
             );

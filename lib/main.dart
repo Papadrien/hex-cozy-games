@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
+import 'core/snackbar_utils.dart';
 import 'core/theme.dart';
 import 'l10n/app_localizations.dart';
 import 'services/analytics_service.dart';
@@ -27,6 +28,7 @@ class HexCozyGamesApp extends StatelessWidget {
       title: 'Hex Cozy Games',
       theme: AppTheme.light,
       debugShowCheckedModeBanner: false,
+      scaffoldMessengerKey: rootScaffoldMessengerKey,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       initialRoute: '/',

@@ -13,6 +13,7 @@ import 'glass_container.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/colors.dart';
+import '../core/snackbar_utils.dart';
 import '../core/strings.dart';
 import '../providers/end_game_provider.dart';
 import '../providers/placement_commit.dart';
@@ -185,6 +186,7 @@ class _ResultsCard extends ConsumerWidget {
     buttonHapticTap(context);
     SessionSaver.endSession(ref);
     startNewGame(ref);
+    clearAppSnackBars();
     Navigator.pushReplacementNamed(context, '/game');
   }
 
@@ -194,6 +196,7 @@ class _ResultsCard extends ConsumerWidget {
     // '/' est le splash screen (précache polices/images + délai minimum) :
     // le réafficher ici provoquait un flash de splash inutile à chaque
     // retour à l'accueil après une partie. On va directement sur '/home'.
+    clearAppSnackBars();
     Navigator.pushReplacementNamed(context, '/home');
   }
 }

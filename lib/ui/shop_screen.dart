@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../core/colors.dart';
 import '../core/constants.dart';
+import '../core/snackbar_utils.dart';
 import '../core/strings.dart';
 import '../providers/player_profile_provider.dart';
 import '../services/iap_service.dart';
@@ -219,7 +220,7 @@ class _CoinPackCardState extends ConsumerState<_CoinPackCard> {
           Colors.red.withValues(alpha: 0.3),
         ),
     };
-    ScaffoldMessenger.of(context).showSnackBar(
+    showAppSnackBar(
       SnackBar(
         content: Text(message),
         backgroundColor: color,
@@ -499,7 +500,7 @@ class _PremiumCardState extends ConsumerState<_PremiumCard> {
                       final result = await purchasePremium(ref);
                       if (!context.mounted) return;
                       if (result == IapResult.success) {
-                        ScaffoldMessenger.of(context).showSnackBar(
+                        showAppSnackBar(
                           SnackBar(
                             content: Text(context.tr.shop_premium),
                             backgroundColor:
@@ -562,7 +563,7 @@ class _PremiumCardState extends ConsumerState<_PremiumCard> {
           Colors.red.withValues(alpha: 0.3),
         ),
     };
-    ScaffoldMessenger.of(context).showSnackBar(
+    showAppSnackBar(
       SnackBar(
         content: Text(message),
         backgroundColor: color,
@@ -601,7 +602,7 @@ class _RestoreButtonState extends ConsumerState<_RestoreButton> {
               try {
                 final ok = await restoreAllPurchases(ref);
                 if (!context.mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
+                showAppSnackBar(
                   SnackBar(
                     content: Text(ok
                         ? context.tr.shop_restoreCompleted

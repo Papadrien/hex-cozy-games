@@ -23,6 +23,7 @@ import 'glass_container.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/colors.dart';
+import '../core/snackbar_utils.dart';
 import '../core/strings.dart';
 import '../providers/grid_state_provider.dart';
 import '../providers/options_provider.dart';
@@ -317,6 +318,7 @@ class _SaveAndQuitButton extends ConsumerWidget {
           if (context.mounted) {
             // Idem que _goHome dans results_modal.dart : '/' relance le
             // splash screen, on va directement sur '/home'.
+            clearAppSnackBars();
             Navigator.pushReplacementNamed(context, '/home');
           }
         },
@@ -402,8 +404,12 @@ Future<void> _showAbandonConfirmDialog(
   );
 }
 
-void _abandonGame(BuildContext context, WidgetRef ref) {
-  SessionSaver.endSession(ref);
+Future<void> _abandonGame(BuildContext context, WidgetRef ref) async {
+  await SessionSaver.endSession(ref);
+  // Sans invalidate, activeSessionProvider (FutureProvider mis en cache)
+  // garde sa valeur précédente (true) : le bouton "Reprendre" resterait
+  // affiché sur l'accueil alors qu'il n'y a plus de session active.
+  ref.invalidate(activeSessionProvider);
   ref.read(sessionProvider.notifier).reset();
   ref.read(lastPlacementProvider.notifier).set(null);
   // reset() direct plutôt qu'invalidate : même raison que dans
@@ -416,7 +422,9 @@ void _abandonGame(BuildContext context, WidgetRef ref) {
   // Idem : sans ça, isPaused reste true et la prochaine partie démarre
   // directement sur la modale de pause.
   ref.read(pauseProvider.notifier).resume();
+  if (!context.mounted) return;
   // Idem que _goHome dans results_modal.dart : '/' relance le splash
   // screen, on va directement sur '/home'.
+  clearAppSnackBars();
   Navigator.pushReplacementNamed(context, '/home');
 }
