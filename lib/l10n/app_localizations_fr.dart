@@ -372,4 +372,32 @@ class AppLocalizationsFr extends AppLocalizations {
   String stats_biomeMax(Object biome, Object value) {
     return '$biome max : $value tuiles';
   }
+
+  @override
+  String get settings_title => 'Réglages';
+
+  @override
+  String get settings_sectionAudio => 'Audio';
+
+  @override
+  String get settings_sectionAbout => 'À propos';
+
+  @override
+  String get settings_rateApp => 'Laisser un avis';
+
+  @override
+  String get settings_rateAppSubtitle => 'Donne ton avis sur le Store';
+
+  @override
+  String get review_title => 'Tu aimes HexHaven ?';
+
+  @override
+  String get review_body =>
+      'Un avis nous aide énormément à faire grandir le jeu et à le faire découvrir à d\'autres joueurs !';
+
+  @override
+  String get review_rateNow => 'Laisser un avis';
+
+  @override
+  String get review_later => 'Plus tard';
 }

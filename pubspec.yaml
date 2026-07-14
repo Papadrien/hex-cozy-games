@@ -59,6 +59,9 @@ dependencies:
   # Persistence tutorial state
   shared_preferences: ^2.5.3
 
+  # Demande d'avis in-app (bottom sheet "Laisser un avis")
+  in_app_review: ^2.0.9
+
   # Publicités
   google_mobile_ads: ^9.0.0
 

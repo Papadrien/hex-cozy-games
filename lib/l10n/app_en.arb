@@ -236,5 +236,25 @@
       "biome": {},
       "value": {}
     }
-  }
+  },
+
+  "settings_title": "Settings",
+  "@settings_title": {},
+  "settings_sectionAudio": "Audio",
+  "@settings_sectionAudio": {},
+  "settings_sectionAbout": "About",
+  "@settings_sectionAbout": {},
+  "settings_rateApp": "Rate the app",
+  "@settings_rateApp": {},
+  "settings_rateAppSubtitle": "Share your feedback on the Store",
+  "@settings_rateAppSubtitle": {},
+
+  "review_title": "Enjoying HexHaven?",
+  "@review_title": {},
+  "review_body": "A review helps us a lot to grow the game and get discovered by other players!",
+  "@review_body": {},
+  "review_rateNow": "Rate now",
+  "@review_rateNow": {},
+  "review_later": "Maybe later",
+  "@review_later": {}
 }

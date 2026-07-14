@@ -757,6 +757,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{biome} max: {value} tiles'**
   String stats_biomeMax(Object biome, Object value);
+
+  /// No description provided for @settings_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get settings_title;
+
+  /// No description provided for @settings_sectionAudio.
+  ///
+  /// In en, this message translates to:
+  /// **'Audio'**
+  String get settings_sectionAudio;
+
+  /// No description provided for @settings_sectionAbout.
+  ///
+  /// In en, this message translates to:
+  /// **'About'**
+  String get settings_sectionAbout;
+
+  /// No description provided for @settings_rateApp.
+  ///
+  /// In en, this message translates to:
+  /// **'Rate the app'**
+  String get settings_rateApp;
+
+  /// No description provided for @settings_rateAppSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Share your feedback on the Store'**
+  String get settings_rateAppSubtitle;
+
+  /// No description provided for @review_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Enjoying HexHaven?'**
+  String get review_title;
+
+  /// No description provided for @review_body.
+  ///
+  /// In en, this message translates to:
+  /// **'A review helps us a lot to grow the game and get discovered by other players!'**
+  String get review_body;
+
+  /// No description provided for @review_rateNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Rate now'**
+  String get review_rateNow;
+
+  /// No description provided for @review_later.
+  ///
+  /// In en, this message translates to:
+  /// **'Maybe later'**
+  String get review_later;
 }
 
 class _AppLocalizationsDelegate

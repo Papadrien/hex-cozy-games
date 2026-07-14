@@ -14,11 +14,14 @@ import '../data/app_database.dart';
 import '../providers/build_provider.dart';
 import '../providers/placement_commit.dart';
 import '../providers/player_profile_provider.dart';
+import '../providers/player_stats_provider.dart';
 import '../providers/progression_provider.dart';
 import '../services/ad_service.dart';
 import '../services/haptics_service.dart';
 import 'build_screen.dart';
 import 'quests_screen.dart';
+import 'review_bottom_sheet.dart';
+import 'settings_screen.dart';
 import 'shop_screen.dart';
 import 'stats_screen.dart';
 import 'glass_container.dart';
@@ -35,6 +38,31 @@ class HomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final activeSession = ref.watch(activeSessionProvider);
     final totalCoins = ref.watch(totalCoinsProvider);
+
+    // Story rate-us : propose la bottom sheet d'avis dès que
+    // `player_stats.total_games_played` atteint le seuil — ne se déclenche
+    // qu'une fois (voir [ReviewService.shouldPromptForReview]), y compris
+    // pour un joueur ayant déjà dépassé le seuil avant l'arrivée de cette
+    // fonctionnalité. L'accueil est le point de passage le plus fiable
+    // après une partie ("Retour à l'accueil" du résultat, ou relance
+    // depuis le splash), donc c'est ici qu'on vérifie plutôt qu'en fin de
+    // partie où une bottom sheet viendrait se superposer au résultat.
+    ref.listen<AsyncValue<PlayerStatsRow>>(playerStatsProvider, (
+      previous,
+      next,
+    ) {
+      final stats = next.valueOrNull;
+      if (stats == null) return;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (context.mounted) {
+          maybeShowReviewPrompt(
+            context,
+            ref,
+            totalGamesPlayed: stats.totalGamesPlayed,
+          );
+        }
+      });
+    });
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -133,7 +161,10 @@ class _TopBar extends StatelessWidget {
             tooltip: context.tr.home_settings,
             onPressed: () {
               buttonHapticTap(context);
-              _notYet(context, context.tr.home_settings);
+              clearAppSnackBars();
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(builder: (_) => const SettingsScreen()),
+              );
             },
           ),
           const SizedBox(width: 8),
@@ -149,16 +180,6 @@ class _TopBar extends StatelessWidget {
             },
           ),
         ],
-      ),
-    );
-  }
-
-  void _notYet(BuildContext context, String label) {
-    showAppSnackBar(
-      SnackBar(
-        content: Text(label),
-        backgroundColor: Colors.white.withValues(alpha: 0.1),
-        behavior: SnackBarBehavior.floating,
       ),
     );
   }

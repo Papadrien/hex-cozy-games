@@ -97,6 +97,13 @@ class CoinPack {
   });
 }
 
+// ── Demande d'avis (rate-us) ──────────────────────────────────────────────
+
+/// Nombre de parties jouées (cumul `player_stats.total_games_played`) à
+/// partir duquel la bottom sheet de demande d'avis est proposée une seule
+/// fois (voir [ReviewService] dans `services/review_service.dart`).
+const int kReviewPromptGamesThreshold = 3;
+
 // ── Couleurs bonus progressives ──────────────────────────────────────────
 
 /// Seuil (nombre de tuiles posées EN PARTIE, cumul de la session en cours)

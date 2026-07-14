@@ -369,4 +369,32 @@ class AppLocalizationsEn extends AppLocalizations {
   String stats_biomeMax(Object biome, Object value) {
     return '$biome max: $value tiles';
   }
+
+  @override
+  String get settings_title => 'Settings';
+
+  @override
+  String get settings_sectionAudio => 'Audio';
+
+  @override
+  String get settings_sectionAbout => 'About';
+
+  @override
+  String get settings_rateApp => 'Rate the app';
+
+  @override
+  String get settings_rateAppSubtitle => 'Share your feedback on the Store';
+
+  @override
+  String get review_title => 'Enjoying HexHaven?';
+
+  @override
+  String get review_body =>
+      'A review helps us a lot to grow the game and get discovered by other players!';
+
+  @override
+  String get review_rateNow => 'Rate now';
+
+  @override
+  String get review_later => 'Maybe later';
 }

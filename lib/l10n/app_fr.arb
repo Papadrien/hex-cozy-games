@@ -146,5 +146,16 @@
       "biome": {},
       "value": {}
     }
-  }
+  },
+
+  "settings_title": "Réglages",
+  "settings_sectionAudio": "Audio",
+  "settings_sectionAbout": "À propos",
+  "settings_rateApp": "Laisser un avis",
+  "settings_rateAppSubtitle": "Donne ton avis sur le Store",
+
+  "review_title": "Tu aimes HexHaven ?",
+  "review_body": "Un avis nous aide énormément à faire grandir le jeu et à le faire découvrir à d'autres joueurs !",
+  "review_rateNow": "Laisser un avis",
+  "review_later": "Plus tard"
 }
