@@ -1,0 +1,115 @@
+/// Compteurs/badges par amélioration pour l'encart des améliorations actives
+/// — Story B12b.
+///
+/// [upgradeCounterFor] centralise, pour chaque [UpgradeEffectType], la
+/// décision de ce qu'il faut afficher en overlay sur son icône dans l'encart
+/// (rien / un chiffre / un chiffre avec palier / une pastille de couleur) —
+/// voir [UpgradeCounterInfo]. Logique volontairement pure (dépend uniquement
+/// de l'état des providers au moment de l'appel) pour rester testable
+/// isolément, sans monter de widget.
+library;
+
+import 'package:flutter/material.dart' show Color;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../core/game_enums.dart';
+import '../game/tile_component.dart' show BiomeColor;
+import 'build_provider.dart';
+import 'grid_state_provider.dart';
+import 'session_provider.dart';
+import 'tile_stack_provider.dart';
+
+/// Ce qu'il faut afficher en overlay sur l'icône d'une amélioration dans
+/// l'encart des améliorations actives.
+///
+/// Exactement un des trois cas suivants :
+///  - [UpgradeCounterInfo.none] : aucun badge (icône seule).
+///  - [UpgradeCounterInfo.number] : un chiffre, avec un palier optionnel
+///    (ex. "7/15" pour Combo+ via [max], ou juste "2" pour Emplacement
+///    Joker/Deuxième chance restants).
+///  - [UpgradeCounterInfo.colorSwatch] : une pastille de la couleur du biome
+///    concerné (Couleur détestée : couleur du biome actuellement exclu).
+class UpgradeCounterInfo {
+  const UpgradeCounterInfo._({this.value, this.max, this.swatchColor});
+
+  /// Aucun badge à afficher.
+  const UpgradeCounterInfo.none() : this._();
+
+  /// Badge numérique. [max] optionnel affiche un palier ("value/max").
+  const UpgradeCounterInfo.number(int value, {int? max})
+      : this._(value: value, max: max);
+
+  /// Badge pastille de couleur (Couleur détestée).
+  const UpgradeCounterInfo.colorSwatch(Color color) : this._(swatchColor: color);
+
+  final int? value;
+  final int? max;
+  final Color? swatchColor;
+
+  /// Vrai si un badge doit effectivement être rendu par-dessus l'icône.
+  bool get hasBadge => value != null || swatchColor != null;
+}
+
+/// Calcule le badge à afficher pour l'amélioration [effectType], à partir
+/// de l'état courant de la session/pile/grille.
+///
+/// [ref] doit permettre `watch` (widget en cours de build) pour que le
+/// badge se mette à jour en temps réel — ne pas appeler depuis un
+/// `ref.read` ponctuel hors build.
+UpgradeCounterInfo upgradeCounterFor(WidgetRef ref, UpgradeEffectType effectType) {
+  switch (effectType) {
+    // Combo+ : progression dans la série de doubles connexions consécutives
+    // vers le prochain palier (N = 15/13/10 selon niveau).
+    case UpgradeEffectType.comboBonusTiles:
+      final interval =
+          ref.watch(activeUpgradeEffectsProvider).comboStreakInterval;
+      if (interval <= 0) return const UpgradeCounterInfo.none();
+      final streak =
+          ref.watch(sessionProvider.select((s) => s.currentDoubleStreak));
+      return UpgradeCounterInfo.number(streak, max: interval);
+
+    // Emplacement Joker / Deuxième chance : utilisations restantes cette
+    // partie.
+    case UpgradeEffectType.holdSlotUses:
+      final remaining =
+          ref.watch(sessionProvider.select((s) => s.holdSlotRemainingUses));
+      return UpgradeCounterInfo.number(remaining);
+    case UpgradeEffectType.secondChanceUses:
+      final remaining = ref
+          .watch(sessionProvider.select((s) => s.secondChanceRemainingUses));
+      return UpgradeCounterInfo.number(remaining);
+
+    // Couleur détestée : pastille de la couleur du biome actuellement
+    // exclu, tant que l'exclusion est encore active (tuiles posées <
+    // durée). Pas de chiffre — juste la couleur, comme demandé.
+    case UpgradeEffectType.hatedColorExclusion:
+      final stack = ref.watch(tileStackProvider);
+      final biome = stack.excludeBiome;
+      if (biome == null || stack.hatedDuration <= 0) {
+        return const UpgradeCounterInfo.none();
+      }
+      final placedCount =
+          ref.watch(gridProvider.select((g) => g.placedTiles.length));
+      final remaining = stack.hatedDuration - placedCount;
+      if (remaining <= 0) return const UpgradeCounterInfo.none();
+      return UpgradeCounterInfo.colorSwatch(biome.color);
+
+    // Toutes les autres améliorations (Tuile bonus, Pièces+/Jackpot+,
+    // Rouge+/Vert+/Bleu+/Jaune+/Violet+, Bonus de clôture, Aperçu prolongé,
+    // Tuiles de départ+, debug) : pas de compteur — seul le pulse/contour de
+    // déclenchement (voir upgrade_feedback_provider.dart) donne le feedback.
+    case UpgradeEffectType.startingTilesBonus:
+    case UpgradeEffectType.connectionBonusMultiplier:
+    case UpgradeEffectType.coinsPercentBonus:
+    case UpgradeEffectType.villageCoinsPercentBonus:
+    case UpgradeEffectType.forestCoinsPercentBonus:
+    case UpgradeEffectType.waterCoinsPercentBonus:
+    case UpgradeEffectType.plainCoinsPercentBonus:
+    case UpgradeEffectType.mountainCoinsPercentBonus:
+    case UpgradeEffectType.closureBonusTiles:
+    case UpgradeEffectType.extendedPreviewCount:
+    case UpgradeEffectType.millionaireCoins:
+    case UpgradeEffectType.warehouseStartingTiles:
+      return const UpgradeCounterInfo.none();
+  }
+}

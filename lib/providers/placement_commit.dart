@@ -25,6 +25,8 @@ import 'tile_stack_provider.dart';
 import 'player_stats_provider.dart';
 import 'quest_provider.dart';
 import 'reward_model.dart';
+import 'upgrade_feedback_provider.dart';
+import '../core/game_enums.dart';
 
 /// Vérifie si une session active existe en base (Story 1.7b).
 final activeSessionProvider = FutureProvider<bool>((ref) async {
@@ -131,6 +133,7 @@ void startNewGame(WidgetRef ref) {
   ref.invalidate(holdSlotProvider);
   ref.invalidate(secondChanceModeProvider);
   ref.read(sessionProvider.notifier).reset();
+  ref.read(upgradeFeedbackProvider.notifier).reset();
   ref.read(lastPlacementProvider.notifier).set(null);
   ref.read(placementProvider.notifier).clearSelection();
   resetEndGame(ref);
@@ -363,8 +366,20 @@ void _recordPlacement(
     WidgetRef ref, HexCoords pos, HexTile tile, PlacementReward reward) {
   if (reward.connectedSides.isEmpty && reward.bonusTiles == 0) {
     ref.read(sessionProvider.notifier).addReward(reward);
+    // Story B12a : signale une pose "vide" (tick incrémenté, aucun type
+    // déclenché) pour que l'encart des améliorations actives puisse malgré
+    // tout réagir à l'évènement pose si besoin.
+    ref.read(upgradeFeedbackProvider.notifier).reportTriggered(const {});
     return (reward, 0);
   }
+  // Story B12a — accumule au fil du calcul les UpgradeEffectType ayant
+  // effectivement produit un bonus sur CETTE pose, pour piloter le feedback
+  // visuel (pulsation/contour) de l'encart des améliorations actives. Les
+  // conditions de seuil ci-dessous dupliquent volontairement celles
+  // d'[GameEffectsService.applyCoinBonuses] plutôt que d'en changer la
+  // signature (fonction pure déjà testée) : à réévaluer si un futur besoin
+  // justifie de faire remonter le détail directement depuis le service.
+  final triggeredTypes = <UpgradeEffectType>{};
   final effects = ref.read(gameEffectsServiceProvider);
   final villageSides = effects.countBiomeSides(BiomeType.village, tile, reward.connectedSides);
   final forestSides = effects.countBiomeSides(BiomeType.forest, tile, reward.connectedSides);
@@ -387,10 +402,50 @@ void _recordPlacement(
     bonusCoins: bonusCoins,
   );
   ref.read(sessionProvider.notifier).addReward(applied, forcedCoins: totalCoins);
+
+  // Seuils pièces (Pièces+/Jackpot+ global + Rouge+/Vert+/Bleu+/Jaune+/
+  // Violet+ par biome) — même logique que
+  // [GameEffectsService.applyCoinBonuses], dupliquée pour identifier QUEL
+  // seuil précis a été franchi sur cette pose.
+  final activeEffects = ref.read(activeUpgradeEffectsProvider);
+  if (activeEffects.coinsThreshold > 0 &&
+      baseCoins >= activeEffects.coinsThreshold) {
+    triggeredTypes.add(UpgradeEffectType.coinsPercentBonus);
+  }
+  if (activeEffects.villageCoinsThreshold > 0 &&
+      villageSides >= activeEffects.villageCoinsThreshold) {
+    triggeredTypes.add(UpgradeEffectType.villageCoinsPercentBonus);
+  }
+  if (activeEffects.forestCoinsThreshold > 0 &&
+      forestSides >= activeEffects.forestCoinsThreshold) {
+    triggeredTypes.add(UpgradeEffectType.forestCoinsPercentBonus);
+  }
+  if (activeEffects.waterCoinsThreshold > 0 &&
+      waterSides >= activeEffects.waterCoinsThreshold) {
+    triggeredTypes.add(UpgradeEffectType.waterCoinsPercentBonus);
+  }
+  if (activeEffects.plainCoinsThreshold > 0 &&
+      plainSides >= activeEffects.plainCoinsThreshold) {
+    triggeredTypes.add(UpgradeEffectType.plainCoinsPercentBonus);
+  }
+  if (activeEffects.mountainCoinsThreshold > 0 &&
+      mountainSides >= activeEffects.mountainCoinsThreshold) {
+    triggeredTypes.add(UpgradeEffectType.mountainCoinsPercentBonus);
+  }
+
   var totalBonusTilesAdded = 0;
   if (reward.bonusTiles > 0) {
     ref.read(tileStackProvider.notifier).addBonusTiles(reward.bonusTiles);
     totalBonusTilesAdded += reward.bonusTiles;
+    // Tuile bonus (connectionBonusMultiplier) n'ajoute un bonus SUPPLÉMENTAIRE
+    // qu'à partir de quint/sext (voir [GameEffectsService.applyBonusTileUpgrade])
+    // — reward.bonusTiles > 0 seul ne suffit pas car kBonusScale accorde déjà
+    // des tuiles bonus de base dès 3 côtés sans amélioration active.
+    if (activeEffects.connectionBonusLevel > 0 &&
+        (reward.connectedSides.length == 5 ||
+            reward.connectedSides.length == 6)) {
+      triggeredTypes.add(UpgradeEffectType.connectionBonusMultiplier);
+    }
   }
   // Story B3 — Combo+ : à chaque palier de N dans la série de doubles
   // connexions (exactement 2 côtés connectés) d'affilée, ajoute 1 tuile
@@ -403,6 +458,7 @@ void _recordPlacement(
     ref.read(tileStackProvider.notifier).addBonusTiles(comboCount);
     ref.read(sessionProvider.notifier).addExtraBonusTiles(comboCount);
     totalBonusTilesAdded += comboCount;
+    triggeredTypes.add(UpgradeEffectType.comboBonusTiles);
   }
   // Story B7 — Bonus de clôture : détecte les biomes qui viennent de se
   // fermer après cette pose et ajoute (taille ÷ 10) × niveau tuiles bonus,
@@ -422,8 +478,11 @@ void _recordPlacement(
       ref.read(tileStackProvider.notifier).addBonusTiles(closureTiles);
       ref.read(sessionProvider.notifier).addExtraBonusTiles(closureTiles);
       totalBonusTilesAdded += closureTiles;
+      triggeredTypes.add(UpgradeEffectType.closureBonusTiles);
     }
   }
+
+  ref.read(upgradeFeedbackProvider.notifier).reportTriggered(triggeredTypes);
   return (applied, totalBonusTilesAdded);
 }
 

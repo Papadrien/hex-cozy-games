@@ -32,12 +32,25 @@ class TileStackState {
     required this.visible,
     this.visibleCount = kVisibleStackSize,
     this.seed,
+    this.excludeBiome,
+    this.hatedDuration = 0,
   });
 
   final int remaining;
   final List<HexTile> visible;
   final int visibleCount;
   final int? seed;
+
+  /// Biome actuellement exclu du pool par l'amélioration "Couleur détestée"
+  /// (Story B12b) — `null` si l'amélioration n'est pas active pour cette
+  /// partie. Reste inchangé pendant toute la partie une fois tiré : seule
+  /// [hatedDuration] (comparée au nombre de tuiles posées) détermine si
+  /// l'exclusion est encore active.
+  final BiomeType? excludeBiome;
+
+  /// Nombre de tuiles de la partie (depuis le début) pendant lesquelles
+  /// [excludeBiome] est exclu du pool — 0 si l'amélioration est inactive.
+  final int hatedDuration;
 
   /// La tuile que le joueur va poser ensuite, ou null si la pile est vide.
   HexTile? get activeTile => visible.isEmpty ? null : visible.first;
@@ -58,6 +71,16 @@ class TileStack extends _$TileStack {
   /// de cette file (ou moins si la pile est presque épuisée).
   final ListQueue<HexTile> _queue = ListQueue();
 
+  // Biome exclu et durée associés à "Couleur détestée" (Story B12b) —
+  // conservés en champs d'instance (comme _queue) car tirés une seule fois
+  // dans [build] mais doivent survivre aux reconstructions de [state] via
+  // [_buildState] (consommation de tuiles, Annuler, etc.). NOTE : non
+  // restaurés par [restoreQueue] (reprise de partie après redémarrage de
+  // l'app) — limitation acceptable pour un badge cosmétique sur une
+  // amélioration à durée courte (5/8/10 tuiles).
+  BiomeType? _excludeBiome;
+  int _hatedDuration = 0;
+
   @override
   TileStackState build() {
     final seed = Random().nextInt(1 << 31);
@@ -69,6 +92,8 @@ class TileStack extends _$TileStack {
     if (hatedDuration > 0) {
       excludeBiome = BiomeType.values[rng.nextInt(BiomeType.values.length)];
     }
+    _excludeBiome = excludeBiome;
+    _hatedDuration = hatedDuration;
     final poolSize = effects.warehouseStartingTiles > 0
         ? effects.warehouseStartingTiles
         : kStartingTiles;
@@ -119,6 +144,8 @@ class TileStack extends _$TileStack {
       visible: List.unmodifiable(_queue.take(vc).toList()),
       visibleCount: vc,
       seed: seed ?? state.seed,
+      excludeBiome: _excludeBiome,
+      hatedDuration: _hatedDuration,
     );
   }
 

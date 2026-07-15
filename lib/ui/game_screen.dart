@@ -37,6 +37,7 @@ import '../providers/tile_stack_provider.dart';
 import '../providers/tutorial_provider.dart';
 import '../services/ad_service.dart';
 import '../services/haptics_service.dart';
+import 'active_upgrades_hud.dart';
 import 'glass_container.dart';
 import 'hold_slot_hud.dart';
 import 'pause_button.dart';
@@ -340,6 +341,14 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                 HoldSlotHud(),
               ],
             ),
+          ),
+
+          // ── Encart des améliorations actives — Story B12e ───────────────
+          const Positioned(
+            bottom: 24,
+            left: 0,
+            right: 0,
+            child: Center(child: ActiveUpgradesHud()),
           ),
 
           // ── HUD pile de tuiles + tag tuiles bonus (story 1.7g) ──────────
