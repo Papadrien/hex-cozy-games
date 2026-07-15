@@ -51,7 +51,7 @@ class HomeScreen extends ConsumerWidget {
       previous,
       next,
     ) {
-      final stats = next.asData?.value;
+      final stats = next.valueOrNull;
       if (stats == null) return;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (context.mounted) {

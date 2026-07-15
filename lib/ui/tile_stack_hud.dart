@@ -2,6 +2,13 @@
 ///
 /// Affiche les 3 prochaines tuiles en disposition horizontale de gauche à
 /// droite : active au premier plan, suivante au second, troisième au fond.
+///
+/// Les tuiles pas encore posables (après la première) sont écrasées
+/// horizontalement pour suggérer une perspective, et chaque avancée de la
+/// pile (pose d'une tuile) déclenche une transition animée : les tuiles
+/// suivantes glissent vers l'avant en grandissant vers leur taille cible,
+/// et la nouvelle tuile arrivant en fin de pile entre depuis la droite de
+/// l'écran.
 library;
 
 import 'dart:math';
@@ -19,7 +26,6 @@ import '../services/haptics_service.dart';
 
 const double _kActiveTileRadius = 34.0;
 const double _kUpcomingTileRadius = 26.0;
-const double _kHudHexFlattenY = 1.0;
 const double _kCrossSize = 26.0;
 
 // Bleu nuit tealisé pour les composants HUD.
@@ -34,6 +40,30 @@ const double _kTileOverlap = 14.0;
 
 final double _kStackHeight = _kActiveTileRadius * 2;
 
+// Écrasement horizontal ("perspective") appliqué aux tuiles pas encore
+// posables — plus une tuile est loin dans la pile, plus elle est écrasée.
+const double _kPerspectiveStepSquash = 0.12;
+const double _kPerspectiveMinSquash = 0.55;
+
+// Animation de transition jouée à chaque avancée de la pile (pose d'une
+// tuile) : les tuiles glissent vers l'avant / grandissent, et la nouvelle
+// tuile arrivante entre depuis la droite de l'écran.
+const Duration _kAdvanceDuration = Duration(milliseconds: 380);
+const Curve _kAdvanceCurve = Curves.easeOutCubic;
+
+double _squashFor(int index) => index <= 0
+    ? 1.0
+    : max(_kPerspectiveMinSquash, 1.0 - _kPerspectiveStepSquash * index);
+
+double _radiusFor(int index) =>
+    index == 0 ? _kActiveTileRadius : _kUpcomingTileRadius;
+
+double _leftFor(int index) {
+  if (index <= 0) return 0;
+  final i = index - 1;
+  return _kActiveTileWidth + i * _kUpcomingTileWidth - (i + 1) * _kTileOverlap;
+}
+
 // ── Widget principal ─────────────────────────────────────────────────────────
 
 class TileStackHud extends ConsumerWidget {
@@ -47,85 +77,22 @@ class TileStackHud extends ConsumerWidget {
 
     if (visible.isEmpty) return const SizedBox.shrink();
 
-    final activeTile = visible[0];
-    final upcomingCount = visible.length - 1;
-    final stackWidth = _kActiveTileWidth +
-        max(0, upcomingCount) * (_kUpcomingTileWidth - _kTileOverlap);
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.end,
       mainAxisSize: MainAxisSize.min,
       children: [
-        GlassContainer(
-          tintColor: _kHudGlass,
-          borderColor: _kHudGlassBorder,
+        // Pas de fond glassmorphism ici : la pile de tuiles est affichée
+        // directement sur le fond du jeu, seule la croix d'annulation garde
+        // un fond vitreux pour rester lisible.
+        Padding(
           padding: const EdgeInsets.all(10),
-          child: SizedBox(
-            width: stackWidth,
-            height: _kStackHeight,
-            child: Stack(
-              children: [
-                    // Tuiles suivantes — de la plus éloignée (fond) à la plus
-                    // proche (milieu). On les ajoute au Stack en partant de
-                    // la plus éloignée pour que la plus proche (à gauche)
-                    // se retrouve au-dessus des autres.
-                    for (var i = upcomingCount - 1; i >= 0; i--)
-                      Positioned(
-                        left: _kActiveTileWidth +
-                            i * _kUpcomingTileWidth -
-                            (i + 1) * _kTileOverlap,
-                        top: (_kStackHeight - _kUpcomingTileRadius * 2) / 2,
-                        child: _HexTilePreview(
-                          tile: visible[i + 1],
-                          radius: _kUpcomingTileRadius,
-                          highlighted: false,
-                          dim: false,
-                        ),
-                      ),
-                    // Tuile active (1er plan) — rendue en dernier, par-dessus
-                    Positioned(
-                      left: 0,
-                      top: 0,
-                      child: _HexTilePreview(
-                        tile: activeTile,
-                        radius: _kActiveTileRadius,
-                        highlighted: true,
-                        dim: false,
-                      ),
-                    ),
-                    // Croix d'annulation de sélection — la zone d'effet
-                    // couvre toute la première tuile (Story 4.2b).
-                    if (placement.hasSelection)
-                      Positioned(
-                        left: 0,
-                        top: 0,
-                        width: _kActiveTileWidth,
-                        height: _kStackHeight,
-                        child: GestureDetector(
-                          behavior: HitTestBehavior.translucent,
-                          onTap: () {
-                            buttonHapticTap(context);
-                            ref
-                                .read(placementProvider.notifier)
-                                .clearSelection();
-                          },
-                          child: Center(
-                            child: GlassContainer(
-                              borderRadius: 13,
-                              blurSigma: 10,
-                              tintColor: _kHudGlass,
-                              borderColor:
-                                  _kHudGlassBorder,
-                              width: _kCrossSize,
-                              height: _kCrossSize,
-                              child: const Icon(Icons.close,
-                                  size: 16, color: Colors.white),
-                            ),
-                          ),
-                        ),
-                      ),
-              ],
-            ),
+          child: _AnimatedTilePile(
+            visible: visible,
+            hasSelection: placement.hasSelection,
+            onCancelSelection: () {
+              buttonHapticTap(context);
+              ref.read(placementProvider.notifier).clearSelection();
+            },
           ),
         ),
         const SizedBox(height: 4),
@@ -135,23 +102,206 @@ class TileStackHud extends ConsumerWidget {
   }
 }
 
+/// Gère la disposition en perspective et l'animation de transition de la
+/// pile de tuiles visibles.
+///
+/// Chaque tuile est identifiée par son identité d'objet (les instances de
+/// [HexTile] circulent telles quelles depuis la file du provider jusqu'à
+/// l'affichage, sans être recopiées), ce qui permet de reconnaître une même
+/// tuile d'une reconstruction à l'autre et de faire glisser/grandir son
+/// widget plutôt que de le recréer. Une tuile absente de la liste
+/// précédente est considérée comme une nouvelle arrivée : elle est d'abord
+/// positionnée hors-écran à droite, puis animée vers son emplacement final
+/// dès la frame suivante.
+class _AnimatedTilePile extends StatefulWidget {
+  const _AnimatedTilePile({
+    required this.visible,
+    required this.hasSelection,
+    required this.onCancelSelection,
+  });
+
+  final List<HexTile> visible;
+  final bool hasSelection;
+  final VoidCallback onCancelSelection;
+
+  @override
+  State<_AnimatedTilePile> createState() => _AnimatedTilePileState();
+}
+
+class _AnimatedTilePileState extends State<_AnimatedTilePile> {
+  /// Tuiles fraîchement arrivées en FIN de pile (tirage normal), encore
+  /// positionnées hors-écran en attendant la frame qui déclenchera leur
+  /// animation d'entrée depuis la droite.
+  final Set<HexTile> _enteringFromRight = {};
+
+  /// Tuiles fraîchement revenues en TÊTE de pile (annulation, reprise de
+  /// la tuile en réserve) : elles ne "sortent" pas de la pile, elles y
+  /// reviennent — on les fait apparaître sur place en fondu/agrandissement
+  /// plutôt que de les faire traverser l'écran depuis la droite.
+  final Set<HexTile> _returning = {};
+
+  @override
+  void didUpdateWidget(covariant _AnimatedTilePile oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final previousIdentities = oldWidget.visible.toSet();
+    final newcomers = <HexTile>[];
+    final returners = <HexTile>[];
+    for (var i = 0; i < widget.visible.length; i++) {
+      final tile = widget.visible[i];
+      if (previousIdentities.contains(tile)) continue;
+      // Une tuile qui revient en tête de pile (index 0) provient d'une
+      // annulation ou d'une reprise de réserve, pas d'un nouveau tirage.
+      if (i == 0) {
+        returners.add(tile);
+      } else {
+        newcomers.add(tile);
+      }
+    }
+    if (newcomers.isEmpty && returners.isEmpty) return;
+
+    setState(() {
+      _enteringFromRight.addAll(newcomers);
+      _returning.addAll(returners);
+    });
+    // Frame suivante : on retire ces tuiles de leurs ensembles "en attente
+    // d'entrée", ce qui fait passer leur position/échelle cible vers leur
+    // état final — AnimatedPositioned / AnimatedScale / AnimatedOpacity
+    // interpolent alors automatiquement la transition.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      setState(() {
+        for (final tile in newcomers) {
+          _enteringFromRight.remove(tile);
+        }
+        for (final tile in returners) {
+          _returning.remove(tile);
+        }
+      });
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final visible = widget.visible;
+    final upcomingCount = visible.length - 1;
+    final stackWidth = _kActiveTileWidth +
+        max(0, upcomingCount) * (_kUpcomingTileWidth - _kTileOverlap);
+    // Point d'entrée hors-écran à droite pour les nouvelles tuiles.
+    final offscreenLeft = stackWidth + _kUpcomingTileWidth;
+
+    return SizedBox(
+      width: stackWidth,
+      height: _kStackHeight,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          // Tuiles de la plus éloignée (fond) à la plus proche (avant), pour
+          // que la tuile active se retrouve au-dessus des autres à l'écran.
+          for (var i = visible.length - 1; i >= 0; i--)
+            _buildTileSlot(
+              tile: visible[i],
+              index: i,
+              offscreenLeft: offscreenLeft,
+            ),
+          // Croix d'annulation de sélection — la zone d'effet couvre toute
+          // la première tuile (Story 4.2b).
+          if (widget.hasSelection)
+            Positioned(
+              left: 0,
+              top: 0,
+              width: _kActiveTileWidth,
+              height: _kStackHeight,
+              child: GestureDetector(
+                behavior: HitTestBehavior.translucent,
+                onTap: widget.onCancelSelection,
+                child: Center(
+                  child: GlassContainer(
+                    borderRadius: 13,
+                    blurSigma: 10,
+                    tintColor: _kHudGlass,
+                    borderColor: _kHudGlassBorder,
+                    width: _kCrossSize,
+                    height: _kCrossSize,
+                    child: const Icon(Icons.close, size: 16, color: Colors.white),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTileSlot({
+    required HexTile tile,
+    required int index,
+    required double offscreenLeft,
+  }) {
+    final radius = _radiusFor(index);
+    final width = radius * sqrt(3);
+    final height = radius * 2;
+    final top = (_kStackHeight - height) / 2;
+    final targetLeft = _leftFor(index);
+    final isEnteringFromRight = _enteringFromRight.contains(tile);
+    final isReturning = _returning.contains(tile);
+    final squash = _squashFor(index);
+
+    return AnimatedPositioned(
+      key: ValueKey(identityHashCode(tile)),
+      duration: _kAdvanceDuration,
+      curve: _kAdvanceCurve,
+      // Tirage normal : entre depuis la droite, hors-écran. Retour
+      // (annulation / reprise de réserve) : reste sur place, l'effet vient
+      // du fondu + agrandissement ci-dessous, pas d'un déplacement.
+      left: isEnteringFromRight ? offscreenLeft : targetLeft,
+      top: top,
+      width: width,
+      height: height,
+      // La croissance de la tuile (2e -> 1ère place, etc.) vient
+      // directement de l'interpolation de `width`/`height` ci-dessus :
+      // _HexTilePreview se contente de remplir la taille qu'on lui donne.
+      child: TweenAnimationBuilder<double>(
+        tween: Tween<double>(end: squash),
+        duration: _kAdvanceDuration,
+        curve: _kAdvanceCurve,
+        builder: (context, value, child) => Transform(
+          alignment: Alignment.center,
+          transform: Matrix4.identity()..scale(value, 1.0),
+          child: child,
+        ),
+        child: AnimatedScale(
+          duration: _kAdvanceDuration,
+          curve: _kAdvanceCurve,
+          scale: isReturning ? 0.4 : 1.0,
+          child: AnimatedOpacity(
+            duration: _kAdvanceDuration,
+            curve: _kAdvanceCurve,
+            opacity: isReturning ? 0.0 : 1.0,
+            child: _HexTilePreview(
+              tile: tile,
+              highlighted: index == 0,
+              dim: false,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _HexTilePreview extends StatelessWidget {
   const _HexTilePreview({
     required this.tile,
-    required this.radius,
     required this.highlighted,
     required this.dim,
   });
 
   final HexTile tile;
-  final double radius;
   final bool highlighted;
   final bool dim;
 
   @override
   Widget build(BuildContext context) {
-    final size = Size(radius * sqrt(3), radius * 2 * _kHudHexFlattenY);
-
     return DecoratedBox(
       decoration: highlighted
           ? BoxDecoration(
@@ -165,12 +315,17 @@ class _HexTilePreview extends StatelessWidget {
               ],
             )
           : const BoxDecoration(),
-      child: CustomPaint(
-        size: size,
-        painter: _HexTilePainter(
-          tile: tile,
-          highlighted: highlighted,
-          alpha: dim ? 0.62 : 1.0,
+      // Remplit exactement la taille fournie par le parent (dictée par
+      // l'animation de position/taille de AnimatedPositioned), ce qui
+      // permet à la tuile de grandir/rétrécir de façon fluide plutôt que
+      // par à-coups.
+      child: SizedBox.expand(
+        child: CustomPaint(
+          painter: _HexTilePainter(
+            tile: tile,
+            highlighted: highlighted,
+            alpha: dim ? 0.62 : 1.0,
+          ),
         ),
       ),
     );

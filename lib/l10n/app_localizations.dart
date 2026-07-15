@@ -341,13 +341,13 @@ abstract class AppLocalizations {
   /// No description provided for @quests_category_village.
   ///
   /// In en, this message translates to:
-  /// **'Red'**
+  /// **'Village'**
   String get quests_category_village;
 
   /// No description provided for @quests_category_biomes.
   ///
   /// In en, this message translates to:
-  /// **'Closed color zones'**
+  /// **'Closed biomes'**
   String get quests_category_biomes;
 
   /// No description provided for @quests_category_connections.
@@ -485,7 +485,7 @@ abstract class AppLocalizations {
   /// No description provided for @upgrade_desc_doubled_connections.
   ///
   /// In en, this message translates to:
-  /// **'Increases the bonus tiles earned from five-side and six-side connections.'**
+  /// **'Multiplies the bonus tiles earned on every successful connection.'**
   String get upgrade_desc_doubled_connections;
 
   /// No description provided for @upgrade_desc_coins_plus.
@@ -497,13 +497,13 @@ abstract class AppLocalizations {
   /// No description provided for @upgrade_desc_villages_plus.
   ///
   /// In en, this message translates to:
-  /// **'Increases coins earned from red tiles.'**
+  /// **'Increases coins earned from Village (red) tiles.'**
   String get upgrade_desc_villages_plus;
 
   /// No description provided for @upgrade_desc_combo_plus.
   ///
   /// In en, this message translates to:
-  /// **'Grants 1 bonus tile every N double connections in a row (15/13/10 depending on level).'**
+  /// **'Grants bonus tiles every 5 double connections in a row.'**
   String get upgrade_desc_combo_plus;
 
   /// No description provided for @upgrade_desc_extended_preview.
@@ -527,31 +527,31 @@ abstract class AppLocalizations {
   /// No description provided for @upgrade_desc_forest_plus.
   ///
   /// In en, this message translates to:
-  /// **'Increases coins earned from green tiles.'**
+  /// **'Increases coins earned from Forest (green) tiles.'**
   String get upgrade_desc_forest_plus;
 
   /// No description provided for @upgrade_desc_water_plus.
   ///
   /// In en, this message translates to:
-  /// **'Increases coins earned from blue tiles.'**
+  /// **'Increases coins earned from Water (blue) tiles.'**
   String get upgrade_desc_water_plus;
 
   /// No description provided for @upgrade_desc_plain_plus.
   ///
   /// In en, this message translates to:
-  /// **'Increases coins earned from yellow tiles.'**
+  /// **'Increases coins earned from Plain (yellow) tiles.'**
   String get upgrade_desc_plain_plus;
 
   /// No description provided for @upgrade_desc_mountain_plus.
   ///
   /// In en, this message translates to:
-  /// **'Increases coins earned from purple tiles.'**
+  /// **'Increases coins earned from Mountain (purple) tiles.'**
   String get upgrade_desc_mountain_plus;
 
   /// No description provided for @upgrade_desc_closure_bonus.
   ///
   /// In en, this message translates to:
-  /// **'Grants bonus tiles every time a color zone closes completely.'**
+  /// **'Grants bonus tiles every time a biome closes completely.'**
   String get upgrade_desc_closure_bonus;
 
   /// No description provided for @upgrade_desc_hated_color.

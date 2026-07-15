@@ -42,22 +42,10 @@
 @import in_app_purchase_storekit;
 #endif
 
-#if __has_include(<in_app_review/InAppReviewPlugin.h>)
-#import <in_app_review/InAppReviewPlugin.h>
-#else
-@import in_app_review;
-#endif
-
 #if __has_include(<shared_preferences_foundation/SharedPreferencesPlugin.h>)
 #import <shared_preferences_foundation/SharedPreferencesPlugin.h>
 #else
 @import shared_preferences_foundation;
-#endif
-
-#if __has_include(<url_launcher_ios/URLLauncherPlugin.h>)
-#import <url_launcher_ios/URLLauncherPlugin.h>
-#else
-@import url_launcher_ios;
 #endif
 
 #if __has_include(<webview_flutter_wkwebview/WebViewFlutterPlugin.h>)
@@ -75,9 +63,7 @@
   [SwiftGamesServicesPlugin registerWithRegistrar:[registry registrarForPlugin:@"SwiftGamesServicesPlugin"]];
   [FLTGoogleMobileAdsPlugin registerWithRegistrar:[registry registrarForPlugin:@"FLTGoogleMobileAdsPlugin"]];
   [InAppPurchasePlugin registerWithRegistrar:[registry registrarForPlugin:@"InAppPurchasePlugin"]];
-  [InAppReviewPlugin registerWithRegistrar:[registry registrarForPlugin:@"InAppReviewPlugin"]];
   [SharedPreferencesPlugin registerWithRegistrar:[registry registrarForPlugin:@"SharedPreferencesPlugin"]];
-  [URLLauncherPlugin registerWithRegistrar:[registry registrarForPlugin:@"URLLauncherPlugin"]];
   [WebViewFlutterPlugin registerWithRegistrar:[registry registrarForPlugin:@"WebViewFlutterPlugin"]];
 }
 

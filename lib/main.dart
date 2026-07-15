@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
@@ -16,11 +17,45 @@ Future<void> main() async {
   await AnalyticsService.initialize();
   await MobileAds.instance.initialize();
 
+  // Plein écran immersif : masque la barre de statut et la barre de
+  // navigation système. En mode "immersiveSticky", un balayage depuis le
+  // bord les fait réapparaître brièvement avant qu'elles ne se masquent à
+  // nouveau — adapté à une app de jeu où l'on veut éviter tout appui
+  // accidentel sur les boutons système.
+  await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+
   runApp(const ProviderScope(child: HexCozyGamesApp()));
 }
 
-class HexCozyGamesApp extends StatelessWidget {
+class HexCozyGamesApp extends StatefulWidget {
   const HexCozyGamesApp({super.key});
+
+  @override
+  State<HexCozyGamesApp> createState() => _HexCozyGamesAppState();
+}
+
+class _HexCozyGamesAppState extends State<HexCozyGamesApp>
+    with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Le système restaure parfois les barres système (statut/navigation)
+    // au retour au premier plan — on réapplique alors le plein écran.
+    if (state == AppLifecycleState.resumed) {
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
