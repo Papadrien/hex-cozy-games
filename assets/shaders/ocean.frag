@@ -266,29 +266,28 @@ void main() {
     color = mix(color, cDark, darkMask);
 
     // ── Scintillements (glints) ───────────────────────────────────────────
-    // Première version : produit de deux bruits continus seuillé à
-    // [0.90, 0.99]. Sur le papier ça devait donner des points rares — en
-    // pratique un produit de deux champs continus dépasse ce seuil sur des
-    // zones si fines (mesure quasi nulle) que rien n'était visible à
-    // l'écran (confirmé par les captures : aucun glint).
-    //
-    // Nouvelle approche : véritable champ de points ("star field"). La grille
-    // de bruit est découpée en cellules ; chaque cellule tire un point
-    // aléatoire fixe (position + phase de clignotement) via hash22(). On
-    // dessine un petit disque doux autour de ce point, dont l'opacité pulse
-    // dans le temps (phase propre à la cellule, donc désynchronisée d'une
-    // cellule à l'autre). Ça garantit un nombre de points contrôlé et
-    // effectivement visible, plutôt que de compter sur un seuil statistique.
-    vec2 gUv = uvWarped * 4.0 + vec2(tBase * 0.9, -tBase * 1.1); // dérive lente avec l'eau
+    // Version star-field trop dense/trop lumineuse (retour utilisateur :
+    // "ciel étoilé" plutôt que reflets épars). Trois corrections :
+    //   1. Portillon par cellule (gActive) : ~85% des cellules ne
+    //      scintillent JAMAIS — seule une poignée de points est "éligible"
+    //      à un instant donné, au lieu que chaque cellule de la grille
+    //      participe.
+    //   2. Courbe de clignotement resserrée (pow ..., 16, sur un sinus
+    //      redressé à 0) : le point n'est pleinement visible que sur un
+    //      bref pic, pas sur la moitié du cycle comme avant.
+    //   3. Rayon du point réduit (0.22 → 0.10) : vraie pointe lumineuse,
+    //      plus un petit halo diffus.
+    vec2 gUv = uvWarped * 1.6 + vec2(tBase * 0.9, -tBase * 1.1); // cellules plus grandes = moins de points
     vec2 gCellId = floor(gUv);
     vec2 gLocal = fract(gUv) - 0.5;
     vec2 gRand = hash22(gCellId);
-    vec2 gPoint = gRand * 0.28;              // décale le point dans la cellule
+    float gActive = step(0.82, fract(gRand.x * 13.7 + gRand.y * 9.3)); // ~18% des cellules seulement
+    vec2 gPoint = gRand * 0.28;
     float gDist = length(gLocal - gPoint);
     float gPhase = fract(gRand.x * 91.7 + gRand.y * 57.3) * 6.2831853;
-    float gTwinkle = pow(0.5 + 0.5 * sin(uTime * 3.4 + gPhase), 4.0); // creux marqués = clignotement net
-    float glint = smoothstep(0.22, 0.0, gDist) * gTwinkle;
-    color = mix(color, vec3(1.0), glint * 0.9);
+    float gTwinkle = pow(max(0.0, sin(uTime * 2.4 + gPhase)), 16.0); // pic bref, reste du temps éteint
+    float glint = smoothstep(0.10, 0.0, gDist) * gTwinkle * gActive;
+    color = mix(color, vec3(1.0), glint * 0.8);
 
     // ── Vignettage ─────────────────────────────────────────────────────────
     // Léger assombrissement radial en espace écran (pas en espace monde,
