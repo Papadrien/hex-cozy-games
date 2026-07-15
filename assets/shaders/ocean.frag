@@ -101,6 +101,14 @@ float snoise(vec2 v) {
 // résiduelle entre octaves successives (évite le moindre motif visible).
 const mat2 kOctaveRot = mat2(0.8775826, 0.4794255, -0.4794255, 0.8775826);
 
+// Hash 2D → 2D dans [-1, 1], utilisé par le champ de scintillements
+// ("star field") ci-dessous : un point aléatoire indépendant par cellule
+// de grille, plutôt qu'un seuil extrême sur un bruit continu.
+vec2 hash22(vec2 p) {
+    p = vec2(dot(p, vec2(127.1, 311.7)), dot(p, vec2(269.5, 183.3)));
+    return fract(sin(p) * 43758.5453123) * 2.0 - 1.0;
+}
+
 float fbm(vec2 p, int octaves) {
     float sum = 0.0;
     float amp = 0.5;
@@ -227,9 +235,21 @@ void main() {
     // au lieu d'un aplat uniforme. Distance calculée en pixels monde
     // (avant mise à l'échelle du bruit), rayon choisi pour que la zone
     // proche du plateau reste quasiment inchangée.
-    vec3 cDeep = cA * vec3(0.55, 0.68, 0.88); // plus sombre, légèrement plus froid/saturé
-    float depthT = smoothstep(280.0, 900.0, length(world));
-    color = mix(color, cDeep, depthT * 0.4);
+    // ── Dégradé de profondeur ─────────────────────────────────────────────
+    // L'eau s'assombrit et se sature légèrement en s'éloignant du pivot de
+    // la grille hexagonale, pour suggérer un lagon avec des zones "peu
+    // profondes" près du plateau de jeu et "profondes" vers les bords —
+    // au lieu d'un aplat uniforme. Distance calculée en pixels monde
+    // (avant mise à l'échelle du bruit), rayon choisi pour que la zone
+    // proche du plateau reste quasiment inchangée.
+    // Version renforcée : la première passe (mix ×0.4, cDeep = simple
+    // assombrissement de cA) était quasiment invisible à l'écran. Teinte
+    // beaucoup plus distincte (bleu-nuit franc, pas juste "cA en plus
+    // sombre") + rayon de départ réduit (280 → 150, l'effet démarre plus
+    // tôt) + mix max relevé (0.4 → 0.6).
+    vec3 cDeep = vec3(0.055, 0.32, 0.55); // bleu-nuit lagon profond, nettement distinct de cA
+    float depthT = smoothstep(150.0, 750.0, length(world));
+    color = mix(color, cDeep, depthT * 0.6);
 
     // ── Taches sombres ────────────────────────────────────────────────────
     // Même champ et même animation que les taches claires ci-dessus
@@ -246,19 +266,29 @@ void main() {
     color = mix(color, cDark, darkMask);
 
     // ── Scintillements (glints) ───────────────────────────────────────────
-    // Petits points lumineux ponctuels façon reflets de soleil sur l'eau,
-    // distincts des veines de caustiques ci-dessus : bruit à fréquence
-    // nettement plus haute, seuillé très haut pour ne garder qu'une poignée
-    // de pixels brillants à la fois, animé rapidement pour un clignotement
-    // vif et discontinu (pas une simple dérive comme le reste de l'eau).
-    // Fréquence compensée (×3.4 → ×7.5) pour que les points de scintillement
-    // gardent la même taille apparente qu'avant la réduction de kScale
-    // (sinon ils grossiraient en même temps que les veines de caustiques
-    // et perdraient leur aspect "point ponctuel").
-    vec2 glintUv = uvWarped * 7.5 + vec2(tBase * 1.6, -tBase * 2.1);
-    float glintNoise = snoise(glintUv) * snoise(glintUv * 1.7 + vec2(5.2, -1.3));
-    float glint = smoothstep(0.90, 0.99, glintNoise);
-    color = mix(color, vec3(1.0), glint * 0.85);
+    // Première version : produit de deux bruits continus seuillé à
+    // [0.90, 0.99]. Sur le papier ça devait donner des points rares — en
+    // pratique un produit de deux champs continus dépasse ce seuil sur des
+    // zones si fines (mesure quasi nulle) que rien n'était visible à
+    // l'écran (confirmé par les captures : aucun glint).
+    //
+    // Nouvelle approche : véritable champ de points ("star field"). La grille
+    // de bruit est découpée en cellules ; chaque cellule tire un point
+    // aléatoire fixe (position + phase de clignotement) via hash22(). On
+    // dessine un petit disque doux autour de ce point, dont l'opacité pulse
+    // dans le temps (phase propre à la cellule, donc désynchronisée d'une
+    // cellule à l'autre). Ça garantit un nombre de points contrôlé et
+    // effectivement visible, plutôt que de compter sur un seuil statistique.
+    vec2 gUv = uvWarped * 4.0 + vec2(tBase * 0.9, -tBase * 1.1); // dérive lente avec l'eau
+    vec2 gCellId = floor(gUv);
+    vec2 gLocal = fract(gUv) - 0.5;
+    vec2 gRand = hash22(gCellId);
+    vec2 gPoint = gRand * 0.28;              // décale le point dans la cellule
+    float gDist = length(gLocal - gPoint);
+    float gPhase = fract(gRand.x * 91.7 + gRand.y * 57.3) * 6.2831853;
+    float gTwinkle = pow(0.5 + 0.5 * sin(uTime * 3.4 + gPhase), 4.0); // creux marqués = clignotement net
+    float glint = smoothstep(0.22, 0.0, gDist) * gTwinkle;
+    color = mix(color, vec3(1.0), glint * 0.9);
 
     // ── Vignettage ─────────────────────────────────────────────────────────
     // Léger assombrissement radial en espace écran (pas en espace monde,
