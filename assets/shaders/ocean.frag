@@ -123,7 +123,12 @@ void main() {
                       uOffsetY + uHeight * 0.38);
     vec2 world = (fc - pivot) / uZoom;
 
-    const float kScale = 0.03;
+    // kScale contrôle la taille des veines de caustiques en pixels écran.
+    // Valeur réduite (0.03 → 0.014) car en dézoomant, on voit davantage
+    // d'unités monde à l'écran : sans cette réduction, les veines
+    // paraissent fines/grêlées dès que la caméra n'est pas au zoom max
+    // (c'est ce qui rendait le rendu très "mouchetures" en jeu réel).
+    const float kScale = 0.014;
     vec2 uv = world * kScale;
 
     // Sécurité numérique : on reboucle la coordonnée de bruit sur une très
@@ -246,7 +251,11 @@ void main() {
     // nettement plus haute, seuillé très haut pour ne garder qu'une poignée
     // de pixels brillants à la fois, animé rapidement pour un clignotement
     // vif et discontinu (pas une simple dérive comme le reste de l'eau).
-    vec2 glintUv = uvWarped * 3.4 + vec2(tBase * 1.6, -tBase * 2.1);
+    // Fréquence compensée (×3.4 → ×7.5) pour que les points de scintillement
+    // gardent la même taille apparente qu'avant la réduction de kScale
+    // (sinon ils grossiraient en même temps que les veines de caustiques
+    // et perdraient leur aspect "point ponctuel").
+    vec2 glintUv = uvWarped * 7.5 + vec2(tBase * 1.6, -tBase * 2.1);
     float glintNoise = snoise(glintUv) * snoise(glintUv * 1.7 + vec2(5.2, -1.3));
     float glint = smoothstep(0.90, 0.99, glintNoise);
     color = mix(color, vec3(1.0), glint * 0.85);
