@@ -162,8 +162,22 @@ void main() {
     // sinus. Le produit des deux ondes ne s'illumine que là où elles
     // s'alignent : on obtient de fines veines qui s'étirent, ondulent et se
     // déplacent — beaucoup plus proche de reflets de caustiques sous l'eau.
-    vec2 uvA = uvWarped * 0.5;
-    vec2 uvB = mat2(0.5, -0.866, 0.866, 0.5) * uvWarped * 0.62;
+    //
+    // Étirement anisotrope : sans lui, les veines restent assez isotropes
+    // (mouchetures ~rondes, visibles sur la capture d'écran d'origine). En
+    // étirant le domaine selon un axe (×1.9) avant de calculer le FBM, les
+    // veines s'allongent en bandes qui rappellent mieux de vraies caustiques
+    // sous l'eau. L'axe d'étirement tourne très lentement dans le temps pour
+    // qu'aucune direction fixe ne devienne perceptible/répétitive.
+    float stretchAngle = time * 0.006;
+    mat2 stretchRot = mat2(cos(stretchAngle), -sin(stretchAngle),
+                            sin(stretchAngle),  cos(stretchAngle));
+    vec2 uvStretched = stretchRot * uvWarped;   // vers le repère tournant
+    uvStretched.y *= 1.9;                       // étirement sur l'axe tournant
+    uvStretched = transpose(stretchRot) * uvStretched; // retour au repère monde
+
+    vec2 uvA = uvStretched * 0.5;
+    vec2 uvB = mat2(0.5, -0.866, 0.866, 0.5) * uvStretched * 0.62;
 
     float fA = fbm(uvA + vec2(tBase, tBase * 0.4), 3);
     float fB = fbm(uvB - vec2(tBase * 0.6, tBase * 0.9), 3);
@@ -195,9 +209,11 @@ void main() {
     // que cA (quasi blanc-cyan) afin de rester bien visible même sur le
     // nouveau fond bleu nuit tealisé de l'UI — l'ancienne variante cB était
     // trop proche de cA en luminosité et devenait quasi invisible.
+    // Seuil resserré (0.55 → 0.85, contre 0.45 → 0.9 avant) : transition plus
+    // courte donc veines plus nettes/contrastées, moins "brumeuses".
     vec3 cA = vec3(0.251, 0.824, 1.000); // #40D2FF — couleur de fond
     vec3 cB = mix(cA, vec3(1.0), 0.55);  // éclat très lumineux, presque blanc
-    vec3 color = mix(cA, cB, smoothstep(0.45, 0.9, causticVisible));
+    vec3 color = mix(cA, cB, smoothstep(0.55, 0.85, causticVisible));
 
     // ── Dégradé de profondeur ─────────────────────────────────────────────
     // L'eau s'assombrit et se sature légèrement en s'éloignant du pivot de
@@ -217,8 +233,11 @@ void main() {
     // claires, juste un ton plus foncé. Le seuil (0.80 → 0.97) est plus
     // étroit et plus extrême que celui des taches claires (0.55 → 0.95),
     // ce qui les rend environ deux fois moins fréquentes à l'écran.
-    vec3 cDark = cA * 0.80; // légèrement plus sombre que cA, pas de teinte différente
-    float darkMask = smoothstep(0.80, 0.97, causticVisible);
+    // Seuil resserré et décalé (0.85 → 0.96, contre 0.80 → 0.97 avant) et
+    // ton plus sombre (×0.72 contre ×0.80) : bords plus nets, contraste
+    // plus marqué avec les veines claires ci-dessus.
+    vec3 cDark = cA * 0.72;
+    float darkMask = smoothstep(0.85, 0.96, causticVisible);
     color = mix(color, cDark, darkMask);
 
     // ── Scintillements (glints) ───────────────────────────────────────────
