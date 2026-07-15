@@ -244,12 +244,12 @@ void main() {
     // proche du plateau reste quasiment inchangée.
     // Version renforcée : la première passe (mix ×0.4, cDeep = simple
     // assombrissement de cA) était quasiment invisible à l'écran. Teinte
-    // beaucoup plus distincte (bleu-nuit franc, pas juste "cA en plus
-    // sombre") + rayon de départ réduit (280 → 150, l'effet démarre plus
-    // tôt) + mix max relevé (0.4 → 0.6).
-    vec3 cDeep = vec3(0.055, 0.32, 0.55); // bleu-nuit lagon profond, nettement distinct de cA
+    // plus distincte + rayon de départ réduit ont réglé ça, mais le mix à
+    // 0.6 avec un bleu-nuit très saturé rendait l'effet trop présent/dur.
+    // Réglage intermédiaire : teinte un peu éclaircie et mix ramené à 0.42.
+    vec3 cDeep = vec3(0.10, 0.40, 0.62); // bleu-nuit lagon, moins saturé qu'avant
     float depthT = smoothstep(150.0, 750.0, length(world));
-    color = mix(color, cDeep, depthT * 0.6);
+    color = mix(color, cDeep, depthT * 0.42);
 
     // ── Taches sombres ────────────────────────────────────────────────────
     // Même champ et même animation que les taches claires ci-dessus
