@@ -199,6 +199,17 @@ void main() {
     vec3 cB = mix(cA, vec3(1.0), 0.55);  // éclat très lumineux, presque blanc
     vec3 color = mix(cA, cB, smoothstep(0.45, 0.9, causticVisible));
 
+    // ── Dégradé de profondeur ─────────────────────────────────────────────
+    // L'eau s'assombrit et se sature légèrement en s'éloignant du pivot de
+    // la grille hexagonale, pour suggérer un lagon avec des zones "peu
+    // profondes" près du plateau de jeu et "profondes" vers les bords —
+    // au lieu d'un aplat uniforme. Distance calculée en pixels monde
+    // (avant mise à l'échelle du bruit), rayon choisi pour que la zone
+    // proche du plateau reste quasiment inchangée.
+    vec3 cDeep = cA * vec3(0.55, 0.68, 0.88); // plus sombre, légèrement plus froid/saturé
+    float depthT = smoothstep(280.0, 900.0, length(world));
+    color = mix(color, cDeep, depthT * 0.4);
+
     // ── Taches sombres ────────────────────────────────────────────────────
     // Même champ et même animation que les taches claires ci-dessus
     // (causticVisible, dérivé du même fbm/temps) : les taches sombres
@@ -209,6 +220,27 @@ void main() {
     vec3 cDark = cA * 0.80; // légèrement plus sombre que cA, pas de teinte différente
     float darkMask = smoothstep(0.80, 0.97, causticVisible);
     color = mix(color, cDark, darkMask);
+
+    // ── Scintillements (glints) ───────────────────────────────────────────
+    // Petits points lumineux ponctuels façon reflets de soleil sur l'eau,
+    // distincts des veines de caustiques ci-dessus : bruit à fréquence
+    // nettement plus haute, seuillé très haut pour ne garder qu'une poignée
+    // de pixels brillants à la fois, animé rapidement pour un clignotement
+    // vif et discontinu (pas une simple dérive comme le reste de l'eau).
+    vec2 glintUv = uvWarped * 3.4 + vec2(tBase * 1.6, -tBase * 2.1);
+    float glintNoise = snoise(glintUv) * snoise(glintUv * 1.7 + vec2(5.2, -1.3));
+    float glint = smoothstep(0.90, 0.99, glintNoise);
+    color = mix(color, vec3(1.0), glint * 0.85);
+
+    // ── Vignettage ─────────────────────────────────────────────────────────
+    // Léger assombrissement radial en espace écran (pas en espace monde,
+    // donc indépendant du zoom/panoramique caméra) pour recentrer l'attention
+    // sur le plateau de jeu. Reste discret : au plus ~18% d'assombrissement
+    // dans les coins, rien au centre.
+    vec2 screenUv = fc / vec2(uWidth, uHeight);
+    float vigDist = length(screenUv - 0.5);
+    float vig = smoothstep(0.85, 0.35, vigDist); // 1 = centre, 0 = coins
+    color *= mix(0.82, 1.0, vig);
 
     // ── Sortie ────────────────────────────────────────────────────────────
     fragColor = vec4(clamp(color, 0.0, 1.0), 1.0);
