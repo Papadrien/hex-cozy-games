@@ -354,11 +354,6 @@ class _HexTilePreview extends StatelessWidget {
       // par à-coups.
       child: SizedBox.expand(
         child: CustomPaint(
-          // Clip.none : la face latérale extrudée (sideDepth) dépasse
-          // volontairement la largeur nominale de l'hexagone sur la
-          // droite ; le Stack parent est lui aussi en Clip.none donc rien
-          // n'est perdu à l'écran.
-          clipBehavior: Clip.none,
           painter: _HexTilePainter(
             tile: tile,
             highlighted: highlighted,
