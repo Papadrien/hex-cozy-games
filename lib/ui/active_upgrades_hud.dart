@@ -1,4 +1,5 @@
-/// Encart des améliorations actives — Story B12c / B12d.
+/// Encart des améliorations actives — Story B12c / B12d, consolidé avec les
+/// actions Emplacement Joker / Deuxième chance (ex-Story B10/B11).
 ///
 /// Affiche les icônes des ≤[kMaxSelectedUpgrades] améliorations du build en
 /// cours, avec un badge de suivi pour celles à effet cumulatif/compté (voir
@@ -6,22 +7,54 @@
 /// effet sur la pose en cours (voir [upgradeFeedbackProvider]). "Aperçu
 /// prolongé" (passivement active tout le long de la partie) affiche à la
 /// place un contour doré fixe, pour la distinguer d'un déclenchement
-/// ponctuel. Intégration dans [GameScreen] branchée en Story B12e.
+/// ponctuel.
+///
+/// Consolidation UX (audit) : "Emplacement Joker" et "Deuxième chance"
+/// n'ont plus de HUD dédié séparé (ex `hold_slot_hud.dart` /
+/// `second_chance_hud.dart`, positionnés en bas à gauche) — leur slot ICI,
+/// dans l'encart central, devient directement l'élément interactif :
+///  - Emplacement Joker : tap = échange tuile active ↔ tuile en réserve
+///    (aperçu de la tuile tenue affiché à la place de l'icône).
+///  - Deuxième chance : tap = bascule le mode sélection (icône et teinte
+///    passent à l'ambre quand actif).
+/// Un seul emplacement visuel à repérer pendant la partie, au lieu de deux.
+///
+/// Geste d'info : un appui long sur N'IMPORTE QUEL slot ouvre une fiche
+/// descriptive (nom + explication complète de l'effet) — uniforme sur
+/// toutes les améliorations, y compris celles qui répondent aussi au tap
+/// court pour leur action. Le tap court reste réservé à l'action quand il y
+/// en a une, pour ne jamais faire hésiter le joueur entre "info" et
+/// "agir" : long press = toujours info, tap court = agir si possible.
 library;
+
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/colors.dart';
 import '../core/game_enums.dart';
+import '../core/strings.dart';
 import '../data/app_database.dart';
+import '../game/hex_tile.dart';
+import '../game/tile_component.dart' show BiomeColor;
 import '../providers/build_provider.dart';
+import '../providers/hold_slot_provider.dart';
+import '../providers/placement_commit.dart';
 import '../providers/progression_provider.dart';
+import '../providers/second_chance_provider.dart';
+import '../providers/session_provider.dart';
+import '../providers/tile_stack_provider.dart';
 import '../providers/upgrade_counter.dart';
 import '../providers/upgrade_feedback_provider.dart';
+import '../services/haptics_service.dart';
 import 'glass_container.dart';
 
-const double _kSlotSize = 44.0;
+/// Taille des slots dans l'encart central — l'audit UX aligne aussi la
+/// zone cliquable du bouton Annuler (`game_screen.dart`) sur cette même
+/// valeur, pour une cohérence de taille de cible tactile sur tout le HUD
+/// de jeu.
+const double kActiveUpgradeSlotSize = 44.0;
 const double _kSlotSpacing = 8.0;
 
 /// Durée totale de la pulsation (aller-retour d'échelle + flash de contour)
@@ -33,6 +66,11 @@ const Duration _kPulseDuration = Duration(milliseconds: 550);
 /// tant que sélectionnée (pas de pulsation ponctuelle, l'effet joue en
 /// continu tout au long de la partie).
 const double _kSteadyGlowAlpha = 0.55;
+
+// Teinte ambre pour signaler le mode Deuxième chance actif — reprise à
+// l'identique de l'ancien `second_chance_hud.dart`.
+const Color _kActiveGlass = Color(0xFFFFB300);
+const Color _kActiveBorder = Color(0xFFFFD54F);
 
 class ActiveUpgradesHud extends ConsumerWidget {
   const ActiveUpgradesHud({super.key});
@@ -90,6 +128,20 @@ class _UpgradeSlotState extends ConsumerState<_UpgradeSlot>
     super.dispose();
   }
 
+  void _showDescription(BuildContext context) {
+    buttonHapticTap(context);
+    final effectType = UpgradeEffectType.fromDb(widget.upgrade.effectType);
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => _UpgradeDescriptionSheet(
+        upgrade: widget.upgrade,
+        effectType: effectType,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final effectType = UpgradeEffectType.fromDb(widget.upgrade.effectType);
@@ -103,21 +155,159 @@ class _UpgradeSlotState extends ConsumerState<_UpgradeSlot>
       }
     });
 
+    switch (effectType) {
+      case UpgradeEffectType.holdSlotUses:
+        return _buildHoldSlot(context);
+      case UpgradeEffectType.secondChanceUses:
+        return _buildSecondChance(context);
+      default:
+        return _buildPassiveSlot(context, effectType);
+    }
+  }
+
+  /// Slot par défaut (sans action au tap court) — comportement historique :
+  /// icône teintée + badge de suivi éventuel + pulse au déclenchement.
+  /// Le tap court n'a pas d'effet ; seul l'appui long ouvre la description.
+  Widget _buildPassiveSlot(BuildContext context, UpgradeEffectType effectType) {
     final tint = upgradeIconColor(effectType);
     final counter = upgradeCounterFor(ref, effectType);
     final isSteadyActive =
         effectType == UpgradeEffectType.extendedPreviewCount;
 
+    return GestureDetector(
+      onLongPress: () => _showDescription(context),
+      child: _slotShell(
+        counter: counter,
+        builder: (glowAlpha, scale) => GlassContainer(
+          width: kActiveUpgradeSlotSize,
+          height: kActiveUpgradeSlotSize,
+          tintColor: kGlassBlue,
+          borderColor: glowAlpha > 0
+              ? Color.lerp(kGlassBlueBorder, kRewardGold, glowAlpha)
+              : kGlassBlueBorder,
+          borderWidth: glowAlpha > 0 ? 1.0 + glowAlpha : 1.0,
+          child: Icon(
+            upgradeIconData(effectType),
+            color: tint ?? Colors.white,
+            size: 22,
+          ),
+        ),
+        isSteadyActive: isSteadyActive,
+      ),
+    );
+  }
+
+  /// Slot "Emplacement Joker" — reprend le comportement de l'ex
+  /// `HoldSlotHud` : tap = échange tuile active ↔ tuile en réserve, aperçu
+  /// de la tuile tenue affiché à la place de l'icône par défaut.
+  Widget _buildHoldSlot(BuildContext context) {
+    final effects = ref.watch(activeUpgradeEffectsProvider);
+    final remainingUses =
+        ref.watch(sessionProvider.select((s) => s.holdSlotRemainingUses));
+    final heldTile = ref.watch(holdSlotProvider.select((s) => s.heldTile));
+    final hasActiveTile =
+        ref.watch(tileStackProvider.select((s) => s.activeTile != null));
+
+    // Reprendre une tuile déjà en réserve est gratuit (ne consomme pas
+    // d'utilisation) : possible même si remainingUses == 0. Mettre une
+    // tuile EN réserve, en revanche, requiert un usage disponible.
+    final canSwap = heldTile != null || (remainingUses > 0 && hasActiveTile);
+    final counter = effects.holdSlotUses > 0
+        ? UpgradeCounterInfo.number(remainingUses)
+        : const UpgradeCounterInfo.none();
+
+    return GestureDetector(
+      onLongPress: () => _showDescription(context),
+      child: _slotShell(
+        counter: counter,
+        builder: (glowAlpha, scale) => GlassContainer(
+          width: kActiveUpgradeSlotSize,
+          height: kActiveUpgradeSlotSize,
+          tintColor: kGlassBlue,
+          borderColor: glowAlpha > 0
+              ? Color.lerp(kGlassBlueBorder, kRewardGold, glowAlpha)
+              : kGlassBlueBorder,
+          borderWidth: glowAlpha > 0 ? 1.0 + glowAlpha : 1.0,
+          onTap: canSwap
+              ? () {
+                  buttonHapticTap(context);
+                  swapHoldSlot(ref);
+                }
+              : null,
+          child: Opacity(
+            opacity: canSwap ? 1.0 : 0.4,
+            child: heldTile != null
+                ? _HeldTilePreview(tile: heldTile)
+                : const Icon(Icons.swap_horiz, color: Colors.white, size: 22),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Slot "Deuxième chance" — reprend le comportement de l'ex
+  /// `SecondChanceHud` : tap = bascule le mode sélection, teinte ambre et
+  /// icône "close" tant que le mode est actif.
+  Widget _buildSecondChance(BuildContext context) {
+    final effects = ref.watch(activeUpgradeEffectsProvider);
+    final remainingUses =
+        ref.watch(sessionProvider.select((s) => s.secondChanceRemainingUses));
+    final isActive = ref.watch(secondChanceModeProvider);
+    final canTap = isActive || remainingUses > 0;
+    final counter = effects.secondChanceUses > 0
+        ? UpgradeCounterInfo.number(remainingUses)
+        : const UpgradeCounterInfo.none();
+
+    return GestureDetector(
+      onLongPress: () => _showDescription(context),
+      child: _slotShell(
+        counter: counter,
+        builder: (glowAlpha, scale) => GlassContainer(
+          width: kActiveUpgradeSlotSize,
+          height: kActiveUpgradeSlotSize,
+          tintColor: isActive ? _kActiveGlass : kGlassBlue,
+          tintAlpha: isActive ? 0.28 : 0.22,
+          borderColor: isActive
+              ? _kActiveBorder.withValues(alpha: 0.6)
+              : (glowAlpha > 0
+                  ? Color.lerp(kGlassBlueBorder, kRewardGold, glowAlpha)
+                  : kGlassBlueBorder),
+          borderWidth: isActive ? 1.5 : (glowAlpha > 0 ? 1.0 + glowAlpha : 1.0),
+          onTap: canTap
+              ? () {
+                  buttonHapticTap(context);
+                  toggleSecondChanceMode(ref);
+                }
+              : null,
+          child: Opacity(
+            opacity: canTap ? 1.0 : 0.4,
+            child: Icon(
+              isActive ? Icons.close : Icons.replay,
+              color: Colors.white,
+              size: 22,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Coque commune à tous les slots : pulse d'échelle/contour au
+  /// déclenchement + badge de suivi éventuel en overlay bas-droite.
+  Widget _slotShell({
+    required UpgradeCounterInfo counter,
+    required Widget Function(double glowAlpha, double scale) builder,
+    bool isSteadyActive = false,
+  }) {
     return Tooltip(
       message: widget.upgrade.name,
       child: SizedBox(
-        width: _kSlotSize,
-        height: _kSlotSize,
+        width: kActiveUpgradeSlotSize,
+        height: kActiveUpgradeSlotSize,
         child: AnimatedBuilder(
           animation: _controller,
           builder: (context, child) {
-            final glowAlpha =
-                isSteadyActive ? _kSteadyGlowAlpha : _glow.value;
+            final glowAlpha = isSteadyActive ? _kSteadyGlowAlpha : _glow.value;
             final scale = 1.0 + (0.14 * _scale.value);
             return Transform.scale(
               scale: scale,
@@ -125,20 +315,7 @@ class _UpgradeSlotState extends ConsumerState<_UpgradeSlot>
                 clipBehavior: Clip.none,
                 alignment: Alignment.center,
                 children: [
-                  GlassContainer(
-                    width: _kSlotSize,
-                    height: _kSlotSize,
-                    tintColor: kGlassBlue,
-                    borderColor: glowAlpha > 0
-                        ? Color.lerp(kGlassBlueBorder, kRewardGold, glowAlpha)
-                        : kGlassBlueBorder,
-                    borderWidth: glowAlpha > 0 ? 1.0 + glowAlpha : 1.0,
-                    child: Icon(
-                      upgradeIconData(effectType),
-                      color: tint ?? Colors.white,
-                      size: 22,
-                    ),
-                  ),
+                  builder(glowAlpha, scale),
                   if (counter.hasBadge)
                     Positioned(
                       right: -4,
@@ -193,6 +370,163 @@ class _CounterBadge extends StatelessWidget {
           color: Colors.white,
           fontSize: 10,
           fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+}
+
+/// Aperçu miniature de la tuile en réserve (Emplacement Joker) — même
+/// logique de rendu que la pile de tuiles (`tile_stack_hud.dart`),
+/// volontairement dupliquée en plus petit pour éviter de coupler les deux
+/// HUDs. Reprise à l'identique de l'ex `hold_slot_hud.dart`.
+class _HeldTilePreview extends StatelessWidget {
+  const _HeldTilePreview({required this.tile});
+
+  final HexTile tile;
+
+  static const double _kTileRadius = 15.0;
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+      size: Size(_kTileRadius * sqrt(3), _kTileRadius * 2),
+      painter: _HeldTilePainter(tile: tile),
+    );
+  }
+}
+
+class _HeldTilePainter extends CustomPainter {
+  const _HeldTilePainter({required this.tile});
+
+  final HexTile tile;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = size.height / 2;
+    final corners = List.generate(6, (i) {
+      final angleRad = (60.0 * i - 90.0) * pi / 180.0;
+      return Offset(
+        center.dx + radius * cos(angleRad),
+        center.dy + radius * sin(angleRad),
+      );
+    });
+
+    for (var i = 0; i < 6; i++) {
+      final c0 = corners[i];
+      final c1 = corners[(i + 1) % 6];
+      final path = Path()
+        ..moveTo(center.dx, center.dy)
+        ..lineTo(c0.dx, c0.dy)
+        ..lineTo(c1.dx, c1.dy)
+        ..close();
+      canvas.drawPath(path, Paint()..color = tile.sides[i].color);
+    }
+
+    final outline = Path()..moveTo(corners[0].dx, corners[0].dy);
+    for (var i = 1; i < 6; i++) {
+      outline.lineTo(corners[i].dx, corners[i].dy);
+    }
+    outline.close();
+    canvas.drawPath(
+      outline,
+      Paint()
+        ..color = Colors.black.withValues(alpha: 0.45)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.0,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _HeldTilePainter old) => old.tile != tile;
+}
+
+/// Fiche descriptive ouverte par appui long sur un slot de l'encart — nom +
+/// explication complète de l'effet (même contenu que la carte dépliée de
+/// l'écran Build, voir [upgradeDescription]), pour que le joueur puisse se
+/// rappeler ce que fait une amélioration sans quitter la partie.
+class _UpgradeDescriptionSheet extends StatelessWidget {
+  const _UpgradeDescriptionSheet({
+    required this.upgrade,
+    required this.effectType,
+  });
+
+  final UpgradeRow upgrade;
+  final UpgradeEffectType effectType;
+
+  @override
+  Widget build(BuildContext context) {
+    final tint = upgradeIconColor(effectType);
+    return Padding(
+      // Laisse respirer la sheet au-dessus de la zone home indicator.
+      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+          child: GlassContainer(
+            tintColor: kGlassBlue,
+            tintAlpha: 0.32,
+            borderColor: kGlassBlueBorder,
+            borderWidth: 1.5,
+            borderRadius: 24,
+            blurSigma: 16,
+            padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    margin: const EdgeInsets.only(bottom: 20),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.25),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                Row(
+                  children: [
+                    GlassContainer(
+                      width: 40,
+                      height: 40,
+                      borderRadius: 12,
+                      tintColor: kGlassBlue,
+                      borderColor: kGlassBlueBorder,
+                      child: Icon(
+                        upgradeIconData(effectType),
+                        color: tint ?? Colors.white,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        upgrade.name,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 17,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                Text(
+                  upgradeDescription(context, upgrade.id),
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.8),
+                    fontSize: 14,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

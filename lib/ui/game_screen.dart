@@ -26,6 +26,7 @@ import '../core/constants.dart';
 import '../core/strings.dart';
 import '../game/hex_board_game.dart';
 import '../game/hex_coords.dart';
+import '../providers/end_game_provider.dart';
 import '../providers/grid_state_provider.dart';
 import '../providers/pause_provider.dart';
 import '../providers/placement_provider.dart';
@@ -39,11 +40,9 @@ import '../services/ad_service.dart';
 import '../services/haptics_service.dart';
 import 'active_upgrades_hud.dart';
 import 'glass_container.dart';
-import 'hold_slot_hud.dart';
 import 'pause_button.dart';
 import 'pause_modal.dart';
 import 'results_modal.dart';
-import 'second_chance_hud.dart';
 import 'tile_stack_hud.dart';
 import 'tutorial_overlay.dart';
 
@@ -219,7 +218,29 @@ class _GameScreenState extends ConsumerState<GameScreen> {
       }
     });
 
-    return Scaffold(
+    // Audit UX : le bouton retour système (Android) n'était intercepté nulle
+    // part pendant une partie — un appui pouvait quitter l'écran de jeu sans
+    // passer par la modale Pause (qui, elle, protège bien la sortie via
+    // "Sauvegarder et quitter" / "Abandonner"). `PopScope(canPop: false)`
+    // rend les deux chemins de sortie cohérents :
+    //  - Partie en cours (pas en pause) → ouvre la modale Pause, comme le
+    //    bouton Pause du HUD.
+    //  - Modale Pause déjà ouverte → referme la modale (reprend le jeu),
+    //    comme le bouton Reprendre.
+    // Une fois la partie terminée (modale Résultats affichée), on laisse le
+    // pop système reprendre son cours normal (retour à l'accueil).
+    return PopScope(
+      canPop: ref.watch(isGameOverProvider),
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        final isPaused = ref.read(pauseProvider).isPaused;
+        if (isPaused) {
+          ref.read(pauseProvider.notifier).resume();
+        } else {
+          ref.read(pauseProvider.notifier).pause();
+        }
+      },
+      child: Scaffold(
       backgroundColor: kBackgroundColor,
       bottomNavigationBar: _BannerAdWidget(),
       body: Stack(
@@ -287,21 +308,27 @@ class _GameScreenState extends ConsumerState<GameScreen> {
           ),
 
           // ── Bouton Annuler ─────────────────────────────────────────────
+          // Zone cliquable alignée sur `kActiveUpgradeSlotSize` (44×44) —
+          // même taille de cible tactile que les slots de l'encart central,
+          // au lieu des 40×40 d'origine (audit UX).
           Consumer(builder: (context, ref, _) {
             final canUndo = ref.watch(lastPlacementProvider) != null;
 
-            return               Stack(children: [
-              Positioned(
-                bottom: 24,
-                right: 16,
+            return Positioned(
+              bottom: 24,
+              right: 16,
+              child: Semantics(
+                button: true,
+                label: context.tr.game_undo_semanticLabel,
+                enabled: canUndo,
                 child: GlassContainer(
                   key: _undoKey,
                   borderRadius: 14,
                   tintColor: kGlassBlue,
                   tintAlpha: 0.22,
                   borderColor: kGlassBlueBorder,
-                  width: 40,
-                  height: 40,
+                  width: kActiveUpgradeSlotSize,
+                  height: kActiveUpgradeSlotSize,
                   onTap: canUndo
                       ? () {
                           buttonHapticTap(context);
@@ -318,7 +345,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                   child: const Icon(Icons.undo, color: Colors.white, size: 20),
                 ),
               ),
-            ]);
+            );
           }),
 
           // ── Bouton Pause ──────────────────────────────────────────────────
@@ -328,22 +355,11 @@ class _GameScreenState extends ConsumerState<GameScreen> {
             child: PauseButton(),
           ),
 
-          // ── Emplacement Joker (Hold) + Deuxième chance — Story B10/B11 ──
-          const Positioned(
-            bottom: 24,
-            left: 16,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SecondChanceHud(),
-                SizedBox(height: 8),
-                HoldSlotHud(),
-              ],
-            ),
-          ),
-
           // ── Encart des améliorations actives — Story B12e ───────────────
+          // Emplacement Joker (Hold) et Deuxième chance (ex Story B10/B11)
+          // sont désormais interactifs directement depuis leur slot ici,
+          // au lieu d'un HUD dédié séparé à gauche (audit UX : un seul
+          // emplacement à repérer par amélioration pendant la partie).
           const Positioned(
             bottom: 24,
             left: 0,
@@ -389,6 +405,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
             },
           ),
         ],
+      ),
       ),
     );
   }

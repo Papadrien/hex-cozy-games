@@ -3,9 +3,10 @@
 /// Affiche les 3 prochaines tuiles en disposition horizontale de gauche à
 /// droite : active au premier plan, suivante au second, troisième au fond.
 ///
-/// Les tuiles pas encore posables (après la première) sont écrasées
-/// horizontalement pour suggérer une perspective, et chaque avancée de la
-/// pile (pose d'une tuile) déclenche une transition animée : les tuiles
+/// Les tuiles pas encore posables (après la première) pivotent en 3D
+/// (axe Y, ancrées sur leur bord gauche) pour suggérer qu'elles s'enfoncent
+/// vers la droite dans la pile, et chaque avancée de la pile (pose d'une
+/// tuile) déclenche une transition animée : les tuiles
 /// suivantes glissent vers l'avant en grandissant vers leur taille cible,
 /// et la nouvelle tuile arrivant en fin de pile entre depuis la droite de
 /// l'écran.
@@ -40,10 +41,13 @@ const double _kTileOverlap = 14.0;
 
 final double _kStackHeight = _kActiveTileRadius * 2;
 
-// Écrasement horizontal ("perspective") appliqué aux tuiles pas encore
-// posables — plus une tuile est loin dans la pile, plus elle est écrasée.
-const double _kPerspectiveStepSquash = 0.12;
-const double _kPerspectiveMinSquash = 0.55;
+// Rotation 3D (axe Y) appliquée aux tuiles pas encore posables : la pile
+// étant horizontale avec le haut (tuile active) à gauche, l'effet de
+// profondeur doit basculer les tuiles vers la droite (comme si elles
+// s'enfonçaient vers l'arrière-droit de la pile), jamais vers le bas.
+const double _kPerspectiveDepth = 0.0011; // force du point de fuite
+const double _kPerspectiveStepRotation = 0.22; // radians par tuile
+const double _kPerspectiveMaxRotation = 0.55; // plafond en radians
 
 // Animation de transition jouée à chaque avancée de la pile (pose d'une
 // tuile) : les tuiles glissent vers l'avant / grandissent, et la nouvelle
@@ -51,9 +55,12 @@ const double _kPerspectiveMinSquash = 0.55;
 const Duration _kAdvanceDuration = Duration(milliseconds: 380);
 const Curve _kAdvanceCurve = Curves.easeOutCubic;
 
-double _squashFor(int index) => index <= 0
-    ? 1.0
-    : max(_kPerspectiveMinSquash, 1.0 - _kPerspectiveStepSquash * index);
+// Rotation Y : positive fait pivoter le bord droit de la tuile vers
+// l'arrière (loin de la caméra) et le bord gauche vers l'avant — cohérent
+// avec une pile dont le haut est à gauche et qui "s'enfonce" vers la droite.
+double _rotationYFor(int index) => index <= 0
+    ? 0.0
+    : min(_kPerspectiveMaxRotation, _kPerspectiveStepRotation * index);
 
 double _radiusFor(int index) =>
     index == 0 ? _kActiveTileRadius : _kUpcomingTileRadius;
@@ -244,7 +251,11 @@ class _AnimatedTilePileState extends State<_AnimatedTilePile> {
     final targetLeft = _leftFor(index);
     final isEnteringFromRight = _enteringFromRight.contains(tile);
     final isReturning = _returning.contains(tile);
-    final squash = _squashFor(index);
+    final rotationY = _rotationYFor(index);
+    // Léger assombrissement progressif pour renforcer la sensation de
+    // profondeur (les tuiles qui s'enfoncent vers la droite paraissent
+    // un peu plus dans l'ombre).
+    final depthAlpha = index <= 0 ? 1.0 : max(0.72, 1.0 - 0.07 * index);
 
     return AnimatedPositioned(
       key: ValueKey(identityHashCode(tile)),
@@ -261,12 +272,17 @@ class _AnimatedTilePileState extends State<_AnimatedTilePile> {
       // directement de l'interpolation de `width`/`height` ci-dessus :
       // _HexTilePreview se contente de remplir la taille qu'on lui donne.
       child: TweenAnimationBuilder<double>(
-        tween: Tween<double>(end: squash),
+        tween: Tween<double>(end: rotationY),
         duration: _kAdvanceDuration,
         curve: _kAdvanceCurve,
         builder: (context, value, child) => Transform(
-          alignment: Alignment.center,
-          transform: Matrix4.identity()..scale(value, 1.0),
+          // Ancré sur le bord gauche (haut de la pile) : le bord droit de
+          // la tuile pivote vers l'arrière, donnant une vraie profondeur
+          // 3D horizontale plutôt qu'un simple écrasement.
+          alignment: Alignment.centerLeft,
+          transform: Matrix4.identity()
+            ..setEntry(3, 2, _kPerspectiveDepth)
+            ..rotateY(value),
           child: child,
         ),
         child: AnimatedScale(
@@ -280,7 +296,7 @@ class _AnimatedTilePileState extends State<_AnimatedTilePile> {
             child: _HexTilePreview(
               tile: tile,
               highlighted: index == 0,
-              dim: false,
+              depthAlpha: depthAlpha,
             ),
           ),
         ),
@@ -293,12 +309,12 @@ class _HexTilePreview extends StatelessWidget {
   const _HexTilePreview({
     required this.tile,
     required this.highlighted,
-    required this.dim,
+    required this.depthAlpha,
   });
 
   final HexTile tile;
   final bool highlighted;
-  final bool dim;
+  final double depthAlpha;
 
   @override
   Widget build(BuildContext context) {
@@ -324,7 +340,7 @@ class _HexTilePreview extends StatelessWidget {
           painter: _HexTilePainter(
             tile: tile,
             highlighted: highlighted,
-            alpha: dim ? 0.62 : 1.0,
+            alpha: depthAlpha,
           ),
         ),
       ),

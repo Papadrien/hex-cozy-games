@@ -26,6 +26,7 @@
   "results_replay": "Rejouer",
   "results_home": "Accueil",
   "game_sessionCoins": "Pi\u00e8ces de la partie",
+  "game_undo_semanticLabel": "Annuler la derni\u00e8re pose de tuile",
   "game_holdSlot_tooltip": "Emplacement Joker\u00a0: \u00e9changer avec la tuile active",
   "game_secondChance_tooltip": "Deuxi\u00e8me chance\u00a0: reprendre une tuile pos\u00e9e",
   "game_secondChance_tooltipActive": "Touchez une tuile pos\u00e9e pour la reprendre",

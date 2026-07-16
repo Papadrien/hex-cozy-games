@@ -51,6 +51,8 @@
   "@results_home": {},
   "game_sessionCoins": "Game coins",
   "@game_sessionCoins": {},
+  "game_undo_semanticLabel": "Undo last tile placement",
+  "@game_undo_semanticLabel": {},
   "game_holdSlot_tooltip": "Hold slot: swap with your active tile",
   "@game_holdSlot_tooltip": {},
   "game_secondChance_tooltip": "Second chance: take back a placed tile",

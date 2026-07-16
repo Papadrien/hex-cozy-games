@@ -248,6 +248,12 @@ abstract class AppLocalizations {
   /// **'Game coins'**
   String get game_sessionCoins;
 
+  /// No description provided for @game_undo_semanticLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Undo last tile placement'**
+  String get game_undo_semanticLabel;
+
   /// No description provided for @game_holdSlot_tooltip.
   ///
   /// In en, this message translates to:

@@ -86,6 +86,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get game_sessionCoins => 'Pièces de la partie';
 
   @override
+  String get game_undo_semanticLabel => 'Annuler la dernière pose de tuile';
+
+  @override
   String get game_holdSlot_tooltip =>
       'Emplacement Joker : échanger avec la tuile active';
 

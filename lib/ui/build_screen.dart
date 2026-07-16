@@ -376,7 +376,7 @@ class _BuildCardState extends ConsumerState<_BuildCard>
             Container(height: 1, color: Colors.white.withValues(alpha: 0.1)),
             const SizedBox(height: 14),
             Text(
-              _upgradeDescription(context, upgrade.id),
+              upgradeDescription(context, upgrade.id),
               style: TextStyle(
                 color: Colors.white.withValues(alpha: 0.75),
                 fontSize: 13,
@@ -824,46 +824,6 @@ class _UpgradeButtonState extends ConsumerState<_UpgradeButton> {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// DESCRIPTIONS — rédigées à la main, une par amélioration (FR/EN via l10n)
-// ─────────────────────────────────────────────────────────────────────────────
-
-String _upgradeDescription(BuildContext context, String upgradeId) {
-  final tr = context.tr;
-  switch (upgradeId) {
-    case 'starting_tiles_plus':
-      return tr.upgrade_desc_starting_tiles_plus;
-    case 'doubled_connections':
-      return tr.upgrade_desc_doubled_connections;
-    case 'coins_plus':
-      return tr.upgrade_desc_coins_plus;
-    case 'villages_plus':
-      return tr.upgrade_desc_villages_plus;
-    case 'combo_plus':
-      return tr.upgrade_desc_combo_plus;
-    case 'extended_preview':
-      return tr.upgrade_desc_extended_preview;
-    case 'hold_slot':
-      return tr.upgrade_desc_hold_slot;
-    case 'second_chance':
-      return tr.upgrade_desc_second_chance;
-    case 'forest_plus':
-      return tr.upgrade_desc_forest_plus;
-    case 'water_plus':
-      return tr.upgrade_desc_water_plus;
-    case 'plain_plus':
-      return tr.upgrade_desc_plain_plus;
-    case 'mountain_plus':
-      return tr.upgrade_desc_mountain_plus;
-    case 'closure_bonus':
-      return tr.upgrade_desc_closure_bonus;
-    case 'hated_color':
-      return tr.upgrade_desc_hated_color;
-    case 'millionaire':
-      return tr.upgrade_desc_millionaire;
-    case 'warehouse':
-      return tr.upgrade_desc_warehouse;
-    default:
-      return '';
-  }
-}
+// La fonction de description des améliorations (par upgradeId) vit
+// maintenant dans `core/strings.dart` (`upgradeDescription`), partagée avec
+// l'encart des améliorations actives du HUD de jeu.

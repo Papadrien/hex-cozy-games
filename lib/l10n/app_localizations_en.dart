@@ -86,6 +86,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get game_sessionCoins => 'Game coins';
 
   @override
+  String get game_undo_semanticLabel => 'Undo last tile placement';
+
+  @override
   String get game_holdSlot_tooltip => 'Hold slot: swap with your active tile';
 
   @override
