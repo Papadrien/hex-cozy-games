@@ -46,13 +46,15 @@
 ///
 /// ── Vagues concentriques émanant du plateau ───────────────────────────────
 /// Le plateau hexagonal est traité comme un objet qui flotte sur l'eau et
-/// génère des ondes circulaires centrées sur son pivot, qui se propagent
-/// vers l'extérieur (phase = distance*fréquence - temps*vitesse). Une
-/// enveloppe exponentielle décroissante avec la distance au plateau atténue
-/// à la fois ces anneaux et l'activité générale des caustiques : l'eau est
-/// vive près du plateau et devient progressivement plus calme/lisse en
-/// s'en éloignant. Un léger bruit angulaire casse la perfection géométrique
-/// des cercles pour garder un aspect organique.
+/// génère des anneaux concentriques fins et lumineux, centrés sur son pivot,
+/// qui se propagent vers l'extérieur (phase = distance*fréquence -
+/// temps*vitesse, passée dans pow(cos, N) pour un trait net plutôt qu'une
+/// bande épaisse). Une enveloppe exponentielle décroissante avec la distance
+/// au plateau atténue à la fois ces anneaux et l'activité générale des
+/// caustiques : l'eau est vive près du plateau et devient progressivement
+/// plus calme/lisse en s'en éloignant. Un très léger jitter du rayon (quelques
+/// pixels) casse la perfection géométrique des cercles sans créer de forme en
+/// pétales.
 
 #include <flutter/runtime_effect.glsl>
 
@@ -156,26 +158,33 @@ void main() {
     // leur phase dépend de la distance au pivot, si bien qu'elles forment
     // des anneaux concentriques qui se propagent vers l'extérieur au cours
     // du temps (comme les ondes créées par un objet flottant sur l'eau).
-    const float kRippleFreq    = 0.021; // fréquence spatiale des anneaux (rad / px monde)
-    const float kRippleSpeed   = 1.4;   // vitesse de propagation des anneaux (rad/s)
-    const float kRippleFalloff = 650.0; // distance caractéristique d'atténuation (px monde)
+    // Anneaux fins et nets (pas des bandes épaisses) : on passe un cosinus
+    // dans pow(max(., 0), kRippleSharpness), qui n'allume qu'un mince trait
+    // autour de chaque crête et laisse le reste à zéro.
+    const float kRippleSpacing   = 130.0; // distance entre deux anneaux successifs (px monde)
+    const float kRippleFreq      = 6.2831853 / kRippleSpacing;
+    const float kRippleSpeed     = 2.6;   // vitesse angulaire de propagation (rad/s)
+    const float kRippleFalloff   = 700.0; // distance caractéristique d'atténuation (px monde)
+    const float kRippleSharpness = 6.0;   // plus grand = anneaux plus fins
 
     float boardDist = length(world);
 
-    // Léger bruit angulaire : sans lui, les anneaux seraient des cercles
-    // mathématiquement parfaits, ce qui trancherait avec le reste du shader
-    // (pensé pour n'avoir aucune structure trop régulière/perceptible).
+    // Très légère irrégularité du rayon (quelques px), pour que les anneaux
+    // ne soient pas des cercles mathématiquement parfaits — l'amplitude est
+    // volontairement faible (petite devant kRippleSpacing) pour ne PAS créer
+    // de forme en pétales/étoile, juste un tremblement à peine perceptible.
     float angle = atan(world.y, world.x);
-    float ringWobble = snoise(vec2(cos(angle), sin(angle)) * 2.5 + time * 0.015);
+    float radiusJitter = snoise(vec2(cos(angle), sin(angle)) * 3.0 + time * 0.02) * 4.0;
 
-    float ringPhase = boardDist * kRippleFreq + ringWobble * 0.9 - time * kRippleSpeed;
-    float ripple = sin(ringPhase);
+    float ringPhase = (boardDist + radiusJitter) * kRippleFreq - time * kRippleSpeed;
+    float ringLine = pow(max(cos(ringPhase), 0.0), kRippleSharpness);
 
-    // Enveloppe d'atténuation : proche du plateau = ondes amples et
+    // Enveloppe d'atténuation : proche du plateau = anneaux marqués et
     // activité vive, loin = eau qui s'apaise progressivement. `rippleEnvelope`
     // module aussi bien les anneaux concentriques que l'activité générale
     // des caustiques ci-dessous (moins de "vagues" en s'éloignant du plateau).
     float rippleEnvelope = exp(-boardDist / kRippleFalloff);
+
 
     // ── Vitesses ──────────────────────────────────────────────────────────
     // Volontairement modérées : rien ne doit "voyager" de façon cohérente
@@ -286,14 +295,11 @@ void main() {
     color = mix(color, cDark, darkMask);
 
     // ── Anneaux concentriques du plateau ──────────────────────────────────
-    // Crête = bande claire, creux = bande légèrement plus sombre, tous deux
-    // pondérés par rippleEnvelope (calculé plus haut) : les anneaux sont
-    // nets près du plateau et s'effacent progressivement en s'en éloignant,
+    // Trait fin et lumineux uniquement (pas de contrepartie sombre) :
+    // pondéré par rippleEnvelope, les anneaux sont nets et bien visibles
+    // près du plateau et s'effacent progressivement en s'en éloignant,
     // exactement comme les ondes réelles d'un objet flottant sur l'eau.
-    float rippleCrest = smoothstep(0.6, 0.95, ripple) * rippleEnvelope;
-    float rippleTrough = smoothstep(0.6, 0.95, -ripple) * rippleEnvelope;
-    color = mix(color, cB, rippleCrest * 0.55);
-    color = mix(color, cDark, rippleTrough * 0.30);
+    color = mix(color, cB, ringLine * rippleEnvelope * 0.6);
 
     // ── Scintillements (glints) ───────────────────────────────────────────
     // Petits points lumineux ponctuels façon reflets de soleil sur l'eau,
