@@ -13,6 +13,7 @@
 library;
 
 import 'dart:async';
+import 'dart:math' show sin, pi;
 import 'dart:ui' show FragmentProgram, FragmentShader, Offset;
 import 'package:flame/game.dart' hide Matrix4;
 import 'package:flutter/material.dart';
@@ -375,7 +376,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
               key: _tileStackKey,
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                const TileStackHud(),
+                const _TileStackImpactReaction(child: TileStackHud()),
                 _RewardTag(opacity: _rewardOpacity, isCoin: false),
               ],
             ),
@@ -407,6 +408,93 @@ class _GameScreenState extends ConsumerState<GameScreen> {
         ],
       ),
       ),
+    );
+  }
+}
+
+/// Fait "réagir" la pile de tuiles HUD à chaque gain d'une pose : léger
+/// rebond d'échelle (pop) et halo doré qui pulse, avec une intensité
+/// proportionnelle au gain total (pièces + pièces bonus + tuiles bonus) de
+/// la pose. Complète le vol de l'icône bonus vers ce même HUD en donnant
+/// au HUD lui-même un feedback d'impact au moment où le gain "arrive".
+class _TileStackImpactReaction extends ConsumerStatefulWidget {
+  const _TileStackImpactReaction({required this.child});
+
+  final Widget child;
+
+  @override
+  ConsumerState<_TileStackImpactReaction> createState() =>
+      _TileStackImpactReactionState();
+}
+
+class _TileStackImpactReactionState
+    extends ConsumerState<_TileStackImpactReaction>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  double _intensity = 0.0;
+
+  /// Gain total au-delà duquel l'intensité du pop/glow plafonne — garde une
+  /// réaction perceptible mais pas écrasante sur les très gros gains
+  /// (cohérent avec [kGainBurstMaxGain] côté rendu Flame).
+  static const int _kMaxGainForIntensity = 9;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 260),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    ref.listen<SessionState>(sessionProvider, (prev, next) {
+      final reward = next.lastReward;
+      if (reward == null || prev?.lastReward == reward) return;
+      final totalGain =
+          reward.connectedSides.length + reward.bonusCoins + reward.bonusTiles;
+      if (totalGain <= 0) return;
+      _intensity = (totalGain / _kMaxGainForIntensity).clamp(0.0, 1.0);
+      _controller.forward(from: 0);
+    });
+
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        // Courbe "pop" : montée rapide puis léger sur-rebond avant de
+        // revenir à l'échelle normale (sin sur une demi-période étirée).
+        final t = _controller.value;
+        final pop = sin(t * pi) * _intensity;
+        final scale = 1.0 + pop * 0.14;
+        final glow = pop;
+
+        return Transform.scale(
+          scale: scale,
+          child: Container(
+            decoration: glow > 0.02
+                ? BoxDecoration(
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: kRewardGold.withValues(alpha: 0.45 * glow),
+                        blurRadius: 18 * glow,
+                        spreadRadius: 2 * glow,
+                      ),
+                    ],
+                  )
+                : null,
+            child: child,
+          ),
+        );
+      },
+      child: widget.child,
     );
   }
 }

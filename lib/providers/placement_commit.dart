@@ -294,7 +294,9 @@ class SessionSaver {
 /// Découplé du provider pour éviter une dépendance circulaire providers → Flame.
 Future<void> confirmPlacement(
   WidgetRef ref, {
-  required void Function(HexCoords coords, HexTile tile, List<int> connectedSides, int bonusTiles) onConfirm,
+  required void Function(HexCoords coords, HexTile tile, List<int> connectedSides, int bonusTiles,
+          {int bonusCoins})
+      onConfirm,
 }) async {
   final p = ref.read(placementProvider);
   final tile = ref.read(placementProvider.notifier).previewTile;
@@ -304,7 +306,8 @@ Future<void> confirmPlacement(
   final reward = ref.read(previewRewardProvider);
 
   _placeTileOnGrid(ref, coords, tile);
-  onConfirm(coords, tile, reward.connectedSides, reward.bonusTiles);
+  onConfirm(coords, tile, reward.connectedSides, reward.bonusTiles,
+      bonusCoins: reward.bonusCoins);
   final (appliedReward, totalBonusTilesAdded) =
       _applyReward(ref, coords, tile, reward);
   _recordPlacement(ref, coords, tile, appliedReward, totalBonusTilesAdded);

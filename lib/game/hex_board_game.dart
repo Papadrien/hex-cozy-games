@@ -181,14 +181,20 @@ class HexBoardGame extends FlameGame
     HexCoords coords,
     HexTile tile,
     List<int> connectedSides,
-    int bonusTiles,
-  ) {
+    int bonusTiles, {
+    int bonusCoins = 0,
+  }) {
     _grid?.placeTile(coords, tile,
         connectedSides: connectedSides);
     if (connectedSides.isNotEmpty || bonusTiles > 0) {
+      // Gain total (pièces de base + pièces bonus + tuiles bonus) — pilote
+      // l'intensité du burst d'impact générique joué sur chaque pose
+      // gagnante (voir [HexGridComponent.showRewardIndicators]).
+      final totalGain = connectedSides.length + bonusCoins + bonusTiles;
       _grid?.showRewardIndicators(coords, connectedSides,
           bonusTiles: bonusTiles,
-          bonusFlyTarget: getBonusFlyTarget?.call());
+          bonusFlyTarget: getBonusFlyTarget?.call(),
+          totalGain: totalGain);
     }
   }
 
