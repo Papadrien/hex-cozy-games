@@ -46,8 +46,21 @@ final double _kStackHeight = _kActiveTileRadius * 2;
 // profondeur doit basculer les tuiles vers la droite (comme si elles
 // s'enfonçaient vers l'arrière-droit de la pile), jamais vers le bas.
 const double _kPerspectiveDepth = 0.0011; // force du point de fuite
-const double _kPerspectiveStepRotation = 0.22; // radians par tuile
-const double _kPerspectiveMaxRotation = 0.55; // plafond en radians
+const double _kPerspectiveStepRotation = 0.16; // radians par tuile
+const double _kPerspectiveMaxRotation = 0.38; // plafond en radians
+
+// Épaisseur du "bloc" 3D dessiné sur la droite de chaque tuile pas encore
+// posable — même principe que l'extrusion des tuiles du plateau
+// (tile_component.dart), mais orientée à droite plutôt que vers le bas,
+// pour donner l'impression que la tuile est vue de biais, tournée vers la
+// gauche. Sans cette face latérale, la rotation Y d'un hexagone purement
+// plat ne fait que l'écraser et l'éclaircir, ce qui ressemble à de la
+// transparence plutôt qu'à de la profondeur.
+const double _kStackTileDepthStep = 5.0; // px par tuile
+const double _kStackTileDepthMax = 12.0; // plafond en px
+
+double _sideDepthFor(int index) =>
+    index <= 0 ? 0.0 : min(_kStackTileDepthMax, _kStackTileDepthStep * index);
 
 // Animation de transition jouée à chaque avancée de la pile (pose d'une
 // tuile) : les tuiles glissent vers l'avant / grandissent, et la nouvelle
@@ -252,10 +265,11 @@ class _AnimatedTilePileState extends State<_AnimatedTilePile> {
     final isEnteringFromRight = _enteringFromRight.contains(tile);
     final isReturning = _returning.contains(tile);
     final rotationY = _rotationYFor(index);
-    // Léger assombrissement progressif pour renforcer la sensation de
-    // profondeur (les tuiles qui s'enfoncent vers la droite paraissent
-    // un peu plus dans l'ombre).
-    final depthAlpha = index <= 0 ? 1.0 : max(0.72, 1.0 - 0.07 * index);
+    final sideDepth = _sideDepthFor(index);
+    // Très léger assombrissement progressif — la sensation de profondeur
+    // vient surtout de la face latérale extrudée (sideDepth) désormais,
+    // pas d'une baisse d'opacité qui donnait l'impression de transparence.
+    final depthAlpha = index <= 0 ? 1.0 : max(0.9, 1.0 - 0.03 * index);
 
     return AnimatedPositioned(
       key: ValueKey(identityHashCode(tile)),
@@ -297,6 +311,7 @@ class _AnimatedTilePileState extends State<_AnimatedTilePile> {
               tile: tile,
               highlighted: index == 0,
               depthAlpha: depthAlpha,
+              sideDepth: sideDepth,
             ),
           ),
         ),
@@ -310,11 +325,13 @@ class _HexTilePreview extends StatelessWidget {
     required this.tile,
     required this.highlighted,
     required this.depthAlpha,
+    required this.sideDepth,
   });
 
   final HexTile tile;
   final bool highlighted;
   final double depthAlpha;
+  final double sideDepth;
 
   @override
   Widget build(BuildContext context) {
@@ -337,10 +354,16 @@ class _HexTilePreview extends StatelessWidget {
       // par à-coups.
       child: SizedBox.expand(
         child: CustomPaint(
+          // Clip.none : la face latérale extrudée (sideDepth) dépasse
+          // volontairement la largeur nominale de l'hexagone sur la
+          // droite ; le Stack parent est lui aussi en Clip.none donc rien
+          // n'est perdu à l'écran.
+          clipBehavior: Clip.none,
           painter: _HexTilePainter(
             tile: tile,
             highlighted: highlighted,
             alpha: depthAlpha,
+            sideDepth: sideDepth,
           ),
         ),
       ),
@@ -353,19 +376,69 @@ class _HexTilePainter extends CustomPainter {
     required this.tile,
     required this.highlighted,
     required this.alpha,
+    required this.sideDepth,
   });
 
   final HexTile tile;
   final bool highlighted;
   final double alpha;
 
+  /// Épaisseur (px) de la face latérale extrudée vers la droite. 0 pour la
+  /// tuile active (premier plan, pas d'effet de profondeur).
+  final double sideDepth;
+
   @override
   void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
+    // La face du dessus garde son diamètre plein sur la hauteur, mais son
+    // centre est décalé vers la gauche pour laisser la place à la face
+    // latérale extrudée sur la droite (sideDepth), exactement comme les
+    // tuiles du plateau réservent de la place sous l'hexagone pour leur
+    // extrusion verticale.
     final radius = size.height / 2;
+    final center = Offset(size.width / 2 - sideDepth / 2, size.height / 2);
     final corners = _corners(center, radius);
 
-    // Sixièmes colorés
+    // ── Face latérale (effet bloc 3D, orientée à droite) ──────────────────
+    // Même principe que l'extrusion des tuiles du plateau (côtés dont le
+    // bord fait face à la direction d'extrusion), mais tournée à 90° :
+    // on extrude vers la droite (au lieu du bas) les côtés dont le milieu
+    // se trouve à droite du centre, pour donner l'impression que la tuile
+    // est vue de biais, comme tournée vers la gauche.
+    if (sideDepth > 0.01) {
+      for (var i = 0; i < 6; i++) {
+        final t0 = corners[i];
+        final t1 = corners[(i + 1) % 6];
+        final midX = (t0.dx + t1.dx) / 2;
+        if (midX < center.dx + 0.01) continue; // côté face à la gauche : ignoré
+
+        final b0 = Offset(t0.dx + sideDepth, t0.dy);
+        final b1 = Offset(t1.dx + sideDepth, t1.dy);
+
+        final sidePath = Path()
+          ..moveTo(t0.dx, t0.dy)
+          ..lineTo(t1.dx, t1.dy)
+          ..lineTo(b1.dx, b1.dy)
+          ..lineTo(b0.dx, b0.dy)
+          ..close();
+
+        final baseColor = tile.sides[i].color;
+        final shaded = Color.from(
+          alpha: baseColor.a,
+          red: baseColor.r * 0.62,
+          green: baseColor.g * 0.62,
+          blue: baseColor.b * 0.62,
+        );
+
+        canvas.drawPath(
+          sidePath,
+          Paint()
+            ..color = shaded.withValues(alpha: alpha)
+            ..style = PaintingStyle.fill,
+        );
+      }
+    }
+
+    // ── Face du dessus (sixièmes colorés) ─────────────────────────────────
     for (var i = 0; i < 6; i++) {
       final c0 = corners[i];
       final c1 = corners[(i + 1) % 6];
@@ -398,7 +471,8 @@ class _HexTilePainter extends CustomPainter {
   bool shouldRepaint(covariant _HexTilePainter old) =>
       old.tile != tile ||
       old.highlighted != highlighted ||
-      old.alpha != alpha;
+      old.alpha != alpha ||
+      old.sideDepth != sideDepth;
 }
 
 class _RemainingBadge extends StatelessWidget {
