@@ -62,6 +62,11 @@ class HexBoardGame extends FlameGame
   /// doivent voler après placement. Null = animation stationnaire par défaut.
   Vector2? Function()? getBonusFlyTarget;
 
+  /// Appelé à chaque fois qu'une icône de tuile bonus arrive sur la pile
+  /// HUD — permet au widget Flutter du HUD de faire "pop" le compteur en
+  /// rythme avec l'échelonnement des icônes plutôt qu'un seul pop global.
+  void Function()? onBonusImpact;
+
   double get zoom => _grid?.zoom ?? 1.0;
 
   HexGridComponent? _grid;
@@ -194,7 +199,8 @@ class HexBoardGame extends FlameGame
       _grid?.showRewardIndicators(coords, connectedSides,
           bonusTiles: bonusTiles,
           bonusFlyTarget: getBonusFlyTarget?.call(),
-          totalGain: totalGain);
+          totalGain: totalGain,
+          onBonusImpact: onBonusImpact);
     }
   }
 

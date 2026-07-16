@@ -75,6 +75,8 @@ class _GameScreenState extends ConsumerState<GameScreen> {
   final GlobalKey _coinsKey = GlobalKey();
   final GlobalKey _tileStackKey = GlobalKey();
   final GlobalKey _undoKey = GlobalKey();
+  final GlobalKey<_TileStackImpactReactionState> _tileStackImpactKey =
+      GlobalKey();
 
   @override
   void initState() {
@@ -89,6 +91,13 @@ class _GameScreenState extends ConsumerState<GameScreen> {
       },
     );
     _game.getBonusFlyTarget = () => _stackHudFlyTarget();
+    // Chaque icône de tuile bonus qui arrive sur le HUD (échelonnées sur
+    // les gains multi-tuiles) fait "pop" le compteur avec une intensité
+    // fixe, plus discrète que le pop principal déclenché par [lastReward]
+    // — l'empilement des deux donne un feedback layered plutôt qu'un pop
+    // unique répété identique.
+    _game.onBonusImpact = () =>
+        _tileStackImpactKey.currentState?.pulse(0.5);
     Future.microtask(
       () => ref.read(tutorialProvider.notifier).checkAndStart(),
     );
@@ -376,7 +385,8 @@ class _GameScreenState extends ConsumerState<GameScreen> {
               key: _tileStackKey,
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                const _TileStackImpactReaction(child: TileStackHud()),
+                _TileStackImpactReaction(
+                    key: _tileStackImpactKey, child: const TileStackHud()),
                 _RewardTag(opacity: _rewardOpacity, isCoin: false),
               ],
             ),
@@ -418,7 +428,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
 /// la pose. Complète le vol de l'icône bonus vers ce même HUD en donnant
 /// au HUD lui-même un feedback d'impact au moment où le gain "arrive".
 class _TileStackImpactReaction extends ConsumerStatefulWidget {
-  const _TileStackImpactReaction({required this.child});
+  const _TileStackImpactReaction({super.key, required this.child});
 
   final Widget child;
 
@@ -453,6 +463,16 @@ class _TileStackImpactReactionState
     super.dispose();
   }
 
+  /// Déclenche le pop/glow avec l'intensité donnée (0.0-1.0). Utilisée à la
+  /// fois pour le gain global d'une pose (via [sessionProvider.lastReward])
+  /// et pour chaque icône de tuile bonus échelonnée arrivant sur le HUD
+  /// (via [HexBoardGame.onBonusImpact]).
+  void pulse(double intensity) {
+    if (!mounted || intensity <= 0) return;
+    _intensity = intensity.clamp(0.0, 1.0);
+    _controller.forward(from: 0);
+  }
+
   @override
   Widget build(BuildContext context) {
     ref.listen<SessionState>(sessionProvider, (prev, next) {
@@ -461,8 +481,7 @@ class _TileStackImpactReactionState
       final totalGain =
           reward.connectedSides.length + reward.bonusCoins + reward.bonusTiles;
       if (totalGain <= 0) return;
-      _intensity = (totalGain / _kMaxGainForIntensity).clamp(0.0, 1.0);
-      _controller.forward(from: 0);
+      pulse(totalGain / _kMaxGainForIntensity);
     });
 
     return AnimatedBuilder(

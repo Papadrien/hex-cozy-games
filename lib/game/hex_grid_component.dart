@@ -18,6 +18,7 @@ import 'dart:math';
 import 'dart:ui' show Canvas, Color, FontWeight, Offset, Paint, PaintingStyle, Path, TextDirection;
 
 import 'package:flutter/animation.dart' show Curves;
+import 'package:flutter/foundation.dart' show VoidCallback;
 import 'package:flutter/painting.dart' show TextPainter, TextSpan, TextStyle;
 
 import 'package:flame/components.dart';
@@ -43,6 +44,16 @@ const double kPreviewAlpha = 1.0;
 /// son maximum — au-delà, l'effet ne grossit plus, pour éviter qu'un très
 /// gros multiplicateur d'amélioration ne devienne écrasant à l'écran.
 const int kGainBurstMaxGain = 9;
+
+/// Nombre maximum d'icônes de tuile bonus envoyées individuellement (effet
+/// "machine à sous" échelonné) sur une même pose. Au-delà, le surplus est
+/// regroupé dans la dernière icône affichée pour éviter de surcharger
+/// l'écran de tuiles très rentables (grosses chaînes d'améliorations).
+const int kMaxStaggeredBonusIcons = 4;
+
+/// Délai (secondes) entre deux icônes de tuile bonus envoyées vers la pile
+/// HUD lors d'une même pose.
+const double kBonusIconStaggerInterval = 0.12;
 
 // ── Animation de pose (descente + léger rebond "flottant") ─────────────────
 
@@ -451,18 +462,29 @@ class HexGridComponent extends PositionComponent {
   /// et des particules pour les connexions parfaites.
   /// Les indicateurs disparaissent automatiquement après animation.
   void showRewardIndicators(HexCoords coords, List<int> connectedSides,
-      {int bonusTiles = 0, Vector2? bonusFlyTarget, int totalGain = 0}) {
+      {int bonusTiles = 0,
+      Vector2? bonusFlyTarget,
+      int totalGain = 0,
+      VoidCallback? onBonusImpact}) {
     final layout = _layout;
     final center = layout.hexToPixel(coords, isoScaleY: kIsoScaleY);
     final centerVec = Vector2(center.x, center.y);
     final hexSize = kHexSize * zoom;
 
     // Impact générique à chaque pose gagnante — l'intensité (particules,
-    // flash) grandit avec le gain total de la pose (pièces + bonus),
+    // flash, ondes) grandit avec le gain total de la pose (pièces + bonus),
     // plafonnée à 1.0 au-delà d'un gain de kGainBurstMaxGain.
     if (totalGain > 0) {
       final intensity = (totalGain / kGainBurstMaxGain).clamp(0.0, 1.0);
       add(_TileGainBurst(
+        position: centerVec,
+        hexSize: hexSize,
+        intensity: intensity,
+      ));
+      // Ondes concentriques partant de la tuile posée — habillage
+      // thématique cohérent avec le shader océan, en complément du burst
+      // de particules (plus perceptible sur les gains élevés).
+      add(_TileRippleEffect(
         position: centerVec,
         hexSize: hexSize,
         intensity: intensity,
@@ -488,14 +510,27 @@ class HexGridComponent extends PositionComponent {
       ));
     }
 
-    // Icône de tuile bonus qui vole vers la pile HUD.
+    // Icône(s) de tuile bonus qui volent vers la pile HUD. Au-delà d'une
+    // seule tuile bonus, on envoie plusieurs icônes individuelles avec un
+    // léger décalage temporel (effet "machine à sous") plutôt qu'un seul
+    // "+N" — chaque arrivée fait "pop" le compteur HUD via [onBonusImpact].
+    // Au-delà de [kMaxStaggeredBonusIcons], le surplus est regroupé dans
+    // une dernière icône "+N" pour ne pas surcharger l'écran.
     if (bonusTiles > 0) {
-      add(_BonusTileAnimComponent(
-        position: centerVec,
-        hexSize: hexSize,
-        bonusCount: bonusTiles,
-        flyTarget: bonusFlyTarget,
-      ));
+      final individualCount = min(bonusTiles, kMaxStaggeredBonusIcons);
+      for (var i = 0; i < individualCount; i++) {
+        final isLast = i == individualCount - 1;
+        final remainder = bonusTiles - kMaxStaggeredBonusIcons;
+        final count = (isLast && remainder > 0) ? 1 + remainder : 1;
+        add(_BonusTileAnimComponent(
+          position: centerVec.clone(),
+          hexSize: hexSize,
+          bonusCount: count,
+          flyTarget: bonusFlyTarget,
+          startDelay: i * kBonusIconStaggerInterval,
+          onImpact: onBonusImpact,
+        ));
+      }
     }
 
     // Particules pour connexion parfaite (5-6 côtés).
@@ -827,7 +862,10 @@ class _BonusTileAnimComponent extends PositionComponent {
     required double hexSize,
     required this.bonusCount,
     this.flyTarget,
+    double startDelay = 0.0,
+    this.onImpact,
   })  : _radius = hexSize * 0.22,
+        _startDelay = startDelay,
         super(priority: kTileDepthPriorityPreview + 1);
 
   final double _radius;
@@ -835,6 +873,16 @@ class _BonusTileAnimComponent extends PositionComponent {
 
   /// Position cible pour le vol vers la pile HUD (null = vol stationnaire).
   final Vector2? flyTarget;
+
+  /// Délai avant le début du vol — permet d'échelonner plusieurs icônes
+  /// bonus envoyées lors d'une même pose (effet "machine à sous").
+  final double _startDelay;
+  double _delayElapsed = 0.0;
+
+  /// Appelé une fois à l'arrivée sur le HUD (utilisé pour faire "pop" le
+  /// compteur de pile en rythme avec chaque icône, plutôt qu'un seul pop
+  /// global pour toute la pose).
+  final VoidCallback? onImpact;
 
   double _life = 0.0;
   static const double _kFlyDuration = 0.6;
@@ -855,14 +903,23 @@ class _BonusTileAnimComponent extends PositionComponent {
     if (flyTarget != null) {
       add(MoveEffect.to(
         flyTarget!,
-        EffectController(duration: _kFlyDuration, curve: Curves.easeInOut),
+        EffectController(
+          duration: _kFlyDuration,
+          curve: Curves.easeInOut,
+          startDelay: _startDelay,
+        ),
       )..onComplete = () {
           _arrived = true;
+          onImpact?.call();
         });
     } else {
       add(MoveEffect.by(
         Vector2(0, -40),
-        EffectController(duration: _kDuration, curve: Curves.easeOut),
+        EffectController(
+          duration: _kDuration,
+          curve: Curves.easeOut,
+          startDelay: _startDelay,
+        ),
       ));
     }
   }
@@ -870,6 +927,14 @@ class _BonusTileAnimComponent extends PositionComponent {
   @override
   void update(double dt) {
     super.update(dt);
+    // Tant que le délai d'échelonnement n'est pas écoulé, l'icône reste
+    // invisible et immobile (voir [render]) — évite que plusieurs icônes
+    // apparaissent toutes en même temps avant de s'envoler l'une après
+    // l'autre.
+    if (_delayElapsed < _startDelay) {
+      _delayElapsed += dt;
+      return;
+    }
     _life += dt;
 
     // Traînée de particules fantômes pendant le vol vers le HUD.
@@ -897,6 +962,8 @@ class _BonusTileAnimComponent extends PositionComponent {
 
   @override
   void render(Canvas canvas) {
+    if (_delayElapsed < _startDelay) return;
+
     final progress = (_life / _kDuration).clamp(0.0, 1.0);
     final double alpha = flyTarget != null
         ? _arrived
@@ -999,6 +1066,61 @@ class _TrailDot extends PositionComponent {
         ..color = color.withValues(alpha: 0.55 * (1.0 - t))
         ..style = PaintingStyle.fill,
     );
+  }
+}
+
+/// Ondes concentriques partant du centre de la tuile posée — habillage
+/// thématique cohérent avec le shader océan de la grille, en complément du
+/// [_TileGainBurst]. Le nombre d'anneaux et leur portée grandissent avec
+/// [intensity] (0.0 = gain minimal, 1.0 = gain élevé).
+class _TileRippleEffect extends PositionComponent {
+  _TileRippleEffect({
+    required super.position,
+    required double hexSize,
+    required double intensity,
+  })  : _hexSize = hexSize,
+        _intensity = intensity.clamp(0.0, 1.0),
+        super(priority: kTileDepthPriorityPreview);
+
+  final double _hexSize;
+  final double _intensity;
+
+  double _life = 0.0;
+  static const double _kDuration = 0.55;
+  static const double _kRingStagger = 0.08;
+
+  /// Deux anneaux pour un gain minimal, jusqu'à quatre pour un gain élevé.
+  late final int _ringCount = 2 + (_intensity * 2).round();
+
+  @override
+  void update(double dt) {
+    super.update(dt);
+    _life += dt;
+    if (_life >= _kDuration + _ringCount * _kRingStagger) {
+      removeFromParent();
+    }
+  }
+
+  @override
+  void render(Canvas canvas) {
+    for (var i = 0; i < _ringCount; i++) {
+      final ringDelay = i * _kRingStagger;
+      final ringLife = _life - ringDelay;
+      if (ringLife <= 0) continue;
+      final t = (ringLife / _kDuration).clamp(0.0, 1.0);
+      if (t >= 1.0) continue;
+      final radius = _hexSize * (0.35 + t * (1.0 + _intensity * 0.7));
+      final alpha = (1.0 - t) * 0.32 * (0.6 + _intensity * 0.4);
+      if (alpha <= 0.01) continue;
+      canvas.drawCircle(
+        Offset.zero,
+        radius,
+        Paint()
+          ..color = kBonusBlueLighter.withValues(alpha: alpha)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2.0 + _intensity * 1.5,
+      );
+    }
   }
 }
 
