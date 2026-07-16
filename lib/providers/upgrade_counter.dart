@@ -58,15 +58,19 @@ class UpgradeCounterInfo {
 /// `ref.read` ponctuel hors build.
 UpgradeCounterInfo upgradeCounterFor(WidgetRef ref, UpgradeEffectType effectType) {
   switch (effectType) {
-    // Combo+ : progression dans la série de doubles connexions consécutives
-    // vers le prochain palier (N = 15/13/10 selon niveau).
+    // Combo+ : progression cumulée (doubles connexions, plus besoin
+    // d'affilée) vers le prochain palier (N = 15/13/10 selon niveau). Le
+    // compteur brut ne se remet jamais à 0 (Story combo cumulatif) ; on
+    // affiche donc la progression dans le cycle courant (1..interval),
+    // et non le total cumulé, pour que le badge ("7/15") reste borné.
     case UpgradeEffectType.comboBonusTiles:
       final interval =
           ref.watch(activeUpgradeEffectsProvider).comboStreakInterval;
       if (interval <= 0) return const UpgradeCounterInfo.none();
-      final streak =
+      final total =
           ref.watch(sessionProvider.select((s) => s.currentDoubleStreak));
-      return UpgradeCounterInfo.number(streak, max: interval);
+      final progress = total == 0 ? 0 : ((total - 1) % interval) + 1;
+      return UpgradeCounterInfo.number(progress, max: interval);
 
     // Emplacement Joker / Deuxième chance : utilisations restantes cette
     // partie.

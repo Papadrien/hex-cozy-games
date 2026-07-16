@@ -95,9 +95,10 @@ class GameEffectsService {
     return total;
   }
 
-  /// Nombre de tuiles bonus ajoutées à chaque palier de 5 dans la série de
-  /// doubles connexions (2 côtés connectés) consécutives (Combo+ —
-  /// Story B3). Valeurs : 15/13/10 selon niveau ; 0 = inactif.
+  /// Intervalle (en doubles connexions — 2 côtés connectés — cumulées sur
+  /// la partie, sans condition d'affilée) déclenchant l'octroi d'une tuile
+  /// bonus (Combo+ — Story B3). Valeurs : 15/13/10 selon niveau ;
+  /// 0 = inactif.
   int getComboStreakInterval() {
     return _ref.read(activeUpgradeEffectsProvider).comboStreakInterval;
   }

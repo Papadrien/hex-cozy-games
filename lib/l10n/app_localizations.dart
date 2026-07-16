@@ -347,13 +347,13 @@ abstract class AppLocalizations {
   /// No description provided for @quests_category_village.
   ///
   /// In en, this message translates to:
-  /// **'Village'**
+  /// **'Red'**
   String get quests_category_village;
 
   /// No description provided for @quests_category_biomes.
   ///
   /// In en, this message translates to:
-  /// **'Closed biomes'**
+  /// **'Closed color zones'**
   String get quests_category_biomes;
 
   /// No description provided for @quests_category_connections.
@@ -491,25 +491,25 @@ abstract class AppLocalizations {
   /// No description provided for @upgrade_desc_doubled_connections.
   ///
   /// In en, this message translates to:
-  /// **'Multiplies the bonus tiles earned on every successful connection.'**
+  /// **'Increases the bonus tiles earned from five-side and six-side connections.'**
   String get upgrade_desc_doubled_connections;
 
   /// No description provided for @upgrade_desc_coins_plus.
   ///
   /// In en, this message translates to:
-  /// **'Increases the percentage of coins earned on every tile you place.'**
+  /// **'Grants 1 bonus coin whenever you earn at least N coins on a placement (4/2/1 coins depending on level). Non-stacking.'**
   String get upgrade_desc_coins_plus;
 
   /// No description provided for @upgrade_desc_villages_plus.
   ///
   /// In en, this message translates to:
-  /// **'Increases coins earned from Village (red) tiles.'**
+  /// **'Grants 1 bonus coin whenever you connect at least N red sides on a placement (4/2/1 depending on level). Non-stacking.'**
   String get upgrade_desc_villages_plus;
 
   /// No description provided for @upgrade_desc_combo_plus.
   ///
   /// In en, this message translates to:
-  /// **'Grants bonus tiles every 5 double connections in a row.'**
+  /// **'Grants 1 bonus tile every N double connections in a row (15/13/10 depending on level).'**
   String get upgrade_desc_combo_plus;
 
   /// No description provided for @upgrade_desc_extended_preview.
@@ -533,31 +533,31 @@ abstract class AppLocalizations {
   /// No description provided for @upgrade_desc_forest_plus.
   ///
   /// In en, this message translates to:
-  /// **'Increases coins earned from Forest (green) tiles.'**
+  /// **'Grants 1 bonus coin whenever you connect at least N green sides on a placement (4/2/1 depending on level). Non-stacking.'**
   String get upgrade_desc_forest_plus;
 
   /// No description provided for @upgrade_desc_water_plus.
   ///
   /// In en, this message translates to:
-  /// **'Increases coins earned from Water (blue) tiles.'**
+  /// **'Grants 1 bonus coin whenever you connect at least N blue sides on a placement (4/2/1 depending on level). Non-stacking.'**
   String get upgrade_desc_water_plus;
 
   /// No description provided for @upgrade_desc_plain_plus.
   ///
   /// In en, this message translates to:
-  /// **'Increases coins earned from Plain (yellow) tiles.'**
+  /// **'Grants 1 bonus coin whenever you connect at least N yellow sides on a placement (4/2/1 depending on level). Non-stacking.'**
   String get upgrade_desc_plain_plus;
 
   /// No description provided for @upgrade_desc_mountain_plus.
   ///
   /// In en, this message translates to:
-  /// **'Increases coins earned from Mountain (purple) tiles.'**
+  /// **'Grants 1 bonus coin whenever you connect at least N purple sides on a placement (4/2/1 depending on level). Non-stacking.'**
   String get upgrade_desc_mountain_plus;
 
   /// No description provided for @upgrade_desc_closure_bonus.
   ///
   /// In en, this message translates to:
-  /// **'Grants bonus tiles every time a biome closes completely.'**
+  /// **'Grants bonus tiles every time a color zone closes completely.'**
   String get upgrade_desc_closure_bonus;
 
   /// No description provided for @upgrade_desc_hated_color.
@@ -569,7 +569,7 @@ abstract class AppLocalizations {
   /// No description provided for @upgrade_desc_jackpot_plus.
   ///
   /// In en, this message translates to:
-  /// **'Further boosts the percentage of coins earned on every tile placed — unlocked as a reward for a standout game.'**
+  /// **'Further boosts the coin bonus: grants 1 bonus coin whenever you earn at least N coins on a placement (4/2/1 depending on level). Non-stacking — unlocked as a reward for a standout game.'**
   String get upgrade_desc_jackpot_plus;
 
   /// No description provided for @upgrade_desc_millionaire.

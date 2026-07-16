@@ -306,9 +306,10 @@ double upgradeEffectValue(UpgradeEffectType effectType, int level) {
     case UpgradeEffectType.secondChanceUses:
       return [1.0, 2.0, 3.0][level.clamp(0, 2)];
     case UpgradeEffectType.comboBonusTiles:
-      // Représente désormais l'intervalle (en doubles connexions
-      // consécutives) entre deux octrois d'une tuile bonus, et non plus
-      // le nombre de tuiles accordées (toujours 1 désormais).
+      // Représente désormais l'intervalle (en doubles connexions cumulées
+      // sur la partie, plus besoin d'être d'affilée) entre deux octrois
+      // d'une tuile bonus, et non plus le nombre de tuiles accordées
+      // (toujours 1 désormais).
       return [15.0, 13.0, 10.0][level.clamp(0, 2)];
     case UpgradeEffectType.millionaireCoins:
       return [1000000.0][level.clamp(0, 0)];

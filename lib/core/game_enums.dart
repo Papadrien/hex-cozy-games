@@ -45,10 +45,11 @@ enum UpgradeEffectType {
   /// Story B9/B11.
   secondChanceUses,
 
-  /// Tuile bonus ajoutée tous les N crans de la série de doubles
-  /// connexions (exactement 2 côtés connectés) d'affilée (Combo+) — N
-  /// dépend du niveau (15/13/10 aux niveaux 1/2/3). Déblocage en
-  /// Story A11, effet réel branché en Story B3.
+  /// Tuile bonus ajoutée tous les N doubles connexions (exactement 2 côtés
+  /// connectés) cumulées sur la partie (Combo+) — plus besoin qu'elles
+  /// soient d'affilée, effet cumulatif. N dépend du niveau (15/13/10 aux
+  /// niveaux 1/2/3). Déblocage en Story A11, effet réel branché en
+  /// Story B3.
   comboBonusTiles,
 
   /// Millionnaire (debug) : crédite 1 000 000 pièces sur le profil.

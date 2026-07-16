@@ -43,10 +43,12 @@ class SessionState {
   /// Meilleure série atteinte dans cette session — Story B2.
   final int bestStreak;
 
-  /// Série actuelle de doubles connexions consécutives (exactement 2 côtés
-  /// connectés). Remise à 0 dès qu'une pose ne connecte pas exactement 2
-  /// côtés — utilisée par Combo+ (Story B3), qui se déclenche tous les N
-  /// crans de cette série (N = 15/13/10 selon le niveau de l'amélioration).
+  /// Nombre cumulé de doubles connexions (exactement 2 côtés connectés)
+  /// réalisées depuis le début de la partie. N'est plus remis à 0 par une
+  /// pose qui ne connecte pas exactement 2 côtés (condition d'affilée
+  /// retirée) — utilisé par Combo+ (Story B3), qui se déclenche tous les N
+  /// doubles connexions cumulées (N = 15/13/10 selon le niveau de
+  /// l'amélioration), effet cumulatif sur toute la partie.
   final int currentDoubleStreak;
 
   /// Utilisations restantes d'Emplacement Joker pour cette partie (Story B9).
@@ -125,7 +127,11 @@ class Session extends _$Session {
   void addReward(PlacementReward reward, {int? forcedCoins}) {
     final c = reward.connectedSides.length;
     final nextStreak = c >= 1 ? state.currentStreak + 1 : 0;
-    final nextDoubleStreak = c == 2 ? state.currentDoubleStreak + 1 : 0;
+    // Compteur cumulatif : plus de remise à 0 sur une pose ≠ double
+    // connexion (condition "d'affilée" retirée) — seules les doubles
+    // connexions elles-mêmes le font progresser.
+    final nextDoubleStreak =
+        c == 2 ? state.currentDoubleStreak + 1 : state.currentDoubleStreak;
     // copyWith (et non un SessionState(...) nu) : sinon les champs non
     // listés ici (holdSlotRemainingUses, secondChanceRemainingUses)
     // retombent silencieusement à leur valeur par défaut (0) à chaque pose,

@@ -230,7 +230,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get upgrade_desc_combo_plus =>
-      'Ajoute une tuile bonus tous les N doubles connexions d\'affilée (15/13/10 selon le niveau).';
+      'Ajoute une tuile bonus tous les N doubles connexions cumulées sur la partie (15/13/10 selon le niveau).';
 
   @override
   String get upgrade_desc_extended_preview =>

@@ -227,7 +227,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get upgrade_desc_combo_plus =>
-      'Grants 1 bonus tile every N double connections in a row (15/13/10 depending on level).';
+      'Grants 1 bonus tile every N double connections made during the game (15/13/10 depending on level).';
 
   @override
   String get upgrade_desc_extended_preview =>

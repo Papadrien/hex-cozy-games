@@ -55,12 +55,13 @@ const double _kPerspectiveMaxRotation = 0.38; // plafond en radians
 // pour donner l'impression que la tuile est vue de biais, tournée vers la
 // gauche. Sans cette face latérale, la rotation Y d'un hexagone purement
 // plat ne fait que l'écraser et l'éclaircir, ce qui ressemble à de la
-// transparence plutôt qu'à de la profondeur.
-const double _kStackTileDepthStep = 5.0; // px par tuile
-const double _kStackTileDepthMax = 12.0; // plafond en px
+// transparence plutôt qu'à de la profondeur. Épaisseur fixe (et non plus
+// croissante avec l'index) pour que toutes les tuiles pas encore posables
+// aient le même effet de profondeur, quelle que soit leur position dans la
+// pile.
+const double _kStackTileDepth = 10.0; // px, identique pour toutes les tuiles
 
-double _sideDepthFor(int index) =>
-    index <= 0 ? 0.0 : min(_kStackTileDepthMax, _kStackTileDepthStep * index);
+double _sideDepthFor(int index) => index <= 0 ? 0.0 : _kStackTileDepth;
 
 // Animation de transition jouée à chaque avancée de la pile (pose d'une
 // tuile) : les tuiles glissent vers l'avant / grandissent, et la nouvelle
@@ -266,10 +267,10 @@ class _AnimatedTilePileState extends State<_AnimatedTilePile> {
     final isReturning = _returning.contains(tile);
     final rotationY = _rotationYFor(index);
     final sideDepth = _sideDepthFor(index);
-    // Très léger assombrissement progressif — la sensation de profondeur
-    // vient surtout de la face latérale extrudée (sideDepth) désormais,
-    // pas d'une baisse d'opacité qui donnait l'impression de transparence.
-    final depthAlpha = index <= 0 ? 1.0 : max(0.9, 1.0 - 0.03 * index);
+    // Plus d'assombrissement/transparence progressif : la sensation de
+    // profondeur vient uniquement de la face latérale extrudée (sideDepth)
+    // et de la rotation 3D — toutes les tuiles restent pleinement opaques.
+    const depthAlpha = 1.0;
 
     return AnimatedPositioned(
       key: ValueKey(identityHashCode(tile)),
@@ -354,11 +355,6 @@ class _HexTilePreview extends StatelessWidget {
       // par à-coups.
       child: SizedBox.expand(
         child: CustomPaint(
-          // Clip.none : la face latérale extrudée (sideDepth) dépasse
-          // volontairement la largeur nominale de l'hexagone sur la
-          // droite ; le Stack parent est lui aussi en Clip.none donc rien
-          // n'est perdu à l'écran.
-          clipBehavior: Clip.none,
           painter: _HexTilePainter(
             tile: tile,
             highlighted: highlighted,

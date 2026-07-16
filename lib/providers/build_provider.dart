@@ -99,10 +99,10 @@ class ActiveUpgradeEffects {
   /// bonus est accordée (Violet+). 0 = inactif ; 4/2/1 selon niveau.
   final int mountainCoinsThreshold;
 
-  /// Intervalle (en doubles connexions consécutives) entre deux octrois
-  /// d'une tuile bonus (Combo+ — Story B3). Valeurs : 15/13/10 selon
-  /// niveau ; 0 = inactif. Une seule tuile bonus est accordée à chaque
-  /// palier, quel que soit le niveau.
+  /// Intervalle (en doubles connexions cumulées sur la partie, plus besoin
+  /// d'être d'affilée) entre deux octrois d'une tuile bonus (Combo+ —
+  /// Story B3). Valeurs : 15/13/10 selon niveau ; 0 = inactif. Une seule
+  /// tuile bonus est accordée à chaque palier, quel que soit le niveau.
   final int comboStreakInterval;
 
   /// Nombre de tuiles visibles dans la pile d'attente (Story B4 — Aperçu
