@@ -62,11 +62,6 @@ const double _kSlotSpacing = 8.0;
 /// de feedback courtes du jeu (glow de connexion : [kGlowDurationSec]).
 const Duration _kPulseDuration = Duration(milliseconds: 550);
 
-/// Alpha du contour doré fixe pour "Aperçu prolongé", passivement active
-/// tant que sélectionnée (pas de pulsation ponctuelle, l'effet joue en
-/// continu tout au long de la partie).
-const double _kSteadyGlowAlpha = 0.55;
-
 // Teinte ambre pour signaler le mode Deuxième chance actif — reprise à
 // l'identique de l'ancien `second_chance_hud.dart`.
 const Color _kActiveGlass = Color(0xFFFFB300);
@@ -171,8 +166,6 @@ class _UpgradeSlotState extends ConsumerState<_UpgradeSlot>
   Widget _buildPassiveSlot(BuildContext context, UpgradeEffectType effectType) {
     final tint = upgradeIconColor(effectType);
     final counter = upgradeCounterFor(ref, effectType);
-    final isSteadyActive =
-        effectType == UpgradeEffectType.extendedPreviewCount;
 
     return GestureDetector(
       onLongPress: () => _showDescription(context),
@@ -192,7 +185,6 @@ class _UpgradeSlotState extends ConsumerState<_UpgradeSlot>
             size: 22,
           ),
         ),
-        isSteadyActive: isSteadyActive,
       ),
     );
   }
@@ -297,7 +289,6 @@ class _UpgradeSlotState extends ConsumerState<_UpgradeSlot>
   Widget _slotShell({
     required UpgradeCounterInfo counter,
     required Widget Function(double glowAlpha, double scale) builder,
-    bool isSteadyActive = false,
   }) {
     return Tooltip(
       message: widget.upgrade.name,
@@ -307,7 +298,7 @@ class _UpgradeSlotState extends ConsumerState<_UpgradeSlot>
         child: AnimatedBuilder(
           animation: _controller,
           builder: (context, child) {
-            final glowAlpha = isSteadyActive ? _kSteadyGlowAlpha : _glow.value;
+            final glowAlpha = _glow.value;
             final scale = 1.0 + (0.14 * _scale.value);
             return Transform.scale(
               scale: scale,

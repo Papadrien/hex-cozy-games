@@ -230,7 +230,9 @@ class TileStack extends _$TileStack {
     _queue
       ..clear()
       ..addAll(queue);
-    state = _buildState(seed: seed ?? state.seed);
+    final effects = ref.read(activeUpgradeEffectsProvider);
+    final visibleCount = max(kVisibleStackSize, effects.extendedPreviewCount);
+    state = _buildState(seed: seed ?? state.seed, visibleCount: visibleCount);
   }
 
   /// Retourne la file complète (pour sérialisation).

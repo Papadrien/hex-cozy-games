@@ -186,6 +186,14 @@ void startNewGame(WidgetRef ref) {
   if (initialTile != null) {
     ref.read(gridProvider.notifier).placeTile(const HexCoords(0, 0), initialTile);
   }
+
+  // Déclencher une pulse ponctuelle pour "Aperçu prolongé" si actif
+  // (remplace l'ancien contour doré fixe — pulse au démarrage uniquement).
+  if (activeEffects.extendedPreviewCount > 0) {
+    ref.read(upgradeFeedbackProvider.notifier).reportTriggered(
+          {UpgradeEffectType.extendedPreviewCount},
+        );
+  }
 }
 
 class LastPlacement {
