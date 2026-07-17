@@ -150,14 +150,15 @@ class TileComponent extends PositionComponent {
   double _rotationVisualOffset = 0.0;
   double _rotationAnimFrom = 0.0;
   double _rotationAnimElapsed = 0.0;
-  double _rotationAnimDuration = 0.22;
+  double _rotationAnimDuration = 0.11;
   bool _rotationAnimating = false;
 
   /// Déclenche une rotation visuelle fluide de [steps] crans de 60° (positif
   /// ou négatif) vers l'orientation actuelle de [tile]. À appeler juste après
   /// avoir mis à jour [tile] avec la nouvelle orientation : le rendu part
   /// visuellement de l'ancienne orientation puis pivote jusqu'à la nouvelle.
-  void animateRotationSwirl(int steps, {double duration = 0.22}) {
+  /// Durée par défaut doublée en vitesse (0.22s → 0.11s) à la demande.
+  void animateRotationSwirl(int steps, {double duration = 0.11}) {
     if (steps == 0) return;
     _rotationAnimFrom = -steps * (pi / 3);
     _rotationVisualOffset = _rotationAnimFrom;
