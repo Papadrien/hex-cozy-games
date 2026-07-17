@@ -614,13 +614,17 @@ class _BuildButton extends StatelessWidget {
         // Pas de surcouche — le bleu de base suffit pour ce bouton
         tint: hasResumableGame ? Colors.grey : Colors.transparent,
         onPressed: hasResumableGame
-            ? () => showAppSnackBar(
+            ? () {
+                buttonHapticTap(context);
+                showAppSnackBar(
                   SnackBar(
                     content: Text(context.tr.home_buildSelectionLockedResume),
                     behavior: SnackBarBehavior.floating,
                   ),
-                )
+                );
+              }
             : () {
+                buttonHapticTap(context);
                 clearAppSnackBars();
                 Navigator.of(context).push(
                   MaterialPageRoute<void>(builder: (_) => const BuildScreen()),

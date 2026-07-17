@@ -31,6 +31,7 @@ import '../providers/pause_provider.dart';
 import '../providers/placement_commit.dart';
 import '../providers/session_provider.dart';
 import '../providers/tile_stack_provider.dart';
+import '../services/ad_service.dart';
 import '../services/haptics_service.dart';
 
 class PauseModal extends ConsumerWidget {
@@ -311,6 +312,15 @@ class _SaveAndQuitButton extends ConsumerWidget {
           buttonHapticTap(context);
           await SessionSaver.save(ref);
           ref.invalidate(activeSessionProvider);
+          // Forcer la destruction immédiate de la bannière AdMob plutôt que
+          // d'attendre l'autoDispose au démontage de GameScreen (même
+          // raison que dans startNewGame/restoreSession) : sans ça, la vue
+          // native de l'AdWidget peut rester quelques frames de trop
+          // au même endroit à l'écran (bas de l'écran, où se trouvent
+          // aussi les boutons de l'accueil) et intercepter les taps —
+          // le bouton "Améliorations" grisé de l'accueil ne réagit alors
+          // plus tant qu'une nouvelle bannière n'a pas forcé le nettoyage.
+          ref.invalidate(bannerAdProvider);
           // Repartir sur un état "non pausé" : sinon, ce provider global
           // garde isPaused == true et la prochaine partie (nouvelle ou
           // reprise) démarre directement sur la modale de pause.
@@ -410,6 +420,10 @@ Future<void> _abandonGame(BuildContext context, WidgetRef ref) async {
   // garde sa valeur précédente (true) : le bouton "Reprendre" resterait
   // affiché sur l'accueil alors qu'il n'y a plus de session active.
   ref.invalidate(activeSessionProvider);
+  // Voir le commentaire équivalent dans _SaveAndQuitButton : force le
+  // nettoyage immédiat de la bannière AdMob pour éviter qu'elle ne bloque
+  // les taps sur l'accueil pendant la transition de route.
+  ref.invalidate(bannerAdProvider);
   ref.read(sessionProvider.notifier).reset();
   ref.read(lastPlacementProvider.notifier).set(null);
   // reset() direct plutôt qu'invalidate : même raison que dans
