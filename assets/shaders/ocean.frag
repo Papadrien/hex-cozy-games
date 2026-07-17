@@ -43,18 +43,6 @@
 ///   (uOffsetX + uWidth * 0.42, uOffsetY + uHeight * 0.38)
 /// afin que le motif de fond reste parfaitement ancré à la grille
 /// hexagonale, sans flou ni décalage, à toute résolution et tout zoom.
-///
-/// ── Vagues concentriques émanant du plateau ───────────────────────────────
-/// Le plateau hexagonal est traité comme un objet qui flotte sur l'eau et
-/// génère des anneaux concentriques fins et lumineux, centrés sur son pivot,
-/// qui se propagent vers l'extérieur (phase = distance*fréquence -
-/// temps*vitesse, passée dans pow(cos, N) pour un trait net plutôt qu'une
-/// bande épaisse). Une enveloppe exponentielle décroissante avec la distance
-/// au plateau atténue à la fois ces anneaux et l'activité générale des
-/// caustiques : l'eau est vive près du plateau et devient progressivement
-/// plus calme/lisse en s'en éloignant. Un très léger jitter du rayon (quelques
-/// pixels) casse la perfection géométrique des cercles sans créer de forme en
-/// pétales.
 
 #include <flutter/runtime_effect.glsl>
 
@@ -153,39 +141,6 @@ void main() {
     // Temps rebouclé pour la même raison (stabilité numérique long-terme).
     float time = mod(uTime, 6000.0);
 
-    // ── Vagues concentriques émanant du plateau ──────────────────────────
-    // Le plateau (au pivot, donc à world = 0) est la source des vagues :
-    // leur phase dépend de la distance au pivot, si bien qu'elles forment
-    // des anneaux concentriques qui se propagent vers l'extérieur au cours
-    // du temps (comme les ondes créées par un objet flottant sur l'eau).
-    // Anneaux fins et nets (pas des bandes épaisses) : on passe un cosinus
-    // dans pow(max(., 0), kRippleSharpness), qui n'allume qu'un mince trait
-    // autour de chaque crête et laisse le reste à zéro.
-    const float kRippleSpacing   = 130.0; // distance entre deux anneaux successifs (px monde)
-    const float kRippleFreq      = 6.2831853 / kRippleSpacing;
-    const float kRippleSpeed     = 2.6;   // vitesse angulaire de propagation (rad/s)
-    const float kRippleFalloff   = 700.0; // distance caractéristique d'atténuation (px monde)
-    const float kRippleSharpness = 6.0;   // plus grand = anneaux plus fins
-
-    float boardDist = length(world);
-
-    // Très légère irrégularité du rayon (quelques px), pour que les anneaux
-    // ne soient pas des cercles mathématiquement parfaits — l'amplitude est
-    // volontairement faible (petite devant kRippleSpacing) pour ne PAS créer
-    // de forme en pétales/étoile, juste un tremblement à peine perceptible.
-    float angle = atan(world.y, world.x);
-    float radiusJitter = snoise(vec2(cos(angle), sin(angle)) * 3.0 + time * 0.02) * 4.0;
-
-    float ringPhase = (boardDist + radiusJitter) * kRippleFreq - time * kRippleSpeed;
-    float ringLine = pow(max(cos(ringPhase), 0.0), kRippleSharpness);
-
-    // Enveloppe d'atténuation : proche du plateau = anneaux marqués et
-    // activité vive, loin = eau qui s'apaise progressivement. `rippleEnvelope`
-    // module aussi bien les anneaux concentriques que l'activité générale
-    // des caustiques ci-dessous (moins de "vagues" en s'éloignant du plateau).
-    float rippleEnvelope = exp(-boardDist / kRippleFalloff);
-
-
     // ── Vitesses ──────────────────────────────────────────────────────────
     // Volontairement modérées : rien ne doit "voyager" de façon cohérente
     // sur tout l'écran (ce qui donnerait une impression de tangage), mais
@@ -252,11 +207,7 @@ void main() {
     // par rapport à l'ancienne version pour que les vagues claires ressortent
     // plus souvent et plus franchement, sans jamais disparaître totalement
     // (garde un peu de vie partout).
-    // Second facteur (0.3 → 1.0 via rippleEnvelope) : l'activité des
-    // caustiques elle-même s'atténue en s'éloignant du plateau, en plus des
-    // anneaux concentriques explicites plus bas — l'eau au loin reste
-    // légèrement vivante mais nettement plus calme.
-    float causticVisible = caustic * mix(0.45, 1.25, waveMask) * mix(0.3, 1.0, rippleEnvelope);
+    float causticVisible = caustic * mix(0.45, 1.25, waveMask);
 
     // Couleur de fond dominante = #40D2FF exact (demande utilisateur).
     // L'éclat des caustiques ("vagues claires") est éclairci nettement plus
@@ -293,13 +244,6 @@ void main() {
     vec3 cDark = cA * 0.72;
     float darkMask = smoothstep(0.85, 0.96, causticVisible);
     color = mix(color, cDark, darkMask);
-
-    // ── Anneaux concentriques du plateau ──────────────────────────────────
-    // Trait fin et lumineux uniquement (pas de contrepartie sombre) :
-    // pondéré par rippleEnvelope, les anneaux sont nets et bien visibles
-    // près du plateau et s'effacent progressivement en s'en éloignant,
-    // exactement comme les ondes réelles d'un objet flottant sur l'eau.
-    color = mix(color, cB, ringLine * rippleEnvelope * 0.6);
 
     // ── Scintillements (glints) ───────────────────────────────────────────
     // Petits points lumineux ponctuels façon reflets de soleil sur l'eau,

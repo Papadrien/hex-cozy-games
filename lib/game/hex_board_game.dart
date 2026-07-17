@@ -24,13 +24,15 @@
 ///    d'annuler la prévisualisation : seule la croix sur la pile HUD
 ///    (ui/tile_stack_hud.dart) le permet désormais.
 ///  - [ScaleGestureRecognizer] : pan 1 doigt + zoom pinch 2 doigts. Pendant
-///    la prévisualisation, le swipe vertical pivote la tuile (story 1.7c).
-///    Le sens de rotation est inversé si le geste démarre sur la moitié
-///    gauche de l'écran par rapport à la moitié droite.
+///    la prévisualisation, un geste à un doigt fait pivoter la tuile en
+///    suivant l'angle du doigt autour de son centre — le joueur peut tourner
+///    dans n'importe quelle direction, sur 360° (story 1.7c, puis geste
+///    circulaire).
 ///  - La distance de mouvement est mesurée entre [onTapDown] et [onTapUp]
 ///    pour filtrer les swipes (story 1.7d).
 library;
 
+import 'dart:math' show atan2, pi;
 import 'dart:ui' show Color, Offset;
 
 import 'package:flame/events.dart';
@@ -192,14 +194,9 @@ class HexBoardGame extends FlameGame
     _grid?.placeTile(coords, tile,
         connectedSides: connectedSides);
     if (connectedSides.isNotEmpty || bonusTiles > 0) {
-      // Gain total (pièces de base + pièces bonus + tuiles bonus) — pilote
-      // l'intensité du burst d'impact générique joué sur chaque pose
-      // gagnante (voir [HexGridComponent.showRewardIndicators]).
-      final totalGain = connectedSides.length + bonusCoins + bonusTiles;
       _grid?.showRewardIndicators(coords, connectedSides,
           bonusTiles: bonusTiles,
           bonusFlyTarget: getBonusFlyTarget?.call(),
-          totalGain: totalGain,
           onBonusImpact: onBonusImpact);
     }
   }
@@ -215,51 +212,67 @@ class HexBoardGame extends FlameGame
   /// Vrai si le jeu est en pause — les gestes doivent être ignorés.
   bool get _isPaused => _ref.read(pauseProvider).isPaused;
 
-  // ── Rotation par swipe vertical ──────────────────────────────────────────
+  // ── Rotation par geste circulaire autour de la tuile ─────────────────────
   //
-  // Le nombre de crans est recalculé à chaque frame à partir du déplacement
-  // ABSOLU depuis le début du geste (focalPoint courant - focalPoint de
-  // départ), et non plus par accumulation de deltas incrémentaux
-  // (onUpdate.focalPointDelta, frame par frame).
+  // Avant, la rotation ne suivait que le déplacement vertical (dy) du doigt,
+  // avec une inversion de sens selon la moitié d'écran de départ — ce qui
+  // ne permettait de tourner que sur un axe haut/bas, pas de "faire le
+  // tour" complet de la tuile comme on tournerait une molette.
   //
-  // Avant, un accumulateur mutable (_rotationAccumulator) sommait les
-  // deltas au fil des appels à onUpdate. Problème : ces deltas incrémentaux
-  // peuvent être fusionnés ou partiellement perdus par le pipeline
-  // tactile — en particulier lors du tout premier geste suivant un retour
-  // d'arrière-plan, où la reprise du pipeline d'événements peut livrer un
-  // batch d'updates différent de la normale. Le résultat observé : un
-  // swipe qui aurait dû produire plusieurs crans n'en appliquait qu'un
-  // seul, et l'accumulateur pouvait rester dans un état incohérent d'un
-  // geste à l'autre (ce qui donnait aussi une impression de sens de
-  // rotation aléatoire).
+  // Le nombre de crans est maintenant dérivé de l'angle du doigt autour du
+  // centre écran de la tuile prévisualisée (voir
+  // [HexGridComponent.previewScreenCenter]) : le joueur peut poser le doigt
+  // n'importe où autour de la tuile et la faire tourner en suivant un arc de
+  // cercle dans n'importe quelle direction, sur 360°.
   //
-  // En repartant à chaque frame de la position ABSOLUE (start vs courant),
-  // le nombre de crans "cible" est toujours recalculé intégralement : il ne
-  // peut jamais dériver ni dépendre de deltas manqués, et le sens ne dépend
-  // que du signe du déplacement total (haut = anti-horaire, bas = horaire),
-  // sauf inversion côté gauche de l'écran — voir [_rotationInverted]
-  // ci-dessous.
-  Offset? _rotationStartFocalPoint;
+  // L'angle est accumulé de façon continue (delta d'angle non-signé remis
+  // dans (-π, π] à chaque frame, puis sommé) plutôt que recalculé en absolu
+  // depuis le départ du geste — contrairement au swipe vertical, un calcul
+  // absolu ferait un saut de 2π quand le doigt traverse la démarcation
+  // ±180° de atan2, ce qui est courant dès qu'on tourne sur plus d'un demi-
+  // tour. L'accumulation par petits deltas reste fiable ici : contrairement
+  // au cas du swipe vertical (voir ancien commentaire, conservé plus bas
+  // pour mémoire), un saut de plus de 180° entre deux frames consécutives
+  // d'un même geste tactile est extrêmement improbable en pratique.
+  Vector2? _rotationAnchor;
+  double? _rotationLastAngle;
+  double _rotationAccumulatedAngle = 0;
   int _rotationNotchesApplied = 0;
-  static const double _kRotationThreshold = 40; // pixels pour 1 cran de 60°
 
-  /// Vrai si le geste de rotation en cours a démarré sur la moitié gauche de
-  /// l'écran — dans ce cas le sens de rotation est inversé par rapport à la
-  /// moitié droite (demande utilisateur : la moitié droite reste la
-  /// référence, la gauche fait "miroir"). Figé au [_handleScaleStart] du
-  /// geste, ne change pas si le doigt traverse le milieu de l'écran en
-  /// cours de geste.
-  bool _rotationInverted = false;
+  /// Distance minimale (px) entre le doigt et l'ancre pour que l'angle soit
+  /// pris en compte — trop près du centre, l'angle devient instable (bruit
+  /// de mesure amplifié par la faible distance).
+  static const double _kMinRotationRadius = 16;
+
+  /// Angle (radians) correspondant à un cran de rotation (60° = 1/6 de tour,
+  /// une tuile hexagonale ayant 6 orientations).
+  static const double _kRotationRadiansPerNotch = pi / 3;
 
   void _handleRotation(Offset focalPoint) {
-    final start = _rotationStartFocalPoint;
-    if (start == null) return;
-    var totalDy = focalPoint.dy - start.dy;
-    // haut (dy négatif) = anti-horaire, bas (dy positif) = horaire — cohérent
-    // avec rotate() dans placementProvider (positif = sens horaire). Côté
-    // gauche de l'écran : sens inversé par rapport au côté droit.
-    if (_rotationInverted) totalDy = -totalDy;
-    final targetNotches = (totalDy / _kRotationThreshold).truncate();
+    final anchor = _rotationAnchor;
+    if (anchor == null) return;
+
+    final dx = focalPoint.dx - anchor.x;
+    final dy = focalPoint.dy - anchor.y;
+    if (dx * dx + dy * dy < _kMinRotationRadius * _kMinRotationRadius) {
+      return;
+    }
+
+    // atan2 en coordonnées écran (y vers le bas) : un déplacement du doigt
+    // dans le sens horaire visuel produit un angle croissant, cohérent avec
+    // rotate() dans placementProvider (positif = sens horaire).
+    final angle = atan2(dy, dx);
+    final lastAngle = _rotationLastAngle;
+    if (lastAngle != null) {
+      var delta = angle - lastAngle;
+      if (delta > pi) delta -= 2 * pi;
+      if (delta < -pi) delta += 2 * pi;
+      _rotationAccumulatedAngle += delta;
+    }
+    _rotationLastAngle = angle;
+
+    final targetNotches =
+        (_rotationAccumulatedAngle / _kRotationRadiansPerNotch).truncate();
     final delta = targetNotches - _rotationNotchesApplied;
     if (delta != 0) {
       _ref.read(placementProvider.notifier).rotate(delta);
@@ -339,10 +352,13 @@ class HexBoardGame extends FlameGame
   void _handleScaleStart(ScaleStartDetails details) {
     if (_isPaused) return;
     _scaleStart = _grid?.zoom ?? 1.0;
-    _rotationStartFocalPoint = details.focalPoint;
+    // Ancre de la rotation circulaire : le centre écran de la tuile en
+    // prévisualisation. Reste `null` (donc rotation ignorée) s'il n'y a pas
+    // de sélection en cours.
+    _rotationAnchor = _grid?.previewScreenCenter;
+    _rotationLastAngle = null;
+    _rotationAccumulatedAngle = 0;
     _rotationNotchesApplied = 0;
-    // Moitié gauche de l'écran → rotation inversée (voir [_rotationInverted]).
-    _rotationInverted = details.focalPoint.dx < size.x / 2;
   }
 
   void _handleScaleUpdate(ScaleUpdateDetails details) {
@@ -352,8 +368,10 @@ class HexBoardGame extends FlameGame
 
     final delta = details.focalPointDelta;
 
-    // Pendant la prévisualisation, le swipe vertical fait pivoter la tuile.
-    // Le pan horizontal est désactivé pendant la prévisualisation (story 1.7e).
+    // Pendant la prévisualisation, un geste à un doigt fait pivoter la
+    // tuile en suivant l'angle du doigt autour de son centre (rotation
+    // circulaire, voir _handleRotation). Le pan est désactivé pendant la
+    // prévisualisation (story 1.7e).
     final placement = _ref.read(placementProvider);
     if (placement.hasSelection && (details.scale - 1.0).abs() < 0.05) {
       _handleRotation(details.focalPoint);
@@ -365,14 +383,20 @@ class HexBoardGame extends FlameGame
     grid.zoom = (_scaleStart * details.scale)
         .clamp(HexGridComponent.minZoom, HexGridComponent.maxZoom);
 
+    // Empêche le pan (et un zoom arrière qui agrandirait la marge requise)
+    // de faire sortir le centre du plateau de l'écran — sans ça, un pan
+    // trop ample fait perdre le joueur.
+    grid.clampCameraOffset();
+
     _cameraDirty = true;
   }
 
   void _handleScaleEnd(ScaleEndDetails details) {
     if (_isPaused) return;
     _scaleStart = _grid?.zoom ?? 1.0;
-    _rotationStartFocalPoint = null;
+    _rotationAnchor = null;
+    _rotationLastAngle = null;
+    _rotationAccumulatedAngle = 0;
     _rotationNotchesApplied = 0;
-    _rotationInverted = false;
   }
 }

@@ -444,8 +444,7 @@ class _TileStackImpactReactionState
   double _intensity = 0.0;
 
   /// Gain total au-delà duquel l'intensité du pop/glow plafonne — garde une
-  /// réaction perceptible mais pas écrasante sur les très gros gains
-  /// (cohérent avec [kGainBurstMaxGain] côté rendu Flame).
+  /// réaction perceptible mais pas écrasante sur les très gros gains.
   static const int _kMaxGainForIntensity = 9;
 
   @override

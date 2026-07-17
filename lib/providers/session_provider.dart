@@ -184,8 +184,14 @@ class Session extends _$Session {
     state = state.copyWith(lastReward: null);
   }
 
-  /// Retire [coins] et [bonusTiles] du cumul de la session (utilisé par le
-  /// bouton Annuler pour inverser les récompenses — story 1.6b / 1.7c).
+  /// Retire [coins] et [bonusTiles] du cumul de la session.
+  ///
+  /// N'est plus utilisée par le bouton Annuler (story 1.6b / 1.7c) : elle ne
+  /// revenait pas correctement sur les effets cumulatifs des améliorations
+  /// (Combo+/currentDoubleStreak, currentStreak/bestStreak), qui exigent de
+  /// restaurer le [SessionState] complet d'avant-coup — voir
+  /// `undoPlacement`/[restore] dans placement_commit.dart. Conservée telle
+  /// quelle en cas d'autre usage futur ne nécessitant pas cette granularité.
   /// [connectedCount] est le nombre de côtés connectés du placement annulé.
   void removeReward(int coins, int bonusTiles, {int connectedCount = 0}) {
     // copyWith : même raison que dans addReward — sinon currentStreak,
@@ -236,6 +242,43 @@ class Session extends _$Session {
   void restore(SessionState restored) {
     state = restored;
   }
+}
+
+extension SessionStateJson on SessionState {
+  /// Sérialise les compteurs de session pour permettre au bouton Annuler de
+  /// restaurer fidèlement l'état d'avant-placement (voir
+  /// [LastPlacement.previousSession] dans placement_commit.dart). [lastReward]
+  /// n'est volontairement pas conservé : purement transitoire (affichage du
+  /// tag de récompense), il est déjà remis à `null` par [removeReward]/toute
+  /// restauration et ne doit pas ressurgir après un Annuler.
+  Map<String, dynamic> toJson() => {
+        'coins': coins,
+        'totalBonusTiles': totalBonusTiles,
+        'connections3': connections3,
+        'connections4': connections4,
+        'connections5': connections5,
+        'connections6': connections6,
+        'currentStreak': currentStreak,
+        'bestStreak': bestStreak,
+        'currentDoubleStreak': currentDoubleStreak,
+        'holdSlotRemainingUses': holdSlotRemainingUses,
+        'secondChanceRemainingUses': secondChanceRemainingUses,
+      };
+
+  static SessionState fromJson(Map<String, dynamic> json) => SessionState(
+        coins: json['coins'] as int? ?? 0,
+        totalBonusTiles: json['totalBonusTiles'] as int? ?? 0,
+        connections3: json['connections3'] as int? ?? 0,
+        connections4: json['connections4'] as int? ?? 0,
+        connections5: json['connections5'] as int? ?? 0,
+        connections6: json['connections6'] as int? ?? 0,
+        currentStreak: json['currentStreak'] as int? ?? 0,
+        bestStreak: json['bestStreak'] as int? ?? 0,
+        currentDoubleStreak: json['currentDoubleStreak'] as int? ?? 0,
+        holdSlotRemainingUses: json['holdSlotRemainingUses'] as int? ?? 0,
+        secondChanceRemainingUses:
+            json['secondChanceRemainingUses'] as int? ?? 0,
+      );
 }
 
 /// Compteur de pièces de la session en cours — Story 2.2a.

@@ -73,6 +73,16 @@ Future<void> restoreSession(WidgetRef ref) async {
         .toList();
     ref.read(tileStackProvider.notifier).restoreQueue(queueList, seed: seed);
 
+    // Restaurer les compteurs d'utilisations par partie (Emplacement Joker /
+    // Deuxième chance — Story B9). Stockés dans le JSON de la pile plutôt que
+    // dans de nouvelles colonnes Drift pour éviter une migration de schéma.
+    // `?? 0` : rétro-compatibilité avec les sessions sauvegardées avant ce
+    // correctif, qui n'ont pas ces clés.
+    final holdSlotRemainingUses =
+        stackJson['holdSlotRemainingUses'] as int? ?? 0;
+    final secondChanceRemainingUses =
+        stackJson['secondChanceRemainingUses'] as int? ?? 0;
+
     // Restaurer la session (pièces, tuiles bonus, connexions).
     final grid = ref.read(gridProvider);
     int c3 = 0, c4 = 0, c5 = 0, c6 = 0;
@@ -90,6 +100,8 @@ Future<void> restoreSession(WidgetRef ref) async {
           connections4: c4,
           connections5: c5,
           connections6: c6,
+          holdSlotRemainingUses: holdSlotRemainingUses,
+          secondChanceRemainingUses: secondChanceRemainingUses,
         ));
 
     // Restaurer le dernier placement (pour le bouton Annuler).
@@ -98,12 +110,23 @@ Future<void> restoreSession(WidgetRef ref) async {
       final tile = HexTile.fromJson(lastJson);
       final connectedSides =
           (lastJson['connectedSides'] as List?)?.cast<int>() ?? [];
+      // Sessions sauvegardées avant l'ajout du snapshot : à défaut, on
+      // retombe sur la session courante déjà restaurée ci-dessus plutôt que
+      // de planter — Annuler y perdra la décrémentation fine de Combo+ pour
+      // cette unique tuile mais restera sans danger (pas de compteur
+      // négatif ni de crash).
+      final previousSessionJson =
+          lastJson['previousSession'] as Map<String, dynamic>?;
+      final previousSession = previousSessionJson != null
+          ? SessionStateJson.fromJson(previousSessionJson)
+          : ref.read(sessionProvider);
       ref.read(lastPlacementProvider.notifier).set(LastPlacement(
             HexCoords(lastJson['q'] as int, lastJson['r'] as int),
             tile,
             bonusTiles: lastJson['bonusTiles'] as int? ?? 0,
             connectedSides: connectedSides,
             coins: lastJson['coins'] as int? ?? 0,
+            previousSession: previousSession,
           ));
     }
   } catch (e, stack) {
@@ -167,12 +190,24 @@ void startNewGame(WidgetRef ref) {
 
 class LastPlacement {
   LastPlacement(this.coords, this.tile,
-      {this.bonusTiles = 0, this.connectedSides = const [], this.coins = 0});
+      {this.bonusTiles = 0,
+      this.connectedSides = const [],
+      this.coins = 0,
+      required this.previousSession});
   final HexCoords coords;
   final HexTile tile;
   final int bonusTiles;
   final List<int> connectedSides;
   final int coins;
+
+  /// Snapshot de la session juste AVANT l'application des récompenses de ce
+  /// placement (pièces, connexions, streak, Combo+...). Permet à Annuler de
+  /// restaurer l'état exact d'avant-coup en une fois, plutôt que de
+  /// soustraire manuellement chaque compteur — ce qui oubliait jusqu'ici de
+  /// revenir en arrière sur les effets cumulatifs des améliorations comme
+  /// Combo+ (currentDoubleStreak) ou la série de connexions (currentStreak /
+  /// bestStreak).
+  final SessionState previousSession;
 }
 
 class LastPlacementNotifier extends Notifier<LastPlacement?> {
@@ -244,6 +279,13 @@ class SessionSaver {
         'remaining': stack.remaining,
         'visible': stack.visible.map((t) => t.toJson()).toList(),
         'queue': queueJson,
+        // Compteurs d'utilisations par partie (Story B9) : sans eux, un
+        // "Sauvegarder et quitter" faisait retomber Emplacement Joker et
+        // Deuxième chance à 0 utilisations à la reprise, car `restore()`
+        // reconstruit un SessionState neuf où ces champs valent 0 par
+        // défaut s'ils ne sont pas fournis explicitement.
+        'holdSlotRemainingUses': session.holdSlotRemainingUses,
+        'secondChanceRemainingUses': session.secondChanceRemainingUses,
       });
 
       String? lastTileJson;
@@ -255,6 +297,11 @@ class SessionSaver {
           'bonusTiles': lastPlacement.bonusTiles,
           'connectedSides': lastPlacement.connectedSides,
           'coins': lastPlacement.coins,
+          // Snapshot pré-placement (voir LastPlacement.previousSession) :
+          // sans lui, un Annuler après reprise de partie (kill de l'appli
+          // puis restauration) retomberait sur l'ancienne soustraction
+          // manuelle et perdrait à nouveau la décrémentation de Combo+.
+          'previousSession': lastPlacement.previousSession.toJson(),
         });
       }
 
@@ -305,12 +352,19 @@ Future<void> confirmPlacement(
   final coords = p.selected!;
   final reward = ref.read(previewRewardProvider);
 
+  // Capturé AVANT _applyReward (qui mute sessionProvider) : c'est l'état
+  // exact vers lequel Annuler doit revenir, y compris les compteurs
+  // cumulatifs (currentDoubleStreak pour Combo+, currentStreak/bestStreak)
+  // que removeReward ne savait pas défaire correctement.
+  final previousSession = ref.read(sessionProvider);
+
   _placeTileOnGrid(ref, coords, tile);
   onConfirm(coords, tile, reward.connectedSides, reward.bonusTiles,
       bonusCoins: reward.bonusCoins);
   final (appliedReward, totalBonusTilesAdded) =
       _applyReward(ref, coords, tile, reward);
-  _recordPlacement(ref, coords, tile, appliedReward, totalBonusTilesAdded);
+  _recordPlacement(
+      ref, coords, tile, appliedReward, totalBonusTilesAdded, previousSession);
   _triggerPlacementHaptics(ref, appliedReward);
   _advanceStack(ref, reward.connectedSides.length);
   await SessionSaver.save(ref);
@@ -344,6 +398,7 @@ void _recordPlacement(
   HexTile tile,
   PlacementReward reward,
   int totalBonusTilesAdded,
+  SessionState previousSession,
 ) {
   // Les pièces annulables ne comptent que le bonus de connexion (reward
   // .bonusTiles) : les tuiles bonus Combo+/Clôture n'ont jamais été
@@ -357,7 +412,8 @@ void _recordPlacement(
         // pas seulement celles du bonus de connexion (voir undoPlacement).
         bonusTiles: totalBonusTilesAdded,
         connectedSides: List.of(reward.connectedSides),
-        coins: coins),
+        coins: coins,
+        previousSession: previousSession),
   );
 }
 
@@ -557,17 +613,25 @@ void undoPlacement(
   // 3. Remettre la tuile au sommet de la pile.
   ref.read(tileStackProvider.notifier).returnTile(last.tile);
 
-  // 4. Annuler les récompenses (story 1.6b / 1.7c).
-  ref.read(sessionProvider.notifier).removeReward(
-    last.coins,
-    last.bonusTiles,
-    connectedCount: last.connectedSides.length,
-  );
+  // 4. Annuler les récompenses ET les effets des améliorations (story 1.6b /
+  // 1.7c, puis complété pour couvrir Combo+ et la série de connexions) : on
+  // restaure directement le snapshot de session pris avant ce placement,
+  // plutôt que de soustraire pièces/tuiles bonus un par un — cette
+  // soustraction manuelle ne remettait pas à jour currentDoubleStreak
+  // (Combo+ se déclenche tous les N doubles connexions cumulées : annuler
+  // sans décrémenter ce compteur pouvait donc redéclencher le bonus une
+  // tuile trop tôt) ni currentStreak/bestStreak.
+  ref.read(sessionProvider.notifier).restore(last.previousSession);
   if (last.bonusTiles > 0) {
     ref.read(tileStackProvider.notifier).removeLastBonusTiles(last.bonusTiles);
   }
 
-  // 5. Effacer la mémoire d'annulation (1 seul niveau).
+  // 5. Effacer le feedback visuel de déclenchement d'amélioration (pulsation
+  // sur l'encart des améliorations actives) : il concernait la pose qu'on
+  // vient d'annuler et n'a plus lieu d'être affiché.
+  ref.read(upgradeFeedbackProvider.notifier).reset();
+
+  // 6. Effacer la mémoire d'annulation (1 seul niveau).
   ref.read(lastPlacementProvider.notifier).set(null);
 }
 

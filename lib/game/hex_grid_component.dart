@@ -39,12 +39,6 @@ const double kPreviewLiftPx = 10.0;
 /// Opacité de la tuile en prévisualisation.
 const double kPreviewAlpha = 1.0;
 
-/// Gain total (pièces de base + pièces bonus + tuiles bonus) au-delà duquel
-/// l'intensité du burst d'impact générique ([_TileGainBurst]) plafonne à
-/// son maximum — au-delà, l'effet ne grossit plus, pour éviter qu'un très
-/// gros multiplicateur d'amélioration ne devienne écrasant à l'écran.
-const int kGainBurstMaxGain = 9;
-
 /// Nombre maximum d'icônes de tuile bonus envoyées individuellement (effet
 /// "machine à sous" échelonné) sur une même pose. Au-delà, le surplus est
 /// regroupé dans la dernière icône affichée pour éviter de surcharger
@@ -54,6 +48,47 @@ const int kMaxStaggeredBonusIcons = 4;
 /// Délai (secondes) entre deux icônes de tuile bonus envoyées vers la pile
 /// HUD lors d'une même pose.
 const double kBonusIconStaggerInterval = 0.12;
+
+// ── Animation de gain de tuile bonus (lift + éclaboussure d'eau + vol) ─────
+//
+// Une fois la tuile posée et le gain validé, la particule hexagonale bleue
+// "+N tuile" se soulève et grossit légèrement, une petite éclaboussure
+// d'eau apparaît (habillage repris du shader océan, désormais concentré
+// sur cette particule plutôt que sur toute la tuile posée), puis — une
+// fois ce temps d'arrêt terminé — la particule s'envole vers l'encart HUD.
+// L'ensemble reste discret pour un gain d'une seule tuile et s'intensifie
+// (soulèvement plus haut, grossissement plus marqué, plus de gouttes)
+// quand la pose rapporte plusieurs tuiles bonus d'un coup.
+
+/// Nombre de tuiles bonus gagnées sur la pose au-delà duquel l'intensité de
+/// l'animation plafonne (soulèvement, grossissement, gouttes d'eau).
+const int kBonusIntensityMaxTiles = 10;
+
+/// Durée de la phase de soulèvement + grossissement.
+const double kBonusLiftDurationSec = 0.16;
+
+/// Durée de la phase d'éclaboussure d'eau (particule immobile en haut du
+/// soulèvement, pendant que les gouttes apparaissent).
+const double kBonusWaterDurationSec = 0.16;
+
+/// Hauteur du soulèvement (px) pour un gain minimal (une seule tuile).
+const double kBonusLiftMinPx = 6.0;
+
+/// Hauteur du soulèvement (px) pour un gain maximal (kBonusIntensityMaxTiles
+/// tuiles ou plus sur la même pose).
+const double kBonusLiftMaxPx = 18.0;
+
+/// Échelle atteinte à la fin du soulèvement pour un gain minimal.
+const double kBonusGrowMinScale = 1.15;
+
+/// Échelle atteinte à la fin du soulèvement pour un gain maximal.
+const double kBonusGrowMaxScale = 1.6;
+
+/// Nombre de gouttes d'eau pour un gain minimal.
+const int kBonusWaterParticleMin = 3;
+
+/// Nombre de gouttes d'eau pour un gain maximal.
+const int kBonusWaterParticleMax = 10;
 
 // ── Animation de pose (descente + léger rebond "flottant") ─────────────────
 
@@ -315,6 +350,38 @@ class HexGridComponent extends PositionComponent {
   static const double minZoom = 0.4;
   static const double maxZoom = 2.0;
 
+  /// Marge (en pixels écran) conservée entre le centre du plateau (0,0) et
+  /// le bord de l'écran une fois clampé — évite que la tuile centrale ne
+  /// se retrouve collée pile au bord, à moitié masquée par le HUD.
+  static const double _centerTileScreenMargin = 32.0;
+
+  /// Empêche le centre du plateau (0, 0) de sortir de l'écran pendant le
+  /// pan — sans ça, un pan trop ample fait perdre le joueur, qui ne sait
+  /// plus dans quelle direction revenir vers ses tuiles posées.
+  ///
+  /// Le centre (0, 0) est projeté à l'écran en
+  /// `(cameraOffset + screenSize * (0.42, 0.38))` (voir [_layout]) : on
+  /// clampe donc [cameraOffset] pour que cette position reste comprise
+  /// entre la marge et `screenSize - marge` sur chaque axe.
+  void clampCameraOffset() {
+    final margin = _centerTileScreenMargin * zoom;
+
+    final minOffsetX = margin - screenSize.x * 0.42;
+    final maxOffsetX = screenSize.x * (1 - 0.42) - margin;
+    final minOffsetY = margin - screenSize.y * 0.38;
+    final maxOffsetY = screenSize.y * (1 - 0.38) - margin;
+
+    // Écran trop petit pour la marge demandée (ex: tests, fenêtre réduite) :
+    // `clamp` plante si min > max, donc on retombe sur un unique point fixe
+    // plutôt que de crasher.
+    cameraOffset.x = minOffsetX <= maxOffsetX
+        ? cameraOffset.x.clamp(minOffsetX, maxOffsetX)
+        : (minOffsetX + maxOffsetX) / 2;
+    cameraOffset.y = minOffsetY <= maxOffsetY
+        ? cameraOffset.y.clamp(minOffsetY, maxOffsetY)
+        : (minOffsetY + maxOffsetY) / 2;
+  }
+
   // ── Layout ────────────────────────────────────────────────────────────────
 
   @override
@@ -331,6 +398,17 @@ class HexGridComponent extends PositionComponent {
           cameraOffset.y + screenSize.y * 0.38,
         ),
       );
+
+  /// Centre écran (coordonnées jeu, confondues avec les pixels écran — pas
+  /// de caméra Flame séparée ici) de la tuile actuellement en
+  /// prévisualisation, ou `null` si aucune sélection. Utilisé comme ancre
+  /// pour la rotation circulaire au doigt (voir [HexBoardGame._handleRotation]).
+  Vector2? get previewScreenCenter {
+    final coords = _previewCoords;
+    if (coords == null) return null;
+    final center = _layout.hexToPixel(coords, isoScaleY: kIsoScaleY);
+    return Vector2(center.x, center.y);
+  }
 
   // ── API publique ───────────────────────────────────────────────────────────
 
@@ -464,32 +542,11 @@ class HexGridComponent extends PositionComponent {
   void showRewardIndicators(HexCoords coords, List<int> connectedSides,
       {int bonusTiles = 0,
       Vector2? bonusFlyTarget,
-      int totalGain = 0,
       VoidCallback? onBonusImpact}) {
     final layout = _layout;
     final center = layout.hexToPixel(coords, isoScaleY: kIsoScaleY);
     final centerVec = Vector2(center.x, center.y);
     final hexSize = kHexSize * zoom;
-
-    // Impact générique à chaque pose gagnante — l'intensité (particules,
-    // flash, ondes) grandit avec le gain total de la pose (pièces + bonus),
-    // plafonnée à 1.0 au-delà d'un gain de kGainBurstMaxGain.
-    if (totalGain > 0) {
-      final intensity = (totalGain / kGainBurstMaxGain).clamp(0.0, 1.0);
-      add(_TileGainBurst(
-        position: centerVec,
-        hexSize: hexSize,
-        intensity: intensity,
-      ));
-      // Ondes concentriques partant de la tuile posée — habillage
-      // thématique cohérent avec le shader océan, en complément du burst
-      // de particules (plus perceptible sur les gains élevés).
-      add(_TileRippleEffect(
-        position: centerVec,
-        hexSize: hexSize,
-        intensity: intensity,
-      ));
-    }
 
     // Position du compteur de pièces en haut à gauche (coordonnées jeu).
     final coinCounterTarget = Vector2(26, 85);
@@ -529,16 +586,9 @@ class HexGridComponent extends PositionComponent {
           flyTarget: bonusFlyTarget,
           startDelay: i * kBonusIconStaggerInterval,
           onImpact: onBonusImpact,
+          totalBonusTiles: bonusTiles,
         ));
       }
-    }
-
-    // Particules pour connexion parfaite (5-6 côtés).
-    if (connectedSides.length >= 5) {
-      add(_PerfectConnectionParticles(
-        position: centerVec,
-        hexSize: hexSize,
-      ));
     }
   }
 
@@ -864,18 +914,29 @@ class _BonusTileAnimComponent extends PositionComponent {
     this.flyTarget,
     double startDelay = 0.0,
     this.onImpact,
+    int totalBonusTiles = 1,
   })  : _radius = hexSize * 0.22,
         _startDelay = startDelay,
+        _liftPx = kBonusLiftMinPx +
+            (kBonusLiftMaxPx - kBonusLiftMinPx) *
+                _intensityFor(totalBonusTiles),
+        _growScale = kBonusGrowMinScale +
+            (kBonusGrowMaxScale - kBonusGrowMinScale) *
+                _intensityFor(totalBonusTiles),
+        _waterParticleCount = (kBonusWaterParticleMin +
+                (kBonusWaterParticleMax - kBonusWaterParticleMin) *
+                    _intensityFor(totalBonusTiles))
+            .round(),
         super(priority: kTileDepthPriorityPreview + 1);
 
   final double _radius;
   final int bonusCount;
 
-  /// Position cible pour le vol vers la pile HUD (null = vol stationnaire).
+  /// Position cible pour le vol vers la pile HUD (null = flottement sur place).
   final Vector2? flyTarget;
 
-  /// Délai avant le début du vol — permet d'échelonner plusieurs icônes
-  /// bonus envoyées lors d'une même pose (effet "machine à sous").
+  /// Délai avant le début de l'animation — permet d'échelonner plusieurs
+  /// icônes bonus envoyées lors d'une même pose (effet "machine à sous").
   final double _startDelay;
   double _delayElapsed = 0.0;
 
@@ -884,9 +945,33 @@ class _BonusTileAnimComponent extends PositionComponent {
   /// global pour toute la pose).
   final VoidCallback? onImpact;
 
+  /// Hauteur du soulèvement, grossissement final et nombre de gouttes
+  /// d'eau — dérivés du nombre total de tuiles bonus gagnées sur la pose
+  /// (voir constantes kBonus* en tête de fichier).
+  final double _liftPx;
+  final double _growScale;
+  final int _waterParticleCount;
+
+  static double _intensityFor(int totalBonusTiles) {
+    const maxExtra = kBonusIntensityMaxTiles - 1;
+    if (maxExtra <= 0) return 1.0;
+    return ((totalBonusTiles - 1) / maxExtra).clamp(0.0, 1.0);
+  }
+
+  late Vector2 _spawnPos;
+  late Vector2 _liftedPos;
+  bool _waterSpawned = false;
+
   double _life = 0.0;
   static const double _kFlyDuration = 0.6;
-  static const double _kDuration = 0.9;
+
+  /// Durée du flottement sur place lorsqu'aucune cible HUD n'est fournie.
+  static const double _kFloatDuration = 0.58;
+
+  /// Durée cumulée du soulèvement + de l'éclaboussure d'eau, avant que la
+  /// particule ne s'envole (ou ne flotte, si aucune cible n'est fournie).
+  static const double _kPreFlyDuration =
+      kBonusLiftDurationSec + kBonusWaterDurationSec;
 
   /// Durée du rebond squash & stretch joué à l'arrivée sur le HUD.
   static const double _kArrivalBounceDuration = 0.22;
@@ -900,28 +985,8 @@ class _BonusTileAnimComponent extends PositionComponent {
   @override
   Future<void> onLoad() async {
     await super.onLoad();
-    if (flyTarget != null) {
-      add(MoveEffect.to(
-        flyTarget!,
-        EffectController(
-          duration: _kFlyDuration,
-          curve: Curves.easeInOut,
-          startDelay: _startDelay,
-        ),
-      )..onComplete = () {
-          _arrived = true;
-          onImpact?.call();
-        });
-    } else {
-      add(MoveEffect.by(
-        Vector2(0, -40),
-        EffectController(
-          duration: _kDuration,
-          curve: Curves.easeOut,
-          startDelay: _startDelay,
-        ),
-      ));
-    }
+    _spawnPos = position.clone();
+    _liftedPos = _spawnPos - Vector2(0, _liftPx);
   }
 
   @override
@@ -929,16 +994,60 @@ class _BonusTileAnimComponent extends PositionComponent {
     super.update(dt);
     // Tant que le délai d'échelonnement n'est pas écoulé, l'icône reste
     // invisible et immobile (voir [render]) — évite que plusieurs icônes
-    // apparaissent toutes en même temps avant de s'envoler l'une après
-    // l'autre.
+    // apparaissent toutes en même temps avant de jouer leur animation
+    // l'une après l'autre.
     if (_delayElapsed < _startDelay) {
       _delayElapsed += dt;
       return;
     }
     _life += dt;
 
-    // Traînée de particules fantômes pendant le vol vers le HUD.
-    if (flyTarget != null && !_arrived) {
+    if (_arrived) {
+      _arrivalLife += dt;
+      if (_arrivalLife >= _kArrivalBounceDuration) {
+        removeFromParent();
+      }
+      return;
+    }
+
+    // Phase 1 : soulèvement + grossissement.
+    if (_life < kBonusLiftDurationSec) {
+      final t = Curves.easeOut
+          .transform((_life / kBonusLiftDurationSec).clamp(0.0, 1.0));
+      position = Vector2(
+        _spawnPos.x + (_liftedPos.x - _spawnPos.x) * t,
+        _spawnPos.y + (_liftedPos.y - _spawnPos.y) * t,
+      );
+      return;
+    }
+
+    // Phase 2 : éclaboussure d'eau, particule immobile en haut du
+    // soulèvement.
+    if (_life < _kPreFlyDuration) {
+      position = _liftedPos.clone();
+      if (!_waterSpawned) {
+        _waterSpawned = true;
+        parent?.add(_BonusWaterBurst(
+          position: _liftedPos.clone(),
+          baseRadius: _radius,
+          particleCount: _waterParticleCount,
+        ));
+      }
+      return;
+    }
+
+    // Phase 3 : vol vers l'encart HUD (ou flottement si aucune cible).
+    if (flyTarget != null) {
+      final flyLife = _life - _kPreFlyDuration;
+      final t = Curves.easeInOut.transform(
+        (flyLife / _kFlyDuration).clamp(0.0, 1.0),
+      );
+      position = Vector2(
+        _liftedPos.x + (flyTarget!.x - _liftedPos.x) * t,
+        _liftedPos.y + (flyTarget!.y - _liftedPos.y) * t,
+      );
+
+      // Traînée de particules fantômes pendant le vol vers le HUD.
       _sinceLastTrail += dt;
       if (_sinceLastTrail >= _kTrailInterval) {
         _sinceLastTrail = 0.0;
@@ -948,15 +1057,17 @@ class _BonusTileAnimComponent extends PositionComponent {
           color: kBonusBlueLighter,
         ));
       }
-    }
 
-    if (_arrived) {
-      _arrivalLife += dt;
-      if (_arrivalLife >= _kArrivalBounceDuration) {
+      if (flyLife >= _kFlyDuration) {
+        _arrived = true;
+        onImpact?.call();
+      }
+    } else {
+      final floatLife = _life - _kPreFlyDuration;
+      position = Vector2(_liftedPos.x, _liftedPos.y - floatLife * 40);
+      if (floatLife >= _kFloatDuration) {
         removeFromParent();
       }
-    } else if (_life >= _kDuration) {
-      removeFromParent();
     }
   }
 
@@ -964,21 +1075,41 @@ class _BonusTileAnimComponent extends PositionComponent {
   void render(Canvas canvas) {
     if (_delayElapsed < _startDelay) return;
 
-    final progress = (_life / _kDuration).clamp(0.0, 1.0);
-    final double alpha = flyTarget != null
-        ? _arrived
-            ? (1.0 - _arrivalLife / _kArrivalBounceDuration)
-            : (_life < 0.3)
-                ? (_life / 0.3)
-                : (1.0 - (_life - 0.3) / (_kFlyDuration - 0.3))
-        : 0.9 * (1.0 - progress);
+    /// Échelle de "transport" une fois le grossissement du soulèvement
+    /// tassé — utilisée pendant l'eau, le vol (ou le flottement) et comme
+    /// base du squash & stretch à l'arrivée.
+    final travelScale = _growScale * 0.85;
 
-    // Halo qui pulse légèrement pendant le vol (fréquence indépendante de
-    // la durée pour rester perceptible même sur un vol bref).
-    final pulse = flyTarget != null && !_arrived
-        ? 1.0 + sin(_life * 18) * 0.08
-        : 1.0;
-    var r = (flyTarget != null ? _radius + _life * 2.0 : _radius) * pulse;
+    double scaleMul;
+    double alpha;
+
+    if (_arrived) {
+      scaleMul = travelScale;
+      alpha = 1.0 - _arrivalLife / _kArrivalBounceDuration;
+    } else if (_life < kBonusLiftDurationSec) {
+      final t = Curves.easeOut
+          .transform((_life / kBonusLiftDurationSec).clamp(0.0, 1.0));
+      scaleMul = 1.0 + (_growScale - 1.0) * t;
+      alpha = (_life / kBonusLiftDurationSec).clamp(0.0, 1.0);
+    } else if (_life < _kPreFlyDuration) {
+      final t = ((_life - kBonusLiftDurationSec) / kBonusWaterDurationSec)
+          .clamp(0.0, 1.0);
+      scaleMul = _growScale - (_growScale - travelScale) * t;
+      alpha = 1.0;
+    } else if (flyTarget != null) {
+      final flyLife = _life - _kPreFlyDuration;
+      final flyT = (flyLife / _kFlyDuration).clamp(0.0, 1.0);
+      final pulse = 1.0 + sin(flyLife * 18) * 0.08;
+      scaleMul = travelScale * pulse;
+      alpha = flyT < 0.7 ? 1.0 : (1.0 - (flyT - 0.7) / 0.3).clamp(0.0, 1.0);
+    } else {
+      final floatLife = _life - _kPreFlyDuration;
+      final t = (floatLife / _kFloatDuration).clamp(0.0, 1.0);
+      scaleMul = travelScale;
+      alpha = 1.0 - t;
+    }
+
+    var r = _radius * scaleMul;
 
     // Squash & stretch à l'arrivée : la forme s'aplatit puis rebondit au
     // lieu de simplement s'estomper.
@@ -986,7 +1117,6 @@ class _BonusTileAnimComponent extends PositionComponent {
     var scaleY = 1.0;
     if (_arrived) {
       final t = (_arrivalLife / _kArrivalBounceDuration).clamp(0.0, 1.0);
-      // Aplatissement rapide suivi d'un léger sur-rebond avant de s'effacer.
       final squash = sin(t * pi);
       scaleX = 1.0 + squash * 0.5;
       scaleY = 1.0 - squash * 0.35;
@@ -1034,6 +1164,70 @@ class _BonusTileAnimComponent extends PositionComponent {
   }
 }
 
+/// Petite éclaboussure d'eau jouée une fois le soulèvement de la particule
+/// de gain de tuile terminé, juste avant son envol vers le HUD — habillage
+/// thématique repris du shader océan, désormais concentré sur cette
+/// particule plutôt que sur toute la tuile posée. Le nombre de gouttes
+/// grandit avec le nombre de tuiles bonus gagnées sur la pose.
+class _BonusWaterBurst extends PositionComponent {
+  _BonusWaterBurst({
+    required super.position,
+    required double baseRadius,
+    required int particleCount,
+  })  : _particles = _generateParticles(baseRadius, particleCount),
+        super(priority: kTileDepthPriorityPreview + 1);
+
+  final List<_Particle> _particles;
+  double _life = 0;
+  static const double _kDuration = 0.35;
+
+  static List<_Particle> _generateParticles(double baseRadius, int count) {
+    final rng = Random();
+    return List.generate(count, (i) {
+      final angle = rng.nextDouble() * 2 * pi;
+      final speed = 16 + rng.nextDouble() * 20;
+      return _Particle(
+        position: Vector2.zero(),
+        velocity: Vector2(cos(angle) * speed, sin(angle) * speed * 0.6),
+        radius: baseRadius * (0.10 + rng.nextDouble() * 0.12),
+        alpha: i.isEven ? 0.8 : 0.6,
+      );
+    });
+  }
+
+  @override
+  void update(double dt) {
+    super.update(dt);
+    _life += dt;
+    if (_life >= _kDuration) {
+      removeFromParent();
+      return;
+    }
+    for (final p in _particles) {
+      p.position += p.velocity * dt;
+      // Légère gravité — retombée façon goutte d'eau.
+      p.velocity += Vector2(0, 60 * dt);
+      p.velocity *= 0.92;
+      p.alpha *= max(0.0, 1.0 - dt * 2.2);
+      p.radius *= max(0.4, 1.0 - dt * 1.6);
+    }
+  }
+
+  @override
+  void render(Canvas canvas) {
+    for (final p in _particles) {
+      final color = p.alpha > 0.45 ? kBonusBlueLighter : kRewardWhite;
+      canvas.drawCircle(
+        Offset(p.position.x, p.position.y),
+        p.radius,
+        Paint()
+          ..color = color.withValues(alpha: p.alpha)
+          ..style = PaintingStyle.fill,
+      );
+    }
+  }
+}
+
 /// Particule fantôme laissée en traînée derrière une icône volante (tuile
 /// bonus). Se contente de rétrécir et s'estomper rapidement sur place.
 class _TrailDot extends PositionComponent {
@@ -1069,209 +1263,6 @@ class _TrailDot extends PositionComponent {
   }
 }
 
-/// Ondes concentriques partant du centre de la tuile posée — habillage
-/// thématique cohérent avec le shader océan de la grille, en complément du
-/// [_TileGainBurst]. Le nombre d'anneaux et leur portée grandissent avec
-/// [intensity] (0.0 = gain minimal, 1.0 = gain élevé).
-class _TileRippleEffect extends PositionComponent {
-  _TileRippleEffect({
-    required super.position,
-    required double hexSize,
-    required double intensity,
-  })  : _hexSize = hexSize,
-        _intensity = intensity.clamp(0.0, 1.0),
-        super(priority: kTileDepthPriorityPreview);
-
-  final double _hexSize;
-  final double _intensity;
-
-  double _life = 0.0;
-  static const double _kDuration = 0.55;
-  static const double _kRingStagger = 0.08;
-
-  /// Deux anneaux pour un gain minimal, jusqu'à quatre pour un gain élevé.
-  late final int _ringCount = 2 + (_intensity * 2).round();
-
-  @override
-  void update(double dt) {
-    super.update(dt);
-    _life += dt;
-    if (_life >= _kDuration + _ringCount * _kRingStagger) {
-      removeFromParent();
-    }
-  }
-
-  @override
-  void render(Canvas canvas) {
-    for (var i = 0; i < _ringCount; i++) {
-      final ringDelay = i * _kRingStagger;
-      final ringLife = _life - ringDelay;
-      if (ringLife <= 0) continue;
-      final t = (ringLife / _kDuration).clamp(0.0, 1.0);
-      if (t >= 1.0) continue;
-      final radius = _hexSize * (0.35 + t * (1.0 + _intensity * 0.7));
-      final alpha = (1.0 - t) * 0.32 * (0.6 + _intensity * 0.4);
-      if (alpha <= 0.01) continue;
-      canvas.drawCircle(
-        Offset.zero,
-        radius,
-        Paint()
-          ..color = kBonusBlueLighter.withValues(alpha: alpha)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 2.0 + _intensity * 1.5,
-      );
-    }
-  }
-}
-
-/// Impact visuel joué à *chaque* pose qui rapporte un gain (pièces et/ou
-/// tuiles bonus), pas uniquement sur les connexions parfaites — un flash
-/// radial bref et un burst de particules dont l'intensité (nombre de
-/// particules, portée, opacité du flash) grandit avec [intensity]
-/// (0.0 = gain minimal, 1.0 = gain élevé).
-///
-/// Complète [_PerfectConnectionParticles] (qui reste dédié aux connexions
-/// 5-6 côtés) plutôt que de le remplacer : sur une connexion parfaite les
-/// deux effets se superposent, ce qui renforce encore la sensation de
-/// "gros coup".
-class _TileGainBurst extends PositionComponent {
-  _TileGainBurst({
-    required super.position,
-    required double hexSize,
-    required double intensity,
-  })  : _intensity = intensity.clamp(0.0, 1.0),
-        _particles = _generateParticles(hexSize, intensity.clamp(0.0, 1.0)),
-        super(priority: kTileDepthPriorityPreview + 1);
-
-  final double _intensity;
-  final List<_Particle> _particles;
-
-  static List<_Particle> _generateParticles(double hexSize, double intensity) {
-    final rng = Random();
-    final count = 4 + (intensity * 12).round() + rng.nextInt(3);
-    return List.generate(count, (_) {
-      final angle = rng.nextDouble() * 2 * pi;
-      final speed = (35 + rng.nextDouble() * 40) * (0.6 + intensity * 0.8);
-      return _Particle(
-        position: Vector2.zero(),
-        velocity: Vector2(cos(angle) * speed, sin(angle) * speed),
-        radius: (1.2 + rng.nextDouble() * 1.6) * (0.7 + intensity * 0.6),
-        alpha: 0.85,
-      );
-    });
-  }
-
-  double _life = 0;
-  static const double _kDuration = 0.5;
-
-  @override
-  void update(double dt) {
-    super.update(dt);
-    _life += dt;
-    if (_life >= _kDuration) {
-      removeFromParent();
-      return;
-    }
-    for (final p in _particles) {
-      p.position += p.velocity * dt;
-      p.velocity *= 0.90;
-      p.alpha = 0.85 * (1.0 - _life / _kDuration);
-      p.radius *= max(0.3, 1.0 - dt * 1.8);
-    }
-  }
-
-  @override
-  void render(Canvas canvas) {
-    final t = (_life / _kDuration).clamp(0.0, 1.0);
-
-    // Flash radial bref, uniquement perceptible pour les gains conséquents.
-    if (_intensity > 0.05) {
-      final flashAlpha = (1.0 - t) * 0.35 * _intensity;
-      if (flashAlpha > 0.01) {
-        canvas.drawCircle(
-          Offset.zero,
-          6 + 30 * _intensity * t,
-          Paint()
-            ..color = kRewardGold.withValues(alpha: flashAlpha)
-            ..style = PaintingStyle.fill,
-        );
-      }
-    }
-
-    for (final p in _particles) {
-      final color = p.alpha > 0.5
-          ? kBonusBlueLighter.withValues(alpha: p.alpha)
-          : kRewardWhite.withValues(alpha: p.alpha);
-      canvas.drawCircle(
-        Offset(p.position.x, p.position.y),
-        p.radius,
-        Paint()
-          ..color = color
-          ..style = PaintingStyle.fill,
-      );
-    }
-  }
-}
-
-/// Particules légères pour connexion parfaite (5-6 côtés — Story 4.2b).
-class _PerfectConnectionParticles extends PositionComponent {
-  _PerfectConnectionParticles({
-    required super.position,
-    required double hexSize,
-  }) : _particles = _generateParticles(hexSize),
-       super(priority: kTileDepthPriorityPreview + 1);
-
-  static List<_Particle> _generateParticles(double hexSize) {
-    final rng = Random();
-    final count = 10 + rng.nextInt(6);
-    return List.generate(count, (_) {
-      final angle = rng.nextDouble() * 2 * pi;
-      final speed = 50 + rng.nextDouble() * 60;
-      return _Particle(
-        position: Vector2.zero(),
-        velocity: Vector2(cos(angle) * speed, sin(angle) * speed),
-        radius: 1.5 + rng.nextDouble() * 2.0,
-        alpha: 0.9,
-      );
-    });
-  }
-
-  final List<_Particle> _particles;
-  double _life = 0;
-  static const double _kDuration = 0.7;
-
-  @override
-  void update(double dt) {
-    super.update(dt);
-    _life += dt;
-    if (_life >= _kDuration) {
-      removeFromParent();
-      return;
-    }
-    for (final p in _particles) {
-      p.position += p.velocity * dt;
-      p.velocity *= 0.93;
-      p.alpha = 0.9 * (1.0 - _life / _kDuration);
-      p.radius *= max(0.3, 1.0 - dt * 1.5);
-    }
-  }
-
-  @override
-  void render(Canvas canvas) {
-    for (final p in _particles) {
-      final color = p.alpha > 0.5
-          ? kRewardGold.withValues(alpha: p.alpha)
-          : kRewardWhite.withValues(alpha: p.alpha);
-      canvas.drawCircle(
-        Offset(p.position.x, p.position.y),
-        p.radius,
-        Paint()
-          ..color = color
-          ..style = PaintingStyle.fill,
-      );
-    }
-  }
-}
 
 /// Donnée d'une particule individuelle.
 class _Particle {
