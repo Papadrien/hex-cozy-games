@@ -93,9 +93,9 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     _game.getBonusFlyTarget = () => _stackHudFlyTarget();
     // Chaque icône de tuile bonus qui arrive sur le HUD (échelonnées sur
     // les gains multi-tuiles) fait "pop" le compteur avec une intensité
-    // fixe, plus discrète que le pop principal déclenché par [lastReward]
-    // — l'empilement des deux donne un feedback layered plutôt qu'un pop
-    // unique répété identique.
+    // fixe. C'est désormais le seul déclencheur du pulse doré de la pile :
+    // on ne réagit plus à la pose elle-même (via [lastReward]) pour éviter
+    // une double réaction (pose + arrivée de la particule).
     _game.onBonusImpact = () =>
         _tileStackImpactKey.currentState?.pulse(0.5);
     Future.microtask(
@@ -422,30 +422,28 @@ class _GameScreenState extends ConsumerState<GameScreen> {
   }
 }
 
-/// Fait "réagir" la pile de tuiles HUD à chaque gain d'une pose : léger
-/// rebond d'échelle (pop) et halo doré qui pulse, avec une intensité
-/// proportionnelle au gain total (pièces + pièces bonus + tuiles bonus) de
-/// la pose. Complète le vol de l'icône bonus vers ce même HUD en donnant
-/// au HUD lui-même un feedback d'impact au moment où le gain "arrive".
-class _TileStackImpactReaction extends ConsumerStatefulWidget {
+/// Fait "réagir" la pile de tuiles HUD lorsqu'une icône de tuile bonus
+/// arrive dessus après son vol depuis le plateau : léger rebond d'échelle
+/// (pop) et halo doré qui pulse, déclenchés via [pulse] par
+/// [HexBoardGame.onBonusImpact].
+///
+/// Le pulse n'est plus déclenché au moment de la pose elle-même — seul
+/// l'arrivée effective de la particule sur la pile déclenche le feedback,
+/// pour éviter une double réaction (pose + arrivée).
+class _TileStackImpactReaction extends StatefulWidget {
   const _TileStackImpactReaction({super.key, required this.child});
 
   final Widget child;
 
   @override
-  ConsumerState<_TileStackImpactReaction> createState() =>
+  State<_TileStackImpactReaction> createState() =>
       _TileStackImpactReactionState();
 }
 
-class _TileStackImpactReactionState
-    extends ConsumerState<_TileStackImpactReaction>
+class _TileStackImpactReactionState extends State<_TileStackImpactReaction>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
   double _intensity = 0.0;
-
-  /// Gain total au-delà duquel l'intensité du pop/glow plafonne — garde une
-  /// réaction perceptible mais pas écrasante sur les très gros gains.
-  static const int _kMaxGainForIntensity = 9;
 
   @override
   void initState() {
@@ -462,10 +460,11 @@ class _TileStackImpactReactionState
     super.dispose();
   }
 
-  /// Déclenche le pop/glow avec l'intensité donnée (0.0-1.0). Utilisée à la
-  /// fois pour le gain global d'une pose (via [sessionProvider.lastReward])
-  /// et pour chaque icône de tuile bonus échelonnée arrivant sur le HUD
-  /// (via [HexBoardGame.onBonusImpact]).
+  /// Déclenche le pop/glow avec l'intensité donnée (0.0-1.0). Appelée
+  /// uniquement par [HexBoardGame.onBonusImpact], lorsque chaque icône de
+  /// tuile bonus échelonnée arrive sur le HUD après son vol depuis le
+  /// plateau — et non plus au moment de la pose elle-même, pour éviter
+  /// une double réaction (pose + arrivée).
   void pulse(double intensity) {
     if (!mounted || intensity <= 0) return;
     _intensity = intensity.clamp(0.0, 1.0);
@@ -474,15 +473,6 @@ class _TileStackImpactReactionState
 
   @override
   Widget build(BuildContext context) {
-    ref.listen<SessionState>(sessionProvider, (prev, next) {
-      final reward = next.lastReward;
-      if (reward == null || prev?.lastReward == reward) return;
-      final totalGain =
-          reward.connectedSides.length + reward.bonusCoins + reward.bonusTiles;
-      if (totalGain <= 0) return;
-      pulse(totalGain / _kMaxGainForIntensity);
-    });
-
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, child) {
