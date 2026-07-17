@@ -59,7 +59,7 @@ const double _kPerspectiveMaxRotation = 0.38; // plafond en radians
 // croissante avec l'index) pour que toutes les tuiles pas encore posables
 // aient le même effet de profondeur, quelle que soit leur position dans la
 // pile.
-const double _kStackTileDepth = 10.0; // px, identique pour toutes les tuiles
+const double _kStackTileDepth = 5.0; // px, identique pour toutes les tuiles
 
 double _sideDepthFor(int index) => index <= 0 ? 0.0 : _kStackTileDepth;
 
