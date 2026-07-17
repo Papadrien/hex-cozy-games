@@ -79,10 +79,10 @@ const double kBonusLiftMinPx = 6.0;
 const double kBonusLiftMaxPx = 18.0;
 
 /// Échelle atteinte à la fin du soulèvement pour un gain minimal.
-const double kBonusGrowMinScale = 1.15;
+const double kBonusGrowMinScale = 1.45;
 
 /// Échelle atteinte à la fin du soulèvement pour un gain maximal.
-const double kBonusGrowMaxScale = 1.6;
+const double kBonusGrowMaxScale = 2.2;
 
 /// Nombre de gouttes d'eau pour un gain minimal.
 const int kBonusWaterParticleMin = 3;
@@ -899,6 +899,25 @@ class _PreviewBonusComponent extends PositionComponent {
   }
 }
 
+/// Dessine un hexagone regular (pointy-top, isotrope) sur le canvas.
+void _drawHex(Canvas canvas, Offset center, double radius,
+    {required Paint paint}) {
+  final path = Path();
+  for (var i = 0; i < 6; i++) {
+    final angleDeg = 60.0 * i - 90.0;
+    final angleRad = angleDeg * pi / 180.0;
+    final x = center.dx + radius * cos(angleRad);
+    final y = center.dy + radius * sin(angleRad) * kIsoScaleY;
+    if (i == 0) {
+      path.moveTo(x, y);
+    } else {
+      path.lineTo(x, y);
+    }
+  }
+  path.close();
+  canvas.drawPath(path, paint);
+}
+
 /// Icône de tuile bonus animée après placement — vole vers la pile HUD
 /// comme les pièces (Story 4.2b).
 ///
@@ -1126,21 +1145,15 @@ class _BonusTileAnimComponent extends PositionComponent {
     canvas.save();
     canvas.scale(scaleX, scaleY);
 
-    // Cercle extérieur (fond).
-    canvas.drawCircle(
-      Offset.zero,
-      r,
-      Paint()
-        ..color = kBonusBlueLight.withValues(alpha: alpha)
-        ..style = PaintingStyle.fill,
-    );
-    canvas.drawCircle(
-      Offset.zero,
-      r * 0.75,
-      Paint()
-        ..color = kBonusBlueLighter.withValues(alpha: alpha * 0.7)
-        ..style = PaintingStyle.fill,
-    );
+    // Hex extérieur (fond).
+    _drawHex(canvas, Offset.zero, r,
+        paint: Paint()
+          ..color = kBonusBlueLight.withValues(alpha: alpha)
+          ..style = PaintingStyle.fill);
+    _drawHex(canvas, Offset.zero, r * 0.75,
+        paint: Paint()
+          ..color = kBonusBlueLighter.withValues(alpha: alpha * 0.7)
+          ..style = PaintingStyle.fill);
 
     // Nombre de tuiles bonus (+N) centré en blanc.
     final text = '+$bonusCount';
@@ -1217,13 +1230,10 @@ class _BonusWaterBurst extends PositionComponent {
   void render(Canvas canvas) {
     for (final p in _particles) {
       final color = p.alpha > 0.45 ? kBonusBlueLighter : kRewardWhite;
-      canvas.drawCircle(
-        Offset(p.position.x, p.position.y),
-        p.radius,
-        Paint()
-          ..color = color.withValues(alpha: p.alpha)
-          ..style = PaintingStyle.fill,
-      );
+      _drawHex(canvas, Offset(p.position.x, p.position.y), p.radius,
+          paint: Paint()
+            ..color = color.withValues(alpha: p.alpha)
+            ..style = PaintingStyle.fill);
     }
   }
 }
@@ -1253,13 +1263,10 @@ class _TrailDot extends PositionComponent {
   @override
   void render(Canvas canvas) {
     final t = (_life / _kDuration).clamp(0.0, 1.0);
-    canvas.drawCircle(
-      Offset.zero,
-      _radius * (1.0 - t * 0.7),
-      Paint()
-        ..color = color.withValues(alpha: 0.55 * (1.0 - t))
-        ..style = PaintingStyle.fill,
-    );
+    _drawHex(canvas, Offset.zero, _radius * (1.0 - t * 0.7),
+        paint: Paint()
+          ..color = color.withValues(alpha: 0.55 * (1.0 - t))
+          ..style = PaintingStyle.fill);
   }
 }
 
