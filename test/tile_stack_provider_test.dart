@@ -106,4 +106,82 @@ void main() {
       expect(state.activeTile, isNull);
     });
   });
+
+  group('tileStackProvider — Couleur détestée (activation)', () {
+    ProviderContainer makeContainer({int hatedColorExclusionDuration = 0}) =>
+        ProviderContainer(overrides: [
+          activeUpgradeEffectsProvider.overrideWithValue(
+            ActiveUpgradeEffects(
+              hatedColorExclusionDuration: hatedColorExclusionDuration,
+            ),
+          ),
+        ]);
+
+    test("l'exclusion n'est pas active au lancement de la partie", () {
+      final container = makeContainer(hatedColorExclusionDuration: 5);
+      addTearDown(container.dispose);
+
+      final state = container.read(tileStackProvider);
+      expect(state.excludeBiome, isNull);
+      expect(state.hatedDuration, 0);
+      expect(state.hatedActivated, isFalse);
+    });
+
+    test('activateHatedColor active l\'exclusion pour une couleur de base', () {
+      final container = makeContainer(hatedColorExclusionDuration: 5);
+      addTearDown(container.dispose);
+
+      container.read(tileStackProvider.notifier).activateHatedColor();
+      final state = container.read(tileStackProvider);
+
+      expect(state.hatedActivated, isTrue);
+      expect(state.hatedDuration, 5);
+      expect(state.hatedStartCount, 0);
+      expect(state.excludeBiome, isNotNull);
+      // Seules les couleurs disponibles dès le lancement (sans palier de
+      // déblocage) peuvent être tirées.
+      expect(unlockedBiomesAt(1), contains(state.excludeBiome));
+      expect(kBiomeUnlockThresholds.containsKey(state.excludeBiome), isFalse);
+    });
+
+    test('la couleur exclue ne réapparaît pas sur les tuiles suivantes', () {
+      final container = makeContainer(hatedColorExclusionDuration: 5);
+      addTearDown(container.dispose);
+
+      container.read(tileStackProvider.notifier).activateHatedColor();
+      final excluded = container.read(tileStackProvider).excludeBiome!;
+
+      for (var i = 0; i < 5; i++) {
+        final tile = container.read(tileStackProvider).activeTile!;
+        expect(tile.sides, isNot(contains(excluded)));
+        container.read(tileStackProvider.notifier).consumeActiveTile();
+      }
+    });
+
+    test('activateHatedColor est un usage unique par partie', () {
+      final container = makeContainer(hatedColorExclusionDuration: 5);
+      addTearDown(container.dispose);
+
+      final notifier = container.read(tileStackProvider.notifier);
+      notifier.activateHatedColor();
+      final biomeAfterFirstCall = container.read(tileStackProvider).excludeBiome;
+
+      // Un deuxième appel ne doit rien changer (déjà activée).
+      notifier.activateHatedColor();
+      final state = container.read(tileStackProvider);
+      expect(state.excludeBiome, biomeAfterFirstCall);
+      expect(state.hatedActivated, isTrue);
+    });
+
+    test('activateHatedColor ne fait rien si l\'amélioration n\'est pas possédée', () {
+      final container = makeContainer(); // hatedColorExclusionDuration = 0
+      addTearDown(container.dispose);
+
+      container.read(tileStackProvider.notifier).activateHatedColor();
+      final state = container.read(tileStackProvider);
+
+      expect(state.excludeBiome, isNull);
+      expect(state.hatedActivated, isFalse);
+    });
+  });
 }

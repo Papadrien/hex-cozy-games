@@ -155,6 +155,8 @@ class _UpgradeSlotState extends ConsumerState<_UpgradeSlot>
         return _buildHoldSlot(context);
       case UpgradeEffectType.secondChanceUses:
         return _buildSecondChance(context);
+      case UpgradeEffectType.hatedColorExclusion:
+        return _buildHatedColor(context);
       default:
         return _buildPassiveSlot(context, effectType);
     }
@@ -276,6 +278,49 @@ class _UpgradeSlotState extends ConsumerState<_UpgradeSlot>
             child: Icon(
               isActive ? Icons.close : Icons.replay,
               color: Colors.white,
+              size: 22,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Slot "Couleur détestée" — amélioration à usage unique par partie :
+  /// tant qu'elle n'a pas été activée, un tap déclenche l'exclusion (voir
+  /// [activateHatedColor]) ; une fois activée (en cours ou terminée), le
+  /// slot n'a plus d'action au tap, seul l'appui long reste disponible. La
+  /// pastille de couleur du biome exclu (voir [upgradeCounterFor]) reste le
+  /// seul indicateur visuel de l'effet en cours.
+  Widget _buildHatedColor(BuildContext context) {
+    final activated =
+        ref.watch(tileStackProvider.select((s) => s.hatedActivated));
+    final tint = upgradeIconColor(UpgradeEffectType.hatedColorExclusion);
+    final counter = upgradeCounterFor(ref, UpgradeEffectType.hatedColorExclusion);
+
+    return GestureDetector(
+      onLongPress: () => _showDescription(context),
+      child: _slotShell(
+        counter: counter,
+        builder: (glowAlpha, scale) => GlassContainer(
+          width: kActiveUpgradeSlotSize,
+          height: kActiveUpgradeSlotSize,
+          tintColor: kGlassBlue,
+          borderColor: glowAlpha > 0
+              ? Color.lerp(kGlassBlueBorder, kRewardGold, glowAlpha)
+              : kGlassBlueBorder,
+          borderWidth: glowAlpha > 0 ? 1.0 + glowAlpha : 1.0,
+          onTap: activated
+              ? null
+              : () {
+                  buttonHapticTap(context);
+                  activateHatedColor(ref);
+                },
+          child: Opacity(
+            opacity: activated ? 0.4 : 1.0,
+            child: Icon(
+              upgradeIconData(UpgradeEffectType.hatedColorExclusion),
+              color: tint ?? Colors.white,
               size: 22,
             ),
           ),

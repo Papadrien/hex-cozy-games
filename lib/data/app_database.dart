@@ -65,6 +65,10 @@ class PermanentQuests extends Table {
   // Quête répétable (ex: connexions) — se remet à zéro instantanément après
   // obtention de la récompense, en conservant le même palier (targetValue).
   BoolColumn get isRepeatable => boolean().withDefault(const Constant(false))();
+  // Une quête complétée (isCompleted == true) n'octroie pas sa récompense
+  // automatiquement : elle reste en attente (point rouge dans l'UI) tant
+  // que le joueur n'a pas tapé dessus pour la réclamer.
+  BoolColumn get rewardClaimed => boolean().withDefault(const Constant(false))();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -107,7 +111,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration {
@@ -121,6 +125,16 @@ class AppDatabase extends _$AppDatabase {
           await m.addColumn(
             playerProfile,
             playerProfile.lastPremiumDailyCoinsDate,
+          );
+        }
+        if (from < 3) {
+          await m.addColumn(permanentQuests, permanentQuests.rewardClaimed);
+          // Les quêtes déjà marquées complétées avant cette version ont
+          // déjà reçu leur récompense (ancien comportement automatique) :
+          // on les marque comme réclamées pour ne pas réafficher un point
+          // rouge ni permettre un double octroi.
+          await customStatement(
+            'UPDATE permanent_quests SET reward_claimed = 1 WHERE is_completed = 1',
           );
         }
         // MetaRunHistory table was removed — safe to ignore since

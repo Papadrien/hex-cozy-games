@@ -112,6 +112,16 @@ class HapticsService {
         await HapticFeedback.heavyImpact();
     }
   }
+  /// Retour haptique de célébration joué lorsqu'une récompense de quête est
+  /// réclamée manuellement (tap sur une quête terminée). Un impact moyen
+  /// suivi d'un impact fort après un court délai, pour une sensation de
+  /// "pop" satisfaisant distincte des autres retours du jeu.
+  Future<void> questRewardClaimed() async {
+    if (!_enabled) return;
+    await HapticFeedback.mediumImpact();
+    await Future<void>.delayed(const Duration(milliseconds: 80));
+    await HapticFeedback.heavyImpact();
+  }
 }
 
 final hapticsServiceProvider = Provider<HapticsService>((ref) {

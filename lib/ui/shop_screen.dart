@@ -339,7 +339,7 @@ class _PriceButton extends StatelessWidget {
       borderColor: available
           ? kGlassBlueBorder
           : Colors.white.withValues(alpha: 0.12),
-      blurSigma: 8,
+      blurSigma: 10,
       padding: const EdgeInsets.symmetric(horizontal: 18),
       height: 42,
       onTap: onTap,
@@ -386,8 +386,7 @@ class _CoinStackIcon extends StatelessWidget {
       borderColor: isBestValue
           ? kRewardGold.withValues(alpha: 0.35)
           : kGlassBlueBorder,
-      borderWidth: 0.8,
-      blurSigma: 6,
+      blurSigma: 10,
       width: 48,
       height: 48,
       child: Icon(
@@ -431,7 +430,7 @@ class _PremiumCardState extends ConsumerState<_PremiumCard> {
           ? kUpgradePurple.withValues(alpha: 0.50)
           : kGlassBlueBorder,
       borderWidth: widget.isPremium ? 1.5 : 1,
-      blurSigma: 14,
+      blurSigma: 12,
       padding: const EdgeInsets.all(20),
       child: Column(
         children: [
@@ -443,8 +442,7 @@ class _PremiumCardState extends ConsumerState<_PremiumCard> {
                 tintColor: kUpgradePurple,
                 tintAlpha: 0.20,
                 borderColor: kUpgradePurple.withValues(alpha: 0.40),
-                borderWidth: 0.8,
-                blurSigma: 6,
+                blurSigma: 10,
                 width: 52,
                 height: 52,
                 child: const Icon(
@@ -489,7 +487,7 @@ class _PremiumCardState extends ConsumerState<_PremiumCard> {
             borderColor: widget.isPremium
                 ? Colors.white.withValues(alpha: 0.12)
                 : kUpgradePurple.withValues(alpha: 0.55),
-            blurSigma: 8,
+            blurSigma: 10,
             padding: const EdgeInsets.symmetric(vertical: 15),
             onTap: (widget.isPremium || _loading || !iapAvailable)
                 ? null
@@ -592,7 +590,7 @@ class _RestoreButtonState extends ConsumerState<_RestoreButton> {
       tintColor: kGlassBlue,
       tintAlpha: 0.18,
       borderColor: kGlassBlueBorder,
-      blurSigma: 8,
+      blurSigma: 10,
       padding: const EdgeInsets.symmetric(vertical: 14),
       onTap: _loading
           ? null

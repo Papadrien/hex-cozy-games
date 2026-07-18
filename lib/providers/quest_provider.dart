@@ -34,6 +34,22 @@ final activeQuestsProvider = Provider<List<PermanentQuestRow>>((ref) {
   return quests.where((q) => !q.isCompleted).toList();
 });
 
+/// Quêtes terminées dont la récompense n'a pas encore été réclamée par le
+/// joueur (Story : point rouge / claim manuel).
+final unclaimedQuestsProvider = Provider<List<PermanentQuestRow>>((ref) {
+  final quests = ref.watch(permanentQuestsProvider).maybeWhen(
+        data: (list) => list,
+        orElse: () => <PermanentQuestRow>[],
+      );
+  return quests.where((q) => q.isCompleted && !q.rewardClaimed).toList();
+});
+
+/// Vrai s'il existe au moins une quête complétée en attente de réclamation
+/// — pilote le point rouge sur le bouton "Quêtes" de l'écran d'accueil.
+final hasUnclaimedQuestProvider = Provider<bool>((ref) {
+  return ref.watch(unclaimedQuestsProvider).isNotEmpty;
+});
+
 final questServiceProvider = Provider<QuestService>((ref) {
   return QuestService(ref);
 });
@@ -395,25 +411,22 @@ class QuestService {
   }
 
   // ─── Completion & rewards ───────────────────────────────────────────────
+  //
+  // La progression atteint son objectif : la quête est marquée `isCompleted`
+  // mais sa récompense reste en attente (`rewardClaimed == false`). Rien
+  // n'est débloqué automatiquement — ni pièces, ni quête suivante, ni
+  // amélioration — tant que le joueur n'a pas tapé sur la quête (point
+  // rouge) pour la réclamer via [claimReward].
 
   Future<void> _handleCompletion(PermanentQuestRow quest) async {
-    await _grantReward(quest);
-
-    if (quest.isRepeatable) {
-      // Quête répétable (ex: connexions multiples) : remise à zéro
-      // instantanée, même palier, pas de chaîne ni de déblocage.
-      final db = _ref.read(appDatabaseProvider);
-      await db.update(db.permanentQuests).replace(quest.copyWith(
-            currentValue: 0,
-            isCompleted: false,
-          ));
-      return;
-    }
-
-    if (quest.nextQuestId != null) {
-      _unlockNextQuest(quest.nextQuestId!);
-    }
-    // Vérifier les déblocages d'améliorations après chaque quête (Story 2.5a).
+    // isCompleted a déjà été mis à jour par l'appelant ; la récompense
+    // propre de la quête (pièces / déblocage d'amélioration listé comme
+    // `rewardType`) reste en attente jusqu'à [claimReward]. En revanche,
+    // le système de déblocage d'améliorations conditionnées par
+    // `unlockConditionType == <questId>` (table `upgrades`) reste
+    // automatique et indépendant de cette réclamation manuelle : il se
+    // base uniquement sur `isCompleted`, déjà vrai à ce stade.
+    if (quest.isRepeatable) return;
     await _ref.read(progressionServiceProvider).checkUnlocks();
   }
 
@@ -428,6 +441,45 @@ class QuestService {
     // La quête suivante existe déjà dans la table (seedée).
     // Rien à faire : elle devient visible car isCompleted == false.
     // L'UI l'affichera via [activeQuestsProvider].
+  }
+
+  /// Réclame la récompense d'une quête terminée (tap du joueur sur la
+  /// quête / le point rouge). Octroie la récompense, puis :
+  /// - si répétable : remise à zéro instantanée (même palier) ;
+  /// - sinon : déverrouille la quête suivante et vérifie les déblocages
+  ///   d'améliorations.
+  ///
+  /// Ne fait rien si la quête n'existe pas, n'est pas terminée, ou a déjà
+  /// été réclamée (protège contre un double-tap).
+  Future<void> claimReward(String questId) async {
+    final db = _ref.read(appDatabaseProvider);
+    final quest = await (db.select(db.permanentQuests)
+          ..where((q) => q.id.equals(questId)))
+        .getSingleOrNull();
+    if (quest == null || !quest.isCompleted || quest.rewardClaimed) return;
+
+    await _grantReward(quest);
+
+    if (quest.isRepeatable) {
+      // Quête répétable (ex: connexions multiples) : remise à zéro
+      // instantanée, même palier, pas de chaîne ni de déblocage.
+      await db.update(db.permanentQuests).replace(quest.copyWith(
+            currentValue: 0,
+            isCompleted: false,
+            rewardClaimed: false,
+          ));
+    } else {
+      await db.update(db.permanentQuests).replace(quest.copyWith(
+            rewardClaimed: true,
+          ));
+      if (quest.nextQuestId != null) {
+        _unlockNextQuest(quest.nextQuestId!);
+      }
+      // Vérifier les déblocages d'améliorations après réclamation
+      // (Story 2.5a).
+      await _ref.read(progressionServiceProvider).checkUnlocks();
+    }
+    _ref.invalidate(permanentQuestsProvider);
   }
 
   // ─── Daily quests (Story 2.4a) ──────────────────────────────────────────

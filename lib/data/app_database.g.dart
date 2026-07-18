@@ -1672,6 +1672,21 @@ class $PermanentQuestsTable extends PermanentQuests
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _rewardClaimedMeta = const VerificationMeta(
+    'rewardClaimed',
+  );
+  @override
+  late final GeneratedColumn<bool> rewardClaimed = GeneratedColumn<bool>(
+    'reward_claimed',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("reward_claimed" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -1684,6 +1699,7 @@ class $PermanentQuestsTable extends PermanentQuests
     rewardValue,
     nextQuestId,
     isRepeatable,
+    rewardClaimed,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1787,6 +1803,15 @@ class $PermanentQuestsTable extends PermanentQuests
         ),
       );
     }
+    if (data.containsKey('reward_claimed')) {
+      context.handle(
+        _rewardClaimedMeta,
+        rewardClaimed.isAcceptableOrUnknown(
+          data['reward_claimed']!,
+          _rewardClaimedMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -1836,6 +1861,10 @@ class $PermanentQuestsTable extends PermanentQuests
         DriftSqlType.bool,
         data['${effectivePrefix}is_repeatable'],
       )!,
+      rewardClaimed: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}reward_claimed'],
+      )!,
     );
   }
 
@@ -1857,6 +1886,7 @@ class PermanentQuestRow extends DataClass
   final int rewardValue;
   final String? nextQuestId;
   final bool isRepeatable;
+  final bool rewardClaimed;
   const PermanentQuestRow({
     required this.id,
     required this.category,
@@ -1868,6 +1898,7 @@ class PermanentQuestRow extends DataClass
     required this.rewardValue,
     this.nextQuestId,
     required this.isRepeatable,
+    required this.rewardClaimed,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1884,6 +1915,7 @@ class PermanentQuestRow extends DataClass
       map['next_quest_id'] = Variable<String>(nextQuestId);
     }
     map['is_repeatable'] = Variable<bool>(isRepeatable);
+    map['reward_claimed'] = Variable<bool>(rewardClaimed);
     return map;
   }
 
@@ -1901,6 +1933,7 @@ class PermanentQuestRow extends DataClass
           ? const Value.absent()
           : Value(nextQuestId),
       isRepeatable: Value(isRepeatable),
+      rewardClaimed: Value(rewardClaimed),
     );
   }
 
@@ -1920,6 +1953,7 @@ class PermanentQuestRow extends DataClass
       rewardValue: serializer.fromJson<int>(json['rewardValue']),
       nextQuestId: serializer.fromJson<String?>(json['nextQuestId']),
       isRepeatable: serializer.fromJson<bool>(json['isRepeatable']),
+      rewardClaimed: serializer.fromJson<bool>(json['rewardClaimed']),
     );
   }
   @override
@@ -1936,6 +1970,7 @@ class PermanentQuestRow extends DataClass
       'rewardValue': serializer.toJson<int>(rewardValue),
       'nextQuestId': serializer.toJson<String?>(nextQuestId),
       'isRepeatable': serializer.toJson<bool>(isRepeatable),
+      'rewardClaimed': serializer.toJson<bool>(rewardClaimed),
     };
   }
 
@@ -1950,6 +1985,7 @@ class PermanentQuestRow extends DataClass
     int? rewardValue,
     Value<String?> nextQuestId = const Value.absent(),
     bool? isRepeatable,
+    bool? rewardClaimed,
   }) => PermanentQuestRow(
     id: id ?? this.id,
     category: category ?? this.category,
@@ -1961,6 +1997,7 @@ class PermanentQuestRow extends DataClass
     rewardValue: rewardValue ?? this.rewardValue,
     nextQuestId: nextQuestId.present ? nextQuestId.value : this.nextQuestId,
     isRepeatable: isRepeatable ?? this.isRepeatable,
+    rewardClaimed: rewardClaimed ?? this.rewardClaimed,
   );
   PermanentQuestRow copyWithCompanion(PermanentQuestsCompanion data) {
     return PermanentQuestRow(
@@ -1990,6 +2027,9 @@ class PermanentQuestRow extends DataClass
       isRepeatable: data.isRepeatable.present
           ? data.isRepeatable.value
           : this.isRepeatable,
+      rewardClaimed: data.rewardClaimed.present
+          ? data.rewardClaimed.value
+          : this.rewardClaimed,
     );
   }
 
@@ -2005,7 +2045,8 @@ class PermanentQuestRow extends DataClass
           ..write('rewardType: $rewardType, ')
           ..write('rewardValue: $rewardValue, ')
           ..write('nextQuestId: $nextQuestId, ')
-          ..write('isRepeatable: $isRepeatable')
+          ..write('isRepeatable: $isRepeatable, ')
+          ..write('rewardClaimed: $rewardClaimed')
           ..write(')'))
         .toString();
   }
@@ -2022,6 +2063,7 @@ class PermanentQuestRow extends DataClass
     rewardValue,
     nextQuestId,
     isRepeatable,
+    rewardClaimed,
   );
   @override
   bool operator ==(Object other) =>
@@ -2036,7 +2078,8 @@ class PermanentQuestRow extends DataClass
           other.rewardType == this.rewardType &&
           other.rewardValue == this.rewardValue &&
           other.nextQuestId == this.nextQuestId &&
-          other.isRepeatable == this.isRepeatable);
+          other.isRepeatable == this.isRepeatable &&
+          other.rewardClaimed == this.rewardClaimed);
 }
 
 class PermanentQuestsCompanion extends UpdateCompanion<PermanentQuestRow> {
@@ -2050,6 +2093,7 @@ class PermanentQuestsCompanion extends UpdateCompanion<PermanentQuestRow> {
   final Value<int> rewardValue;
   final Value<String?> nextQuestId;
   final Value<bool> isRepeatable;
+  final Value<bool> rewardClaimed;
   final Value<int> rowid;
   const PermanentQuestsCompanion({
     this.id = const Value.absent(),
@@ -2062,6 +2106,7 @@ class PermanentQuestsCompanion extends UpdateCompanion<PermanentQuestRow> {
     this.rewardValue = const Value.absent(),
     this.nextQuestId = const Value.absent(),
     this.isRepeatable = const Value.absent(),
+    this.rewardClaimed = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   PermanentQuestsCompanion.insert({
@@ -2075,6 +2120,7 @@ class PermanentQuestsCompanion extends UpdateCompanion<PermanentQuestRow> {
     required int rewardValue,
     this.nextQuestId = const Value.absent(),
     this.isRepeatable = const Value.absent(),
+    this.rewardClaimed = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        category = Value(category),
@@ -2093,6 +2139,7 @@ class PermanentQuestsCompanion extends UpdateCompanion<PermanentQuestRow> {
     Expression<int>? rewardValue,
     Expression<String>? nextQuestId,
     Expression<bool>? isRepeatable,
+    Expression<bool>? rewardClaimed,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -2106,6 +2153,7 @@ class PermanentQuestsCompanion extends UpdateCompanion<PermanentQuestRow> {
       if (rewardValue != null) 'reward_value': rewardValue,
       if (nextQuestId != null) 'next_quest_id': nextQuestId,
       if (isRepeatable != null) 'is_repeatable': isRepeatable,
+      if (rewardClaimed != null) 'reward_claimed': rewardClaimed,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -2121,6 +2169,7 @@ class PermanentQuestsCompanion extends UpdateCompanion<PermanentQuestRow> {
     Value<int>? rewardValue,
     Value<String?>? nextQuestId,
     Value<bool>? isRepeatable,
+    Value<bool>? rewardClaimed,
     Value<int>? rowid,
   }) {
     return PermanentQuestsCompanion(
@@ -2134,6 +2183,7 @@ class PermanentQuestsCompanion extends UpdateCompanion<PermanentQuestRow> {
       rewardValue: rewardValue ?? this.rewardValue,
       nextQuestId: nextQuestId ?? this.nextQuestId,
       isRepeatable: isRepeatable ?? this.isRepeatable,
+      rewardClaimed: rewardClaimed ?? this.rewardClaimed,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -2171,6 +2221,9 @@ class PermanentQuestsCompanion extends UpdateCompanion<PermanentQuestRow> {
     if (isRepeatable.present) {
       map['is_repeatable'] = Variable<bool>(isRepeatable.value);
     }
+    if (rewardClaimed.present) {
+      map['reward_claimed'] = Variable<bool>(rewardClaimed.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -2190,6 +2243,7 @@ class PermanentQuestsCompanion extends UpdateCompanion<PermanentQuestRow> {
           ..write('rewardValue: $rewardValue, ')
           ..write('nextQuestId: $nextQuestId, ')
           ..write('isRepeatable: $isRepeatable, ')
+          ..write('rewardClaimed: $rewardClaimed, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -3797,6 +3851,7 @@ typedef $$PermanentQuestsTableCreateCompanionBuilder =
       required int rewardValue,
       Value<String?> nextQuestId,
       Value<bool> isRepeatable,
+      Value<bool> rewardClaimed,
       Value<int> rowid,
     });
 typedef $$PermanentQuestsTableUpdateCompanionBuilder =
@@ -3811,6 +3866,7 @@ typedef $$PermanentQuestsTableUpdateCompanionBuilder =
       Value<int> rewardValue,
       Value<String?> nextQuestId,
       Value<bool> isRepeatable,
+      Value<bool> rewardClaimed,
       Value<int> rowid,
     });
 
@@ -3870,6 +3926,11 @@ class $$PermanentQuestsTableFilterComposer
 
   ColumnFilters<bool> get isRepeatable => $composableBuilder(
     column: $table.isRepeatable,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get rewardClaimed => $composableBuilder(
+    column: $table.rewardClaimed,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -3932,6 +3993,11 @@ class $$PermanentQuestsTableOrderingComposer
     column: $table.isRepeatable,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<bool> get rewardClaimed => $composableBuilder(
+    column: $table.rewardClaimed,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$PermanentQuestsTableAnnotationComposer
@@ -3988,6 +4054,11 @@ class $$PermanentQuestsTableAnnotationComposer
     column: $table.isRepeatable,
     builder: (column) => column,
   );
+
+  GeneratedColumn<bool> get rewardClaimed => $composableBuilder(
+    column: $table.rewardClaimed,
+    builder: (column) => column,
+  );
 }
 
 class $$PermanentQuestsTableTableManager
@@ -4037,6 +4108,7 @@ class $$PermanentQuestsTableTableManager
                 Value<int> rewardValue = const Value.absent(),
                 Value<String?> nextQuestId = const Value.absent(),
                 Value<bool> isRepeatable = const Value.absent(),
+                Value<bool> rewardClaimed = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => PermanentQuestsCompanion(
                 id: id,
@@ -4049,6 +4121,7 @@ class $$PermanentQuestsTableTableManager
                 rewardValue: rewardValue,
                 nextQuestId: nextQuestId,
                 isRepeatable: isRepeatable,
+                rewardClaimed: rewardClaimed,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -4063,6 +4136,7 @@ class $$PermanentQuestsTableTableManager
                 required int rewardValue,
                 Value<String?> nextQuestId = const Value.absent(),
                 Value<bool> isRepeatable = const Value.absent(),
+                Value<bool> rewardClaimed = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => PermanentQuestsCompanion.insert(
                 id: id,
@@ -4075,6 +4149,7 @@ class $$PermanentQuestsTableTableManager
                 rewardValue: rewardValue,
                 nextQuestId: nextQuestId,
                 isRepeatable: isRepeatable,
+                rewardClaimed: rewardClaimed,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

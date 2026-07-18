@@ -260,7 +260,7 @@ List<String> upgradeAllLevelEffects(UpgradeEffectType effectType) {
     case UpgradeEffectType.hatedColorExclusion:
       return ['5 tuiles', '8 tuiles', '10 tuiles'];
     case UpgradeEffectType.extendedPreviewCount:
-      return ['3 tuiles', '4 tuiles', '5 tuiles'];
+      return ['4 tuiles', '5 tuiles', '6 tuiles'];
     case UpgradeEffectType.holdSlotUses:
       return ['1 usage/partie', '2 usages/partie', '3 usages/partie'];
     case UpgradeEffectType.secondChanceUses:
@@ -300,7 +300,7 @@ double upgradeEffectValue(UpgradeEffectType effectType, int level) {
     case UpgradeEffectType.hatedColorExclusion:
       return [5.0, 8.0, 10.0][level.clamp(0, 2)];
     case UpgradeEffectType.extendedPreviewCount:
-      return [3.0, 4.0, 5.0][level.clamp(0, 2)];
+      return [4.0, 5.0, 6.0][level.clamp(0, 2)];
     case UpgradeEffectType.holdSlotUses:
       return [1.0, 2.0, 3.0][level.clamp(0, 2)];
     case UpgradeEffectType.secondChanceUses:

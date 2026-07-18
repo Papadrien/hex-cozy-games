@@ -162,6 +162,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get quests_status_locked => 'Locked';
 
   @override
+  String get quests_tap_to_claim => 'Tap to claim';
+
+  @override
   String get quests_reward_coins => 'Reward';
 
   @override
@@ -263,7 +266,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get upgrade_desc_hated_color =>
-      'Temporarily excludes a color of your choice from the tile stack.';
+      'Tap this upgrade during the game to temporarily exclude a random color (among the base colors) from the tile stack. One use per game.';
 
   @override
   String get upgrade_desc_jackpot_plus =>

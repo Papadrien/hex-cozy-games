@@ -84,17 +84,19 @@ UpgradeCounterInfo upgradeCounterFor(WidgetRef ref, UpgradeEffectType effectType
       return UpgradeCounterInfo.number(remaining);
 
     // Couleur détestée : pastille de la couleur du biome actuellement
-    // exclu, tant que l'exclusion est encore active (tuiles posées <
-    // durée). Pas de chiffre — juste la couleur, comme demandé.
+    // exclu, tant que l'exclusion est encore active (tuiles posées depuis
+    // l'activation < durée). Pas de chiffre — juste la couleur, comme
+    // demandé.
     case UpgradeEffectType.hatedColorExclusion:
       final stack = ref.watch(tileStackProvider);
       final biome = stack.excludeBiome;
-      if (biome == null || stack.hatedDuration <= 0) {
+      final startCount = stack.hatedStartCount;
+      if (biome == null || stack.hatedDuration <= 0 || startCount == null) {
         return const UpgradeCounterInfo.none();
       }
       final placedCount =
           ref.watch(gridProvider.select((g) => g.placedTiles.length));
-      final remaining = stack.hatedDuration - placedCount;
+      final remaining = stack.hatedDuration - (placedCount - startCount);
       if (remaining <= 0) return const UpgradeCounterInfo.none();
       return UpgradeCounterInfo.colorSwatch(biome.color);
 

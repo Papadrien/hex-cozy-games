@@ -16,6 +16,7 @@ import '../providers/placement_commit.dart';
 import '../providers/player_profile_provider.dart';
 import '../providers/player_stats_provider.dart';
 import '../providers/progression_provider.dart';
+import '../providers/quest_provider.dart';
 import '../services/ad_service.dart';
 import '../services/haptics_service.dart';
 import 'build_screen.dart';
@@ -28,9 +29,6 @@ import 'glass_container.dart';
 
 // Bleu nuit tealisé pour les boutons secondaires — foncé pour la lisibilité
 // du texte blanc, bordure teal assortie au bouton Jouer.
-const Color _kGlassBlue = Color(0xFF2E3B52);
-const Color _kGlassBlueBorder = kGlassBlueBorder;
-
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
@@ -329,6 +327,7 @@ class _CenterContentState extends ConsumerState<_CenterContent>
           data: (r) => r.isPremium,
           orElse: () => false,
         );
+    final hasUnclaimedQuest = ref.watch(hasUnclaimedQuestProvider);
 
     return Stack(
       clipBehavior: Clip.none,
@@ -367,6 +366,7 @@ class _CenterContentState extends ConsumerState<_CenterContent>
                     child: _NavButton(
                       icon: Icons.flag_outlined,
                       label: context.tr.quests_title,
+                      showBadge: hasUnclaimedQuest,
                       onTap: () {
                         clearAppSnackBars();
                         Navigator.of(context).push(
@@ -474,7 +474,7 @@ class _PlayButton extends StatelessWidget {
           ClipRRect(
             borderRadius: BorderRadius.circular(28),
             child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
               child: Material(
                 color: kTropicalTeal.withValues(alpha: 0.88),
                 borderRadius: BorderRadius.circular(28),
@@ -492,10 +492,11 @@ class _PlayButton extends StatelessWidget {
                       borderRadius: BorderRadius.circular(28),
                       // Aligné sur le contour glassmorphism commun
                       // (kGlassBlueBorder, blanc 20%) pour rester cohérent
-                      // avec le reste des composants.
+                      // avec le reste des composants — même épaisseur que
+                      // les autres accents mis en avant (1.5).
                       border: Border.all(
                         color: kGlassBlueBorder,
-                        width: 3,
+                        width: 1.5,
                       ),
                     ),
                     child: Center(
@@ -561,9 +562,9 @@ class _GlassButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GlassContainer(
-      tintColor: _kGlassBlue,
+      tintColor: kGlassBlue,
       tintAlpha: 0.18,
-      borderColor: _kGlassBlueBorder,
+      borderColor: kGlassBlueBorder,
       borderRadius: 16,
       padding: padding,
       blurSigma: 10,
@@ -697,11 +698,11 @@ class _RewardedAdButton extends ConsumerWidget {
       width: double.infinity,
       child: GlassContainer(
         borderRadius: 16,
-        tintColor: adAvailable ? kRewardGold : _kGlassBlue,
+        tintColor: adAvailable ? kRewardGold : kGlassBlue,
         tintAlpha: adAvailable ? 0.10 : 0.18,
         borderColor: adAvailable
             ? kRewardGold.withValues(alpha: 0.45)
-            : _kGlassBlueBorder,
+            : kGlassBlueBorder,
         borderWidth: adAvailable ? 1.5 : 1,
         blurSigma: 10,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
@@ -820,32 +821,56 @@ class _NavButton extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.onTap,
+    this.showBadge = false,
   });
 
   final IconData icon;
   final String label;
   final VoidCallback onTap;
+  final bool showBadge;
 
   @override
   Widget build(BuildContext context) {
-    return _GlassButton(
-      onPressed: onTap,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 13),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, size: 18, color: Colors.white),
-          const SizedBox(width: 8),
-          Text(
-            label,
-            style: GoogleFonts.nunito(
-              color: Colors.white,
-              fontSize: 14,
-              fontWeight: FontWeight.w800,
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        _GlassButton(
+          onPressed: onTap,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 13),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 18, color: Colors.white),
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: GoogleFonts.nunito(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (showBadge)
+          Positioned(
+            top: -4,
+            right: -4,
+            child: Container(
+              width: 14,
+              height: 14,
+              decoration: BoxDecoration(
+                color: Colors.redAccent,
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: Colors.black.withValues(alpha: 0.35),
+                  width: 1.5,
+                ),
+              ),
             ),
           ),
-        ],
-      ),
+      ],
     );
   }
 }
@@ -863,9 +888,9 @@ class _GlassPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GlassContainer(
-      tintColor: _kGlassBlue,
+      tintColor: kGlassBlue,
       tintAlpha: 0.22,
-      borderColor: _kGlassBlueBorder,
+      borderColor: kGlassBlueBorder,
       borderRadius: 20,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
       blurSigma: 10,
@@ -891,9 +916,9 @@ class _GlassIconButton extends StatelessWidget {
     return Tooltip(
       message: tooltip,
       child: GlassContainer(
-        tintColor: _kGlassBlue,
+        tintColor: kGlassBlue,
         tintAlpha: 0.22,
-        borderColor: _kGlassBlueBorder,
+        borderColor: kGlassBlueBorder,
         borderRadius: 14,
         padding: const EdgeInsets.all(10),
         onTap: onPressed,

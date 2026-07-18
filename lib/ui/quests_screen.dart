@@ -4,6 +4,8 @@
 /// organisées par catégorie.
 library;
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -15,6 +17,7 @@ import '../data/app_database.dart';
 import '../providers/quest_provider.dart';
 import '../services/haptics_service.dart';
 import 'glass_container.dart';
+import 'quest_reward_burst.dart';
 
 class QuestsScreen extends ConsumerWidget {
   const QuestsScreen({super.key});
@@ -411,7 +414,14 @@ _QuestStatus _computeStatus(
   return hasIncompletePredecessor ? _QuestStatus.locked : _QuestStatus.active;
 }
 
-class _QuestCard extends StatelessWidget {
+/// Carte d'une quête.
+///
+/// Lorsque la quête est terminée mais que sa récompense n'a pas encore été
+/// réclamée (`isCompleted && !rewardClaimed`), un point rouge invite le
+/// joueur à taper dessus. Le tap déclenche [QuestService.claimReward] ainsi
+/// qu'une animation de récompense (bounce de la carte, halo doré, explosion
+/// de particules, texte flottant "+X").
+class _QuestCard extends ConsumerStatefulWidget {
   const _QuestCard({
     required this.quest,
     required this.status,
@@ -423,116 +433,346 @@ class _QuestCard extends StatelessWidget {
   final Color color;
 
   @override
+  ConsumerState<_QuestCard> createState() => _QuestCardState();
+}
+
+class _QuestCardState extends ConsumerState<_QuestCard>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _claimController;
+  late final Animation<double> _bounceAnim;
+  late final Animation<double> _glowAnim;
+  late final Animation<double> _floatAnim;
+  bool _isClaiming = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _claimController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 750),
+    );
+    _bounceAnim = TweenSequence<double>([
+      TweenSequenceItem(
+        tween: Tween(
+          begin: 1.0,
+          end: 1.08,
+        ).chain(CurveTween(curve: Curves.easeOut)),
+        weight: 30,
+      ),
+      TweenSequenceItem(
+        tween: Tween(
+          begin: 1.08,
+          end: 0.97,
+        ).chain(CurveTween(curve: Curves.easeInOut)),
+        weight: 30,
+      ),
+      TweenSequenceItem(
+        tween: Tween(
+          begin: 0.97,
+          end: 1.0,
+        ).chain(CurveTween(curve: Curves.easeOut)),
+        weight: 40,
+      ),
+    ]).animate(_claimController);
+    _glowAnim = CurvedAnimation(
+      parent: _claimController,
+      curve: const Interval(0.0, 0.6, curve: Curves.easeOut),
+    );
+    _floatAnim = CurvedAnimation(
+      parent: _claimController,
+      curve: const Interval(0.05, 0.9, curve: Curves.easeOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _claimController.dispose();
+    super.dispose();
+  }
+
+  bool get _isPendingClaim =>
+      widget.quest.isCompleted && !widget.quest.rewardClaimed;
+
+  Future<void> _handleClaim() async {
+    if (!_isPendingClaim || _isClaiming) return;
+    setState(() => _isClaiming = true);
+    unawaited(ref.read(hapticsServiceProvider).questRewardClaimed());
+    unawaited(_claimController.forward(from: 0));
+    await ref.read(questServiceProvider).claimReward(widget.quest.id);
+    if (mounted) setState(() => _isClaiming = false);
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final quest = widget.quest;
+    final color = widget.color;
+    final status = widget.status;
     final progress = quest.targetValue > 0
         ? (quest.currentValue / quest.targetValue).clamp(0.0, 1.0)
         : 0.0;
     final isLocked = status == _QuestStatus.locked;
+    // Le point rouge et l'invite au tap disparaissent dès que le tap est
+    // pris en compte, sans attendre l'aller-retour base de données.
+    final showPendingClaimUi = _isPendingClaim && !_isClaiming;
 
-    return GlassContainer(
-      borderRadius: 14,
-      tintColor: kGlassBlue,
-      tintAlpha: isLocked ? 0.10 : 0.22,
-      borderColor: status == _QuestStatus.completed
-          ? color.withValues(alpha: 0.5)
-          : kGlassBlueBorder,
-      padding: const EdgeInsets.all(14),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Status icon
-          Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: isLocked
-                  ? Colors.white.withValues(alpha: 0.08)
-                  : color.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(
-              isLocked
-                  ? Icons.lock
-                  : status == _QuestStatus.completed
-                      ? Icons.check_circle
-                      : Icons.flag,
-              color: isLocked
-                  ? Colors.white.withValues(alpha: 0.4)
-                  : status == _QuestStatus.completed
-                      ? color
-                      : Colors.white,
-              size: 20,
-            ),
-          ),
-          const SizedBox(width: 12),
-          // Content
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Description
-                Text(
-                  quest.description,
-                  style: TextStyle(
-                    color: isLocked
-                        ? Colors.white.withValues(alpha: 0.5)
-                        : Colors.white,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
+    return GestureDetector(
+      onTap: showPendingClaimUi ? _handleClaim : null,
+      child: AnimatedBuilder(
+        animation: _claimController,
+        builder: (context, child) {
+          return Stack(
+            clipBehavior: Clip.none,
+            alignment: Alignment.center,
+            children: [
+              Transform.scale(scale: _bounceAnim.value, child: child),
+              if (_claimController.isAnimating)
+                QuestRewardBurst(
+                  progress: _floatAnim.value,
+                  color: kCoinAmber,
                 ),
-                const SizedBox(height: 6),
-                // Progress bar
-                if (status != _QuestStatus.completed)
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
-                    child: LinearProgressIndicator(
-                      value: progress,
-                      backgroundColor: Colors.white.withValues(alpha: 0.1),
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        isLocked
-                            ? Colors.white.withValues(alpha: 0.25)
-                            : color,
+              if (_claimController.isAnimating)
+                Positioned(
+                  top: -6,
+                  left: 0,
+                  right: 0,
+                  child: Center(
+                    child: Opacity(
+                      opacity: (1 - _floatAnim.value).clamp(0.0, 1.0),
+                      child: Transform.translate(
+                        offset: Offset(0, -28 * _floatAnim.value),
+                        child: _ClaimedRewardText(quest: quest),
                       ),
-                      minHeight: 6,
                     ),
                   ),
-                if (status != _QuestStatus.completed)
-                  const SizedBox(height: 4),
-                // Progress text or completed label
-                Row(
-                  children: [
-                    if (status == _QuestStatus.completed)
-                      Text(
-                        context.tr.quests_status_completed,
-                        style: TextStyle(
-                          color: color,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
+                ),
+            ],
+          );
+        },
+        child: AnimatedBuilder(
+          animation: _glowAnim,
+          builder: (context, child) {
+            final glow = 1 - _glowAnim.value;
+            return Container(
+              decoration: glow > 0
+                  ? BoxDecoration(
+                      borderRadius: BorderRadius.circular(14),
+                      boxShadow: [
+                        BoxShadow(
+                          color: kCoinAmber.withValues(alpha: 0.55 * glow),
+                          blurRadius: 22 * glow,
+                          spreadRadius: 2 * glow,
                         ),
-                      )
-                    else
-                      Text(
+                      ],
+                    )
+                  : null,
+              child: child,
+            );
+          },
+          child: GlassContainer(
+            borderRadius: 14,
+            tintColor: kGlassBlue,
+            tintAlpha: isLocked ? 0.10 : 0.22,
+            borderColor: showPendingClaimUi
+                ? kCoinAmber.withValues(alpha: 0.7)
+                : status == _QuestStatus.completed
+                    ? color.withValues(alpha: 0.5)
+                    : kGlassBlueBorder,
+            padding: const EdgeInsets.all(14),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Status icon
+                Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: isLocked
+                            ? Colors.white.withValues(alpha: 0.08)
+                            : showPendingClaimUi
+                                ? kCoinAmber.withValues(alpha: 0.22)
+                                : color.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(
                         isLocked
-                            ? context.tr.quests_status_locked
-                            : '${quest.currentValue}/${quest.targetValue}',
+                            ? Icons.lock
+                            : showPendingClaimUi
+                                ? Icons.card_giftcard
+                                : status == _QuestStatus.completed
+                                    ? Icons.check_circle
+                                    : Icons.flag,
+                        color: isLocked
+                            ? Colors.white.withValues(alpha: 0.4)
+                            : showPendingClaimUi
+                                ? kCoinAmber
+                                : status == _QuestStatus.completed
+                                    ? color
+                                    : Colors.white,
+                        size: 20,
+                      ),
+                    ),
+                    if (showPendingClaimUi)
+                      Positioned(
+                        top: -3,
+                        right: -3,
+                        child: _RedDot(),
+                      ),
+                  ],
+                ),
+                const SizedBox(width: 12),
+                // Content
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Description
+                      Text(
+                        quest.description,
                         style: TextStyle(
                           color: isLocked
-                              ? Colors.white.withValues(alpha: 0.4)
-                              : Colors.white.withValues(alpha: 0.7),
-                          fontSize: 12,
+                              ? Colors.white.withValues(alpha: 0.5)
+                              : Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
-                    const Spacer(),
-                    // Reward
-                    _RewardBadge(rewardType: RewardType.fromDb(quest.rewardType), rewardValue: quest.rewardValue),
-                  ],
+                      const SizedBox(height: 6),
+                      // Progress bar
+                      if (status != _QuestStatus.completed)
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(4),
+                          child: LinearProgressIndicator(
+                            value: progress,
+                            backgroundColor: Colors.white.withValues(
+                              alpha: 0.1,
+                            ),
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              isLocked
+                                  ? Colors.white.withValues(alpha: 0.25)
+                                  : color,
+                            ),
+                            minHeight: 6,
+                          ),
+                        ),
+                      if (status != _QuestStatus.completed)
+                        const SizedBox(height: 4),
+                      // Progress text or completed label
+                      Row(
+                        children: [
+                          if (showPendingClaimUi)
+                            Text(
+                              context.tr.quests_tap_to_claim,
+                              style: const TextStyle(
+                                color: kCoinAmber,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            )
+                          else if (status == _QuestStatus.completed)
+                            Text(
+                              context.tr.quests_status_completed,
+                              style: TextStyle(
+                                color: color,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            )
+                          else
+                            Text(
+                              isLocked
+                                  ? context.tr.quests_status_locked
+                                  : '${quest.currentValue}/${quest.targetValue}',
+                              style: TextStyle(
+                                color: isLocked
+                                    ? Colors.white.withValues(alpha: 0.4)
+                                    : Colors.white.withValues(alpha: 0.7),
+                                fontSize: 12,
+                              ),
+                            ),
+                          const Spacer(),
+                          // Reward
+                          _RewardBadge(
+                            rewardType: RewardType.fromDb(quest.rewardType),
+                            rewardValue: quest.rewardValue,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
           ),
-        ],
+        ),
       ),
+    );
+  }
+}
+
+/// Petit point rouge de notification — récompense de quête en attente.
+class _RedDot extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 12,
+      height: 12,
+      decoration: BoxDecoration(
+        color: Colors.redAccent,
+        shape: BoxShape.circle,
+        border: Border.all(color: Colors.black.withValues(alpha: 0.35), width: 1.5),
+      ),
+    );
+  }
+}
+
+/// Texte flottant "+X" (ou icône) affiché brièvement au-dessus de la carte
+/// lors de la réclamation d'une récompense.
+class _ClaimedRewardText extends StatelessWidget {
+  const _ClaimedRewardText({required this.quest});
+
+  final PermanentQuestRow quest;
+
+  @override
+  Widget build(BuildContext context) {
+    final rewardType = RewardType.fromDb(quest.rewardType);
+    if (rewardType == RewardType.coins) {
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.monetization_on, color: kCoinAmber, size: 18),
+          const SizedBox(width: 4),
+          Text(
+            '+${quest.rewardValue}',
+            style: const TextStyle(
+              color: kCoinAmber,
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              shadows: [
+                Shadow(color: Colors.black45, blurRadius: 4),
+              ],
+            ),
+          ),
+        ],
+      );
+    }
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(Icons.auto_awesome, color: kUpgradePurple, size: 18),
+        const SizedBox(width: 4),
+        Text(
+          context.tr.quests_reward_upgrade,
+          style: TextStyle(
+            color: kUpgradePurple,
+            fontSize: 14,
+            fontWeight: FontWeight.w800,
+            shadows: const [Shadow(color: Colors.black45, blurRadius: 4)],
+          ),
+        ),
+      ],
     );
   }
 }

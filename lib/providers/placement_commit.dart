@@ -719,6 +719,14 @@ void toggleSecondChanceMode(WidgetRef ref) {
   notifier.activate();
 }
 
+/// Active "Couleur détestée" (Story B12x) sur tap du slot dans l'encart des
+/// améliorations actives — voir [TileStack.activateHatedColor]. Amélioration
+/// à usage unique par partie : le slot n'appelle cette fonction que tant
+/// qu'elle n'a pas déjà été activée (voir `active_upgrades_hud.dart`).
+void activateHatedColor(WidgetRef ref) {
+  ref.read(tileStackProvider.notifier).activateHatedColor();
+}
+
 /// Retire la tuile posée en [coords] du plateau et la réinjecte en tête de
 /// pile (Story B11 — Deuxième chance).
 ///

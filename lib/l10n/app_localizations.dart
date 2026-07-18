@@ -386,6 +386,12 @@ abstract class AppLocalizations {
   /// **'Locked'**
   String get quests_status_locked;
 
+  /// No description provided for @quests_tap_to_claim.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to claim'**
+  String get quests_tap_to_claim;
+
   /// No description provided for @quests_reward_coins.
   ///
   /// In en, this message translates to:

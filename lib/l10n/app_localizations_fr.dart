@@ -164,6 +164,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get quests_status_locked => 'Verrouillée';
 
   @override
+  String get quests_tap_to_claim => 'Toucher pour récupérer';
+
+  @override
   String get quests_reward_coins => 'Récompense';
 
   @override
@@ -266,7 +269,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get upgrade_desc_hated_color =>
-      'Exclut temporairement une couleur de ton choix de la pile de tuiles à poser.';
+      'Tape sur cette amélioration en cours de partie pour exclure temporairement une couleur aléatoire (parmi les couleurs de base) de la pile de tuiles. Usage unique par partie.';
 
   @override
   String get upgrade_desc_jackpot_plus =>

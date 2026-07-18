@@ -201,7 +201,7 @@ class _SelectionCountBadge extends StatelessWidget {
       tintColor: kGlassBlue,
       tintAlpha: 0.22,
       borderColor: kGlassBlueBorder,
-      blurSigma: 8,
+      blurSigma: 10,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       child: Text(
         '$count / $kMaxSelectedUpgrades',
@@ -228,7 +228,7 @@ class _CoinBalanceBadge extends StatelessWidget {
       tintColor: kRewardGold,
       tintAlpha: 0.14,
       borderColor: kRewardGold.withValues(alpha: 0.4),
-      blurSigma: 8,
+      blurSigma: 10,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -447,8 +447,7 @@ class _BuildIconBadge extends StatelessWidget {
       borderColor: isSelected
           ? kUpgradePurple.withValues(alpha: 0.5)
           : Colors.white.withValues(alpha: 0.14),
-      borderWidth: 0.8,
-      blurSigma: 6,
+      blurSigma: 10,
       width: 42,
       height: 42,
       child: Icon(
@@ -734,7 +733,7 @@ class _UpgradeButtonState extends ConsumerState<_UpgradeButton> {
         tintColor: Colors.white,
         tintAlpha: 0.06,
         borderColor: Colors.white.withValues(alpha: 0.12),
-        blurSigma: 6,
+        blurSigma: 10,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
         child: Text(
           context.tr.upgrades_max,
@@ -756,7 +755,7 @@ class _UpgradeButtonState extends ConsumerState<_UpgradeButton> {
         tintColor: Colors.orange,
         tintAlpha: 0.28,
         borderColor: Colors.orange.withValues(alpha: 0.7),
-        blurSigma: 8,
+        blurSigma: 10,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
         onTap: _confirmAndUpgrade,
         child: Text(
@@ -777,7 +776,7 @@ class _UpgradeButtonState extends ConsumerState<_UpgradeButton> {
       borderColor: canAfford
           ? kGlassBlueBorder
           : Colors.white.withValues(alpha: 0.12),
-      blurSigma: 8,
+      blurSigma: 10,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
       onTap: canAfford ? _startConfirm : null,
       child: Text(

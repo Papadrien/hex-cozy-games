@@ -34,6 +34,8 @@ class TileStackState {
     this.seed,
     this.excludeBiome,
     this.hatedDuration = 0,
+    this.hatedStartCount,
+    this.hatedActivated = false,
   });
 
   final int remaining;
@@ -42,15 +44,28 @@ class TileStackState {
   final int? seed;
 
   /// Biome actuellement exclu du pool par l'amélioration "Couleur détestée"
-  /// (Story B12b) — `null` si l'amélioration n'est pas active pour cette
-  /// partie. Reste inchangé pendant toute la partie une fois tiré : seule
-  /// [hatedDuration] (comparée au nombre de tuiles posées) détermine si
-  /// l'exclusion est encore active.
+  /// (Story B12b/B12x) — `null` tant que l'amélioration n'a pas été activée
+  /// par le joueur (voir [TileStack.activateHatedColor]). Reste inchangé une
+  /// fois tiré : seule [hatedDuration] (comparée au nombre de tuiles posées
+  /// depuis [hatedStartCount]) détermine si l'exclusion est encore active.
   final BiomeType? excludeBiome;
 
-  /// Nombre de tuiles de la partie (depuis le début) pendant lesquelles
-  /// [excludeBiome] est exclu du pool — 0 si l'amélioration est inactive.
+  /// Nombre de tuiles posées, à partir de l'activation, pendant lesquelles
+  /// [excludeBiome] est exclu du pool — 0 si l'amélioration n'est pas
+  /// possédée pour cette partie.
   final int hatedDuration;
+
+  /// Nombre de tuiles posées au moment de l'activation de "Couleur
+  /// détestée" — `null` tant que l'amélioration n'a pas été activée. Sert
+  /// de référence pour calculer combien de tuiles il reste avant la fin de
+  /// l'exclusion (voir [upgradeCounterFor]).
+  final int? hatedStartCount;
+
+  /// Vrai dès que le joueur a activé "Couleur détestée" pour cette partie
+  /// (amélioration à usage unique par partie) — reste vrai même une fois
+  /// l'exclusion terminée, pour indiquer que le slot ne peut plus être
+  /// réactivé.
+  final bool hatedActivated;
 
   /// La tuile que le joueur va poser ensuite, ou null si la pile est vide.
   HexTile? get activeTile => visible.isEmpty ? null : visible.first;
@@ -71,15 +86,18 @@ class TileStack extends _$TileStack {
   /// de cette file (ou moins si la pile est presque épuisée).
   final ListQueue<HexTile> _queue = ListQueue();
 
-  // Biome exclu et durée associés à "Couleur détestée" (Story B12b) —
-  // conservés en champs d'instance (comme _queue) car tirés une seule fois
-  // dans [build] mais doivent survivre aux reconstructions de [state] via
-  // [_buildState] (consommation de tuiles, Annuler, etc.). NOTE : non
-  // restaurés par [restoreQueue] (reprise de partie après redémarrage de
-  // l'app) — limitation acceptable pour un badge cosmétique sur une
-  // amélioration à durée courte (5/8/10 tuiles).
+  // Biome exclu et durée associés à "Couleur détestée" (Story B12b/B12x) —
+  // conservés en champs d'instance (comme _queue) car fixés une seule fois
+  // par partie (à l'activation, plus au tirage) mais doivent survivre aux
+  // reconstructions de [state] via [_buildState] (consommation de tuiles,
+  // Annuler, etc.). NOTE : non restaurés par [restoreQueue] (reprise de
+  // partie après redémarrage de l'app) — limitation acceptable pour un
+  // badge cosmétique sur une amélioration à usage unique et durée courte
+  // (5/8/10 tuiles).
   BiomeType? _excludeBiome;
   int _hatedDuration = 0;
+  int? _hatedStartCount;
+  bool _hatedActivated = false;
 
   @override
   TileStackState build() {
@@ -87,13 +105,13 @@ class TileStack extends _$TileStack {
     final rng = Random(seed);
     final effects = ref.read(activeUpgradeEffectsProvider);
     final visibleCount = max(kVisibleStackSize, effects.extendedPreviewCount);
-    final hatedDuration = effects.hatedColorExclusionDuration;
-    BiomeType? excludeBiome;
-    if (hatedDuration > 0) {
-      excludeBiome = BiomeType.values[rng.nextInt(BiomeType.values.length)];
-    }
-    _excludeBiome = excludeBiome;
-    _hatedDuration = hatedDuration;
+    // "Couleur détestée" (Story B12x) n'est plus active dès le lancement de
+    // la partie : elle démarre inactive et n'est déclenchée que par un tap
+    // du joueur en cours de partie, voir [activateHatedColor].
+    _excludeBiome = null;
+    _hatedDuration = 0;
+    _hatedStartCount = null;
+    _hatedActivated = false;
     final poolSize = effects.warehouseStartingTiles > 0
         ? effects.warehouseStartingTiles
         : kStartingTiles;
@@ -104,8 +122,6 @@ class TileStack extends _$TileStack {
     final pool = generateTilePool(
       poolSize,
       rng,
-      excludeBiome: excludeBiome,
-      excludeDuration: hatedDuration,
       startPosition: placedCount + 1,
     );
     _shuffle(pool, rng);
@@ -113,6 +129,54 @@ class TileStack extends _$TileStack {
       ..clear()
       ..addAll(pool);
     return _buildState(seed: seed, visibleCount: visibleCount);
+  }
+
+  /// Active "Couleur détestée" (Story B12x) : tire une couleur au hasard
+  /// parmi les couleurs disponibles dès le lancement de la partie (les
+  /// couleurs bonus soumises à un palier de tuiles posées, voir
+  /// [kBiomeUnlockThresholds], ne peuvent pas être tirées) et l'exclut du
+  /// pool pour les [ActiveUpgradeEffects.hatedColorExclusionDuration]
+  /// prochaines tuiles à partir de maintenant.
+  ///
+  /// Amélioration à usage unique par partie : ne fait rien si elle n'est
+  /// pas possédée pour ce build ou si elle a déjà été activée.
+  void activateHatedColor() {
+    if (_hatedActivated) return;
+    final effects = ref.read(activeUpgradeEffectsProvider);
+    final duration = effects.hatedColorExclusionDuration;
+    if (duration <= 0) return;
+
+    final rng = Random();
+    final launchBiomes = unlockedBiomesAt(1);
+    final biome = launchBiomes[rng.nextInt(launchBiomes.length)];
+    final placedCount = ref.read(gridProvider).placedTiles.length;
+
+    // Régénère les prochaines tuiles de la file (pas encore posées) en
+    // excluant [biome], pour que l'exclusion s'applique bien à partir de
+    // maintenant plutôt que depuis le début de la partie.
+    final count = min(duration, _queue.length);
+    if (count > 0) {
+      final replacementRng =
+          Random((state.seed ?? 0) + placedCount + 1);
+      final replacement = generateTilePool(
+        count,
+        replacementRng,
+        excludeBiome: biome,
+        excludeDuration: count,
+        startPosition: placedCount + 1,
+      );
+      final rest = _queue.skip(count).toList();
+      _queue
+        ..clear()
+        ..addAll(replacement)
+        ..addAll(rest);
+    }
+
+    _excludeBiome = biome;
+    _hatedDuration = duration;
+    _hatedStartCount = placedCount;
+    _hatedActivated = true;
+    state = _buildState();
   }
 
   /// Mélange la file avec Fisher-Yates.
@@ -146,6 +210,8 @@ class TileStack extends _$TileStack {
       seed: seed ?? state.seed,
       excludeBiome: _excludeBiome,
       hatedDuration: _hatedDuration,
+      hatedStartCount: _hatedStartCount,
+      hatedActivated: _hatedActivated,
     );
   }
 
