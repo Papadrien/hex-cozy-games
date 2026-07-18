@@ -931,11 +931,10 @@ class _BonusTileAnimComponent extends PositionComponent {
     required double hexSize,
     required this.bonusCount,
     this.flyTarget,
-    double startDelay = 0.0,
+    this._startDelay = 0.0,
     this.onImpact,
     int totalBonusTiles = 1,
   })  : _radius = hexSize * 0.22,
-        _startDelay = startDelay,
         _liftPx = kBonusLiftMinPx +
             (kBonusLiftMaxPx - kBonusLiftMinPx) *
                 _intensityFor(totalBonusTiles),
@@ -1243,10 +1242,9 @@ class _BonusWaterBurst extends PositionComponent {
 class _TrailDot extends PositionComponent {
   _TrailDot({
     required super.position,
-    required double radius,
+    required this._radius,
     required this.color,
-  })  : _radius = radius,
-        super(priority: kTileDepthPriorityPreview);
+  }) : super(priority: kTileDepthPriorityPreview);
 
   final double _radius;
   final Color color;
