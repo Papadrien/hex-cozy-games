@@ -22,6 +22,7 @@ import '../core/colors.dart';
 import '../game/hex_tile.dart';
 import '../game/tile_component.dart' show BiomeColor;
 import '../providers/placement_provider.dart';
+import '../providers/second_chance_provider.dart';
 import '../providers/tile_stack_provider.dart';
 import '../services/haptics_service.dart';
 
@@ -134,7 +135,7 @@ class TileStackHud extends ConsumerWidget {
 /// précédente est considérée comme une nouvelle arrivée : elle est d'abord
 /// positionnée hors-écran à droite, puis animée vers son emplacement final
 /// dès la frame suivante.
-class _AnimatedTilePile extends StatefulWidget {
+class _AnimatedTilePile extends ConsumerStatefulWidget {
   const _AnimatedTilePile({
     required this.visible,
     required this.hasSelection,
@@ -146,10 +147,10 @@ class _AnimatedTilePile extends StatefulWidget {
   final VoidCallback onCancelSelection;
 
   @override
-  State<_AnimatedTilePile> createState() => _AnimatedTilePileState();
+  ConsumerState<_AnimatedTilePile> createState() => _AnimatedTilePileState();
 }
 
-class _AnimatedTilePileState extends State<_AnimatedTilePile> {
+class _AnimatedTilePileState extends ConsumerState<_AnimatedTilePile> {
   /// Tuiles fraîchement arrivées en FIN de pile (tirage normal), encore
   /// positionnées hors-écran en attendant la frame qui déclenchera leur
   /// animation d'entrée depuis la droite.
@@ -308,15 +309,53 @@ class _AnimatedTilePileState extends State<_AnimatedTilePile> {
             duration: _kAdvanceDuration,
             curve: _kAdvanceCurve,
             opacity: isReturning ? 0.0 : 1.0,
-            child: _HexTilePreview(
+            child: _tileContent(
               tile: tile,
-              highlighted: index == 0,
+              index: index,
               depthAlpha: depthAlpha,
               sideDepth: sideDepth,
             ),
           ),
         ),
       ),
+    );
+  }
+
+  /// Construit le contenu visuel d'un emplacement de la pile.
+  ///
+  /// Pour la tuile active (index 0) et tant qu'aucune sélection de
+  /// prévisualisation n'est en cours (le tap sur cette même tuile devient
+  /// sinon la croix d'annulation, voir [build]), la tuile est enrobée d'un
+  /// [Draggable] : glisser-déposer depuis la pile vers le plateau est une
+  /// solution supplémentaire au tap pour prévisualiser un emplacement — voir
+  /// [GameScreen] pour la cible du drag ([DragTarget]) et la conversion
+  /// position -> case hexagonale. Désactivé pendant le mode sélection
+  /// Deuxième chance (mutuellement exclusif avec la prévisualisation de
+  /// placement, comme pour le tap — voir [toggleSecondChanceMode]).
+  Widget _tileContent({
+    required HexTile tile,
+    required int index,
+    required double depthAlpha,
+    required double sideDepth,
+  }) {
+    final preview = _HexTilePreview(
+      tile: tile,
+      highlighted: index == 0,
+      depthAlpha: depthAlpha,
+      sideDepth: sideDepth,
+    );
+
+    final secondChanceActive = ref.watch(secondChanceModeProvider);
+    final canDrag = index == 0 && !widget.hasSelection && !secondChanceActive;
+    if (!canDrag) return preview;
+
+    return Draggable<HexTile>(
+      data: tile,
+      dragAnchorStrategy: pointerDragAnchorStrategy,
+      feedback: _DraggedTileFeedback(tile: tile),
+      childWhenDragging: Opacity(opacity: 0.25, child: preview),
+      onDragStarted: () => buttonHapticTap(context),
+      child: preview,
     );
   }
 }
@@ -360,6 +399,91 @@ class _HexTilePreview extends StatelessWidget {
             highlighted: highlighted,
             alpha: depthAlpha,
             sideDepth: sideDepth,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Aperçu de la tuile en cours de glisser-déposer depuis la pile vers le
+/// plateau — remplace visuellement le doigt, avec une courte animation
+/// d'entrée (grandissement + fondu, courbe "back" pour un effet de
+/// "soulèvement") qui rend la tuile attrapée bien visible dès le début du
+/// geste. Rendue légèrement plus grande que la tuile active de la pile pour
+/// rester lisible une fois sous le doigt, et décalée visuellement au-dessus
+/// du point de contact (via [Transform.translate]) pour ne pas être masquée
+/// par le doigt qui la porte — ce décalage est purement visuel : la position
+/// utilisée par [GameScreen] pour le ciblage de la case ([pointerDragAnchorStrategy])
+/// reste le point de contact réel, insensible à ce décalage de rendu.
+class _DraggedTileFeedback extends StatefulWidget {
+  const _DraggedTileFeedback({required this.tile});
+
+  final HexTile tile;
+
+  static const double _kFeedbackRadius = _kActiveTileRadius * 1.3;
+
+  @override
+  State<_DraggedTileFeedback> createState() => _DraggedTileFeedbackState();
+}
+
+class _DraggedTileFeedbackState extends State<_DraggedTileFeedback>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _scale;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 220),
+    )..forward();
+    _scale = CurvedAnimation(parent: _controller, curve: Curves.easeOutBack);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final radius = _DraggedTileFeedback._kFeedbackRadius;
+    final width = radius * sqrt(3);
+    final height = radius * 2;
+
+    return IgnorePointer(
+      child: Transform.translate(
+        // Centrée horizontalement sur le point de contact, décalée vers le
+        // haut pour flotter au-dessus du doigt plutôt que dessous.
+        offset: Offset(-width / 2, -height - 16),
+        child: ScaleTransition(
+          scale: _scale,
+          child: SizedBox(
+            width: width,
+            height: height,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.4),
+                    blurRadius: 14,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+              ),
+              child: CustomPaint(
+                painter: _HexTilePainter(
+                  tile: widget.tile,
+                  highlighted: true,
+                  alpha: 1.0,
+                  sideDepth: 0,
+                ),
+              ),
+            ),
           ),
         ),
       ),

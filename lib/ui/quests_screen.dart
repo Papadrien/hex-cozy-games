@@ -148,10 +148,11 @@ class _QuestsList extends StatelessWidget {
   /// Pour triple/quad/quint, la catégorie contient à la fois la quête
   /// one-shot de déblocage (ex. `connections_triple_first`) et la quête
   /// répétable de farm (ex. `connections_triple`) — les deux s'affichaient
-  /// en double. On n'affiche que la quête de déblocage tant qu'elle n'est
-  /// pas acquise (c'est l'objectif courant), puis on bascule sur la quête
-  /// répétable une fois le déblocage obtenu. Sextuple n'a pas de variante
-  /// one-shot : elle s'affiche telle quelle.
+  /// en double. On n'affiche que la quête de déblocage tant que sa
+  /// récompense n'a pas été réclamée (objectif courant, y compris le temps
+  /// que le joueur tape sur le point rouge), puis on bascule sur la quête
+  /// répétable une fois la récompense réclamée. Sextuple n'a pas de
+  /// variante one-shot : elle s'affiche telle quelle.
   List<PermanentQuestRow> _connectionQuests(
     Map<String, List<PermanentQuestRow>> grouped,
   ) {
@@ -193,7 +194,13 @@ class _QuestsList extends StatelessWidget {
         repeatable = q;
       }
     }
-    if (oneShot != null && !oneShot.isCompleted) return [oneShot];
+    // On continue d'afficher la quête one-shot tant que sa récompense n'a
+    // pas été réclamée (même complétée) : sinon le point rouge du bouton
+    // "Quêtes" (piloté par isCompleted && !rewardClaimed) reste allumé
+    // alors qu'aucune quête n'apparaît plus comme terminée dans la liste.
+    if (oneShot != null && !(oneShot.isCompleted && oneShot.rewardClaimed)) {
+      return [oneShot];
+    }
     if (repeatable != null) return [repeatable];
     if (oneShot != null) return [oneShot];
     return const [];

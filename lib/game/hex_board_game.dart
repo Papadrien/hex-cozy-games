@@ -73,6 +73,18 @@ class HexBoardGame extends FlameGame
 
   HexGridComponent? _grid;
 
+  /// Convertit une position écran (repère du [GameWidget], voir
+  /// `game_screen.dart`) en coordonnées hexagonales. Délègue à
+  /// [HexGridComponent.hexAt] — exposé publiquement ici pour que
+  /// [GameScreen] puisse cibler une case pendant un glisser-déposer de
+  /// tuile depuis la pile HUD, en dehors du flux de tap normal de ce
+  /// [FlameGame]. Retourne une coordonnée arbitraire (0, 0) tant que la
+  /// grille n'est pas encore chargée — ne devrait pas se produire en
+  /// pratique puisque le drag ne peut démarrer qu'une fois la partie
+  /// affichée.
+  HexCoords hexAt(Offset screenPos) =>
+      _grid?.hexAt(screenPos) ?? const HexCoords(0, 0);
+
   bool _cameraDirty = false;
 
   /// Stocke la position du onTapDown par pointerId, pour mesurer la distance

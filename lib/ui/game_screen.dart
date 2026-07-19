@@ -27,6 +27,7 @@ import '../core/constants.dart';
 import '../core/strings.dart';
 import '../game/hex_board_game.dart';
 import '../game/hex_coords.dart';
+import '../game/hex_tile.dart';
 import '../providers/end_game_provider.dart';
 import '../providers/grid_state_provider.dart';
 import '../providers/pause_provider.dart';
@@ -165,6 +166,41 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     );
   }
 
+  /// Convertit une position écran globale (issue d'un [Draggable]/
+  /// [DragTarget], voir ci-dessous et `tile_stack_hud.dart`) en coordonnées
+  /// hexagonales, via le même repère que [HexBoardGame.hexAt] utilisé pour
+  /// le tap (relatif au [RenderBox] du [GameWidget], identifié par
+  /// [_boardKey]). Null si le board n'est pas encore monté/mesuré.
+  HexCoords? _hexAtGlobal(Offset globalPosition) {
+    final box = _boardKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null || !box.hasSize) return null;
+    return _game.hexAt(box.globalToLocal(globalPosition));
+  }
+
+  /// Prévisualise l'emplacement survolé pendant un glisser-déposer de la
+  /// tuile active depuis la pile HUD (solution supplémentaire au tap pour
+  /// poser une tuile). Appelée en continu pendant le geste ([DragTarget.
+  /// onMove]) et une dernière fois au relâchement ([DragTarget.
+  /// onAcceptWithDetails]) — même logique que le premier tap dans
+  /// [HexBoardGame.onTapUp] : ne sélectionne que si la case survolée est
+  /// disponible, et ne déclenche le clic haptique qu'au changement effectif
+  /// de case (pas à chaque frame de déplacement du doigt). Ignorée pendant
+  /// la pause ou le mode sélection Deuxième chance, mutuellement exclusif
+  /// avec la prévisualisation de placement (comme pour le tap).
+  void _handleTileDragMove(Offset globalPosition) {
+    if (ref.read(pauseProvider).isPaused) return;
+    if (ref.read(secondChanceModeProvider)) return;
+    final coords = _hexAtGlobal(globalPosition);
+    if (coords == null) return;
+    final notifier = ref.read(placementProvider.notifier);
+    if (!notifier.availableCells.contains(coords)) return;
+    final previous = ref.read(placementProvider).selected;
+    notifier.selectCell(coords);
+    if (previous != coords) {
+      ref.read(hapticsServiceProvider).tilePreviewed();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     ref.listen<PauseState>(pauseProvider, (prev, next) {
@@ -263,7 +299,21 @@ class _GameScreenState extends ConsumerState<GameScreen> {
           ),
 
           // ── Jeu Flame — reçoit TOUS les gestes directement ────────────────
-          GameWidget(key: _boardKey, game: _game),
+          // Enrobé d'un DragTarget<HexTile> : le glisser-déposer depuis la
+          // pile de tuiles (tile_stack_hud.dart) est une solution
+          // supplémentaire au tap pour prévisualiser un emplacement — voir
+          // [_handleTileDragMove]. N'interfère pas avec les gestes Flame
+          // (pan/zoom/tap) : un DragTarget ne consomme que les événements
+          // d'un Draggable actif, jamais les gestes tactiles bruts.
+          DragTarget<HexTile>(
+            onWillAcceptWithDetails: (_) => true,
+            onMove: (details) => _handleTileDragMove(details.offset),
+            onAcceptWithDetails: (details) =>
+                _handleTileDragMove(details.offset),
+            builder: (context, candidateData, rejectedData) {
+              return GameWidget(key: _boardKey, game: _game);
+            },
+          ),
 
           // ── Compteur de pièces (story 1.6b) + récompense pièces ────────
           Positioned(
