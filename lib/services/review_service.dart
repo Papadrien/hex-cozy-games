@@ -22,6 +22,7 @@ const String _kReviewPromptShownKey = 'reviewPromptShown';
 /// pour rediriger vers la bonne fiche sur iOS. `null` tant que l'app n'est
 /// pas encore publiée sur l'App Store : sur Android, `openStoreListing`
 /// fonctionne sans cette valeur (utilise l'`applicationId` du manifeste).
+// TODO(adben): Renseigner l'App Store ID numérique avant publication iOS.
 const String? kIOSAppStoreId = null;
 
 class ReviewService {

@@ -157,13 +157,13 @@ List<BiomeType> _pickWeightedBiomes(
 }
 
 List<int> _distribute3(Random rng) {
-  final cut1 = 1 + rng.nextInt(4);
-  var cut2 = 1 + rng.nextInt(4);
-  while (cut2 == cut1) {
-    cut2 = 1 + rng.nextInt(4);
+  while (true) {
+    final cut1 = 1 + rng.nextInt(4);
+    final cut2 = 1 + rng.nextInt(4);
+    if (cut1 == cut2) continue;
+    final a = min(cut1, cut2);
+    final b = (cut1 - cut2).abs();
+    final c = 6 - a - b;
+    if (a >= 1 && b >= 1 && c >= 1) return [a, b, c]..shuffle(rng);
   }
-  final a = cut1 < cut2 ? cut1 : cut2;
-  final b = cut1 < cut2 ? cut2 - cut1 : cut1 - cut2;
-  final c = 6 - a - b;
-  return [a, b, c]..shuffle(rng);
 }
