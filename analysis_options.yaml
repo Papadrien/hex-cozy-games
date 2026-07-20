@@ -11,3 +11,9 @@ linter:
     # Toléré pour un projet MVP — les docs d'architecture sont en Markdown
     # parallèle plutôt que dans le code.
     public_member_api_docs: false
+    avoid_print: true
+    prefer_const_constructors: true
+    prefer_single_quotes: true
+    require_trailing_commas: true
+    sort_child_properties_last: true
+    use_super_parameters: true
