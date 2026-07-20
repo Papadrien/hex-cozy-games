@@ -176,17 +176,25 @@ class GridState {
 
   /// Nombre de biomes fermés (groupes connexes dont chaque tuile a ses 6
   /// voisins occupés). [BiomeType.village] est exclu.
+  ///
+  /// Le suivi des positions visitées est fait PAR biome (une `Map<BiomeType,
+  /// Set<HexCoords>>`), pas dans un set global partagé : une tuile porte
+  /// jusqu'à 3 biomes différents (Story 1.3), donc une position déjà
+  /// visitée pour un biome (ex: forêt) doit rester explorable pour ses
+  /// autres biomes (ex: eau) — sinon certains clusters ne sont jamais
+  /// comptés selon l'ordre d'itération des tuiles.
   int get closedBiomes {
-    final globalVisited = <HexCoords>{};
+    final visitedByBiome = <BiomeType, Set<HexCoords>>{};
     var closedCount = 0;
     for (final entry in placedTiles.entries) {
-      if (globalVisited.contains(entry.key)) continue;
       final uniqueBiomes = entry.value.sides.toSet();
       for (final biome in uniqueBiomes) {
         if (biome == BiomeType.village) continue;
+        final visited = visitedByBiome.putIfAbsent(biome, () => <HexCoords>{});
+        if (visited.contains(entry.key)) continue;
         final cluster = clusterAt(entry.key, biome);
         if (cluster.isEmpty) continue;
-        globalVisited.addAll(cluster);
+        visited.addAll(cluster);
         if (_isClosed(cluster)) closedCount++;
       }
     }

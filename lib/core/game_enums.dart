@@ -47,7 +47,7 @@ enum UpgradeEffectType {
 
   /// Tuile bonus ajoutée tous les N doubles connexions (exactement 2 côtés
   /// connectés) cumulées sur la partie (Combo+) — plus besoin qu'elles
-  /// soient d'affilée, effet cumulatif. N dépend du niveau (15/13/10 aux
+  /// soient d'affilée, effet cumulatif. N dépend du niveau (10/8/5 aux
   /// niveaux 1/2/3). Déblocage en Story A11, effet réel branché en
   /// Story B3.
   comboBonusTiles,

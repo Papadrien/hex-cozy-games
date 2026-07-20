@@ -47,7 +47,7 @@ class SessionState {
   /// réalisées depuis le début de la partie. N'est plus remis à 0 par une
   /// pose qui ne connecte pas exactement 2 côtés (condition d'affilée
   /// retirée) — utilisé par Combo+ (Story B3), qui se déclenche tous les N
-  /// doubles connexions cumulées (N = 15/13/10 selon le niveau de
+  /// doubles connexions cumulées (N = 10/8/5 selon le niveau de
   /// l'amélioration), effet cumulatif sur toute la partie.
   final int currentDoubleStreak;
 

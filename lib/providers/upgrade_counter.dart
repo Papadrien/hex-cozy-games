@@ -59,7 +59,7 @@ class UpgradeCounterInfo {
 UpgradeCounterInfo upgradeCounterFor(WidgetRef ref, UpgradeEffectType effectType) {
   switch (effectType) {
     // Combo+ : progression cumulée (doubles connexions, plus besoin
-    // d'affilée) vers le prochain palier (N = 15/13/10 selon niveau). Le
+    // d'affilée) vers le prochain palier (N = 10/8/5 selon niveau). Le
     // compteur brut ne se remet jamais à 0 (Story combo cumulatif) ; on
     // affiche donc la progression dans le cycle courant (1..interval),
     // et non le total cumulé, pour que le badge ("7/15") reste borné.

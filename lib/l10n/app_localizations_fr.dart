@@ -155,6 +155,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get quests_category_biome_colors => 'Groupes de couleur';
 
   @override
+  String get quests_category_streak => 'Série de connexions';
+
+  @override
   String get quests_status_active => 'En cours';
 
   @override
@@ -233,7 +236,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get upgrade_desc_combo_plus =>
-      'Ajoute une tuile bonus tous les N doubles connexions cumulées sur la partie (15/13/10 selon le niveau).';
+      'Ajoute une tuile bonus tous les N doubles connexions cumulées sur la partie (10/8/5 selon le niveau).';
 
   @override
   String get upgrade_desc_extended_preview =>

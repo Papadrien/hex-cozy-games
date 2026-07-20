@@ -12,27 +12,39 @@ import 'hex_cell.dart';
 
 /// Une tuile hexagonale posable sur le plateau.
 class HexTile {
-  const HexTile({required this.sides}) : assert(sides.length == 6);
+  const HexTile({required this.sides, this.isBonus = false})
+      : assert(sides.length == 6);
 
   final List<BiomeType> sides;
+
+  /// Vrai si cette tuile provient d'une récompense (tuile bonus gagnée en
+  /// jeu, ex. Combo+) plutôt que du tirage normal de la pile — sert
+  /// uniquement à déclencher un retour haptique dédié lorsqu'elle devient
+  /// visible dans la pile (voir [TileStackHud]), sans affecter le gameplay.
+  final bool isBonus;
 
   HexTile rotated(int steps) {
     final n = ((steps % 6) + 6) % 6;
     final rotatedSides =
         List<BiomeType>.generate(6, (i) => sides[(i - n + 6) % 6]);
-    return HexTile(sides: rotatedSides);
+    return HexTile(sides: rotatedSides, isBonus: isBonus);
   }
+
+  HexTile copyWith({bool? isBonus}) =>
+      HexTile(sides: sides, isBonus: isBonus ?? this.isBonus);
 
   int get biomeCount => sides.toSet().length;
 
   Map<String, dynamic> toJson() => {
         'sides': sides.map((b) => b.name).toList(),
+        'isBonus': isBonus,
       };
 
   factory HexTile.fromJson(Map<String, dynamic> json) => HexTile(
         sides: (json['sides'] as List)
             .map((s) => BiomeType.values.firstWhere((b) => b.name == s))
             .toList(),
+        isBonus: json['isBonus'] as bool? ?? false,
       );
 }
 

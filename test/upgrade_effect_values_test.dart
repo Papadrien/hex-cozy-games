@@ -167,18 +167,18 @@ void main() {
       );
     });
 
-    test('extendedPreviewCount → 4, 5, 6', () {
+    test('extendedPreviewCount → 3, 4, 5', () {
       expect(
         upgradeEffectValue(UpgradeEffectType.extendedPreviewCount, 0),
-        4.0,
+        3.0,
       );
       expect(
         upgradeEffectValue(UpgradeEffectType.extendedPreviewCount, 1),
-        5.0,
+        4.0,
       );
       expect(
         upgradeEffectValue(UpgradeEffectType.extendedPreviewCount, 2),
-        6.0,
+        5.0,
       );
     });
 
@@ -327,10 +327,10 @@ void main() {
       );
     });
 
-    test('extendedPreviewCount → 4, 5, 6 tuiles', () {
+    test('extendedPreviewCount → 3, 4, 5 tuiles', () {
       expect(
         upgradeAllLevelEffects(UpgradeEffectType.extendedPreviewCount),
-        ['4 tuiles', '5 tuiles', '6 tuiles'],
+        ['3 tuiles', '4 tuiles', '5 tuiles'],
       );
     });
 

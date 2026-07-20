@@ -15,6 +15,7 @@ import '../core/game_enums.dart';
 import '../core/strings.dart';
 import '../data/app_database.dart';
 import '../providers/quest_provider.dart';
+import '../providers/progression_provider.dart';
 import '../services/haptics_service.dart';
 import 'glass_container.dart';
 import 'quest_reward_burst.dart';
@@ -134,6 +135,15 @@ class _QuestsList extends StatelessWidget {
             color: kConnectionOrange,
             label: context.tr.quests_category_connections,
             quests: _connectionQuests(grouped),
+            allQuests: quests,
+          ),
+        const SizedBox(height: 24),
+        if (grouped.containsKey(QuestCategory.bestConnectionStreak.dbValue))
+          _CategorySection(
+            icon: Icons.local_fire_department,
+            color: kSuccessGreen,
+            label: context.tr.quests_category_streak,
+            quests: grouped[QuestCategory.bestConnectionStreak.dbValue]!,
             allQuests: quests,
           ),
         const SizedBox(height: 32),
@@ -521,6 +531,7 @@ class _QuestCardState extends ConsumerState<_QuestCard>
     // Le point rouge et l'invite au tap disparaissent dès que le tap est
     // pris en compte, sans attendre l'aller-retour base de données.
     final showPendingClaimUi = _isPendingClaim && !_isClaiming;
+    final upgradeName = ref.watch(upgradeForQuestProvider(quest.id))?.name;
 
     return GestureDetector(
       onTap: showPendingClaimUi ? _handleClaim : null,
@@ -547,7 +558,10 @@ class _QuestCardState extends ConsumerState<_QuestCard>
                       opacity: (1 - _floatAnim.value).clamp(0.0, 1.0),
                       child: Transform.translate(
                         offset: Offset(0, -28 * _floatAnim.value),
-                        child: _ClaimedRewardText(quest: quest),
+                        child: _ClaimedRewardText(
+                          quest: quest,
+                          upgradeName: upgradeName,
+                        ),
                       ),
                     ),
                   ),
@@ -558,7 +572,13 @@ class _QuestCardState extends ConsumerState<_QuestCard>
         child: AnimatedBuilder(
           animation: _glowAnim,
           builder: (context, child) {
-            final glow = 1 - _glowAnim.value;
+            // Au repos, _claimController vaut 0.0 — indistinguable du tout
+            // début d'une animation de réclamation, où glow doit valoir 1.
+            // Sans le garde-fou `isAnimating`, chaque carte affichait donc
+            // ce halo ambré en continu au lieu de seulement juste après un
+            // claim.
+            final glow =
+                _claimController.isAnimating ? 1 - _glowAnim.value : 0.0;
             return Container(
               decoration: glow > 0
                   ? BoxDecoration(
@@ -701,9 +721,12 @@ class _QuestCardState extends ConsumerState<_QuestCard>
                             ),
                           const Spacer(),
                           // Reward
-                          _RewardBadge(
-                            rewardType: RewardType.fromDb(quest.rewardType),
-                            rewardValue: quest.rewardValue,
+                          Flexible(
+                            child: _RewardBadge(
+                              rewardType: RewardType.fromDb(quest.rewardType),
+                              rewardValue: quest.rewardValue,
+                              upgradeName: upgradeName,
+                            ),
                           ),
                         ],
                       ),
@@ -738,9 +761,10 @@ class _RedDot extends StatelessWidget {
 /// Texte flottant "+X" (ou icône) affiché brièvement au-dessus de la carte
 /// lors de la réclamation d'une récompense.
 class _ClaimedRewardText extends StatelessWidget {
-  const _ClaimedRewardText({required this.quest});
+  const _ClaimedRewardText({required this.quest, this.upgradeName});
 
   final PermanentQuestRow quest;
+  final String? upgradeName;
 
   @override
   Widget build(BuildContext context) {
@@ -771,7 +795,7 @@ class _ClaimedRewardText extends StatelessWidget {
         Icon(Icons.auto_awesome, color: kUpgradePurple, size: 18),
         const SizedBox(width: 4),
         Text(
-          context.tr.quests_reward_upgrade,
+          upgradeName ?? context.tr.quests_reward_upgrade,
           style: TextStyle(
             color: kUpgradePurple,
             fontSize: 14,
@@ -785,10 +809,15 @@ class _ClaimedRewardText extends StatelessWidget {
 }
 
 class _RewardBadge extends StatelessWidget {
-  const _RewardBadge({required this.rewardType, required this.rewardValue});
+  const _RewardBadge({
+    required this.rewardType,
+    required this.rewardValue,
+    this.upgradeName,
+  });
 
   final RewardType rewardType;
   final int rewardValue;
+  final String? upgradeName;
 
   @override
   Widget build(BuildContext context) {
@@ -829,12 +858,16 @@ class _RewardBadge extends StatelessWidget {
           children: [
             Icon(Icons.auto_awesome, color: kUpgradePurple, size: 14),
             const SizedBox(width: 3),
-            Text(
-              context.tr.quests_reward_upgrade,
-              style: const TextStyle(
-                color: kUpgradePurple,
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
+            Flexible(
+              child: Text(
+                upgradeName ?? context.tr.quests_reward_upgrade,
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
+                style: const TextStyle(
+                  color: kUpgradePurple,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
           ],

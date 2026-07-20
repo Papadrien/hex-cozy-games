@@ -101,7 +101,7 @@ class ActiveUpgradeEffects {
 
   /// Intervalle (en doubles connexions cumulées sur la partie, plus besoin
   /// d'être d'affilée) entre deux octrois d'une tuile bonus (Combo+ —
-  /// Story B3). Valeurs : 15/13/10 selon niveau ; 0 = inactif. Une seule
+  /// Story B3). Valeurs : 10/8/5 selon niveau ; 0 = inactif. Une seule
   /// tuile bonus est accordée à chaque palier, quel que soit le niveau.
   final int comboStreakInterval;
 

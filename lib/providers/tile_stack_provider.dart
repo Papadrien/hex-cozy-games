@@ -276,7 +276,9 @@ class TileStack extends _$TileStack {
     // qu'après les tuiles déjà posées ET le reste de la pile actuelle.
     final placedCount = ref.read(gridProvider).placedTiles.length;
     final startPosition = placedCount + _queue.length + 1;
-    _queue.addAll(_bonusPool(count, startPosition: startPosition));
+    final pool = _bonusPool(count, startPosition: startPosition)
+        .map((t) => t.copyWith(isBonus: true));
+    _queue.addAll(pool);
     state = _buildState();
   }
 

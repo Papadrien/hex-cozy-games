@@ -517,7 +517,7 @@ void _recordPlacement(
   // Story B3 — Combo+ : à chaque palier de N doubles connexions
   // (exactement 2 côtés connectés) cumulées sur la partie (plus besoin
   // d'être d'affilée), ajoute 1 tuile bonus. N dépend du niveau de
-  // l'amélioration (15/13/10 aux niveaux 1/2/3).
+  // l'amélioration (10/8/5 aux niveaux 1/2/3).
   final doubleStreak = ref.read(sessionProvider).currentDoubleStreak;
   final comboInterval = effects.getComboStreakInterval();
   if (comboInterval > 0 && doubleStreak > 0 && doubleStreak % comboInterval == 0) {

@@ -12,6 +12,7 @@
 /// l'écran.
 library;
 
+import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 
@@ -180,6 +181,11 @@ class _AnimatedTilePileState extends ConsumerState<_AnimatedTilePile> {
       }
     }
     if (newcomers.isEmpty && returners.isEmpty) return;
+
+    final bonusNewcomers = newcomers.where((t) => t.isBonus).toList();
+    if (bonusNewcomers.isNotEmpty) {
+      unawaited(ref.read(hapticsServiceProvider).bonusTileArrived());
+    }
 
     setState(() {
       _enteringFromRight.addAll(newcomers);

@@ -8,6 +8,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../core/colors.dart';
 import '../core/game_enums.dart';
 import '../core/constants.dart';
+import '../core/page_transitions.dart';
 import '../core/snackbar_utils.dart';
 import '../core/strings.dart';
 import '../data/app_database.dart';
@@ -161,7 +162,7 @@ class _TopBar extends StatelessWidget {
               buttonHapticTap(context);
               clearAppSnackBars();
               Navigator.of(context).push(
-                MaterialPageRoute<void>(builder: (_) => const SettingsScreen()),
+                BlurFadePageRoute<void>(builder: (_) => const SettingsScreen()),
               );
             },
           ),
@@ -173,7 +174,7 @@ class _TopBar extends StatelessWidget {
               buttonHapticTap(context);
               clearAppSnackBars();
               Navigator.of(context).push(
-                MaterialPageRoute<void>(builder: (_) => const ShopScreen()),
+                BlurFadePageRoute<void>(builder: (_) => const ShopScreen()),
               );
             },
           ),
@@ -370,7 +371,7 @@ class _CenterContentState extends ConsumerState<_CenterContent>
                       onTap: () {
                         clearAppSnackBars();
                         Navigator.of(context).push(
-                          MaterialPageRoute<void>(
+                          BlurFadePageRoute<void>(
                               builder: (_) => const QuestsScreen()),
                         );
                       },
@@ -384,7 +385,7 @@ class _CenterContentState extends ConsumerState<_CenterContent>
                       onTap: () {
                         clearAppSnackBars();
                         Navigator.of(context).push(
-                          MaterialPageRoute<void>(
+                          BlurFadePageRoute<void>(
                               builder: (_) => const StatsScreen()),
                         );
                       },
@@ -628,7 +629,7 @@ class _BuildButton extends StatelessWidget {
                 buttonHapticTap(context);
                 clearAppSnackBars();
                 Navigator.of(context).push(
-                  MaterialPageRoute<void>(builder: (_) => const BuildScreen()),
+                  BlurFadePageRoute<void>(builder: (_) => const BuildScreen()),
                 );
               },
         child: Row(

@@ -34,6 +34,21 @@ final unlockedUpgradesProvider = Provider<List<UpgradeRow>>((ref) {
   return all.where((u) => u.isUnlocked).toList();
 });
 
+/// Amélioration débloquée par la quête [questId] (`unlockConditionType ==
+/// questId`), s'il y en a une — utilisé pour afficher son nom directement
+/// sur la carte de la quête correspondante.
+final upgradeForQuestProvider =
+    Provider.family<UpgradeRow?, String>((ref, questId) {
+  final all = ref.watch(upgradesProvider).maybeWhen(
+        data: (list) => list,
+        orElse: () => <UpgradeRow>[],
+      );
+  for (final upgrade in all) {
+    if (upgrade.unlockConditionType == questId) return upgrade;
+  }
+  return null;
+});
+
 final progressionServiceProvider = Provider<ProgressionService>((ref) {
   return ProgressionService(ref);
 });
@@ -74,17 +89,23 @@ class ProgressionService {
   ProgressionService(this._ref);
   final Ref _ref;
 
-  /// Parcourt toutes les améliorations verrouillées et les débloque si
-  /// leur condition est remplie.
+  /// Parcourt les améliorations verrouillées à condition `tiles_placed`
+  /// et les débloque si le seuil est atteint.
+  ///
+  /// Les améliorations à condition QUEST ne sont PAS traitées ici : elles
+  /// sont débloquées individuellement via [checkUnlockForQuest], au moment
+  /// où le joueur réclame la récompense de la quête correspondante — jamais
+  /// en lot.
   Future<void> checkUnlocks() async {
     final db = _ref.read(appDatabaseProvider);
 
     final locked = await (db.select(db.upgrades)
-          ..where((u) => u.isUnlocked.equals(false)))
+          ..where((u) => u.isUnlocked.equals(false))
+          ..where((u) => u.unlockConditionType.equals('tiles_placed')))
         .get();
 
     for (final upgrade in locked) {
-      if (await _isConditionMet(upgrade, db)) {
+      if (await _isTilesPlacedMet(upgrade, db)) {
         await db.update(db.upgrades).replace(
               upgrade.copyWith(isUnlocked: true),
             );
@@ -92,14 +113,23 @@ class ProgressionService {
     }
   }
 
-  Future<bool> _isConditionMet(UpgradeRow upgrade, AppDatabase db) async {
-    if (upgrade.unlockConditionType == 'debug_only') return false;
-    if (upgrade.unlockConditionType == 'tiles_placed') {
-      return _isTilesPlacedMet(upgrade, db);
+  /// Débloque uniquement l'amélioration (s'il y en a une) dont
+  /// `unlockConditionType == questId`, appelée exclusivement au claim
+  /// manuel de la récompense d'une quête (Story : 1 quête réclamée = 1
+  /// déblocage, jamais plusieurs d'un coup).
+  Future<void> checkUnlockForQuest(String questId) async {
+    final db = _ref.read(appDatabaseProvider);
+
+    final locked = await (db.select(db.upgrades)
+          ..where((u) => u.isUnlocked.equals(false))
+          ..where((u) => u.unlockConditionType.equals(questId)))
+        .get();
+
+    for (final upgrade in locked) {
+      await db.update(db.upgrades).replace(
+            upgrade.copyWith(isUnlocked: true),
+          );
     }
-    // Par défaut, traité comme type QUEST : unlockConditionType est l'ID
-    // de la quête permanente dont la complétion débloque cette amélioration.
-    return _isQuestCompleted(upgrade.unlockConditionType, db);
   }
 
   Future<bool> _isTilesPlacedMet(UpgradeRow upgrade, AppDatabase db) async {
@@ -108,13 +138,6 @@ class ProgressionService {
             .getSingleOrNull();
     if (profile == null) return false;
     return profile.totalTilesPlaced >= upgrade.unlockConditionValue;
-  }
-
-  Future<bool> _isQuestCompleted(String questId, AppDatabase db) async {
-    final quest = await (db.select(db.permanentQuests)
-          ..where((q) => q.id.equals(questId)))
-        .getSingleOrNull();
-    return quest?.isCompleted ?? false;
   }
 
   /// Force toutes les améliorations à être débloquées au niveau 1 — debug.
@@ -266,7 +289,7 @@ List<String> upgradeAllLevelEffects(UpgradeEffectType effectType) {
     case UpgradeEffectType.secondChanceUses:
       return ['1 usage/partie', '2 usages/partie', '3 usages/partie'];
     case UpgradeEffectType.comboBonusTiles:
-      return ['Toutes les 15 tuiles', 'Toutes les 13 tuiles', 'Toutes les 10 tuiles'];
+      return ['Toutes les 10 tuiles', 'Toutes les 8 tuiles', 'Toutes les 5 tuiles'];
     case UpgradeEffectType.millionaireCoins:
       return ['1 000 000'];
     case UpgradeEffectType.warehouseStartingTiles:
@@ -310,7 +333,7 @@ double upgradeEffectValue(UpgradeEffectType effectType, int level) {
       // sur la partie, plus besoin d'être d'affilée) entre deux octrois
       // d'une tuile bonus, et non plus le nombre de tuiles accordées
       // (toujours 1 désormais).
-      return [15.0, 13.0, 10.0][level.clamp(0, 2)];
+      return [10.0, 8.0, 5.0][level.clamp(0, 2)];
     case UpgradeEffectType.millionaireCoins:
       return [1000000.0][level.clamp(0, 0)];
     case UpgradeEffectType.warehouseStartingTiles:

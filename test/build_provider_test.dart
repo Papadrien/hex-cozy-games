@@ -230,7 +230,7 @@ void main() {
       );
     });
 
-    test('extended_preview (niveau 1) → extendedPreviewCount = 4', () {
+    test('extended_preview (niveau 1) → extendedPreviewCount = 3', () {
       final container = containerWithUpgrades([
         row(
           id: 'extended_preview',
@@ -242,11 +242,11 @@ void main() {
 
       expect(
         container.read(activeUpgradeEffectsProvider).extendedPreviewCount,
-        4,
+        3,
       );
     });
 
-    test('extended_preview (niveau 3) → extendedPreviewCount = 6', () {
+    test('extended_preview (niveau 3) → extendedPreviewCount = 5', () {
       final container = containerWithUpgrades([
         row(
           id: 'extended_preview',
@@ -258,7 +258,7 @@ void main() {
 
       expect(
         container.read(activeUpgradeEffectsProvider).extendedPreviewCount,
-        6,
+        5,
       );
     });
 

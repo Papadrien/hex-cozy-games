@@ -122,6 +122,18 @@ class HapticsService {
     await Future<void>.delayed(const Duration(milliseconds: 80));
     await HapticFeedback.heavyImpact();
   }
+
+  /// Retour haptique joué lorsqu'une tuile bonus gagnée (Combo+, récompense
+  /// de placement) devient visible dans la pile de tuiles — distinct du
+  /// retour immédiat de [playReward] joué au moment du gain : celui-ci
+  /// souligne plutôt l'arrivée concrète de la tuile, potentiellement
+  /// plusieurs poses plus tard une fois qu'elle atteint le sommet visible
+  /// de la pile. Un simple impact moyen, pour rester perceptible sans se
+  /// confondre avec les autres motifs (rotation, sélection, récompense).
+  Future<void> bonusTileArrived() async {
+    if (!_enabled) return;
+    await HapticFeedback.mediumImpact();
+  }
 }
 
 final hapticsServiceProvider = Provider<HapticsService>((ref) {

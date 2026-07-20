@@ -368,6 +368,12 @@ abstract class AppLocalizations {
   /// **'Color groups'**
   String get quests_category_biome_colors;
 
+  /// No description provided for @quests_category_streak.
+  ///
+  /// In en, this message translates to:
+  /// **'Connection streak'**
+  String get quests_category_streak;
+
   /// No description provided for @quests_status_active.
   ///
   /// In en, this message translates to:
@@ -515,7 +521,7 @@ abstract class AppLocalizations {
   /// No description provided for @upgrade_desc_combo_plus.
   ///
   /// In en, this message translates to:
-  /// **'Grants 1 bonus tile every N double connections in a row (15/13/10 depending on level).'**
+  /// **'Grants 1 bonus tile every N double connections in a row (10/8/5 depending on level).'**
   String get upgrade_desc_combo_plus;
 
   /// No description provided for @upgrade_desc_extended_preview.

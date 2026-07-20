@@ -153,6 +153,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get quests_category_biome_colors => 'Color groups';
 
   @override
+  String get quests_category_streak => 'Connection streak';
+
+  @override
   String get quests_status_active => 'Active';
 
   @override
@@ -230,7 +233,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get upgrade_desc_combo_plus =>
-      'Grants 1 bonus tile every N double connections made during the game (15/13/10 depending on level).';
+      'Grants 1 bonus tile every N double connections made during the game (10/8/5 depending on level).';
 
   @override
   String get upgrade_desc_extended_preview =>

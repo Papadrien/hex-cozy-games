@@ -97,7 +97,7 @@ class GameEffectsService {
 
   /// Intervalle (en doubles connexions — 2 côtés connectés — cumulées sur
   /// la partie, sans condition d'affilée) déclenchant l'octroi d'une tuile
-  /// bonus (Combo+ — Story B3). Valeurs : 15/13/10 selon niveau ;
+  /// bonus (Combo+ — Story B3). Valeurs : 10/8/5 selon niveau ;
   /// 0 = inactif.
   int getComboStreakInterval() {
     return _ref.read(activeUpgradeEffectsProvider).comboStreakInterval;

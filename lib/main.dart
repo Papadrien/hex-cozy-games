@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
+import 'core/page_transitions.dart';
 import 'core/snackbar_utils.dart';
 import 'core/theme.dart';
 import 'l10n/app_localizations.dart';
@@ -67,10 +68,29 @@ class _HexCozyGamesAppState extends State<HexCozyGamesApp>
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       initialRoute: '/',
-      routes: {
-        '/': (_) => const SplashScreen(),
-        '/home': (_) => const HomeScreen(),
-        '/game': (_) => const GameScreen(),
+      onGenerateRoute: (settings) {
+        switch (settings.name) {
+          case '/':
+            return BlurFadePageRoute<void>(
+              builder: (_) => const SplashScreen(),
+              settings: settings,
+            );
+          case '/home':
+            // Retour au menu : transition calme, jouée souvent (depuis le
+            // splash, la partie, les résultats, la pause).
+            return BlurFadePageRoute<void>(
+              builder: (_) => const HomeScreen(),
+              settings: settings,
+            );
+          case '/game':
+            // Entrée en partie : moment fort, wipe hexagonal thématique.
+            return HexWipePageRoute<void>(
+              builder: (_) => const GameScreen(),
+              settings: settings,
+            );
+          default:
+            return null;
+        }
       },
     );
   }

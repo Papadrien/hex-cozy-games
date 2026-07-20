@@ -198,6 +198,9 @@ class QuestService {
     await _updateConnectionQuests(connectedSidesCount);
     final db = _ref.read(appDatabaseProvider);
     await incrementTotalTilesPlaced(db);
+    // Les améliorations à condition `tiles_placed` ne dépendent d'aucune
+    // quête : on les vérifie ici, en temps réel, indépendamment du claim.
+    await _ref.read(progressionServiceProvider).checkUnlocks();
     _ref.invalidate(permanentQuestsProvider);
   }
 
@@ -419,15 +422,10 @@ class QuestService {
   // rouge) pour la réclamer via [claimReward].
 
   Future<void> _handleCompletion(PermanentQuestRow quest) async {
-    // isCompleted a déjà été mis à jour par l'appelant ; la récompense
-    // propre de la quête (pièces / déblocage d'amélioration listé comme
-    // `rewardType`) reste en attente jusqu'à [claimReward]. En revanche,
-    // le système de déblocage d'améliorations conditionnées par
-    // `unlockConditionType == <questId>` (table `upgrades`) reste
-    // automatique et indépendant de cette réclamation manuelle : il se
-    // base uniquement sur `isCompleted`, déjà vrai à ce stade.
-    if (quest.isRepeatable) return;
-    await _ref.read(progressionServiceProvider).checkUnlocks();
+    // isCompleted a déjà été mis à jour par l'appelant. La quête apparaît
+    // désormais comme "terminée" côté UI (point rouge), mais rien n'est
+    // débloqué automatiquement ici — ni pièces, ni amélioration : tout
+    // attend le tap du joueur sur la quête, géré dans [claimReward].
   }
 
   Future<void> _grantReward(PermanentQuestRow quest) async {
@@ -475,9 +473,13 @@ class QuestService {
       if (quest.nextQuestId != null) {
         _unlockNextQuest(quest.nextQuestId!);
       }
-      // Vérifier les déblocages d'améliorations après réclamation
-      // (Story 2.5a).
-      await _ref.read(progressionServiceProvider).checkUnlocks();
+      // Débloquer uniquement l'amélioration liée à CETTE quête (Story
+      // 2.5a) — pas de sweep global : si plusieurs quêtes sont terminées
+      // en attente de claim, chaque claim ne débloque que sa propre
+      // amélioration.
+      await _ref
+          .read(progressionServiceProvider)
+          .checkUnlockForQuest(quest.id);
     }
     _ref.invalidate(permanentQuestsProvider);
   }
