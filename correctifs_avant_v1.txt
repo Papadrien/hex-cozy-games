@@ -1,0 +1,212 @@
+
+# 🔍 Rapport de relecture — Hex Haven (hex-cozy-games)
+
+**Stack :** Flutter 3.44.3 / Dart 3.12.2 / Flame 1.32 / Riverpod 3.0 / Drift 2.28 / Firebase  
+**Architecture :** `core/` · `data/` · `game/` · `providers/` · `services/` · `ui/`  
+**Couverture tests :** 17 fichiers de tests couvrant la plupart des providers et logiques de jeu
+
+---
+
+## 1. 🐛 CORRECTIFS (bugs & problèmes potentiels)
+
+### 1.1 — `pubspec.yaml` : description placeholder
+```yaml
+description: "A new Flutter project."
+```
+La description est le placeholder par défaut de `flutter create`. Remplacer par une vraie description du jeu (ex: `"A relaxing hex-tile placement game."`).
+
+### 1.2 — `README.md` : mention `very_good_analysis` inexacte
+Le README indique `very_good_analysis` comme linter, mais le projet utilise `flutter_lints` (`analysis_options.yaml` → `include: package:flutter_lints/flutter.yaml`). Corriger la doc pour refléter la réalité.
+
+### 1.3 — `lib/core/theme.dart` : thème incomplet
+Le thème ne définit qu'un thème **light** alors que l'app utilise exclusivement un fond noir/sombre (`Colors.black` partout dans les écrans). Il manque un `ThemeData.dark`. L'écran utilise `AppTheme.light` bien que le rendu soit dark — ce qui peut causer des incohérences avec les composants Material (couleurs par défaut, `Theme.of(context)`).
+
+**Action :** Ajouter un `static ThemeData get dark` avec `brightness: Brightness.dark` et l'utiliser dans `main.dart`.
+
+### 1.4 — `lib/core/strings.dart` : `biomeName` non-localisé en anglais
+```dart
+if (!AppLocalizations.of(context)!.localeName.startsWith('fr')) return biome;
+```
+Pour la locale EN, la fonction retourne directement la clé technique (`'forest'`, `'village'`...) au lieu d'un nom lisible en anglais (`'Forest'`, `'Village'`...). Il manque soit des entrées ARB pour les biomes EN, soit un switch case pour la locale EN.
+
+### 1.5 — `lib/game/hex_tile.dart` : `fromJson` non-robuste
+```dart
+BiomeType.values.firstWhere((b) => b.name == s)
+```
+Si `s` ne correspond à aucun `BiomeType.name`, `firstWhere` lève une `StateError`. Ajouter un `orElse` ou valider l'entrée pour éviter un crash lors de la restauration d'une session corrompue.
+
+### 1.6 — `lib/core/game_enums.dart` : `fromDb` non-robuste
+Même problème pour `UpgradeEffectType.fromDb`, `QuestCategory.fromDb` et `RewardType.fromDb` — `firstWhere` sans `orElse`. Un valeur inconnue en DB (ex: après downgrade d'app) causera un crash.
+
+### 1.7 — `lib/services/ad_service.dart` : IDs de test en release
+```dart
+if (kReleaseMode) {
+    // TODO(story-3.1a): Remplacer par les IDs de production avant release.
+    if (Platform.isAndroid) return kAdMobBannerTestIdAndroid;
+```
+Les IDs de test AdMob sont utilisés **même en release**. Les TODO sont présents mais c'est un oubli critique à corriger avant publication — l'app afficherait des pubs de test en production.
+
+### 1.8 — `android/app/src/main/AndroidManifest.xml` : AdMob App ID de test
+```xml
+android:value="ca-app-pub-3940256099942544~3347511713"
+```
+L'AdMob App ID dans le manifest est l'ID de test Google. À remplacer avant publication.
+
+### 1.9 — `lib/game/hex_board_game.dart` : polling à chaque frame
+```dart
+@override
+void update(double dt) {
+    super.update(dt);
+    // ...
+    _syncPlacementPreview(); // appelé à CHAQUE frame
+}
+```
+Le commentaire justifie ce choix, mais `_syncPlacementPreview()` lit 3 providers Riverpod à chaque frame (60fps). Sur des appareils modestes, c'est un overhead non négligeable. Un abonnement `ref.listen` avec un flag dirty serait plus performant.
+
+### 1.10 — `lib/services/cloud_save_service.dart` : `syncOnLaunch` peut écraser
+La résolution de conflit est **last-write-wins** basée sur timestamp. Si deux appareils ont des horloges désynchronisées, une progression plus ancienne peut écraser une progression plus récente. Ajouter une vérification supplémentaire (ex: comparer `totalTilesPlaced` ou `coins` en plus du timestamp).
+
+### 1.11 — `lib/providers/placement_commit.dart` : `restoreSession` ne restaure pas `_excludeBiome`
+Le commentaire dans `tile_stack_provider.dart` l'admet : "non restaurés par `restoreQueue`". Pour l'amélioration "Couleur détestée", le biome exclu est perdu à la reprise. Acceptable pour un badge cosmétique, mais à documenter ou corriger.
+
+### 1.12 — `lib/data/app_database.dart` : `schemaVersion` potentiellement désynchronisé
+Les commentaires de `seed_data.dart` référencent des migrations "version 6", "version 9", "version 10", mais `schemaVersion` est à **3**. Les constantes nommées (`kBestGameCoinsQuest`, `kClusterColorQuests`, etc.) sont définies pour des migrations futures mais jamais utilisées dans `onUpgrade`. À nettoyer ou implémenter.
+
+---
+
+## 2. ♻️ REFACTORING & AMÉLIORATIONS DE CODE
+
+### 2.1 — Duplication massive du pattern "fond tropical + voile bleuté"
+Les 6 écrans secondaires (`build_screen.dart`, `shop_screen.dart`, `quests_screen.dart`, `settings_screen.dart`, `stats_screen.dart`, `home_screen.dart`) répètent **exactement le même pattern** :
+```dart
+Stack(fit: StackFit.expand, children: [
+    Image.asset('assets/images/home_background.png', fit: BoxFit.cover),
+    Container(decoration: BoxDecoration(gradient: LinearGradient(...))),
+    SafeArea(child: Column(...)),
+])
+```
+**Action :** Extraire un widget `ScaffoldWithTropicalBackground` qui wrap ce pattern, avec un paramètre `showVeil` (l'accueil n'a pas le voile) et un `child` pour le contenu.
+
+### 2.2 — `lib/providers/placement_commit.dart` : 33 000 caractères
+Ce fichier est gigantesque (~33k chars) et mélange : restauration de session, validation de placement, undo, hold slot swap, second chance, abandon, sauvegarde. 
+
+**Action :** Scinder en plusieurs fichiers : `session_restore.dart`, `placement_commit.dart`, `undo_placement.dart`, `hold_slot_swap.dart`, `second_chance_ops.dart`, `game_end_ops.dart`.
+
+### 2.3 — `lib/game/hex_grid_component.dart` : 22 000+ caractères
+La classe `HexGridComponent` gère le rendu, la caméra, le layout, les surbrillances, la prévisualisation, les animations de bonus, les particules d'eau, les traînées... Trop de responsabilités.
+
+**Action :** Extraire les composants d'animation (`_BonusTileAnimComponent`, `_BonusWaterBurst`, `_TrailDot`, `_CoinComponent`, `_PreviewBonusComponent`) dans un fichier `bonus_animations.dart`.
+
+### 2.4 — `lib/core/formatting.dart` : réinventer la roue
+`formatThousands` pourrait utiliser `intl` (déjà une dépendance) :
+```dart
+import 'package:intl/intl.dart';
+final formatter = NumberFormat.decimalPatternDigits(locale: 'fr');
+```
+Cela gérerait aussi la localisation des séparateurs selon la locale.
+
+### 2.5 — `lib/providers/setup_providers.dart` : provider de test résiduel
+```dart
+@riverpod
+String setupStatus(Ref ref) => 'Riverpod OK';
+```
+Le commentaire dit "Sera supprimé une fois les vrais providers en place". C'est clairement le moment. À supprimer.
+
+### 2.6 — `optionsProvider` et `tutorialProvider` : persistance incomplète
+`optionsProvider` (son/vibrations) indique dans son doc comment "persisté via keepAlive" mais ne persiste **pas** en DB ni SharedPreferences — `keepAlive` signifie seulement "pas disposé par Riverpod". Les options se réinitialisent au redémarrage de l'app. Utiliser `shared_preferences` (déjà une dépendance) pour persister.
+
+### 2.7 — `lib/core/theme.dart` : fonts non déclarées dans pubspec
+Les fonts `Pacifico` et `Nunito` sont dans `assets/fonts/` et utilisées via `google_fonts`, mais le bloc `fonts:` de `pubspec.yaml` est commenté. Soit utiliser `google_fonts` partout (et supprimer les TTF locaux), soit déclarer les fonts locales dans `pubspec.yaml` et supprimer la dépendance `google_fonts`.
+
+---
+
+## 3. 🚀 AJOUTS RECOMMANDÉS
+
+### 3.1 — Tests : manque de couverture UI
+- **Aucun test** pour `shop_screen.dart`, `settings_screen.dart`, `stats_screen.dart`, `quests_screen.dart`, `splash_screen.dart`, `tutorial_overlay.dart`, `review_bottom_sheet.dart`, `pause_modal.dart`, `results_modal.dart`.
+- **Action :** Ajouter des tests widget pour les flux critiques : achat IAP, toggle options, claim quête, affichage résultats.
+
+### 3.2 — Tests : manque de couverture services
+- Aucun test pour `iap_service.dart`, `ad_service.dart`, `cloud_save_service.dart`, `analytics_service.dart`, `review_service.dart`.
+- **Action :** Mocker les plugins et tester les flows (achat réussi/échec, restore, sync cloud).
+
+### 3.3 — `analysis_options.yaml` : trop permissif
+Le linter n'active que `flutter_lints` avec `public_member_api_docs: false`. Pour un projet de cette taille, activer :
+```yaml
+linter:
+  rules:
+    avoid_print: true
+    prefer_const_constructors: true
+    prefer_single_quotes: true
+    require_trailing_commas: true
+    sort_child_properties_last: true
+    use_super_parameters: true
+```
+
+### 3.4 — Pas de CI/CD visible
+Le README mentionne "CI: GitHub Actions" mais aucun `.github/workflows/` dans le projet. Créer un workflow pour `flutter analyze`, `flutter test`, et `flutter build`.
+
+### 3.5 — `kIOSAppStoreId` à `null`
+```dart
+const String? kIOSAppStoreId = null;
+```
+Avant publication iOS, il faut renseigner l'App Store ID pour que `openStoreListing` fonctionne.
+
+### 3.6 — Gestion d'erreur `hex_tile.dart` : `_distribute3` peut boucler
+```dart
+while (cut2 == cut1) {
+    cut2 = 1 + rng.nextInt(4);
+}
+```
+Ce n'est pas un bug (la boucle termine presque sûrement), mais `rng.nextInt(4)` donne 0-3, donc `cut2` ∈ [1,4]. Avec 6 = a + b + c, on peut obtenir c = 0 (ex: a=1, b=5 → c=0, mais max est 4+1=5). Vérifier que les 3 parts sont toujours ≥ 1.
+
+---
+
+## 4. 🗑️ SUPPRESSIONS / NETTOYAGES
+
+### 4.1 — `lib/game/hex_grid_component.dart` : fonction `_drawHex` dead code?
+La fonction `_drawHex` est définie au niveau du fichier et utilisée par `_BonusTileAnimComponent`, `_BonusWaterBurst` et `_TrailDot`. Elle n'est pas dans une extension — envisager de la rendre privée aux seules classes qui l'utilisent, ou de la déplacer dans un utilitaire partagé.
+
+### 4.2 — Commentaires de migration obsolètes dans `seed_data.dart`
+Les références "version 6", "version 9", "version 10" sont prématurées — le schéma est à 3. Ces constantes nommées (`kBestGameCoinsQuest`, etc.) sont du code mort. À supprimer jusqu'à implémentation réelle des migrations.
+
+### 4.3 — `lib/l10n/app_localizations.dart` : fichiers générés commités
+Les fichiers `app_localizations.dart`, `app_localizations_en.dart`, `app_localizations_fr.dart` sont générés par `flutter gen-l10n` et ne devraient pas être commités (ajouter au `.gitignore`).
+
+### 4.4 — Fichiers `.g.dart` générés commités
+`grid_state_provider.g.dart`, `placement_provider.g.dart`, etc. sont des fichiers générés par `build_runner`. Idéalement, ne pas les committer (à discuter selon la stratégie de l'équipe).
+
+---
+
+## 5. 📐 MISES À JOUR DE DÉPENDANCES
+
+### 5.1 — `google_mobile_ads: ^9.0.0`
+Version majeure récente. Le code utilise des API qui semblent cohérentes avec v9, mais à vérifier avec le changelog — des breaking changes sur `BannerAd`, `InterstitialAd` sont possibles.
+
+### 5.2 — `sdk: ^3.12.2`
+Dart 3.12 est très récent. Le code utilise `withValues(alpha: ...)` (nouvelle API remplaçant `withOpacity`), ce qui est correct pour cette version. S'assurer que la CI utilise la même version.
+
+### 5.3 — `intl: ^0.20.2`
+La version 0.20.x de `intl` est une version "0" — s'assurer de la stabilité. La dépendance est tirée par `flutter_localizations`, donc probablement fine.
+
+---
+
+## 6. ⚡ OPTIMISATIONS DE PERFORMANCE
+
+### 6.1 — `tile_component.dart` : `_wavyEdge` alloue une liste à chaque frame
+```dart
+List<Offset> _wavyEdge(Offset from, Offset to, double phase) {
+    // ...
+    final points = <Offset>[];
+    for (var s = 0; s <= kEdgeWaveSegments; s++) { ... }
+    return points;
+}
+```
+Appelé pour 6 côtés × N tuiles × 60fps. Le GC pressure est réel au-delà de 150 tuiles (le seuil de désactivation). Pré-allouer un buffer réutilisable.
+
+6.2 — hex_grid_component.dart : TextPainter recréé à chaque frame
+_PreviewBonusComponent et _BonusTileAnimComponent créent un TextPainter dans render() à chaque frame. Mettre en cache le TextPainter et appeler layout() seulement quand le texte change.
+
+6.3 — page_transitions.dart : ImageFilter.blur sur toute la page
+BlurFadePageRoute applique un blur sur toute la page entrante pendant 420ms. Sur les appareils modestes, c'est coûteux. Limiter le sigma max ou désactiver sur les appareils low-end.
+
