@@ -26,6 +26,7 @@ import 'package:hex_haven/data/seed_data.dart';
 import 'package:hex_haven/providers/build_provider.dart';
 import 'package:hex_haven/providers/placement_commit.dart';
 import 'package:hex_haven/providers/session_provider.dart';
+import 'package:hex_haven/providers/session_restore.dart';
 
 /// Retourne `null` si sqlite3 natif n'est pas disponible sur cet
 /// environnement (même garde que les autres tests DB du projet).

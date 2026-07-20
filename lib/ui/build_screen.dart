@@ -18,8 +18,6 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
-
 import '../core/colors.dart';
 import '../core/game_enums.dart';
 import '../core/constants.dart';
@@ -32,6 +30,7 @@ import '../providers/player_profile_provider.dart';
 import '../providers/progression_provider.dart';
 import '../services/haptics_service.dart';
 import 'glass_container.dart';
+import 'tropical_background.dart';
 
 class BuildScreen extends ConsumerWidget {
   const BuildScreen({super.key});
@@ -44,29 +43,8 @@ class BuildScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: Colors.black,
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          // ── Même fond tropical que le reste de l'application ─────────────
-          Image.asset(
-            'assets/images/home_background.png',
-            fit: BoxFit.cover,
-          ),
-          // ── Voile bleuté — signature des écrans secondaires ───────────────
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  const Color(0xFF0D1B3E).withValues(alpha: 0.72),
-                  const Color(0xFF0A1628).withValues(alpha: 0.88),
-                ],
-              ),
-            ),
-          ),
-          // ── Contenu ────────────────────────────────────────────────────────
-          SafeArea(
+      body: TropicalBackground(
+        child: SafeArea(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -110,8 +88,7 @@ class BuildScreen extends ConsumerWidget {
               ],
             ),
           ),
-        ],
-      ),
+        ),
     );
   }
 }
@@ -145,7 +122,8 @@ class _BuildAppBar extends StatelessWidget {
               Expanded(
                 child: Text(
                   context.tr.home_buildSelection,
-                  style: GoogleFonts.nunito(
+                  style: TextStyle(
+                    fontFamily: 'Nunito',
                     color: Colors.white,
                     fontSize: 22,
                     fontWeight: FontWeight.w800,
@@ -327,7 +305,8 @@ class _BuildCardState extends ConsumerState<_BuildCard>
                                 Flexible(
                                   child: Text(
                                     upgrade.name,
-                                    style: GoogleFonts.nunito(
+                                    style: TextStyle(
+                                      fontFamily: 'Nunito',
                                       color: isSelected
                                           ? Colors.white
                                           : Colors.white.withValues(alpha: 0.85),

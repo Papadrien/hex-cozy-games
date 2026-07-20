@@ -3,7 +3,6 @@ import 'dart:ui';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import '../core/colors.dart';
 import '../core/game_enums.dart';
@@ -14,6 +13,7 @@ import '../core/strings.dart';
 import '../data/app_database.dart';
 import '../providers/build_provider.dart';
 import '../providers/placement_commit.dart';
+import '../providers/session_restore.dart';
 import '../providers/player_profile_provider.dart';
 import '../providers/player_stats_provider.dart';
 import '../providers/progression_provider.dart';
@@ -207,7 +207,8 @@ class _HexHavenTitle extends StatelessWidget {
               children: [
                 Text(
                   'hex',
-                  style: GoogleFonts.nunito(
+                  style: TextStyle(
+                    fontFamily: 'Nunito',
                     fontSize: 38,
                     fontWeight: FontWeight.w800,
                     color: Colors.white,
@@ -236,7 +237,8 @@ class _HexHavenTitle extends StatelessWidget {
             // "Haven" en cursif teal
             Text(
               'Haven',
-              style: GoogleFonts.pacifico(
+              style: TextStyle(
+                fontFamily: 'Pacifico',
                 fontSize: 48,
                 color: kTropicalTeal,
                 height: 0.9,
@@ -512,7 +514,8 @@ class _PlayButton extends StatelessWidget {
                             )
                           : Text(
                               label,
-                              style: GoogleFonts.nunito(
+                              style: const TextStyle(
+                                fontFamily: 'Nunito',
                                 color: Colors.white,
                                 fontSize: 22,
                                 fontWeight: FontWeight.w800,
@@ -670,7 +673,8 @@ class _BuildButton extends StatelessWidget {
                     : '${selected.length} / $kMaxSelectedUpgrades ${context.tr.home_buildSelection}',
                 overflow: TextOverflow.ellipsis,
                 maxLines: 1,
-                style: GoogleFonts.nunito(
+                style: TextStyle(
+                  fontFamily: 'Nunito',
                   color: hasResumableGame
                       ? Colors.white.withValues(alpha: 0.5)
                       : Colors.white,
@@ -739,7 +743,8 @@ class _RewardedAdButton extends ConsumerWidget {
               adAvailable
                   ? context.tr.ads_watchForCoins
                   : context.tr.ads_comeBackTomorrow,
-              style: GoogleFonts.nunito(
+              style: TextStyle(
+                fontFamily: 'Nunito',
                 color: adAvailable
                     ? Colors.white
                     : Colors.white.withValues(alpha: 0.5),
@@ -798,7 +803,8 @@ class _PremiumDailyCoinsButton extends ConsumerWidget {
               available
                   ? context.tr.premium_dailyCoinsButton
                   : context.tr.ads_comeBackTomorrow,
-              style: GoogleFonts.nunito(
+              style: TextStyle(
+                fontFamily: 'Nunito',
                 color: available
                     ? Colors.white
                     : Colors.white.withValues(alpha: 0.5),
@@ -845,7 +851,8 @@ class _NavButton extends StatelessWidget {
               const SizedBox(width: 8),
               Text(
                 label,
-                style: GoogleFonts.nunito(
+                style: const TextStyle(
+                  fontFamily: 'Nunito',
                   color: Colors.white,
                   fontSize: 14,
                   fontWeight: FontWeight.w800,

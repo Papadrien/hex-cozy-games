@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
-
 import '../core/colors.dart';
 import '../core/constants.dart';
 import '../core/snackbar_utils.dart';
@@ -10,6 +8,7 @@ import '../providers/player_profile_provider.dart';
 import '../services/iap_service.dart';
 import '../services/haptics_service.dart';
 import 'glass_container.dart';
+import 'tropical_background.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SHOP SCREEN
@@ -28,29 +27,8 @@ class ShopScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: Colors.black,
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          // ── Même fond tropical que l'accueil ──────────────────────────────
-          Image.asset(
-            'assets/images/home_background.png',
-            fit: BoxFit.cover,
-          ),
-          // ── Voile bleuté — signature des écrans secondaires ───────────────
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  const Color(0xFF0D1B3E).withValues(alpha: 0.72),
-                  const Color(0xFF0A1628).withValues(alpha: 0.88),
-                ],
-              ),
-            ),
-          ),
-          // ── Contenu ────────────────────────────────────────────────────────
-          SafeArea(
+      body: TropicalBackground(
+        child: SafeArea(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -77,8 +55,7 @@ class ShopScreen extends ConsumerWidget {
               ],
             ),
           ),
-        ],
-      ),
+        ),
     );
   }
 }
@@ -105,7 +82,8 @@ class _ShopAppBar extends StatelessWidget {
           const SizedBox(width: 14),
           Text(
             context.tr.shop_title,
-            style: GoogleFonts.nunito(
+            style: TextStyle(
+              fontFamily: 'Nunito',
               color: Colors.white,
               fontSize: 22,
               fontWeight: FontWeight.w800,
@@ -253,7 +231,8 @@ class _CoinPackCardState extends ConsumerState<_CoinPackCard> {
               children: [
                 Text(
                   context.tr.shop_coinCount(widget.pack.coins.toString()),
-                  style: GoogleFonts.nunito(
+                  style: const TextStyle(
+                    fontFamily: 'Nunito',
                     color: Colors.white,
                     fontSize: 17,
                     fontWeight: FontWeight.w800,
@@ -487,7 +466,8 @@ class _PremiumCardState extends ConsumerState<_PremiumCard> {
                   children: [
                     Text(
                       context.tr.shop_premium,
-                      style: GoogleFonts.nunito(
+                      style: const TextStyle(
+                        fontFamily: 'Nunito',
                         color: Colors.white,
                         fontSize: 18,
                         fontWeight: FontWeight.w800,
@@ -556,7 +536,8 @@ class _PremiumCardState extends ConsumerState<_PremiumCard> {
                       widget.isPremium
                           ? context.tr.shop_alreadyPremium
                           : context.tr.shop_buy,
-                      style: GoogleFonts.nunito(
+                      style: TextStyle(
+                        fontFamily: 'Nunito',
                         color: widget.isPremium
                             ? Colors.white.withValues(alpha: 0.35)
                             : Colors.white,

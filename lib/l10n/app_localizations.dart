@@ -521,7 +521,7 @@ abstract class AppLocalizations {
   /// No description provided for @upgrade_desc_combo_plus.
   ///
   /// In en, this message translates to:
-  /// **'Grants 1 bonus tile every N double connections in a row (10/8/5 depending on level).'**
+  /// **'Grants 1 bonus tile every N double connections made during the game (10/8/5 depending on level).'**
   String get upgrade_desc_combo_plus;
 
   /// No description provided for @upgrade_desc_extended_preview.
@@ -575,7 +575,7 @@ abstract class AppLocalizations {
   /// No description provided for @upgrade_desc_hated_color.
   ///
   /// In en, this message translates to:
-  /// **'Temporarily excludes a color of your choice from the tile stack.'**
+  /// **'Tap this upgrade during the game to temporarily exclude a random color (among the base colors) from the tile stack. One use per game.'**
   String get upgrade_desc_hated_color;
 
   /// No description provided for @upgrade_desc_jackpot_plus.

@@ -8,14 +8,13 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
-
 import '../core/colors.dart';
 import '../core/strings.dart';
 import '../providers/options_provider.dart';
 import '../services/haptics_service.dart';
 import '../services/review_service.dart';
 import 'glass_container.dart';
+import 'tropical_background.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -26,26 +25,8 @@ class SettingsScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: Colors.black,
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          Image.asset(
-            'assets/images/home_background.png',
-            fit: BoxFit.cover,
-          ),
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  const Color(0xFF0D1B3E).withValues(alpha: 0.72),
-                  const Color(0xFF0A1628).withValues(alpha: 0.88),
-                ],
-              ),
-            ),
-          ),
-          SafeArea(
+      body: TropicalBackground(
+        child: SafeArea(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -93,8 +74,7 @@ class SettingsScreen extends ConsumerWidget {
               ],
             ),
           ),
-        ],
-      ),
+        ),
     );
   }
 }
@@ -116,7 +96,8 @@ class _SettingsAppBar extends StatelessWidget {
           const SizedBox(width: 14),
           Text(
             context.tr.settings_title,
-            style: GoogleFonts.nunito(
+            style: TextStyle(
+              fontFamily: 'Nunito',
               color: Colors.white,
               fontSize: 22,
               fontWeight: FontWeight.w800,

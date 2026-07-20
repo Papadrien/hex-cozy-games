@@ -29,6 +29,7 @@ import '../providers/grid_state_provider.dart';
 import '../providers/options_provider.dart';
 import '../providers/pause_provider.dart';
 import '../providers/placement_commit.dart';
+import '../providers/session_restore.dart';
 import '../providers/session_provider.dart';
 import '../providers/tile_stack_provider.dart';
 import '../services/ad_service.dart';

@@ -7,6 +7,7 @@ import 'core/page_transitions.dart';
 import 'core/snackbar_utils.dart';
 import 'core/theme.dart';
 import 'l10n/app_localizations.dart';
+import 'providers/options_provider.dart';
 import 'services/analytics_service.dart';
 import 'ui/game_screen.dart';
 import 'ui/home_screen.dart';
@@ -17,6 +18,7 @@ Future<void> main() async {
 
   await AnalyticsService.initialize();
   await MobileAds.instance.initialize();
+  await initOptionsPrefs();
 
   // Plein écran immersif : masque la barre de statut et la barre de
   // navigation système. En mode "immersiveSticky", un balayage depuis le

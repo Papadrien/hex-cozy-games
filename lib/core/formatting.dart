@@ -1,22 +1,13 @@
 /// Helpers de formatage d'affichage.
 library;
 
-/// Formate un entier en insérant une espace comme séparateur de milliers.
+import 'package:intl/intl.dart';
+
+/// Formate un entier en insérant un séparateur de milliers selon la locale.
 ///
-/// Exemple : `formatThousands(20000)` → `'20 000'`.
+/// Exemple (fr) : `formatThousands(20000)` → `'20 000'`.
+/// Exemple (en) : `formatThousands(20000)` → `'20,000'`.
 String formatThousands(int value) {
-  final negative = value < 0;
-  final digits = value.abs().toString();
-
-  final buffer = StringBuffer();
-  final remainder = digits.length % 3;
-
-  for (var i = 0; i < digits.length; i++) {
-    if (i != 0 && (i - remainder) % 3 == 0) {
-      buffer.write(' ');
-    }
-    buffer.write(digits[i]);
-  }
-
-  return negative ? '-${buffer.toString()}' : buffer.toString();
+  final formatter = NumberFormat.decimalPattern();
+  return formatter.format(value);
 }

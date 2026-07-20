@@ -17,6 +17,7 @@ import '../core/snackbar_utils.dart';
 import '../core/strings.dart';
 import '../providers/end_game_provider.dart';
 import '../providers/placement_commit.dart';
+import '../providers/session_restore.dart';
 import '../services/haptics_service.dart';
 
 class ResultsModal extends ConsumerWidget {

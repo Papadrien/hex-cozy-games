@@ -45,6 +45,7 @@ import '../providers/grid_state_provider.dart';
 import '../providers/pause_provider.dart';
 import '../providers/placement_provider.dart';
 import '../providers/placement_commit.dart';
+import '../providers/second_chance_ops.dart';
 import '../providers/second_chance_provider.dart';
 import '../services/haptics_service.dart';
 import 'hex_coords.dart';

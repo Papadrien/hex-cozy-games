@@ -34,6 +34,7 @@ import '../providers/pause_provider.dart';
 import '../providers/placement_provider.dart';
 import '../providers/player_profile_provider.dart';
 import '../providers/placement_commit.dart';
+import '../providers/undo_placement.dart';
 import '../providers/second_chance_provider.dart';
 import '../providers/session_provider.dart';
 import '../providers/tile_stack_provider.dart';
