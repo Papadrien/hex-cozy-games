@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'dart:ui';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 /// Transition "blur progressif" : la page entrante apparaît d'abord floutée
@@ -11,7 +12,7 @@ class BlurFadePageRoute<T> extends PageRouteBuilder<T> {
   BlurFadePageRoute({
     required WidgetBuilder builder,
     super.settings,
-    this.maxBlurSigma = 18,
+    this.maxBlurSigma = kDebugMode ? 8 : 18,
   }) : super(
           pageBuilder: (context, animation, secondaryAnimation) =>
               builder(context),

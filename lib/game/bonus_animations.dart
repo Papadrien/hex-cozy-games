@@ -140,6 +140,18 @@ class PreviewBonusComponent extends PositionComponent {
   final double _radius;
   final int bonusCount;
 
+  late final TextPainter _textPainter = TextPainter(
+    text: TextSpan(
+      text: '+$bonusCount',
+      style: TextStyle(
+        color: const Color(0xFFFFFFFF),
+        fontSize: _radius * 1.0,
+        fontWeight: FontWeight.bold,
+      ),
+    ),
+    textDirection: TextDirection.ltr,
+  )..layout();
+
   @override
   void render(Canvas canvas) {
     const alpha = 0.9;
@@ -160,22 +172,18 @@ class PreviewBonusComponent extends PositionComponent {
     );
 
     // Nombre de tuiles bonus (+N) centré en blanc.
-    final text = '+$bonusCount';
-    final textPainter = TextPainter(
-      text: TextSpan(
-        text: text,
-        style: TextStyle(
-          color: kRewardWhite.withValues(alpha: alpha),
-          fontSize: r * 1.0,
-          fontWeight: FontWeight.bold,
-        ),
+    _textPainter.text = TextSpan(
+      text: '+$bonusCount',
+      style: TextStyle(
+        color: kRewardWhite.withValues(alpha: alpha),
+        fontSize: r * 1.0,
+        fontWeight: FontWeight.bold,
       ),
-      textDirection: TextDirection.ltr,
     );
-    textPainter.layout();
-    textPainter.paint(
+    _textPainter.layout();
+    _textPainter.paint(
       canvas,
-      Offset(-textPainter.width / 2, -textPainter.height / 2),
+      Offset(-_textPainter.width / 2, -_textPainter.height / 2),
     );
   }
 
@@ -241,6 +249,18 @@ class BonusTileAnimComponent extends PositionComponent {
   final double _liftPx;
   final double _growScale;
   final int _waterParticleCount;
+
+  late final TextPainter _textPainter = TextPainter(
+    text: TextSpan(
+      text: '+$bonusCount',
+      style: TextStyle(
+        color: const Color(0xFFFFFFFF),
+        fontSize: _radius * 1.0,
+        fontWeight: FontWeight.bold,
+      ),
+    ),
+    textDirection: TextDirection.ltr,
+  )..layout();
 
   static double _intensityFor(int totalBonusTiles) {
     const maxExtra = kBonusIntensityMaxTiles - 1;
@@ -402,22 +422,18 @@ class BonusTileAnimComponent extends PositionComponent {
           ..color = kBonusBlueLighter.withValues(alpha: alpha * 0.7)
           ..style = PaintingStyle.fill);
 
-    final text = '+$bonusCount';
-    final textPainter = TextPainter(
-      text: TextSpan(
-        text: text,
-        style: TextStyle(
-          color: kRewardWhite.withValues(alpha: alpha),
-          fontSize: r * 1.0,
-          fontWeight: FontWeight.bold,
-        ),
+    _textPainter.text = TextSpan(
+      text: '+$bonusCount',
+      style: TextStyle(
+        color: kRewardWhite.withValues(alpha: alpha),
+        fontSize: r * 1.0,
+        fontWeight: FontWeight.bold,
       ),
-      textDirection: TextDirection.ltr,
     );
-    textPainter.layout();
-    textPainter.paint(
+    _textPainter.layout();
+    _textPainter.paint(
       canvas,
-      Offset(-textPainter.width / 2, -textPainter.height / 2),
+      Offset(-_textPainter.width / 2, -_textPainter.height / 2),
     );
     canvas.restore();
   }

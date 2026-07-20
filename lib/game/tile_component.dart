@@ -496,11 +496,20 @@ class TileComponent extends PositionComponent {
   /// l'arête reste parfaitement raccordée aux coins de l'hexagone — seul le
   /// milieu de l'arête ondule, comme une petite vague le long du pied de
   /// la tuile.
+  ///
+  /// Utilise un buffer pré-alloué [_wavyBuffer] pour éviter les allocations
+  /// répétées (6 côtés × N tuiles × 60 fps).
+  static final List<Offset> _wavyBuffer =
+      List.filled(kEdgeWaveSegments + 1, Offset.zero);
+
   List<Offset> _wavyEdge(Offset from, Offset to, double phase) {
-    if (_waveAmplitude < 0.001) return [from, to];
+    if (_waveAmplitude < 0.001) {
+      _wavyBuffer[0] = from;
+      _wavyBuffer[1] = to;
+      return _wavyBuffer.sublist(0, 2);
+    }
     final dx = to.dx - from.dx;
     final dy = to.dy - from.dy;
-    final points = <Offset>[];
     for (var s = 0; s <= kEdgeWaveSegments; s++) {
       final t = s / kEdgeWaveSegments;
       final baseX = from.dx + dx * t;
@@ -509,9 +518,9 @@ class TileComponent extends PositionComponent {
       final wave = _waveAmplitude *
           envelope *
           sin(kEdgeWaveFrequency * 2 * pi * t + phase + _waveTime * kEdgeWaveSpeed);
-      points.add(Offset(baseX, baseY + wave));
+      _wavyBuffer[s] = Offset(baseX, baseY + wave);
     }
-    return points;
+    return _wavyBuffer;
   }
 
   List<Offset> _isoCorners(double cx, double cy) {
