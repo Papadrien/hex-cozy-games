@@ -35,7 +35,3 @@ ios/Flutter/ephemeral/
 
 # Coverage
 coverage/
-
-# Generated files
-*.g.dart
-lib/l10n/app_localizations*.dart
