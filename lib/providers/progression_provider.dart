@@ -71,9 +71,11 @@ enum UpgradeResult {
 
 /// Coût en pièces pour chaque niveau.
 /// L'index correspond au `currentLevel` avant la montée :
-///   niveau 1→2 (currentLevel 0) → 20 000 pièces
-///   niveau 2→3 (currentLevel 1) → 50 000 pièces
-const kUpgradeCosts = [20000, 50000];
+///   niveau 1→2 (currentLevel 0) → 5 000 pièces
+///   niveau 2→3 (currentLevel 1) → 10 000 pièces
+/// Total pour maxer une amélioration : 15 000 pièces (voir équilibrage
+/// des packs de la boutique dans [kCoinPacks]).
+const kUpgradeCosts = [5000, 10000];
 
 // ── Service ──────────────────────────────────────────────────────────────
 

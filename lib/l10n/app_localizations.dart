@@ -626,6 +626,12 @@ abstract class AppLocalizations {
   /// **'Best value'**
   String get shop_bestValueBadge;
 
+  /// No description provided for @shop_adRemovalIncludedBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'No ads included'**
+  String get shop_adRemovalIncludedBadge;
+
   /// No description provided for @shop_premium.
   ///
   /// In en, this message translates to:

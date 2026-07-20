@@ -304,6 +304,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get shop_bestValueBadge => 'Meilleur rapport';
 
   @override
+  String get shop_adRemovalIncludedBadge => 'Sans pubs incluses';
+
+  @override
   String get shop_premium => 'Premium';
 
   @override

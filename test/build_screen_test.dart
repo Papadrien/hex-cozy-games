@@ -189,7 +189,7 @@ void main() {
         await tester.pumpAndSettle();
 
         final upgradeButton = find.text(
-          '${tr.upgrades_cost} : ${formatThousands(20000)}  ${tr.upgrades_upgradeButton}',
+          '${tr.upgrades_cost} : ${formatThousands(5000)}  ${tr.upgrades_upgradeButton}',
         );
         expect(upgradeButton, findsOneWidget);
 
@@ -213,11 +213,11 @@ void main() {
         await tester.pumpAndSettle();
       }
 
-      // Vérifie que les 3 pièces ont bien été débitées (3 × 20000).
+      // Vérifie que les 3 pièces ont bien été débitées (3 × 5000).
       final profile =
           await (db.select(db.playerProfile)..where((t) => t.id.equals(1)))
               .getSingle();
-      expect(profile.coins, 200000 - 3 * 20000);
+      expect(profile.coins, 200000 - 3 * 5000);
     },
   );
 }

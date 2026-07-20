@@ -16,7 +16,7 @@ class BlurFadePageRoute<T> extends PageRouteBuilder<T> {
           pageBuilder: (context, animation, secondaryAnimation) =>
               builder(context),
           transitionDuration: const Duration(milliseconds: 420),
-          reverseTransitionDuration: const Duration(milliseconds: 320),
+          reverseTransitionDuration: const Duration(milliseconds: 420),
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
             final curved = CurvedAnimation(
               parent: animation,

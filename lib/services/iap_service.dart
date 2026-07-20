@@ -23,9 +23,22 @@ const Set<String> kCoinPackProductIds = {
   'coins_small',
   'coins_medium',
   'coins_large',
+  'coins_mega',
 };
 
-/// Ensemble de tous les IDs IAP (consommables + non-consommable premium).
+/// IDs des packs de pièces qui incluent aussi la suppression des pubs
+/// (actuellement uniquement `coins_mega`). Dérivé de [kCoinPacks] pour
+/// rester en phase avec `CoinPack.includesAdRemoval` sans dupliquer la
+/// donnée. Ces produits doivent être configurés comme **non-consommables**
+/// côté Play Console / App Store Connect (l'effet "pubs supprimées" doit
+/// persister), contrairement aux autres packs de pièces qui sont
+/// consommables.
+final Set<String> kBundledAdRemovalProductIds = {
+  for (final pack in kCoinPacks)
+    if (pack.includesAdRemoval) pack.productId,
+};
+
+/// Ensemble de tous les IDs IAP (consommables + non-consommables).
 const Set<String> kAllProductIds = {
   ...kCoinPackProductIds,
   kPremiumProductId,
@@ -183,13 +196,18 @@ class IapService {
   Future<void> _deliver(PurchaseDetails purchase) async {
     bool success = false;
 
-    // Packs de pièces consommables
+    // Packs de pièces (consommables, ou non-consommables type "mega" qui
+    // incluent aussi la suppression des pubs).
     final pack = kCoinPacks.where(
       (p) => p.productId == purchase.productID,
     ).firstOrNull;
     if (pack != null) {
       await addCoinsToProfile(_db, pack.coins);
       debugPrint('[IAP] Delivered ${pack.coins} coins for ${pack.productId}');
+      if (pack.includesAdRemoval) {
+        await setPremiumStatus(_db, true);
+        debugPrint('[IAP] Delivered ad removal bundled with ${pack.productId}');
+      }
       success = true;
     }
 
@@ -297,7 +315,10 @@ Future<IapResult> purchaseCoinPack(WidgetRef ref, int packIndex) async {
   final pack = kCoinPacks[packIndex];
   final iap = ref.read(iapServiceProvider);
 
-  return iap.purchase(pack.productId);
+  // Les packs incluant la suppression des pubs (ex. coins_mega) doivent
+  // passer par le flux non-consommable pour que cet effet persiste
+  // correctement côté store (voir kBundledAdRemovalProductIds).
+  return iap.purchase(pack.productId, isConsumable: !pack.includesAdRemoval);
 }
 
 /// Restaure les achats précédents (bouton en bas de la boutique).

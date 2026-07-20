@@ -40,7 +40,7 @@ Future<ProviderContainer?> _makeTestContainer() async {
 void main() {
   group('kUpgradeCosts', () {
     test('contient 2 paliers de coût', () {
-      expect(kUpgradeCosts, [20000, 50000]);
+      expect(kUpgradeCosts, [5000, 10000]);
     });
   });
 
@@ -123,18 +123,18 @@ void main() {
     });
 
     test('réussit et met à jour niveau + débite les pièces', () async {
-      await addCoinsToProfile(db, 25000);
+      await addCoinsToProfile(db, 6000);
       await _setUpgrade(db, 'coins_plus', isUnlocked: true, level: 0);
 
       expect(await service.levelUpUpgrade('coins_plus'),
           UpgradeResult.success);
 
       expect((await _getUpgrade(db, 'coins_plus')).currentLevel, 1);
-      expect((await _getProfile(db)).coins, 5000);
+      expect((await _getProfile(db)).coins, 1000);
     });
 
     test('deux montées successives 0→1→2', () async {
-      await addCoinsToProfile(db, 80000);
+      await addCoinsToProfile(db, 20000);
       await _setUpgrade(db, 'coins_plus', isUnlocked: true, level: 0);
 
       expect(await service.levelUpUpgrade('coins_plus'),
@@ -145,11 +145,11 @@ void main() {
           UpgradeResult.success);
       expect((await _getUpgrade(db, 'coins_plus')).currentLevel, 2);
 
-      expect((await _getProfile(db)).coins, 10000);
+      expect((await _getProfile(db)).coins, 5000);
     });
 
     test('troisième montée échoue (maxLevelReached)', () async {
-      await addCoinsToProfile(db, 80000);
+      await addCoinsToProfile(db, 20000);
       await _setUpgrade(db, 'coins_plus', isUnlocked: true, level: 0);
 
       await service.levelUpUpgrade('coins_plus');

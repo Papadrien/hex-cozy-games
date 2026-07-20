@@ -301,6 +301,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get shop_bestValueBadge => 'Best value';
 
   @override
+  String get shop_adRemovalIncludedBadge => 'No ads included';
+
+  @override
   String get shop_premium => 'Premium';
 
   @override

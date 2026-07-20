@@ -97,8 +97,10 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     // fixe. C'est désormais le seul déclencheur du pulse doré de la pile :
     // on ne réagit plus à la pose elle-même (via [lastReward]) pour éviter
     // une double réaction (pose + arrivée de la particule).
-    _game.onBonusImpact = () =>
-        _tileStackImpactKey.currentState?.pulse(0.5);
+    _game.onBonusImpact = () {
+      _tileStackImpactKey.currentState?.pulse(0.5);
+      unawaited(ref.read(hapticsServiceProvider).bonusTileArrived());
+    };
     Future.microtask(
       () => ref.read(tutorialProvider.notifier).checkAndStart(),
     );

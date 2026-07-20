@@ -79,10 +79,24 @@ const int kAdRewardedCoins = 50;
 const String kPremiumProductId = 'premium';
 
 /// Packs de pièces (pièces, prix, ID produit IAP).
+///
+/// Équilibrage (voir aussi [kUpgradeCosts] dans progression_provider.dart —
+/// une amélioration complète coûte 15 000 pièces au total) :
+///   - small  : ~16% du niveau 1 (5 000) — achat d'appoint
+///   - medium : niveau 1 entier (5 000)
+///   - large  : une amélioration complète maxée (15 000)
+///   - mega   : ~3,3 améliorations + suppression des pubs incluse
+///     (produit non-consommable côté store — voir [IapService]).
 const List<CoinPack> kCoinPacks = [
-  CoinPack(coins: 100, price: '\$0.99', productId: 'coins_small'),
-  CoinPack(coins: 500, price: '\$3.99', productId: 'coins_medium'),
-  CoinPack(coins: 1200, price: '\$7.99', productId: 'coins_large'),
+  CoinPack(coins: 800, price: '\$0.99', productId: 'coins_small'),
+  CoinPack(coins: 5000, price: '\$4.99', productId: 'coins_medium'),
+  CoinPack(coins: 15000, price: '\$9.99', productId: 'coins_large'),
+  CoinPack(
+    coins: 50000,
+    price: '\$14.99',
+    productId: 'coins_mega',
+    includesAdRemoval: true,
+  ),
 ];
 
 class CoinPack {
@@ -90,10 +104,17 @@ class CoinPack {
   final String price;
   final String productId;
 
+  /// true si l'achat de ce pack inclut aussi la suppression permanente des
+  /// pubs (équivalent à [kPremiumProductId]). Ce type de pack doit être
+  /// acheté via `buyNonConsumable` (voir [IapService.purchase]) pour que
+  /// le statut persiste correctement côté store.
+  final bool includesAdRemoval;
+
   const CoinPack({
     required this.coins,
     required this.price,
     required this.productId,
+    this.includesAdRemoval = false,
   });
 }
 

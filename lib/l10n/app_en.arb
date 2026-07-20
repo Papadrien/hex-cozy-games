@@ -185,6 +185,8 @@
   },
   "shop_bestValueBadge": "Best value",
 "@shop_bestValueBadge": {},
+  "shop_adRemovalIncludedBadge": "No ads included",
+  "@shop_adRemovalIncludedBadge": {},
 "shop_premium": "Premium",
   "@shop_premium": {},
   "shop_premiumDescription": "Removes all ads + 50 coins/day automatically",

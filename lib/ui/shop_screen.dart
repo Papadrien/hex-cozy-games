@@ -259,28 +259,23 @@ class _CoinPackCardState extends ConsumerState<_CoinPackCard> {
                     fontWeight: FontWeight.w800,
                   ),
                 ),
-                if (isBestValue) ...[
+                if (isBestValue || widget.pack.includesAdRemoval) ...[
                   const SizedBox(height: 4),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 7, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: kRewardGold.withValues(alpha: 0.18),
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(
-                        color: kRewardGold.withValues(alpha: 0.4),
-                        width: 0.8,
-                      ),
-                    ),
-                    child: Text(
-                      context.tr.shop_bestValueBadge,
-                      style: TextStyle(
-                        color: kRewardGold,
-                        fontSize: 9,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 0.6,
-                      ),
-                    ),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 4,
+                    children: [
+                      if (isBestValue)
+                        _ShopBadge(
+                          label: context.tr.shop_bestValueBadge,
+                          color: kRewardGold,
+                        ),
+                      if (widget.pack.includesAdRemoval)
+                        _ShopBadge(
+                          label: context.tr.shop_adRemovalIncludedBadge,
+                          color: kUpgradePurple,
+                        ),
+                    ],
                   ),
                 ],
               ],
@@ -309,6 +304,40 @@ class _CoinPackCardState extends ConsumerState<_CoinPackCard> {
                   },
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BADGE GLASS (Meilleur rapport / Sans pubs incluses...)
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _ShopBadge extends StatelessWidget {
+  const _ShopBadge({required this.label, required this.color});
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.18),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(
+          color: color.withValues(alpha: 0.4),
+          width: 0.8,
+        ),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: color,
+          fontSize: 9,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 0.6,
+        ),
       ),
     );
   }

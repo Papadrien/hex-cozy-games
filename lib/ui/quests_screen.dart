@@ -689,44 +689,48 @@ class _QuestCardState extends ConsumerState<_QuestCard>
                       // Progress text or completed label
                       Row(
                         children: [
-                          if (showPendingClaimUi)
-                            Text(
-                              context.tr.quests_tap_to_claim,
-                              style: const TextStyle(
-                                color: kCoinAmber,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            )
-                          else if (status == _QuestStatus.completed)
-                            Text(
-                              context.tr.quests_status_completed,
-                              style: TextStyle(
-                                color: color,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            )
-                          else
-                            Text(
-                              isLocked
-                                  ? context.tr.quests_status_locked
-                                  : '${quest.currentValue}/${quest.targetValue}',
-                              style: TextStyle(
-                                color: isLocked
-                                    ? Colors.white.withValues(alpha: 0.4)
-                                    : Colors.white.withValues(alpha: 0.7),
-                                fontSize: 12,
-                              ),
-                            ),
-                          const Spacer(),
-                          // Reward
-                          Flexible(
-                            child: _RewardBadge(
-                              rewardType: RewardType.fromDb(quest.rewardType),
-                              rewardValue: quest.rewardValue,
-                              upgradeName: upgradeName,
-                            ),
+                          Expanded(
+                            child: showPendingClaimUi
+                                ? Text(
+                                    context.tr.quests_tap_to_claim,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      color: kCoinAmber,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  )
+                                : status == _QuestStatus.completed
+                                    ? Text(
+                                        context.tr.quests_status_completed,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          color: color,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      )
+                                    : Text(
+                                        isLocked
+                                            ? context.tr.quests_status_locked
+                                            : '${quest.currentValue}/${quest.targetValue}',
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          color: isLocked
+                                              ? Colors.white
+                                                  .withValues(alpha: 0.4)
+                                              : Colors.white
+                                                  .withValues(alpha: 0.7),
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                          ),
+                          const SizedBox(width: 8),
+                          // Reward — ancré à droite
+                          _RewardBadge(
+                            rewardType: RewardType.fromDb(quest.rewardType),
+                            rewardValue: quest.rewardValue,
+                            upgradeName: upgradeName,
                           ),
                         ],
                       ),
