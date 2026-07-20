@@ -206,21 +206,9 @@ void main() {
       expect(effects.villageCoinsThreshold, 4);
     });
 
-    test('combo_plus (niveau 1) → comboStreakInterval = 15', () {
+    test('combo_plus (niveau 1) → comboStreakInterval = 10', () {
       final container = containerWithUpgrades([
         row(id: 'combo_plus', effectType: 'comboBonusTiles', currentLevel: 0),
-      ]);
-      addTearDown(container.dispose);
-
-      expect(
-        container.read(activeUpgradeEffectsProvider).comboStreakInterval,
-        15,
-      );
-    });
-
-    test('combo_plus (niveau 3) → comboStreakInterval = 10', () {
-      final container = containerWithUpgrades([
-        row(id: 'combo_plus', effectType: 'comboBonusTiles', currentLevel: 2),
       ]);
       addTearDown(container.dispose);
 
@@ -230,7 +218,19 @@ void main() {
       );
     });
 
-    test('extended_preview (niveau 1) → extendedPreviewCount = 3', () {
+    test('combo_plus (niveau 3) → comboStreakInterval = 5', () {
+      final container = containerWithUpgrades([
+        row(id: 'combo_plus', effectType: 'comboBonusTiles', currentLevel: 2),
+      ]);
+      addTearDown(container.dispose);
+
+      expect(
+        container.read(activeUpgradeEffectsProvider).comboStreakInterval,
+        5,
+      );
+    });
+
+    test('extended_preview (niveau 1) → extendedPreviewCount = 4', () {
       final container = containerWithUpgrades([
         row(
           id: 'extended_preview',
@@ -242,11 +242,11 @@ void main() {
 
       expect(
         container.read(activeUpgradeEffectsProvider).extendedPreviewCount,
-        3,
+        4,
       );
     });
 
-    test('extended_preview (niveau 3) → extendedPreviewCount = 5', () {
+    test('extended_preview (niveau 3) → extendedPreviewCount = 6', () {
       final container = containerWithUpgrades([
         row(
           id: 'extended_preview',
@@ -258,7 +258,7 @@ void main() {
 
       expect(
         container.read(activeUpgradeEffectsProvider).extendedPreviewCount,
-        5,
+        6,
       );
     });
 

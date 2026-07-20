@@ -71,7 +71,9 @@ void main() {
             ..where((q) => q.id.equals('coins_2000')))
           .write(const PermanentQuestsCompanion(isCompleted: Value(true)));
 
-      await container.read(progressionServiceProvider).checkUnlocks();
+      await container
+          .read(progressionServiceProvider)
+          .checkUnlockForQuest('coins_2000');
 
       expect(await _isUnlocked(db, 'starting_tiles_plus'), isTrue);
     });

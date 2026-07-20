@@ -167,18 +167,18 @@ void main() {
       );
     });
 
-    test('extendedPreviewCount → 3, 4, 5', () {
+    test('extendedPreviewCount → 4, 5, 6', () {
       expect(
         upgradeEffectValue(UpgradeEffectType.extendedPreviewCount, 0),
-        3.0,
-      );
-      expect(
-        upgradeEffectValue(UpgradeEffectType.extendedPreviewCount, 1),
         4.0,
       );
       expect(
-        upgradeEffectValue(UpgradeEffectType.extendedPreviewCount, 2),
+        upgradeEffectValue(UpgradeEffectType.extendedPreviewCount, 1),
         5.0,
+      );
+      expect(
+        upgradeEffectValue(UpgradeEffectType.extendedPreviewCount, 2),
+        6.0,
       );
     });
 
@@ -212,18 +212,18 @@ void main() {
       );
     });
 
-    test('comboBonusTiles → 15, 13, 10 (intervalle)', () {
+    test('comboBonusTiles → 10, 8, 5 (intervalle)', () {
       expect(
         upgradeEffectValue(UpgradeEffectType.comboBonusTiles, 0),
-        15.0,
+        10.0,
       );
       expect(
         upgradeEffectValue(UpgradeEffectType.comboBonusTiles, 1),
-        13.0,
+        8.0,
       );
       expect(
         upgradeEffectValue(UpgradeEffectType.comboBonusTiles, 2),
-        10.0,
+        5.0,
       );
     });
 
@@ -327,10 +327,10 @@ void main() {
       );
     });
 
-    test('extendedPreviewCount → 3, 4, 5 tuiles', () {
+    test('extendedPreviewCount → 4, 5, 6 tuiles', () {
       expect(
         upgradeAllLevelEffects(UpgradeEffectType.extendedPreviewCount),
-        ['3 tuiles', '4 tuiles', '5 tuiles'],
+        ['4 tuiles', '5 tuiles', '6 tuiles'],
       );
     });
 
@@ -348,10 +348,10 @@ void main() {
       );
     });
 
-    test('comboBonusTiles → Toutes les 15/13/10 tuiles', () {
+    test('comboBonusTiles → Toutes les 10/8/5 tuiles', () {
       expect(
         upgradeAllLevelEffects(UpgradeEffectType.comboBonusTiles),
-        ['Toutes les 15 tuiles', 'Toutes les 13 tuiles', 'Toutes les 10 tuiles'],
+        ['Toutes les 10 tuiles', 'Toutes les 8 tuiles', 'Toutes les 5 tuiles'],
       );
     });
 
