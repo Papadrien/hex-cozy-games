@@ -19,13 +19,12 @@ import '../providers/player_profile_provider.dart';
 // ── Helpers ────────────────────────────────────────────────────────────────
 
 /// ID de bannière AdMob selon la plateforme (test en debug, production
-/// en release). À configurer avec les vrais IDs avant release.
+/// en release).
 String get _bannerAdUnitId {
   if (kReleaseMode) {
-    // TODO(story-3.1a): Remplacer par les IDs de production avant release.
-    if (Platform.isAndroid) return kAdMobBannerTestIdAndroid;
-    if (Platform.isIOS) return kAdMobBannerTestIdIOS;
-    return kAdMobBannerTestIdAndroid;
+    if (Platform.isAndroid) return kAdMobBannerProdIdAndroid;
+    if (Platform.isIOS) return kAdMobBannerProdIdIOS;
+    return kAdMobBannerProdIdAndroid;
   }
   if (Platform.isAndroid) return kAdMobBannerTestIdAndroid;
   if (Platform.isIOS) return kAdMobBannerTestIdIOS;
@@ -34,10 +33,9 @@ String get _bannerAdUnitId {
 
 String get _interstitialAdUnitId {
   if (kReleaseMode) {
-    // TODO(story-3.1b): Remplacer par les IDs de production avant release.
-    if (Platform.isAndroid) return kAdMobInterstitialTestIdAndroid;
-    if (Platform.isIOS) return kAdMobInterstitialTestIdIOS;
-    return kAdMobInterstitialTestIdAndroid;
+    if (Platform.isAndroid) return kAdMobInterstitialProdIdAndroid;
+    if (Platform.isIOS) return kAdMobInterstitialProdIdIOS;
+    return kAdMobInterstitialProdIdAndroid;
   }
   if (Platform.isAndroid) return kAdMobInterstitialTestIdAndroid;
   if (Platform.isIOS) return kAdMobInterstitialTestIdIOS;
@@ -128,10 +126,9 @@ Future<void> showInterstitialAd() async {
 /// en release).
 String get _rewardedAdUnitId {
   if (kReleaseMode) {
-    // TODO(story-3.2a): Remplacer par les IDs de production avant release.
-    if (Platform.isAndroid) return kAdMobRewardedTestIdAndroid;
-    if (Platform.isIOS) return kAdMobRewardedTestIdIOS;
-    return kAdMobRewardedTestIdAndroid;
+    if (Platform.isAndroid) return kAdMobRewardedProdIdAndroid;
+    if (Platform.isIOS) return kAdMobRewardedProdIdIOS;
+    return kAdMobRewardedProdIdAndroid;
   }
   if (Platform.isAndroid) return kAdMobRewardedTestIdAndroid;
   if (Platform.isIOS) return kAdMobRewardedTestIdIOS;

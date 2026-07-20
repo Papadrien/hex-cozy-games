@@ -18,26 +18,26 @@ extension AppLocalizationsX on BuildContext {
 /// seule la couleur est visible, donc on affiche uniquement des noms de
 /// couleur.
 String biomeName(BuildContext context, String biome) {
-  if (!AppLocalizations.of(context)!.localeName.startsWith('fr')) return biome;
+  final isFr = AppLocalizations.of(context)!.localeName.startsWith('fr');
   switch (biome) {
     case 'forest':
-      return 'Vert';
+      return isFr ? 'Vert' : 'Green';
     case 'village':
-      return 'Rouge';
+      return isFr ? 'Rouge' : 'Red';
     case 'plain':
-      return 'Jaune';
+      return isFr ? 'Jaune' : 'Yellow';
     case 'water':
-      return 'Bleu';
+      return isFr ? 'Bleu' : 'Blue';
     case 'mountain':
-      return 'Violet';
+      return isFr ? 'Violet' : 'Purple';
     case 'orange':
-      return 'Orange';
+      return isFr ? 'Orange' : 'Orange';
     case 'pink':
-      return 'Rose';
+      return isFr ? 'Rose' : 'Pink';
     case 'black':
-      return 'Noir';
+      return isFr ? 'Noir' : 'Black';
     case 'white':
-      return 'Blanc';
+      return isFr ? 'Blanc' : 'White';
     default:
       return biome;
   }

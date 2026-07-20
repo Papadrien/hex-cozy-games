@@ -63,6 +63,8 @@ class _HexCozyGamesAppState extends State<HexCozyGamesApp>
     return MaterialApp(
       title: 'Hex Cozy Games',
       theme: AppTheme.light,
+      darkTheme: AppTheme.dark,
+      themeMode: ThemeMode.dark,
       debugShowCheckedModeBanner: false,
       scaffoldMessengerKey: rootScaffoldMessengerKey,
       localizationsDelegates: AppLocalizations.localizationsDelegates,

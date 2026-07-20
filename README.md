@@ -10,7 +10,7 @@ A relaxing hex-tile placement game built with Flutter & Flame.
 | State | [Riverpod](https://riverpod.dev/) |
 | Database | [Drift](https://drift.simonbinder.eu/) (SQLite) |
 | i18n | `flutter_localizations` + ARB files |
-| Linter | `very_good_analysis` |
+| Linter | `flutter_lints` |
 | CI | GitHub Actions (`flutter analyze`, `flutter test`, release build) |
 
 ## Getting Started

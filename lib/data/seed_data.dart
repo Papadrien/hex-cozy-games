@@ -39,8 +39,7 @@ Future<void> seedDatabase(AppDatabase db) async {
 // `upgrades.unlockConditionValue`, la quête sert de palier déclencheur).
 
 /// Quête record "pièces gagnées en une seule partie" — extraite en
-/// constante nommée pour être réutilisable depuis la migration de schéma
-/// (voir [AppDatabase.migration], version 6).
+/// constante nommée pour réutilisation éventuelle en migration de schéma.
 final kBestGameCoinsQuest = PermanentQuestsCompanion.insert(
   id: 'best_game_coins_500',
   category: QuestCategory.bestGameCoins.dbValue,
@@ -51,11 +50,11 @@ final kBestGameCoinsQuest = PermanentQuestsCompanion.insert(
 );
 
 /// Quêtes record "cluster couleur" (forêt/eau/plaine/montagne) — extraites
-/// en constante nommée pour être réutilisables depuis la migration de
-/// schéma (voir [AppDatabase.migration], version 9). Modèle exact de
-/// "village_100" : palier unique, pas de nextQuestId, récompense =
-/// déblocage d'amélioration. Réutilisent `maxBiomeSizes` (déjà calculé par
-/// [BoardAnalysis]), aucune nouvelle logique de board analysis.
+/// en constante nommée pour réutilisation éventuelle en migration de schéma.
+/// Modèle exact de "village_100" : palier unique, pas de nextQuestId,
+/// récompense = déblocage d'amélioration. Réutilisent `maxBiomeSizes`
+/// (déjà calculé par [BoardAnalysis]), aucune nouvelle logique de board
+/// analysis.
 final kClusterColorQuests = [
   PermanentQuestsCompanion.insert(
     id: 'forest_51',
@@ -93,8 +92,7 @@ final kClusterColorQuests = [
 
 /// Extension de la chaîne "biomes_closed" (Story A6) — `biomes_50` débloque
 /// Bonus de clôture, `biomes_100` débloque Couleur détestée. Extraites en
-/// constante nommée pour être réutilisables depuis la migration de schéma
-/// (voir [AppDatabase.migration], version 10).
+/// constante nommée pour réutilisation éventuelle en migration de schéma.
 final kBiomesClosedExtensionQuests = [
   PermanentQuestsCompanion.insert(
     id: 'biomes_50',
@@ -181,8 +179,7 @@ final _permanentQuests = [
   ),
 
   // Quêtes "cluster couleur" — débloquent Vert+/Bleu+/Jaune+/Violet+.
-  // Extraites en constante nommée (voir [kClusterColorQuests]) pour être
-  // réutilisables depuis la migration de schéma (version 9).
+  // Extraites en constante nommée (voir [kClusterColorQuests]).
   ...kClusterColorQuests,
 
   // Chaîne "biomes_closed" — débloque pièces, puis Tuile bonus,
@@ -222,10 +219,9 @@ final _permanentQuests = [
 ];
 
 /// Quête record "meilleure série de connexions consécutives" — extraite
-/// en constante nommée pour être réutilisable depuis la migration de
-/// schéma (voir [AppDatabase.migration], version 14). Palier unique, pas
-/// de nextQuestId, récompense = déblocage d'amélioration (Combo+, Story
-/// A11).
+/// en constante nommée pour réutilisation éventuelle en migration de schéma.
+/// Palier unique, pas de nextQuestId, récompense = déblocage d'amélioration
+/// (Combo+, Story A11).
 final kBestConnectionStreakQuest = PermanentQuestsCompanion.insert(
   id: 'best_streak_10',
   category: QuestCategory.bestConnectionStreak.dbValue,
@@ -284,8 +280,8 @@ final kConnectionQuests = [
 /// puis la quête reste acquise (pas de remise à zéro). Le mécanisme de
 /// progression existant (`_updateConnectionQuests`, boucle sur toutes les
 /// quêtes non complétées de la catégorie) les gère sans modification.
-/// Extraites en constante nommée pour être réutilisables depuis la
-/// migration de schéma (voir [AppDatabase.migration], version 12).
+/// Extraites en constante nommée pour réutilisation éventuelle en migration
+/// de schéma (Story A9).
 final kOneShotConnectionQuests = [
   PermanentQuestsCompanion.insert(
     id: 'connections_triple_first',
@@ -482,9 +478,8 @@ final _upgrades = [
 ];
 
 /// Amélioration débloquée par la quête record "best_streak_10" (série de
-/// 10 connexions consécutives) — extraite en constante nommée pour être
-/// réutilisable depuis la migration de schéma (voir
-/// [AppDatabase.migration], version 15).
+/// 10 connexions consécutives) — extraite en constante nommée pour
+/// réutilisation éventuelle en migration de schéma.
 final kComboPlusUpgrade = UpgradesCompanion.insert(
   id: 'combo_plus',
   name: 'Combo+',
@@ -494,9 +489,8 @@ final kComboPlusUpgrade = UpgradesCompanion.insert(
 );
 
 /// Améliorations liées aux quêtes one-shot de connexions (Story A9) —
-/// déblocage uniquement. Extraites en constante nommée pour être
-/// réutilisables depuis la migration de schéma (voir
-/// [AppDatabase.migration], version 13).
+/// déblocage uniquement. Extraites en constante nommée pour réutilisation
+/// éventuelle en migration de schéma.
 final kExtendedActionsUpgrades = [
   UpgradesCompanion.insert(
     id: 'extended_preview',
@@ -522,8 +516,7 @@ final kExtendedActionsUpgrades = [
 ];
 
 /// Améliorations "cluster couleur" (Vert+/Bleu+/Jaune+/Violet+) — extraites
-/// en constante nommée pour être réutilisables depuis la migration de
-/// schéma (voir [AppDatabase.migration], version 9).
+/// en constante nommée pour réutilisation éventuelle en migration de schéma.
 final kClusterColorUpgrades = [
   UpgradesCompanion.insert(
     id: 'forest_plus',
@@ -558,8 +551,7 @@ final kClusterColorUpgrades = [
 /// Améliorations liées à l'extension "biomes_closed" (Story A7) —
 /// déblocage uniquement. L'effet réel de Bonus de clôture est branché en
 /// Story B7, celui de Couleur détestée en Story B5. Extraites en constante
-/// nommée pour être réutilisables depuis la migration de schéma (voir
-/// [AppDatabase.migration], version 11).
+/// nommée pour réutilisation éventuelle en migration de schéma.
 final kBiomesClosedExtensionUpgrades = [
   UpgradesCompanion.insert(
     id: 'closure_bonus',
@@ -579,8 +571,7 @@ final kBiomesClosedExtensionUpgrades = [
 
 /// Amélioration débloquée par la quête record "best_game_coins_500" (500
 /// pièces gagnées en une seule partie) — extraite en constante nommée
-/// pour être réutilisable depuis la migration de schéma (voir
-/// [AppDatabase.migration], version 6).
+/// pour réutilisation éventuelle en migration de schéma.
 final kJackpotPlusUpgrade = UpgradesCompanion.insert(
   id: 'jackpot_plus',
   name: 'Jackpot+',

@@ -13,4 +13,10 @@ class AppTheme {
         colorSchemeSeed: const Color(0xFF6FA8DC),
         brightness: Brightness.light,
       );
+
+  static ThemeData get dark => ThemeData(
+        useMaterial3: true,
+        colorSchemeSeed: const Color(0xFF6FA8DC),
+        brightness: Brightness.dark,
+      );
 }

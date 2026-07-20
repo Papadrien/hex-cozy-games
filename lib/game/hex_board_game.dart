@@ -73,6 +73,11 @@ class HexBoardGame extends FlameGame
 
   HexGridComponent? _grid;
 
+  /// Flag dirty pour la synchronisation de prévisualisation.
+  /// Positionné par les abonnements Riverpod (voir [_setupPreviewListeners]),
+  /// évite de relire les providers à chaque frame quand rien n'a changé.
+  bool _previewDirty = true;
+
   /// Convertit une position écran (repère du [GameWidget], voir
   /// `game_screen.dart`) en coordonnées hexagonales. Délègue à
   /// [HexGridComponent.hexAt] — exposé publiquement ici pour que
@@ -101,6 +106,7 @@ class HexBoardGame extends FlameGame
     _grid = HexGridComponent(screenSize: size.clone());
     add(_grid!);
     _initBoard();
+    _setupPreviewListeners();
     _syncPlacementPreview();
 
     // Gesture pour pan (1 doigt) + zoom (pinch 2 doigts).
@@ -126,6 +132,20 @@ class HexBoardGame extends FlameGame
     }
   }
 
+  /// Met en place des abonnements Riverpod pour positionner le flag
+  /// [_previewDirty] quand l'état pertinent change. Évite de relire les
+  /// providers à chaque frame dans [update()].
+  void _setupPreviewListeners() {
+    // Placement (sélection / rotation / clear).
+    _ref.listen(placementProvider, (prev, next) {
+      _previewDirty = true;
+    });
+    // PreviewReward dépend de placementProvider + gridProvider + previewTile.
+    _ref.listen(previewRewardProvider, (prev, next) {
+      _previewDirty = true;
+    });
+  }
+
   @override
   void onGameResize(Vector2 size) {
     super.onGameResize(size);
@@ -141,24 +161,19 @@ class HexBoardGame extends FlameGame
       _grid?.refreshTilePositions();
       _cameraDirty = false;
     }
-    // Resynchronisé à chaque frame plutôt que via un flag "dirty" posé
-    // uniquement par les gestes internes au jeu (tap/swipe sur la grille) :
-    // la croix d'annulation de la pile HUD (widget Flutter externe) modifie
-    // aussi [placementProvider] via clearSelection(), sans passer par ces
-    // gestes. Avec l'ancien flag, ce changement externe n'était jamais
-    // détecté et le fantôme de prévisualisation restait affiché après un
-    // clic sur la croix. Les setters de [HexGridComponent] ci-dessous font
-    // déjà de la détection de changement (no-op si valeur identique), donc
-    // cet appel systématique reste bon marché.
-    _syncPlacementPreview();
+    // Synchronisation pilotée par un flag dirty plutôt qu'à chaque frame.
+    // Les abonnements Riverpod (voir [_setupPreviewListeners]) positionnent
+    // [_previewDirty] quand placement/previewReward/grid changent.
+    if (_previewDirty) {
+      _previewDirty = false;
+      _syncPlacementPreview();
+    }
   }
 
   /// Lit l'état courant des providers de placement/pile et met à jour le
   /// rendu de [HexGridComponent] (highlights + preview) en conséquence.
-  /// Polling léger dans `update()` plutôt qu'un abonnement Riverpod direct :
-  /// évite de complexifier le cycle de vie du [FlameGame] (qui n'est pas un
-  /// widget) pour un état qui change peu souvent (tap/swipe), au prix d'une
-  /// lecture par frame qui reste négligeable (comparaisons de Set/objets).
+  /// Appelé uniquement quand [_previewDirty] est true (abonnements Riverpod
+  /// dans [_setupPreviewListeners]).
   void _syncPlacementPreview() {
     final grid = _grid;
     if (grid == null) return;
@@ -352,8 +367,8 @@ class HexBoardGame extends FlameGame
     //
     // Le tap n'annule plus la prévisualisation : le seul moyen de
     // l'annuler est désormais la croix sur la pile HUD (clearSelection()
-    // appelé depuis ui/tile_stack_hud.dart), qui déclenche sa propre
-    // resynchronisation via _syncPlacementPreview() dans update().
+    // appelé depuis ui/tile_stack_hud.dart), qui positionne le flag dirty
+    // via l'abonnement Riverpod (voir [_setupPreviewListeners]).
     await confirmPlacement(_ref, onConfirm: placeTileOnFlame);
   }
 

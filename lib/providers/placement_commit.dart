@@ -71,7 +71,25 @@ Future<void> restoreSession(WidgetRef ref) async {
     final queueList = (stackJson['queue'] as List)
         .map((t) => HexTile.fromJson(t as Map<String, dynamic>))
         .toList();
-    ref.read(tileStackProvider.notifier).restoreQueue(queueList, seed: seed);
+
+    // État "Couleur détestée" (Story B12b/B12x) — `??` pour
+    // rétro-compatibilité avec les sessions sauvegardées avant ce correctif.
+    final excludeBiomeName = stackJson['excludeBiome'] as String?;
+    final excludeBiome = excludeBiomeName != null
+        ? BiomeType.values.firstWhere(
+            (b) => b.name == excludeBiomeName,
+            orElse: () => BiomeType.forest,
+          )
+        : null;
+
+    ref.read(tileStackProvider.notifier).restoreQueue(
+          queueList,
+          seed: seed,
+          excludeBiome: excludeBiome,
+          hatedDuration: stackJson['hatedDuration'] as int? ?? 0,
+          hatedStartCount: stackJson['hatedStartCount'] as int?,
+          hatedActivated: stackJson['hatedActivated'] as bool? ?? false,
+        );
 
     // Restaurer les compteurs d'utilisations par partie (Emplacement Joker /
     // Deuxième chance — Story B9). Stockés dans le JSON de la pile plutôt que
@@ -287,13 +305,14 @@ class SessionSaver {
         'remaining': stack.remaining,
         'visible': stack.visible.map((t) => t.toJson()).toList(),
         'queue': queueJson,
-        // Compteurs d'utilisations par partie (Story B9) : sans eux, un
-        // "Sauvegarder et quitter" faisait retomber Emplacement Joker et
-        // Deuxième chance à 0 utilisations à la reprise, car `restore()`
-        // reconstruit un SessionState neuf où ces champs valent 0 par
-        // défaut s'ils ne sont pas fournis explicitement.
         'holdSlotRemainingUses': session.holdSlotRemainingUses,
         'secondChanceRemainingUses': session.secondChanceRemainingUses,
+        // État "Couleur détestée" (Story B12b/B12x) — sans eux, la reprise
+        // de partie après kill de l'app perdait l'exclusion de biome.
+        'excludeBiome': stack.excludeBiome?.name,
+        'hatedDuration': stack.hatedDuration,
+        'hatedStartCount': stack.hatedStartCount,
+        'hatedActivated': stack.hatedActivated,
       });
 
       String? lastTileJson;

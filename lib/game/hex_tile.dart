@@ -41,9 +41,12 @@ class HexTile {
       };
 
   factory HexTile.fromJson(Map<String, dynamic> json) => HexTile(
-        sides: (json['sides'] as List)
-            .map((s) => BiomeType.values.firstWhere((b) => b.name == s))
-            .toList(),
+        sides: (json['sides'] as List).map((s) {
+          return BiomeType.values.firstWhere(
+            (b) => b.name == s,
+            orElse: () => BiomeType.forest,
+          );
+        }).toList(),
         isBonus: json['isBonus'] as bool? ?? false,
       );
 }

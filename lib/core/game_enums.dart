@@ -59,8 +59,13 @@ enum UpgradeEffectType {
   warehouseStartingTiles;
 
   String get dbValue => name;
-  static UpgradeEffectType fromDb(String value) =>
-      UpgradeEffectType.values.firstWhere((e) => e.name == value);
+  static UpgradeEffectType fromDb(String value) {
+    try {
+      return UpgradeEffectType.values.firstWhere((e) => e.name == value);
+    } catch (_) {
+      return UpgradeEffectType.startingTilesBonus;
+    }
+  }
 }
 
 /// Catégories de quêtes (category) — remplace les chaînes magiques.
@@ -97,8 +102,13 @@ enum QuestCategory {
   bestConnectionStreak;
 
   String get dbValue => name;
-  static QuestCategory fromDb(String value) =>
-      QuestCategory.values.firstWhere((e) => e.name == value);
+  static QuestCategory fromDb(String value) {
+    try {
+      return QuestCategory.values.firstWhere((e) => e.name == value);
+    } catch (_) {
+      return QuestCategory.coinsEarned;
+    }
+  }
 }
 
 /// Types de récompense (rewardType) — remplace les chaînes magiques.
@@ -107,6 +117,11 @@ enum RewardType {
   upgradeUnlock;
 
   String get dbValue => name;
-  static RewardType fromDb(String value) =>
-      RewardType.values.firstWhere((e) => e.name == value);
+  static RewardType fromDb(String value) {
+    try {
+      return RewardType.values.firstWhere((e) => e.name == value);
+    } catch (_) {
+      return RewardType.coins;
+    }
+  }
 }

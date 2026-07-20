@@ -294,10 +294,21 @@ class TileStack extends _$TileStack {
 
   /// Remplace la file interne par [queue] et restaure le [seed]
   /// (restauration de session).
-  void restoreQueue(List<HexTile> queue, {int? seed}) {
+  void restoreQueue(
+    List<HexTile> queue, {
+    int? seed,
+    BiomeType? excludeBiome,
+    int hatedDuration = 0,
+    int? hatedStartCount,
+    bool hatedActivated = false,
+  }) {
     _queue
       ..clear()
       ..addAll(queue);
+    _excludeBiome = excludeBiome;
+    _hatedDuration = hatedDuration;
+    _hatedStartCount = hatedStartCount;
+    _hatedActivated = hatedActivated;
     final effects = ref.read(activeUpgradeEffectsProvider);
     final visibleCount = max(kVisibleStackSize, effects.extendedPreviewCount);
     state = _buildState(seed: seed ?? state.seed, visibleCount: visibleCount);

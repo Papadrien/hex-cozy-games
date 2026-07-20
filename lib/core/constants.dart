@@ -45,6 +45,14 @@ const String kAdMobBannerTestIdAndroid =
 const String kAdMobBannerTestIdIOS =
     'ca-app-pub-3940256099942544/2934735716';
 
+/// ID de production AdMob pour les bannières (Android).
+const String kAdMobBannerProdIdAndroid =
+    'ca-app-pub-7203301690798915/1957901303';
+
+/// ID de production AdMob pour les bannières (iOS).
+/// TODO: renseigner avant publication iOS.
+const String kAdMobBannerProdIdIOS = '';
+
 /// ID de test AdMob pour les interstitielles (Android).
 /// Remplacer par l'ID production avant release.
 const String kAdMobInterstitialTestIdAndroid =
@@ -53,6 +61,14 @@ const String kAdMobInterstitialTestIdAndroid =
 /// ID de test AdMob pour les interstitielles (iOS).
 const String kAdMobInterstitialTestIdIOS =
     'ca-app-pub-3940256099942544/4411468910';
+
+/// ID de production AdMob pour les interstitielles (Android).
+const String kAdMobInterstitialProdIdAndroid =
+    'ca-app-pub-7203301690798915/7118608502';
+
+/// ID de production AdMob pour les interstitielles (iOS).
+/// TODO: renseigner avant publication iOS.
+const String kAdMobInterstitialProdIdIOS = '';
 
 /// Hauteur standard d'une bannière AdMob en dp.
 const double kAdBannerHeight = 50.0;
@@ -69,6 +85,14 @@ const String kAdMobRewardedTestIdAndroid =
 /// ID de test AdMob pour les rewarded (iOS).
 const String kAdMobRewardedTestIdIOS =
     'ca-app-pub-3940256099942544/1712485313';
+
+/// ID de production AdMob pour les rewarded (Android).
+const String kAdMobRewardedProdIdAndroid =
+    'ca-app-pub-7203301690798915/9561059153';
+
+/// ID de production AdMob pour les rewarded (iOS).
+/// TODO: renseigner avant publication iOS.
+const String kAdMobRewardedProdIdIOS = '';
 
 /// Nombre de pièces créditées après visionnage de la pub rewarded quotidienne.
 const int kAdRewardedCoins = 50;

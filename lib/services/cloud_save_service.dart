@@ -30,9 +30,13 @@ class CloudSaveService {
 
   static const _saveName = 'progression_v1';
   static const _prefsLastSyncKey = 'cloud_last_sync_timestamp';
+  static const _prefsLastSyncTilesKey = 'cloud_last_sync_tiles';
+  static const _prefsLastSyncCoinsKey = 'cloud_last_sync_coins';
 
   /// Charge la progression depuis le cloud et l'applique localement
   /// seulement si elle est plus récente que notre dernier timestamp de sync.
+  /// En cas d'horloges désynchronisées (écart < 60 s), compare les
+  /// métriques de progression (tiles, coins) pour départager.
   /// Silencieux si non connecté ou en erreur.
   Future<void> syncOnLaunch() async {
     if (!await _isSignedIn()) return;
@@ -45,17 +49,44 @@ class CloudSaveService {
 
     final prefs = await SharedPreferences.getInstance();
     final lastSync = prefs.getString(_prefsLastSyncKey);
+
+    bool cloudIsNewer = true;
     if (lastSync != null) {
       final localTime = DateTime.tryParse(lastSync);
-      if (localTime != null && !cloudTime.isAfter(localTime)) {
-        // Cloud pas plus récent — rien à appliquer.
-        return;
+      if (localTime != null) {
+        final diff = cloudTime.difference(localTime).inSeconds;
+        if (diff > 60) {
+          // Cloud plus récent d'au moins 60 s → gagne.
+          cloudIsNewer = true;
+        } else if (diff < -60) {
+          // Local plus récent d'au moins 60 s → garde le local.
+          cloudIsNewer = false;
+        } else {
+          // Horloges proches (écart < 60 s) → départage par progression.
+          final cloudTiles =
+              cloudData['totalTilesPlaced'] as int? ?? 0;
+          final cloudCoins = cloudData['coins'] as int? ?? 0;
+          final localTiles =
+              prefs.getInt(_prefsLastSyncTilesKey) ?? 0;
+          final localCoins =
+              prefs.getInt(_prefsLastSyncCoinsKey) ?? 0;
+          // La save avec le plus de progression gagne.
+          final cloudScore = cloudTiles * 1000 + cloudCoins;
+          final localScore = localTiles * 1000 + localCoins;
+          cloudIsNewer = cloudScore >= localScore;
+        }
       }
     }
+
+    if (!cloudIsNewer) return;
 
     final db = _ref.read(appDatabaseProvider);
     await _applyToLocal(db, cloudData);
     await prefs.setString(_prefsLastSyncKey, cloudData['lastUpdated'] as String);
+    await prefs.setInt(
+        _prefsLastSyncTilesKey, cloudData['totalTilesPlaced'] as int? ?? 0);
+    await prefs.setInt(
+        _prefsLastSyncCoinsKey, cloudData['coins'] as int? ?? 0);
   }
 
   /// Sérialise la progression locale et la pousse vers le cloud, puis
@@ -71,6 +102,10 @@ class CloudSaveService {
       _prefsLastSyncKey,
       data['lastUpdated'] as String,
     );
+    await prefs.setInt(
+        _prefsLastSyncTilesKey, data['totalTilesPlaced'] as int? ?? 0);
+    await prefs.setInt(
+        _prefsLastSyncCoinsKey, data['coins'] as int? ?? 0);
   }
 
   Future<bool> _isSignedIn() async {
