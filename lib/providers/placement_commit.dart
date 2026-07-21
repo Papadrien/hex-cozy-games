@@ -13,6 +13,7 @@ import '../services/cloud_save_service.dart';
 import '../services/ad_service.dart';
 import 'build_provider.dart';
 import 'end_game_provider.dart';
+import '../services/audio_service.dart';
 import '../services/haptics_service.dart';
 import 'game_effects_service.dart';
 import 'grid_state_provider.dart';
@@ -205,9 +206,21 @@ Future<void> confirmPlacement(
   _recordPlacement(
       ref, coords, tile, appliedReward, totalBonusTilesAdded, previousSession);
   _triggerPlacementHaptics(ref, appliedReward);
+  _triggerPlacementAudio(ref, appliedReward);
   _advanceStack(ref, reward.connectedSides.length);
   await SessionSaver.save(ref);
   _checkGameOver(ref);
+}
+
+/// Déclenche le bruitage de gain de pièces (`coin.mp3`) : une occurrence par
+/// pièce effectivement créditée sur ce placement — côtés connectés
+/// (pièces "de base") + pièces bonus, à l'exclusion des tuiles bonus qui ne
+/// sont pas des pièces (voir [_triggerPlacementHaptics], même périmètre côté
+/// vibrations). Aucun son si aucune pièce n'est gagnée (pose sans connexion).
+void _triggerPlacementAudio(WidgetRef ref, PlacementReward reward) {
+  final totalCoins = reward.connectedSides.length + reward.bonusCoins;
+  if (totalCoins <= 0) return;
+  ref.read(audioServiceProvider).playCoinsGained(totalCoins);
 }
 
 /// Déclenche les retours haptiques associés à un placement : une vibration

@@ -47,6 +47,7 @@ import '../providers/placement_provider.dart';
 import '../providers/placement_commit.dart';
 import '../providers/second_chance_ops.dart';
 import '../providers/second_chance_provider.dart';
+import '../services/audio_service.dart';
 import '../services/haptics_service.dart';
 import 'hex_coords.dart';
 import 'hex_grid_component.dart';
@@ -104,7 +105,10 @@ class HexBoardGame extends FlameGame
   @override
   Future<void> onLoad() async {
     await super.onLoad();
-    _grid = HexGridComponent(screenSize: size.clone());
+    _grid = HexGridComponent(screenSize: size.clone())
+      ..onTilePlacingStart =
+          () => _ref.read(audioServiceProvider).playTilePlacing()
+      ..onTilePlaced = () => _ref.read(audioServiceProvider).playTilePlaced();
     add(_grid!);
     _initBoard();
     _setupPreviewListeners();

@@ -40,6 +40,7 @@ import '../providers/session_provider.dart';
 import '../providers/tile_stack_provider.dart';
 import '../providers/tutorial_provider.dart';
 import '../services/ad_service.dart';
+import '../services/audio_service.dart';
 import '../services/haptics_service.dart';
 import 'active_upgrades_hud.dart';
 import 'glass_container.dart';
@@ -83,6 +84,10 @@ class _GameScreenState extends ConsumerState<GameScreen> {
   @override
   void initState() {
     super.initState();
+    // Musique de la partie en cours (voir AudioService) — remplace la
+    // musique d'accueil active jusqu'ici ; ne relance rien si elle est déjà
+    // en cours (ex. "Rejouer" depuis la modale Résultats).
+    unawaited(ref.read(audioServiceProvider).playMusic(MusicTrack.ambient));
     _game = HexBoardGame(
       ref: ref,
       onCameraMove: (dx, dy) {

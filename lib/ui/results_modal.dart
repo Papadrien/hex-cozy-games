@@ -18,6 +18,7 @@ import '../core/strings.dart';
 import '../providers/end_game_provider.dart';
 import '../providers/placement_commit.dart';
 import '../providers/session_restore.dart';
+import '../services/audio_service.dart';
 import '../services/haptics_service.dart';
 
 class ResultsModal extends ConsumerWidget {
@@ -198,6 +199,7 @@ class _ResultsCard extends ConsumerWidget {
     // le réafficher ici provoquait un flash de splash inutile à chaque
     // retour à l'accueil après une partie. On va directement sur '/home'.
     clearAppSnackBars();
+    ref.read(audioServiceProvider).playMusic(MusicTrack.home);
     Navigator.pushReplacementNamed(context, '/home');
   }
 }

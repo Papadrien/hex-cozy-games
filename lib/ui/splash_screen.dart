@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/session_restore.dart';
+import '../services/audio_service.dart';
 import '../services/cloud_save_service.dart';
 
 /// SplashScreen affiché au démarrage.
@@ -25,6 +28,10 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   @override
   void initState() {
     super.initState();
+    // Musique de tous les écrans hors partie en cours (voir AudioService) :
+    // démarrée dès le splash pour une présence sonore immédiate au
+    // lancement de l'app.
+    unawaited(ref.read(audioServiceProvider).playMusic(MusicTrack.home));
     _load();
   }
 

@@ -33,6 +33,7 @@ import '../providers/session_restore.dart';
 import '../providers/session_provider.dart';
 import '../providers/tile_stack_provider.dart';
 import '../services/ad_service.dart';
+import '../services/audio_service.dart';
 import '../services/haptics_service.dart';
 
 class PauseModal extends ConsumerWidget {
@@ -138,6 +139,7 @@ class _OptionsContent extends ConsumerWidget {
           onToggle: () {
             buttonHapticTap(context);
             ref.read(optionsProvider.notifier).toggleSound();
+            ref.read(audioServiceProvider).refreshMuteState();
           },
         ),
         const SizedBox(height: 16),
@@ -330,6 +332,7 @@ class _SaveAndQuitButton extends ConsumerWidget {
             // Idem que _goHome dans results_modal.dart : '/' relance le
             // splash screen, on va directement sur '/home'.
             clearAppSnackBars();
+            ref.read(audioServiceProvider).playMusic(MusicTrack.home);
             Navigator.pushReplacementNamed(context, '/home');
           }
         },
@@ -441,5 +444,6 @@ Future<void> _abandonGame(BuildContext context, WidgetRef ref) async {
   // Idem que _goHome dans results_modal.dart : '/' relance le splash
   // screen, on va directement sur '/home'.
   clearAppSnackBars();
+  ref.read(audioServiceProvider).playMusic(MusicTrack.home);
   Navigator.pushReplacementNamed(context, '/home');
 }

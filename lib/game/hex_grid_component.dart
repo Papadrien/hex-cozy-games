@@ -79,6 +79,18 @@ class HexGridComponent extends PositionComponent {
 
   Vector2 screenSize;
 
+  /// Appelé au début de l'animation de descente d'une tuile posée (pose
+  /// animée uniquement — pas lors de la restauration d'une partie via
+  /// `animated: false`). Permet au [FlameGame] parent de déclencher un
+  /// bruitage (voir `AudioService.playTilePlacing`) sans coupler ce
+  /// composant à Riverpod.
+  VoidCallback? onTilePlacingStart;
+
+  /// Appelé lorsqu'une tuile posée en animé atteint sa position finale (fin
+  /// du rebond). Voir [onTilePlacingStart] — même principe, pour
+  /// `AudioService.playTilePlaced`.
+  VoidCallback? onTilePlaced;
+
   // ── État ──────────────────────────────────────────────────────────────────
 
   final Map<HexCoords, HexCell> placedCells = {};
@@ -413,6 +425,7 @@ class HexGridComponent extends PositionComponent {
       // sous la cible et remontée) pour un effet "posée dans l'eau qui
       // flotte". L'ondulation du bord bas démarre sa montée en puissance une
       // fois la tuile arrivée à son emplacement définitif.
+      onTilePlacingStart?.call();
       final overshootPosition =
           Vector2(center.x, center.y + kDropBounceOvershootPx);
       final descend = MoveEffect.to(
@@ -426,6 +439,9 @@ class HexGridComponent extends PositionComponent {
           if (waveEnabled) {
             component.startWaveRampIn(duration: kDropWaveRampInDurationSec);
           }
+          // Tuile arrivée à sa position finale — joué sans attendre la fin
+          // du bruitage de descente (voir AudioService.playTilePlaced).
+          onTilePlaced?.call();
         };
       component.add(SequenceEffect([descend, bounceBack]));
     }

@@ -65,6 +65,9 @@ dependencies:
   # Publicités
   google_mobile_ads: ^9.0.0
 
+  # Audio (musique de fond + bruitages)
+  audioplayers: ^6.1.0
+
   # Achats in-app
   in_app_purchase: ^3.2.4
 
@@ -102,6 +105,11 @@ flutter:
     - assets/images/home_background.png
     - assets/images/hibiscus.png
     - assets/images/splash_logo.png
+    - assets/audio/home.mp3
+    - assets/audio/ambient_1.mp3
+    - assets/audio/coin.mp3
+    - assets/audio/tile_placing.mp3
+    - assets/audio/tile_placed.mp3
 
   shaders:
     - assets/shaders/ocean.frag

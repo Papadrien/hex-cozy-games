@@ -11,6 +11,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/colors.dart';
 import '../core/strings.dart';
 import '../providers/options_provider.dart';
+import '../services/audio_service.dart';
 import '../services/haptics_service.dart';
 import '../services/review_service.dart';
 import 'glass_container.dart';
@@ -44,6 +45,7 @@ class SettingsScreen extends ConsumerWidget {
                         onToggle: () {
                           buttonHapticTap(context);
                           ref.read(optionsProvider.notifier).toggleSound();
+                          ref.read(audioServiceProvider).refreshMuteState();
                         },
                       ),
                       _ToggleTile(
