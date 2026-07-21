@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,6 +11,7 @@ import 'core/theme.dart';
 import 'l10n/app_localizations.dart';
 import 'providers/options_provider.dart';
 import 'services/analytics_service.dart';
+import 'services/audio_service.dart';
 import 'ui/game_screen.dart';
 import 'ui/home_screen.dart';
 import 'ui/splash_screen.dart';
@@ -30,14 +33,14 @@ Future<void> main() async {
   runApp(const ProviderScope(child: HexCozyGamesApp()));
 }
 
-class HexCozyGamesApp extends StatefulWidget {
+class HexCozyGamesApp extends ConsumerStatefulWidget {
   const HexCozyGamesApp({super.key});
 
   @override
-  State<HexCozyGamesApp> createState() => _HexCozyGamesAppState();
+  ConsumerState<HexCozyGamesApp> createState() => _HexCozyGamesAppState();
 }
 
-class _HexCozyGamesAppState extends State<HexCozyGamesApp>
+class _HexCozyGamesAppState extends ConsumerState<HexCozyGamesApp>
     with WidgetsBindingObserver {
   @override
   void initState() {
@@ -57,6 +60,14 @@ class _HexCozyGamesAppState extends State<HexCozyGamesApp>
     // au retour au premier plan — on réapplique alors le plein écran.
     if (state == AppLifecycleState.resumed) {
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    }
+    // Musique de fond (accueil ou partie en cours) : coupée dès que l'app
+    // quitte le premier plan, reprise à son retour — quel que soit l'écran
+    // actif (splash, accueil, jeu), puisque ce widget englobe toute la nav.
+    if (state == AppLifecycleState.paused) {
+      unawaited(ref.read(audioServiceProvider).pauseMusicForBackground());
+    } else if (state == AppLifecycleState.resumed) {
+      unawaited(ref.read(audioServiceProvider).resumeMusicFromBackground());
     }
   }
 

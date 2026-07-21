@@ -108,8 +108,8 @@ flutter:
     - assets/audio/home.mp3
     - assets/audio/ambient_1.mp3
     - assets/audio/coin.mp3
-    - assets/audio/tile_placing.mp3
     - assets/audio/tile_placed.mp3
+    - assets/audio/tile_gain.mp3
 
   shaders:
     - assets/shaders/ocean.frag

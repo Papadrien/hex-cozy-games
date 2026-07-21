@@ -21,12 +21,17 @@
 ///
 /// Bruitages ([SfxTrack]) : chaque appel pioche un lecteur dans un petit
 /// pool tournant ([_sfxPool]), ce qui permet à plusieurs sons de se
-/// chevaucher sans se couper les uns les autres — notamment
-/// [playTilePlaced] qui démarre sans attendre la fin de [playTilePlacing].
-/// La hauteur de chaque son est légèrement randomisée à chaque lecture
+/// chevaucher sans se couper les uns les autres. La hauteur de chaque son
+/// est légèrement randomisée à chaque lecture
 /// ([_kPitchVariance]) pour un rendu organique en cas de répétitions
 /// rapprochées (ex. plusieurs poses de tuiles, ou plusieurs pièces gagnées
 /// d'affilée via [playCoinsGained]).
+///
+/// [playTileGained] (tuile bonus gagnée arrivant sur la pile HUD) fait
+/// exception à cette logique de chevauchement : elle utilise un lecteur
+/// dédié unique ([_tileGainPlayer]) plutôt que le pool, pour qu'un gain
+/// multi-tuiles coupe net le son de la tuile précédente à chaque nouvelle
+/// arrivée au lieu de les superposer.
 library;
 
 import 'dart:async';
@@ -51,8 +56,8 @@ enum MusicTrack {
 /// Bruitages ponctuels disponibles.
 enum SfxTrack {
   coin('audio/coin.mp3'),
-  tilePlacing('audio/tile_placing.mp3'),
-  tilePlaced('audio/tile_placed.mp3');
+  tilePlaced('audio/tile_placed.mp3'),
+  tileGain('audio/tile_gain.mp3');
 
   const SfxTrack(this.assetPath);
 
@@ -65,8 +70,8 @@ enum SfxTrack {
 const double _kPitchVariance = 0.08;
 
 /// Nombre de lecteurs dans le pool de bruitages — permet à plusieurs sons de
-/// se superposer (ex. tile_placing encore audible quand tile_placed démarre)
-/// sans s'interrompre mutuellement.
+/// se superposer (ex. plusieurs `coin.mp3` d'affilée) sans s'interrompre
+/// mutuellement.
 const int _kSfxPoolSize = 6;
 
 /// Nombre maximal de `coin.mp3` joués pour un même placement — au-delà,
@@ -81,6 +86,26 @@ const Duration _kCoinSfxGap = Duration(milliseconds: 80);
 
 class AudioService {
   AudioService(this._ref) {
+    // Contexte audio global : `mixWithOthers` sur iOS/Android garantit que
+    // la musique de fond et les bruitages (pool SFX, tile gain) se
+    // superposent toujours au lieu de s'interrompre mutuellement — sans
+    // cette configuration, la plateforme peut couper le lecteur en cours
+    // (ou le mettre en pause) dès qu'un autre lecteur démarre.
+    unawaited(AudioPlayer.global.setAudioContext(
+      const AudioContext(
+        iOS: AudioContextIOS(
+          category: AVAudioSessionCategory.ambient,
+          options: {AVAudioSessionOptions.mixWithOthers},
+        ),
+        android: AudioContextAndroid(
+          isSpeakerphoneOn: false,
+          stayAwake: false,
+          contentType: AndroidContentType.music,
+          usageType: AndroidUsageType.game,
+          audioFocus: AndroidAudioFocus.gainTransientMayDuck,
+        ),
+      ),
+    ));
     unawaited(_musicPlayer.setReleaseMode(ReleaseMode.loop));
   }
 
@@ -93,6 +118,12 @@ class AudioService {
   final List<AudioPlayer> _sfxPool =
       List.generate(_kSfxPoolSize, (_) => AudioPlayer());
   int _sfxCursor = 0;
+
+  /// Lecteur dédié pour [SfxTrack.tileGain] — volontairement en dehors du
+  /// pool : contrairement aux autres bruitages, une nouvelle tuile gagnée
+  /// doit couper net le son de la précédente si elle n'est pas terminée,
+  /// jamais les superposer (voir [playTileGained]).
+  final AudioPlayer _tileGainPlayer = AudioPlayer();
 
   bool get _soundEnabled => _ref.read(optionsProvider).soundEnabled;
 
@@ -116,6 +147,24 @@ class AudioService {
   /// la position de lecture.
   Future<void> refreshMuteState() async {
     await _musicPlayer.setVolume(_soundEnabled ? 1.0 : 0.0);
+  }
+
+  /// Met en pause la musique de fond quand l'app passe en arrière-plan (voir
+  /// `main.dart`, `didChangeAppLifecycleState` — [AppLifecycleState.paused]).
+  /// Conserve la position de lecture pour une reprise transparente via
+  /// [resumeMusicFromBackground]. Sans effet sur les bruitages ponctuels
+  /// (pool SFX, tile gain), qui n'ont pas vocation à continuer en tâche de
+  /// fond de toute façon.
+  Future<void> pauseMusicForBackground() async {
+    await _musicPlayer.pause();
+  }
+
+  /// Reprend la musique de fond interrompue par [pauseMusicForBackground] au
+  /// retour au premier plan ([AppLifecycleState.resumed]). Ne fait rien si
+  /// aucune piste n'a jamais été lancée.
+  Future<void> resumeMusicFromBackground() async {
+    if (_currentTrack == null) return;
+    await _musicPlayer.resume();
   }
 
   /// Joue [sfx] avec une hauteur légèrement randomisée, sur un lecteur pris
@@ -148,18 +197,30 @@ class AudioService {
     }
   }
 
-  /// Départ de l'animation de descente d'une tuile posée.
-  Future<void> playTilePlacing() => _playSfx(SfxTrack.tilePlacing);
-
-  /// Arrivée d'une tuile posée à sa position finale (fin du rebond) — joué
-  /// sans attendre la fin de [playTilePlacing].
+  /// Arrivée d'une tuile posée à sa position finale (fin du rebond).
   Future<void> playTilePlaced() => _playSfx(SfxTrack.tilePlaced);
+
+  /// Joue `tile_gain.mp3` à chaque tuile bonus qui arrive sur la pile HUD
+  /// (voir `game_screen.dart`, `onBonusImpact` — un appel par icône de
+  /// tuile arrivée, échelonné dans le temps pour un gain multi-tuiles).
+  ///
+  /// Contrairement à [_playSfx], qui pioche dans le pool pour laisser les
+  /// sons se chevaucher, cette méthode réutilise toujours le même lecteur
+  /// dédié ([_tileGainPlayer]) : si le son de la tuile précédente n'est pas
+  /// terminé quand une nouvelle tuile arrive, il est coupé net avant de
+  /// démarrer le nouveau, plutôt que superposé.
+  Future<void> playTileGained() async {
+    if (!_soundEnabled) return;
+    await _tileGainPlayer.stop();
+    await _tileGainPlayer.play(AssetSource(SfxTrack.tileGain.assetPath));
+  }
 
   void _dispose() {
     _musicPlayer.dispose();
     for (final p in _sfxPool) {
       p.dispose();
     }
+    _tileGainPlayer.dispose();
   }
 }
 

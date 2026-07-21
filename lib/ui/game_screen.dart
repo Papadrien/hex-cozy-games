@@ -106,6 +106,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     _game.onBonusImpact = () {
       _tileStackImpactKey.currentState?.pulse(0.5);
       unawaited(ref.read(hapticsServiceProvider).bonusTileArrived());
+      unawaited(ref.read(audioServiceProvider).playTileGained());
     };
     Future.microtask(
       () => ref.read(tutorialProvider.notifier).checkAndStart(),
