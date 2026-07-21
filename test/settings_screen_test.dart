@@ -12,7 +12,6 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:hex_haven/l10n/app_localizations.dart';
 import 'package:hex_haven/providers/options_provider.dart';
-import 'package:hex_haven/services/audio_service.dart';
 import 'package:hex_haven/ui/settings_screen.dart';
 
 void main() {
