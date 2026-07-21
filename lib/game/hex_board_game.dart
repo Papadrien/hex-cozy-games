@@ -107,8 +107,8 @@ class HexBoardGame extends FlameGame
     await super.onLoad();
     _grid = HexGridComponent(screenSize: size.clone())
       ..onTilePlacingStart =
-          () => _ref.read(audioServiceProvider).playTilePlacing()
-      ..onTilePlaced = () => _ref.read(audioServiceProvider).playTilePlaced();
+          () { _ref.read(audioServiceProvider).playTilePlacing(); }
+      ..onTilePlaced = () { _ref.read(audioServiceProvider).playTilePlaced(); };
     add(_grid!);
     _initBoard();
     _setupPreviewListeners();
