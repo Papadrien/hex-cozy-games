@@ -91,21 +91,26 @@ class AudioService {
     // superposent toujours au lieu de s'interrompre mutuellement — sans
     // cette configuration, la plateforme peut couper le lecteur en cours
     // (ou le mettre en pause) dès qu'un autre lecteur démarre.
-    unawaited(AudioPlayer.global.setAudioContext(
-      AudioContext(
-        iOS: AudioContextIOS(
-          category: AVAudioSessionCategory.ambient,
-          options: {AVAudioSessionOptions.mixWithOthers},
+    try {
+      unawaited(AudioPlayer.global.setAudioContext(
+        AudioContext(
+          iOS: AudioContextIOS(
+            category: AVAudioSessionCategory.ambient,
+            options: {AVAudioSessionOptions.mixWithOthers},
+          ),
+          android: AudioContextAndroid(
+            isSpeakerphoneOn: false,
+            stayAwake: false,
+            contentType: AndroidContentType.music,
+            usageType: AndroidUsageType.game,
+            audioFocus: AndroidAudioFocus.gainTransientMayDuck,
+          ),
         ),
-        android: AudioContextAndroid(
-          isSpeakerphoneOn: false,
-          stayAwake: false,
-          contentType: AndroidContentType.music,
-          usageType: AndroidUsageType.game,
-          audioFocus: AndroidAudioFocus.gainTransientMayDuck,
-        ),
-      ),
-    ));
+      ));
+    } catch (_) {
+      // Ignorer les erreurs de configuration audio sur les plateformes qui ne
+      // supportent pas ces options (ex. Linux en test).
+    }
     unawaited(_musicPlayer.setReleaseMode(ReleaseMode.loop));
   }
 

@@ -12,21 +12,21 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:hex_haven/l10n/app_localizations.dart';
 import 'package:hex_haven/providers/options_provider.dart';
+import 'package:hex_haven/services/audio_service.dart';
 import 'package:hex_haven/ui/settings_screen.dart';
-
-Widget _wrap() {
-  return ProviderScope(
-    child: const MaterialApp(
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
-      supportedLocales: AppLocalizations.supportedLocales,
-      home: SettingsScreen(),
-    ),
-  );
-}
 
 void main() {
   testWidgets('rend correctement les labels et le titre', (tester) async {
-    await tester.pumpWidget(_wrap());
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [],
+        child: const MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: SettingsScreen(),
+        ),
+      ),
+    );
     await tester.pumpAndSettle();
 
     final element = tester.element(find.byType(SettingsScreen));
