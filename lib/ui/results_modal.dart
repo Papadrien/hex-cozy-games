@@ -186,7 +186,7 @@ class _ResultsCard extends ConsumerWidget {
 
   void _replay(BuildContext context, WidgetRef ref) {
     buttonHapticTap(context);
-    SessionSaver.endSession(ref);
+    SessionSaver.endSession(ref.container);
     startNewGame(ref);
     clearAppSnackBars();
     Navigator.pushReplacementNamed(context, '/game');
@@ -194,7 +194,7 @@ class _ResultsCard extends ConsumerWidget {
 
   void _goHome(BuildContext context, WidgetRef ref) {
     buttonHapticTap(context);
-    SessionSaver.endSession(ref);
+    SessionSaver.endSession(ref.container);
     // '/' est le splash screen (précache polices/images + délai minimum) :
     // le réafficher ici provoquait un flash de splash inutile à chaque
     // retour à l'accueil après une partie. On va directement sur '/home'.

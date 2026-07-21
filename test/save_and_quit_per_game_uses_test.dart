@@ -80,7 +80,7 @@ void main() {
       expect(beforeSave.holdSlotRemainingUses, 1);
       expect(beforeSave.secondChanceRemainingUses, 1);
 
-      await SessionSaver.save(capturedRef);
+      await SessionSaver.save(capturedRef.container);
 
       // Simule un redémarrage d'app : les providers reviennent à zéro.
       capturedRef.read(sessionProvider.notifier).reset();
@@ -124,7 +124,7 @@ void main() {
       await tester.pump();
 
       startNewGame(capturedRef);
-      await SessionSaver.save(capturedRef);
+      await SessionSaver.save(capturedRef.container);
 
       // Réécrit la ligne sauvegardée en retirant les nouvelles clés JSON,
       // pour simuler une sauvegarde antérieure au correctif.

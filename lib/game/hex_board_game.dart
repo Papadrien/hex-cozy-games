@@ -55,12 +55,13 @@ import 'hex_tile.dart';
 
 class HexBoardGame extends FlameGame
     with MultiTouchTapDetector {
-  HexBoardGame({required this._ref, this.onCameraMove});
+  HexBoardGame({required ProviderContainer container, this.onCameraMove})
+      : _container = container;
 
   /// Appelé à chaque déplacement de caméra avec le delta cumulé (dx, dy).
   final void Function(double dx, double dy)? onCameraMove;
 
-  final WidgetRef _ref;
+  final ProviderContainer _container;
 
   /// Retourne la position (coordonnées jeu) vers laquelle les tuiles bonus
   /// doivent voler après placement. Null = animation stationnaire par défaut.
@@ -107,8 +108,8 @@ class HexBoardGame extends FlameGame
     await super.onLoad();
     _grid = HexGridComponent(screenSize: size.clone())
       ..onTilePlacingStart =
-          () { _ref.read(audioServiceProvider).playTilePlacing(); }
-      ..onTilePlaced = () { _ref.read(audioServiceProvider).playTilePlaced(); };
+          () { _container.read(audioServiceProvider).playTilePlacing(); }
+      ..onTilePlaced = () { _container.read(audioServiceProvider).playTilePlaced(); };
     add(_grid!);
     _initBoard();
     _setupPreviewListeners();
@@ -131,7 +132,7 @@ class HexBoardGame extends FlameGame
     if (grid == null) return;
 
     // Partie reprise : placer toutes les tuiles restaurées sur Flame.
-    final gridState = _ref.read(gridProvider);
+    final gridState = _container.read(gridProvider);
     for (final entry in gridState.placedTiles.entries) {
       grid.placeTile(entry.key, entry.value, animated: false);
     }
@@ -142,11 +143,11 @@ class HexBoardGame extends FlameGame
   /// providers à chaque frame dans [update()].
   void _setupPreviewListeners() {
     // Placement (sélection / rotation / clear).
-    _ref.listen(placementProvider, (prev, next) {
+    _container.listen(placementProvider, (prev, next) {
       _previewDirty = true;
     });
     // PreviewReward dépend de placementProvider + gridProvider + previewTile.
-    _ref.listen(previewRewardProvider, (prev, next) {
+    _container.listen(previewRewardProvider, (prev, next) {
       _previewDirty = true;
     });
   }
@@ -183,8 +184,8 @@ class HexBoardGame extends FlameGame
     final grid = _grid;
     if (grid == null) return;
 
-    final placement = _ref.read(placementProvider);
-    final placementNotifier = _ref.read(placementProvider.notifier);
+    final placement = _container.read(placementProvider);
+    final placementNotifier = _container.read(placementProvider.notifier);
 
     grid.availableHighlights = placementNotifier.availableCells;
     grid.previewCoords = placement.selected;
@@ -198,7 +199,7 @@ class HexBoardGame extends FlameGame
     // Côtés bien connectés et tuiles bonus à montrer sur la prévisualisation.
     // previewBonusTiles DOIT être défini AVANT previewHighlightedSides car ce
     // dernier déclenche _syncPreviewCoinComponents() qui lit previewBonusTiles.
-    final reward = _ref.read(previewRewardProvider);
+    final reward = _container.read(previewRewardProvider);
     grid.previewBonusTiles = reward.bonusTiles;
     grid.previewHighlightedSides = reward.connectedSides.toSet();
 
@@ -242,7 +243,7 @@ class HexBoardGame extends FlameGame
   }
 
   /// Vrai si le jeu est en pause — les gestes doivent être ignorés.
-  bool get _isPaused => _ref.read(pauseProvider).isPaused;
+  bool get _isPaused => _container.read(pauseProvider).isPaused;
 
   // ── Rotation par geste circulaire autour de la tuile ─────────────────────
   //
@@ -307,12 +308,12 @@ class HexBoardGame extends FlameGame
         (_rotationAccumulatedAngle / _kRotationRadiansPerNotch).truncate();
     final delta = targetNotches - _rotationNotchesApplied;
     if (delta != 0) {
-      _ref.read(placementProvider.notifier).rotate(delta);
+      _container.read(placementProvider.notifier).rotate(delta);
       _rotationNotchesApplied = targetNotches;
       // Un clic haptique par mise à jour de rotation (un ou plusieurs crans
       // d'un coup lors d'un swipe rapide comptent pour un seul retour, afin
       // de ne pas spammer de vibrations en rafale).
-      _ref.read(hapticsServiceProvider).tileRotated();
+      _container.read(hapticsServiceProvider).tileRotated();
     }
   }
 
@@ -344,14 +345,14 @@ class HexBoardGame extends FlameGame
     // posée la retire et la réinjecte en pile, plutôt que de suivre le
     // flux normal de placement ci-dessous — les deux modes sont mutuellement
     // exclusifs (voir [toggleSecondChanceMode]).
-    if (_ref.read(secondChanceModeProvider)) {
+    if (_container.read(secondChanceModeProvider)) {
       final coords = grid.hexAt(info.eventPosition.widget.toOffset());
-      removePlacedTile(_ref, coords, onRemove: removeTileFromFlame);
+      removePlacedTile(_container, coords, onRemove: removeTileFromFlame);
       return;
     }
 
-    final placement = _ref.read(placementProvider);
-    final placementNotifier = _ref.read(placementProvider.notifier);
+    final placement = _container.read(placementProvider);
+    final placementNotifier = _container.read(placementProvider.notifier);
 
     if (!placement.hasSelection) {
       // Premier tap : sélectionner la cellule pour la prévisualisation
@@ -359,7 +360,7 @@ class HexBoardGame extends FlameGame
       final coords = grid.hexAt(info.eventPosition.widget.toOffset());
       if (placementNotifier.availableCells.contains(coords)) {
         placementNotifier.selectCell(coords);
-        _ref.read(hapticsServiceProvider).tilePreviewed();
+        _container.read(hapticsServiceProvider).tilePreviewed();
       }
       return;
     }
@@ -374,7 +375,7 @@ class HexBoardGame extends FlameGame
     // l'annuler est désormais la croix sur la pile HUD (clearSelection()
     // appelé depuis ui/tile_stack_hud.dart), qui positionne le flag dirty
     // via l'abonnement Riverpod (voir [_setupPreviewListeners]).
-    await confirmPlacement(_ref, onConfirm: placeTileOnFlame);
+    await confirmPlacement(_container, onConfirm: placeTileOnFlame);
   }
 
   // ── Pan / Zoom / Rotation (via ScaleGestureRecognizer) ──────────────────
@@ -404,7 +405,7 @@ class HexBoardGame extends FlameGame
     // tuile en suivant l'angle du doigt autour de son centre (rotation
     // circulaire, voir _handleRotation). Le pan est désactivé pendant la
     // prévisualisation (story 1.7e).
-    final placement = _ref.read(placementProvider);
+    final placement = _container.read(placementProvider);
     if (placement.hasSelection && (details.scale - 1.0).abs() < 0.05) {
       _handleRotation(details.focalPoint);
     } else {

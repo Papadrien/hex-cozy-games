@@ -94,7 +94,7 @@ class HomeScreen extends ConsumerWidget {
                 _CenterContent(
                   activeSession: activeSession,
                   onPlay: () async {
-                    await SessionSaver.endSession(ref);
+                    await SessionSaver.endSession(ref.container);
                     startNewGame(ref);
                     if (context.mounted) {
                       clearAppSnackBars();

@@ -89,7 +89,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     // en cours (ex. "Rejouer" depuis la modale Résultats).
     unawaited(ref.read(audioServiceProvider).playMusic(MusicTrack.ambient));
     _game = HexBoardGame(
-      ref: ref,
+      container: ref.container,
       onCameraMove: (dx, dy) {
         setState(() {
           _bgOffsetX += dx;

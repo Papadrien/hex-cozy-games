@@ -53,7 +53,7 @@ void activateHatedColor(WidgetRef ref) {
 /// de rejouer tout l'historique des connexions, ce qui dépasse le
 /// périmètre de cette story.
 void removePlacedTile(
-  WidgetRef ref,
+  ProviderContainer ref,
   HexCoords coords, {
   required void Function(HexCoords coords) onRemove,
 }) {

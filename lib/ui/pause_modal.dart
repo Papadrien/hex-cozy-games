@@ -313,7 +313,7 @@ class _SaveAndQuitButton extends ConsumerWidget {
         ),
         onPressed: () async {
           buttonHapticTap(context);
-          await SessionSaver.save(ref);
+          await SessionSaver.save(ref.container);
           ref.invalidate(activeSessionProvider);
           // Forcer la destruction immédiate de la bannière AdMob plutôt que
           // d'attendre l'autoDispose au démontage de GameScreen (même
@@ -419,7 +419,7 @@ Future<void> _showAbandonConfirmDialog(
 }
 
 Future<void> _abandonGame(BuildContext context, WidgetRef ref) async {
-  await SessionSaver.endSession(ref);
+  await SessionSaver.endSession(ref.container);
   // Sans invalidate, activeSessionProvider (FutureProvider mis en cache)
   // garde sa valeur précédente (true) : le bouton "Reprendre" resterait
   // affiché sur l'accueil alors qu'il n'y a plus de session active.

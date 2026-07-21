@@ -101,7 +101,7 @@ class BoardAnalysis {
 /// Stocke l'intégralité de l'état nécessaire à une restauration fidèle :
 /// plateau, pile, pièces, tuiles bonus, dernier placement (pour annuler).
 class SessionSaver {
-  static Future<void> save(WidgetRef ref) async {
+  static Future<void> save(ProviderContainer ref) async {
     try {
       final db = ref.read(appDatabaseProvider);
       final grid = ref.read(gridProvider);
@@ -166,7 +166,7 @@ class SessionSaver {
   }
 
   /// Marque la session active comme terminée (fin de partie ou abandon).
-  static Future<void> endSession(WidgetRef ref) async {
+  static Future<void> endSession(ProviderContainer ref) async {
     final db = ref.read(appDatabaseProvider);
     await (db.update(db.activeBoardSession)..where((t) => t.id.equals(1)))
         .write(const ActiveBoardSessionCompanion(isActive: Value(false)));
@@ -180,7 +180,7 @@ class SessionSaver {
 /// rendu Flame (HexGridComponent).
 /// Découplé du provider pour éviter une dépendance circulaire providers → Flame.
 Future<void> confirmPlacement(
-  WidgetRef ref, {
+  ProviderContainer ref, {
   required void Function(HexCoords coords, HexTile tile, List<int> connectedSides, int bonusTiles,
           {int bonusCoins})
       onConfirm,
@@ -217,7 +217,7 @@ Future<void> confirmPlacement(
 /// (pièces "de base") + pièces bonus, à l'exclusion des tuiles bonus qui ne
 /// sont pas des pièces (voir [_triggerPlacementHaptics], même périmètre côté
 /// vibrations). Aucun son si aucune pièce n'est gagnée (pose sans connexion).
-void _triggerPlacementAudio(WidgetRef ref, PlacementReward reward) {
+void _triggerPlacementAudio(ProviderContainer ref, PlacementReward reward) {
   final totalCoins = reward.connectedSides.length + reward.bonusCoins;
   if (totalCoins <= 0) return;
   ref.read(audioServiceProvider).playCoinsGained(totalCoins);
@@ -228,7 +228,7 @@ void _triggerPlacementAudio(WidgetRef ref, PlacementReward reward) {
 /// pièce bonus, et une vibration forte par tuile bonus — jouées dans cet
 /// ordre (léger → moyen → fort) pour souligner l'intensité croissante du
 /// gain (voir [HapticsService.playReward]).
-void _triggerPlacementHaptics(WidgetRef ref, PlacementReward reward) {
+void _triggerPlacementHaptics(ProviderContainer ref, PlacementReward reward) {
   final baseCoins = reward.connectedSides.length;
   if (baseCoins == 0 && reward.bonusCoins == 0 && reward.bonusTiles == 0) {
     return;
@@ -240,12 +240,12 @@ void _triggerPlacementHaptics(WidgetRef ref, PlacementReward reward) {
       );
 }
 
-void _placeTileOnGrid(WidgetRef ref, HexCoords coords, HexTile tile) {
+void _placeTileOnGrid(ProviderContainer ref, HexCoords coords, HexTile tile) {
   ref.read(gridProvider.notifier).placeTile(coords, tile);
 }
 
 void _recordPlacement(
-  WidgetRef ref,
+  ProviderContainer ref,
   HexCoords coords,
   HexTile tile,
   PlacementReward reward,
@@ -274,7 +274,7 @@ void _recordPlacement(
 /// cette pose (connexion + Combo+ + Bonus de clôture) — ce second nombre
 /// sert uniquement à ce qu'[undoPlacement] puisse toutes les retirer.
 (PlacementReward, int) _applyReward(
-    WidgetRef ref, HexCoords pos, HexTile tile, PlacementReward reward) {
+    ProviderContainer ref, HexCoords pos, HexTile tile, PlacementReward reward) {
   if (reward.connectedSides.isEmpty && reward.bonusTiles == 0) {
     ref.read(sessionProvider.notifier).addReward(reward);
     // Story B12a : signale une pose "vide" (tick incrémenté, aucun type
@@ -397,7 +397,7 @@ void _recordPlacement(
   return (applied, totalBonusTilesAdded);
 }
 
-void _advanceStack(WidgetRef ref, int connectedSidesCount) {
+void _advanceStack(ProviderContainer ref, int connectedSidesCount) {
   ref.read(tileStackProvider.notifier).consumeActiveTile();
   ref.read(questServiceProvider)
       .onTilePlaced(connectedSidesCount: connectedSidesCount);
@@ -405,7 +405,7 @@ void _advanceStack(WidgetRef ref, int connectedSidesCount) {
   ref.read(placementProvider.notifier).clearSelection();
 }
 
-void _checkGameOver(WidgetRef ref) {
+void _checkGameOver(ProviderContainer ref) {
   final remaining = ref.read(tileStackProvider).remaining;
   if (remaining > 0) return;
 
