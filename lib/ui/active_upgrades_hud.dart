@@ -50,6 +50,7 @@ import '../providers/upgrade_counter.dart';
 import '../providers/upgrade_feedback_provider.dart';
 import '../services/haptics_service.dart';
 import 'glass_container.dart';
+import 'coin_icon.dart';
 
 /// Taille des slots dans l'encart central — l'audit UX aligne aussi la
 /// zone cliquable du bouton Annuler (`game_screen.dart`) sur cette même
@@ -182,8 +183,8 @@ class _UpgradeSlotState extends ConsumerState<_UpgradeSlot>
               ? Color.lerp(kGlassBlueBorder, kRewardGold, glowAlpha)
               : kGlassBlueBorder,
           borderWidth: glowAlpha > 0 ? 1.0 + glowAlpha : 1.0,
-          child: Icon(
-            upgradeIconData(effectType),
+          child: UpgradeEffectIcon(
+            effectType: effectType,
             color: tint ?? Colors.white,
             size: 22,
           ),
@@ -533,8 +534,8 @@ class _UpgradeDescriptionSheet extends StatelessWidget {
                       borderRadius: 12,
                       tintColor: kGlassBlue,
                       borderColor: kGlassBlueBorder,
-                      child: Icon(
-                        upgradeIconData(effectType),
+                      child: UpgradeEffectIcon(
+                        effectType: effectType,
                         color: tint ?? Colors.white,
                         size: 20,
                       ),

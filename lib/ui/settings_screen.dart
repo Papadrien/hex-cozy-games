@@ -39,14 +39,46 @@ class SettingsScreen extends ConsumerWidget {
                       _SectionLabel(context.tr.settings_sectionAudio),
                       const SizedBox(height: 8),
                       _ToggleTile(
-                        icon: Icons.volume_up,
-                        label: context.tr.options_sound,
-                        value: options.soundEnabled,
+                        icon: Icons.music_note,
+                        label: context.tr.options_music,
+                        value: options.musicEnabled,
                         onToggle: () {
                           buttonHapticTap(context);
-                          ref.read(optionsProvider.notifier).toggleSound();
-                          ref.read(audioServiceProvider).refreshMuteState();
+                          ref.read(optionsProvider.notifier).toggleMusic();
+                          ref.read(audioServiceProvider).refreshMusicVolume();
                         },
+                      ),
+                      _VolumeSliderTile(
+                        icon: Icons.music_note,
+                        label: context.tr.options_musicVolume,
+                        volume: options.musicVolume,
+                        onChanged: (value) {
+                          ref
+                              .read(optionsProvider.notifier)
+                              .setMusicVolume(value);
+                          ref.read(audioServiceProvider).refreshMusicVolume();
+                        },
+                        onChangeEnd: (_) => buttonHapticTap(context),
+                      ),
+                      _ToggleTile(
+                        icon: Icons.graphic_eq,
+                        label: context.tr.options_sfx,
+                        value: options.sfxEnabled,
+                        onToggle: () {
+                          buttonHapticTap(context);
+                          ref.read(optionsProvider.notifier).toggleSfx();
+                        },
+                      ),
+                      _VolumeSliderTile(
+                        icon: Icons.graphic_eq,
+                        label: context.tr.options_sfxVolume,
+                        volume: options.sfxVolume,
+                        onChanged: (value) {
+                          ref
+                              .read(optionsProvider.notifier)
+                              .setSfxVolume(value);
+                        },
+                        onChangeEnd: (_) => buttonHapticTap(context),
                       ),
                       _ToggleTile(
                         icon: Icons.vibration,
@@ -224,6 +256,87 @@ class _ToggleTile extends StatelessWidget {
               value ? Icons.check_circle : Icons.circle_outlined,
               color: value ? kTropicalTeal : Colors.white.withValues(alpha: 0.35),
               size: 24,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Ligne réglage avec curseur de volume — module le niveau sonore d'une
+/// catégorie (musique ou bruitages), indépendamment de sa bascule on/off.
+/// Même esthétique [GlassContainer] que [_ToggleTile] pour rester cohérente
+/// avec le reste de l'écran.
+class _VolumeSliderTile extends StatelessWidget {
+  const _VolumeSliderTile({
+    required this.icon,
+    required this.label,
+    required this.volume,
+    required this.onChanged,
+    this.onChangeEnd,
+  });
+
+  final IconData icon;
+  final String label;
+  final double volume;
+  final ValueChanged<double> onChanged;
+  final ValueChanged<double>? onChangeEnd;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: GlassContainer(
+        tintColor: kGlassBlue,
+        borderColor: kGlassBlueBorder,
+        padding: const EdgeInsets.fromLTRB(14, 10, 18, 10),
+        child: Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: kBrandBlue.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, color: kBrandBlue, size: 20),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    label,
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.9),
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  SliderTheme(
+                    data: SliderTheme.of(context).copyWith(
+                      trackHeight: 3,
+                      activeTrackColor: kTropicalTeal,
+                      inactiveTrackColor: Colors.white.withValues(alpha: 0.18),
+                      thumbColor: kTropicalTeal,
+                      overlayColor: kTropicalTeal.withValues(alpha: 0.2),
+                      thumbShape: const RoundSliderThumbShape(
+                        enabledThumbRadius: 8,
+                      ),
+                    ),
+                    child: Slider(
+                      value: volume,
+                      min: 0.0,
+                      max: 1.0,
+                      onChanged: onChanged,
+                      onChangeEnd: onChangeEnd,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ),

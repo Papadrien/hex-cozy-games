@@ -30,6 +30,7 @@ import '../providers/player_profile_provider.dart';
 import '../providers/progression_provider.dart';
 import '../services/haptics_service.dart';
 import 'glass_container.dart';
+import 'coin_icon.dart';
 import 'tropical_background.dart';
 
 class BuildScreen extends ConsumerWidget {
@@ -211,7 +212,7 @@ class _CoinBalanceBadge extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.monetization_on, color: kRewardGold, size: 16),
+          const CoinIcon(size: 16),
           const SizedBox(width: 6),
           Text(
             '$totalCoins',
@@ -429,8 +430,8 @@ class _BuildIconBadge extends StatelessWidget {
       blurSigma: 10,
       width: 42,
       height: 42,
-      child: Icon(
-        upgradeIconData(UpgradeEffectType.fromDb(upgrade.effectType)),
+      child: UpgradeEffectIcon(
+        effectType: UpgradeEffectType.fromDb(upgrade.effectType),
         color: iconColor,
         size: 20,
       ),

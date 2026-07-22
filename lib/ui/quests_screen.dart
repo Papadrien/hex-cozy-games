@@ -16,6 +16,7 @@ import '../providers/quest_provider.dart';
 import '../providers/progression_provider.dart';
 import '../services/haptics_service.dart';
 import 'glass_container.dart';
+import 'coin_icon.dart';
 import 'tropical_background.dart';
 import 'quest_reward_burst.dart';
 
@@ -75,7 +76,7 @@ class _QuestsList extends StatelessWidget {
         const SizedBox(height: 20),
         if (grouped.containsKey(QuestCategory.coinsEarned.dbValue))
           _CategorySection(
-            icon: Icons.monetization_on,
+            iconWidget: const CoinIcon(size: 18),
             color: kCoinAmber,
             label: context.tr.quests_category_coins,
             quests: grouped[QuestCategory.coinsEarned.dbValue]!,
@@ -334,14 +335,18 @@ class _QuestsGlassIconButton extends StatelessWidget {
 
 class _CategorySection extends StatelessWidget {
   const _CategorySection({
-    required this.icon,
+    this.icon,
+    this.iconWidget,
     required this.color,
     required this.label,
     required this.quests,
     required this.allQuests,
-  });
+  }) : assert(icon != null || iconWidget != null);
 
-  final IconData icon;
+  final IconData? icon;
+
+  /// Widget d'icône personnalisé (ex. logo pièce) — prioritaire sur [icon].
+  final Widget? iconWidget;
   final Color color;
   final String label;
   final List<PermanentQuestRow> quests;
@@ -362,7 +367,7 @@ class _CategorySection extends StatelessWidget {
           ),
           child: Row(
             children: [
-              Icon(icon, color: color, size: 18),
+              iconWidget ?? Icon(icon, color: color, size: 18),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -758,7 +763,7 @@ class _ClaimedRewardText extends StatelessWidget {
       return Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.monetization_on, color: kCoinAmber, size: 18),
+          const CoinIcon(size: 18),
           const SizedBox(width: 4),
           Text(
             '+${quest.rewardValue}',
@@ -816,7 +821,7 @@ class _RewardBadge extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.monetization_on, color: Colors.amber, size: 14),
+            const CoinIcon(size: 14),
             const SizedBox(width: 3),
             Text(
               '+$rewardValue',

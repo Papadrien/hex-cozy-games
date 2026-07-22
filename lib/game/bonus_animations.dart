@@ -1,5 +1,5 @@
 import 'dart:math';
-import 'dart:ui' show Canvas, Color, FontWeight, Offset, Paint, PaintingStyle, Path, TextDirection;
+import 'dart:ui' show Canvas, Color, FontWeight, Offset, Paint, PaintingStyle, Path, Rect, StrokeCap, TextDirection;
 
 import 'package:flutter/animation.dart' show Curves;
 import 'package:flutter/foundation.dart' show VoidCallback;
@@ -7,6 +7,7 @@ import 'package:flutter/painting.dart' show TextPainter, TextSpan, TextStyle;
 
 import 'package:flame/components.dart';
 import 'package:flame/effects.dart';
+import 'package:flame/sprite.dart';
 
 import '../core/colors.dart';
 import 'tile_component.dart'; // kIsoScaleY, kTileDepthPriorityPreview
@@ -45,6 +46,88 @@ void drawHex(Canvas canvas, Offset center, double radius,
   canvas.drawPath(path, paint);
 }
 
+/// Coins d'un hexagone régulier (pointy-top), avec écrasement isométrique
+/// optionnel en Y (1.0 = pas d'écrasement — cas de [PreviewBonusComponent]).
+List<Offset> _hexCorners(Offset center, double radius, {double squashY = 1.0}) {
+  return List.generate(6, (i) {
+    final angleDeg = 60.0 * i - 90.0;
+    final angleRad = angleDeg * pi / 180.0;
+    return Offset(
+      center.dx + radius * cos(angleRad),
+      center.dy + radius * sin(angleRad) * squashY,
+    );
+  });
+}
+
+/// Dessine la face latérale (extrusion 3D assombrie) sous les côtés tournés
+/// vers le bas de l'icône de tuile bonus — même principe que l'extrusion
+/// des tuiles du plateau ([tile_component.dart], facteur d'assombrissement
+/// 0.62) et de la pile HUD ([tile_stack_hud.dart]), pour que l'icône reste
+/// raccord visuellement plutôt que de rester un simple aplat bleu.
+void _drawHexSideDepth(
+  Canvas canvas,
+  Offset center,
+  double radius,
+  double depth,
+  Color topColor,
+  double alpha, {
+  double squashY = 1.0,
+}) {
+  if (depth <= 0.01) return;
+  final corners = _hexCorners(center, radius, squashY: squashY);
+  final shaded = Color.from(
+    alpha: topColor.a,
+    red: topColor.r * 0.62,
+    green: topColor.g * 0.62,
+    blue: topColor.b * 0.62,
+  );
+  final paint = Paint()
+    ..color = shaded.withValues(alpha: alpha)
+    ..style = PaintingStyle.fill;
+  for (var i = 0; i < 6; i++) {
+    final c0 = corners[i];
+    final c1 = corners[(i + 1) % 6];
+    final midY = (c0.dy + c1.dy) / 2;
+    if (midY < center.dy + 0.01) continue; // côté tourné vers le haut : ignoré
+    final b0 = Offset(c0.dx, c0.dy + depth);
+    final b1 = Offset(c1.dx, c1.dy + depth);
+    canvas.drawPath(
+      Path()
+        ..moveTo(c0.dx, c0.dy)
+        ..lineTo(c1.dx, c1.dy)
+        ..lineTo(b1.dx, b1.dy)
+        ..lineTo(b0.dx, b0.dy)
+        ..close(),
+      paint,
+    );
+  }
+}
+
+/// Fine surbrillance sur le bord supérieur de l'icône, pour un léger effet
+/// de biseau brillant côté "haut" — cohérent avec la bande de surbrillance
+/// des tuiles du plateau (bord extérieur éclairci).
+void _drawHexTopRim(
+  Canvas canvas,
+  Offset center,
+  double radius,
+  double alpha, {
+  double squashY = 1.0,
+}) {
+  final corners = _hexCorners(center, radius, squashY: squashY);
+  final paint = Paint()
+    ..color = const Color(0xFFFFFFFF).withValues(alpha: alpha * 0.5)
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = max(1.0, radius * 0.06)
+    ..strokeCap = StrokeCap.round;
+  for (var i = 0; i < 6; i++) {
+    final c0 = corners[i];
+    final c1 = corners[(i + 1) % 6];
+    final midY = (c0.dy + c1.dy) / 2;
+    if (midY > center.dy - 0.01) continue; // ne garde que les côtés du haut
+    canvas.drawLine(c0, c1, paint);
+  }
+}
+
 // ── Coin component ──────────────────────────────────────────────────────────
 
 /// Pièce affichée au niveau d'un côté connecté — animée ou statique selon [animated].
@@ -72,9 +155,20 @@ class CoinComponent extends PositionComponent {
   double _life = 0.0;
   static const double _kDuration = 1.2;
 
+  /// Sprite partagé (chargé une seule fois, réutilisé par toutes les pièces).
+  static Sprite? _sprite;
+  static Future<Sprite>? _spriteLoad;
+
+  static Future<Sprite> _loadSprite() {
+    return _spriteLoad ??= Sprite.load('coin.png').then((s) => _sprite = s);
+  }
+
   @override
   Future<void> onLoad() async {
     await super.onLoad();
+    if (_sprite == null) {
+      await _loadSprite();
+    }
     if (flyTarget != null) {
       add(MoveEffect.to(
         flyTarget!,
@@ -95,6 +189,9 @@ class CoinComponent extends PositionComponent {
 
   @override
   void render(Canvas canvas) {
+    final sprite = _sprite;
+    if (sprite == null) return;
+
     final alpha = animated
         ? (_life < 0.3)
             ? (_life / 0.3)
@@ -102,26 +199,11 @@ class CoinComponent extends PositionComponent {
         : _alpha!;
     final r = animated ? _radius + _life * 2.0 : _radius;
 
-    canvas.drawCircle(
-      Offset.zero,
-      r,
-      Paint()
-        ..color = kRewardGold.withValues(alpha: alpha)
-        ..style = PaintingStyle.fill,
-    );
-    canvas.drawCircle(
-      Offset.zero,
-      r * 0.7,
-      Paint()
-        ..color = kRewardGoldDark.withValues(alpha: alpha * 0.8)
-        ..style = PaintingStyle.fill,
-    );
-    canvas.drawCircle(
-      Offset.zero,
-      r * 0.35,
-      Paint()
-        ..color = kRewardWhite.withValues(alpha: alpha * 0.9)
-        ..style = PaintingStyle.fill,
+    sprite.renderRect(
+      canvas,
+      Rect.fromCircle(center: Offset.zero, radius: r),
+      overridePaint: Paint()
+        ..color = kRewardWhite.withValues(alpha: alpha),
     );
   }
 }
@@ -157,6 +239,10 @@ class PreviewBonusComponent extends PositionComponent {
     const alpha = 0.9;
     final r = _radius;
 
+    // Face latérale (extrusion 3D) sous l'icône, raccord avec les tuiles
+    // du plateau plutôt qu'un simple aplat bleu.
+    _drawHexSideDepth(canvas, Offset.zero, r, r * 0.28, kBonusBlueLight, alpha);
+
     // Hexagone extérieur (fond).
     canvas.drawPath(
       _hexagonPath(r),
@@ -170,6 +256,8 @@ class PreviewBonusComponent extends PositionComponent {
         ..color = kBonusBlueLighter.withValues(alpha: alpha * 0.7)
         ..style = PaintingStyle.fill,
     );
+    // Fin liseré clair sur le bord supérieur pour un léger effet de biseau.
+    _drawHexTopRim(canvas, Offset.zero, r, alpha);
 
     // Nombre de tuiles bonus (+N) centré en blanc.
     _textPainter.text = TextSpan(
@@ -413,6 +501,11 @@ class BonusTileAnimComponent extends PositionComponent {
     canvas.save();
     canvas.scale(scaleX, scaleY);
 
+    // Face latérale (extrusion 3D) sous l'icône, dans le même repère
+    // squash/stretch — même écrasement isométrique que le reste du plateau.
+    _drawHexSideDepth(canvas, Offset.zero, r, r * 0.28, kBonusBlueLight, alpha,
+        squashY: kIsoScaleY);
+
     drawHex(canvas, Offset.zero, r,
         paint: Paint()
           ..color = kBonusBlueLight.withValues(alpha: alpha)
@@ -421,6 +514,8 @@ class BonusTileAnimComponent extends PositionComponent {
         paint: Paint()
           ..color = kBonusBlueLighter.withValues(alpha: alpha * 0.7)
           ..style = PaintingStyle.fill);
+    // Fin liseré clair sur le bord supérieur pour un léger effet de biseau.
+    _drawHexTopRim(canvas, Offset.zero, r, alpha, squashY: kIsoScaleY);
 
     _textPainter.text = TextSpan(
       text: '+$bonusCount',

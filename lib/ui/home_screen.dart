@@ -27,6 +27,7 @@ import 'settings_screen.dart';
 import 'shop_screen.dart';
 import 'stats_screen.dart';
 import 'glass_container.dart';
+import 'coin_icon.dart';
 
 // Bleu nuit tealisé pour les boutons secondaires — foncé pour la lisibilité
 // du texte blanc, bordure teal assortie au bouton Jouer.
@@ -140,8 +141,7 @@ class _TopBar extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.monetization_on,
-                    color: Colors.amber, size: 18),
+                const CoinIcon(size: 18),
                 const SizedBox(width: 6),
                 Text(
                   '$totalCoins',
@@ -420,7 +420,7 @@ class _CenterContentState extends ConsumerState<_CenterContent>
                 mainAxisSize: MainAxisSize.min,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.monetization_on, color: Colors.amber, size: 28),
+                  CoinIcon(size: 28),
                   SizedBox(width: 6),
                   Text(
                     '+50',
@@ -791,13 +791,13 @@ class _PremiumDailyCoinsButton extends ConsumerWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              available ? Icons.monetization_on : Icons.check_circle_outline,
-              size: 20,
-              color: available
-                  ? Colors.amber
-                  : Colors.white.withValues(alpha: 0.4),
-            ),
+            available
+                ? const CoinIcon(size: 20)
+                : Icon(
+                    Icons.check_circle_outline,
+                    size: 20,
+                    color: Colors.white.withValues(alpha: 0.4),
+                  ),
             const SizedBox(width: 8),
             Text(
               available
@@ -953,8 +953,8 @@ class _BuildMiniIcon extends StatelessWidget {
         color: Colors.white.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(8),
       ),
-      child: Icon(
-        upgradeIconData(effectType),
+      child: UpgradeEffectIcon(
+        effectType: effectType,
         color: tintOverride ?? Colors.white,
         size: 14,
       ),

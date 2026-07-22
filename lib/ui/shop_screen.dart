@@ -8,6 +8,7 @@ import '../providers/player_profile_provider.dart';
 import '../services/iap_service.dart';
 import '../services/haptics_service.dart';
 import 'glass_container.dart';
+import 'coin_icon.dart';
 import 'tropical_background.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -397,11 +398,7 @@ class _CoinStackIcon extends StatelessWidget {
       blurSigma: 10,
       width: 48,
       height: 48,
-      child: Icon(
-        Icons.monetization_on,
-        size: iconSize,
-        color: kRewardGold,
-      ),
+      child: CoinIcon(size: iconSize),
     );
   }
 }

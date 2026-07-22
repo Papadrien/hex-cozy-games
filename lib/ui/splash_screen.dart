@@ -55,6 +55,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     await Future.wait([
       precacheImage(const AssetImage('assets/images/home_background.png'), context),
       precacheImage(const AssetImage('assets/images/hibiscus.png'), context),
+      precacheImage(const AssetImage('assets/images/coin.png'), context),
     ]);
   }
 

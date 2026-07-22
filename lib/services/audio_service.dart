@@ -1,14 +1,19 @@
 /// Service centralisé pour l'audio du jeu : musique de fond et bruitages.
 ///
-/// Activable/désactivable via le paramètre « Son » des options (voir
-/// [optionsProvider]/[OptionsState.soundEnabled]) :
-///  - la musique est coupée/rétablie en direct via [refreshMuteState]
-///    (appelé depuis l'écran des réglages juste après
-///    [OptionsStateNotifier.toggleSound]) — sans relancer la piste ni perdre
-///    la position de lecture ;
-///  - chaque bruitage vérifie le réglage à son propre déclenchement, comme
-///    [HapticsService] pour les vibrations — les appelants n'ont pas besoin
-///    de tester le réglage eux-mêmes.
+/// Activables/désactivables séparément via les paramètres « Musique » et
+/// « Bruitages » des options (voir [optionsProvider] /
+/// [OptionsState.musicEnabled] / [OptionsState.sfxEnabled]), chacun modulé
+/// en intensité par son propre curseur — [OptionsState.musicVolume] pour la
+/// musique, [OptionsState.sfxVolume] pour les bruitages :
+///  - la musique est coupée/rétablie et son volume ajusté en direct via
+///    [refreshMusicVolume] (appelé depuis l'écran des réglages juste après
+///    [OptionsStateNotifier.toggleMusic] ou
+///    [OptionsStateNotifier.setMusicVolume]) — sans relancer la piste ni
+///    perdre la position de lecture ;
+///  - chaque bruitage vérifie le réglage et applique son propre volume
+///    courant à son propre déclenchement, comme [HapticsService] pour les
+///    vibrations — les appelants n'ont pas besoin de tester le réglage
+///    eux-mêmes.
 ///
 /// Musique de fond ([MusicTrack]) :
 ///  - [MusicTrack.home] (home.mp3) : tous les écrans hors partie en cours
@@ -84,6 +89,16 @@ const int _kMaxCoinSfxRepeats = 6;
 /// perceptibles comme des impulsions distinctes plutôt qu'un unique son.
 const Duration _kCoinSfxGap = Duration(milliseconds: 80);
 
+/// Durée par défaut du fondu de sortie appliqué par [AudioService.playMusicWithFadeOut]
+/// avant de basculer sur la nouvelle piste — assez bref pour rester discret
+/// pendant une transition d'écran, assez long pour éviter une coupure nette.
+const Duration _kMusicFadeOutDuration = Duration(milliseconds: 500);
+
+/// Nombre de paliers de volume utilisés pour le fondu de
+/// [AudioService.playMusicWithFadeOut] — un compromis entre fluidité perçue
+/// et nombre d'appels à [AudioPlayer.setVolume].
+const int _kMusicFadeSteps = 12;
+
 class AudioService {
   AudioService(this._ref) {
     // Contexte audio global : `mixWithOthers` sur iOS/Android garantit que
@@ -91,26 +106,21 @@ class AudioService {
     // superposent toujours au lieu de s'interrompre mutuellement — sans
     // cette configuration, la plateforme peut couper le lecteur en cours
     // (ou le mettre en pause) dès qu'un autre lecteur démarre.
-    try {
-      unawaited(AudioPlayer.global.setAudioContext(
-        AudioContext(
-          iOS: AudioContextIOS(
-            category: AVAudioSessionCategory.ambient,
-            options: {AVAudioSessionOptions.mixWithOthers},
-          ),
-          android: AudioContextAndroid(
-            isSpeakerphoneOn: false,
-            stayAwake: false,
-            contentType: AndroidContentType.music,
-            usageType: AndroidUsageType.game,
-            audioFocus: AndroidAudioFocus.gainTransientMayDuck,
-          ),
+    unawaited(AudioPlayer.global.setAudioContext(
+      const AudioContext(
+        iOS: AudioContextIOS(
+          category: AVAudioSessionCategory.ambient,
+          options: {AVAudioSessionOptions.mixWithOthers},
         ),
-      ));
-    } catch (_) {
-      // Ignorer les erreurs de configuration audio sur les plateformes qui ne
-      // supportent pas ces options (ex. Linux en test).
-    }
+        android: AudioContextAndroid(
+          isSpeakerphoneOn: false,
+          stayAwake: false,
+          contentType: AndroidContentType.music,
+          usageType: AndroidUsageType.game,
+          audioFocus: AndroidAudioFocus.gainTransientMayDuck,
+        ),
+      ),
+    ));
     unawaited(_musicPlayer.setReleaseMode(ReleaseMode.loop));
   }
 
@@ -130,28 +140,58 @@ class AudioService {
   /// jamais les superposer (voir [playTileGained]).
   final AudioPlayer _tileGainPlayer = AudioPlayer();
 
-  bool get _soundEnabled => _ref.read(optionsProvider).soundEnabled;
+  bool get _musicEnabled => _ref.read(optionsProvider).musicEnabled;
+  bool get _sfxEnabled => _ref.read(optionsProvider).sfxEnabled;
+  double get _musicVolume => _ref.read(optionsProvider).musicVolume;
+  double get _sfxVolume => _ref.read(optionsProvider).sfxVolume;
 
   /// Joue [track] en boucle, en remplaçant la piste en cours. Ne fait rien
   /// si [track] est déjà la piste active — évite un redémarrage audible en
   /// naviguant entre deux écrans qui partagent la même musique.
   ///
-  /// Le volume suit immédiatement le réglage « Son » courant (silencieux
-  /// mais lancé si désactivé, pour que [refreshMuteState] puisse rétablir
-  /// le son instantanément sans avoir à relancer la piste).
+  /// Le volume suit immédiatement le réglage « Musique » et son curseur de
+  /// volume courants (silencieux mais lancé si désactivé, pour que
+  /// [refreshMusicVolume] puisse rétablir le son instantanément sans avoir
+  /// à relancer la piste).
   Future<void> playMusic(MusicTrack track) async {
     if (_currentTrack == track) return;
     _currentTrack = track;
-    await _musicPlayer.setVolume(_soundEnabled ? 1.0 : 0.0);
+    await _musicPlayer.setVolume(_musicEnabled ? _musicVolume : 0.0);
     await _musicPlayer.play(AssetSource(track.assetPath));
   }
 
+  /// Change de piste comme [playMusic], mais fait d'abord fondre la piste en
+  /// cours jusqu'au silence sur [fadeDuration] plutôt que de la couper net —
+  /// utilisé pour la sortie de l'accueil vers la partie (voir
+  /// `game_screen.dart`), où la coupure instantanée de la musique d'accueil
+  /// serait perceptible pendant le wipe hexagonal. Ne fait rien si [track]
+  /// est déjà la piste active (même comportement que [playMusic]).
+  Future<void> playMusicWithFadeOut(
+    MusicTrack track, {
+    Duration fadeDuration = _kMusicFadeOutDuration,
+  }) async {
+    if (_currentTrack == track) return;
+    if (_currentTrack != null && _musicEnabled && _musicVolume > 0) {
+      final startVolume = _musicVolume;
+      final stepDuration = fadeDuration ~/ _kMusicFadeSteps;
+      for (var i = _kMusicFadeSteps - 1; i >= 0; i--) {
+        await _musicPlayer.setVolume(startVolume * i / _kMusicFadeSteps);
+        if (stepDuration > Duration.zero) {
+          await Future<void>.delayed(stepDuration);
+        }
+      }
+    }
+    await _musicPlayer.stop();
+    await playMusic(track);
+  }
+
   /// Coupe/rétablit instantanément le volume de la musique en cours selon
-  /// le réglage « Son » courant — à appeler juste après bascule du réglage
-  /// (voir `settings_screen.dart`). Ne relance pas la piste et ne perd pas
-  /// la position de lecture.
-  Future<void> refreshMuteState() async {
-    await _musicPlayer.setVolume(_soundEnabled ? 1.0 : 0.0);
+  /// le réglage « Musique » et son curseur de volume courants — à appeler
+  /// juste après bascule du réglage ou déplacement du curseur (voir
+  /// `settings_screen.dart`). Ne relance pas la piste et ne perd pas la
+  /// position de lecture.
+  Future<void> refreshMusicVolume() async {
+    await _musicPlayer.setVolume(_musicEnabled ? _musicVolume : 0.0);
   }
 
   /// Met en pause la musique de fond quand l'app passe en arrière-plan (voir
@@ -177,11 +217,12 @@ class AudioService {
   /// précédente sur ce même lecteur (elle est simplement coupée), et
   /// n'interrompt jamais les autres lecteurs du pool.
   Future<void> _playSfx(SfxTrack sfx) async {
-    if (!_soundEnabled) return;
+    if (!_sfxEnabled) return;
     final player = _sfxPool[_sfxCursor];
     _sfxCursor = (_sfxCursor + 1) % _sfxPool.length;
     final pitch = 1.0 + (_random.nextDouble() * 2 - 1) * _kPitchVariance;
     await player.stop();
+    await player.setVolume(_sfxVolume);
     await player.setPlaybackRate(pitch);
     await player.play(AssetSource(sfx.assetPath));
   }
@@ -192,7 +233,7 @@ class AudioService {
   /// N'attend la fin d'aucune lecture précédente : les sons peuvent se
   /// chevaucher.
   Future<void> playCoinsGained(int count) async {
-    if (!_soundEnabled) return;
+    if (!_sfxEnabled) return;
     final n = count.clamp(0, _kMaxCoinSfxRepeats);
     for (var i = 0; i < n; i++) {
       unawaited(_playSfx(SfxTrack.coin));
@@ -215,8 +256,9 @@ class AudioService {
   /// terminé quand une nouvelle tuile arrive, il est coupé net avant de
   /// démarrer le nouveau, plutôt que superposé.
   Future<void> playTileGained() async {
-    if (!_soundEnabled) return;
+    if (!_sfxEnabled) return;
     await _tileGainPlayer.stop();
+    await _tileGainPlayer.setVolume(_sfxVolume);
     await _tileGainPlayer.play(AssetSource(SfxTrack.tileGain.assetPath));
   }
 

@@ -44,6 +44,7 @@ import '../services/audio_service.dart';
 import '../services/haptics_service.dart';
 import 'active_upgrades_hud.dart';
 import 'glass_container.dart';
+import 'coin_icon.dart';
 import 'pause_button.dart';
 import 'pause_modal.dart';
 import 'results_modal.dart';
@@ -85,9 +86,12 @@ class _GameScreenState extends ConsumerState<GameScreen> {
   void initState() {
     super.initState();
     // Musique de la partie en cours (voir AudioService) — remplace la
-    // musique d'accueil active jusqu'ici ; ne relance rien si elle est déjà
-    // en cours (ex. "Rejouer" depuis la modale Résultats).
-    unawaited(ref.read(audioServiceProvider).playMusic(MusicTrack.ambient));
+    // musique d'accueil active jusqu'ici en la faisant fondre plutôt que de
+    // la couper net (la partie se lance juste après avoir quitté
+    // l'accueil) ; ne relance rien si elle est déjà en cours (ex.
+    // "Rejouer" depuis la modale Résultats).
+    unawaited(
+        ref.read(audioServiceProvider).playMusicWithFadeOut(MusicTrack.ambient));
     _game = HexBoardGame(
       container: ref.container,
       onCameraMove: (dx, dy) {
@@ -354,8 +358,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                           ),
                         ),
                         Row(children: [
-                          const Icon(Icons.monetization_on,
-                              color: Colors.amber, size: 20),
+                          const CoinIcon(size: 20),
                           const SizedBox(width: 4),
                           Text(
                             '${session.coins}',
@@ -594,11 +597,13 @@ class _RewardTag extends ConsumerWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              isCoin ? Icons.monetization_on : Icons.hexagon,
-              color: isCoin ? Colors.amber : Colors.lightBlue,
-              size: isCoin ? 16 : 14,
-            ),
+            isCoin
+                ? const CoinIcon(size: 16)
+                : const Icon(
+                    Icons.hexagon,
+                    color: Colors.lightBlue,
+                    size: 14,
+                  ),
             const SizedBox(width: 4),
             Text(
               '+$value${isCoin ? context.tr.reward_coins : context.tr.reward_bonusTiles}',

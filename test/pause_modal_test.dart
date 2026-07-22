@@ -108,7 +108,9 @@ void main() {
     expect(container.read(pauseProvider).isPaused, isFalse);
   });
 
-  testWidgets('tap Options affiche Sound et Vibrations', (tester) async {
+  testWidgets(
+      'tap Options affiche Musique, Bruitages, les deux volumes et Vibrations',
+      (tester) async {
     await tester.pumpWidget(
       _wrap(pause: const PauseState(isPaused: true)),
     );
@@ -123,7 +125,11 @@ void main() {
     await tester.tap(find.text(tr.pause_options));
     await tester.pumpAndSettle();
 
-    expect(find.text(tr.options_sound), findsOneWidget);
+    expect(find.text(tr.options_music), findsOneWidget);
+    expect(find.text(tr.options_sfx), findsOneWidget);
+    expect(find.text(tr.options_musicVolume), findsOneWidget);
+    expect(find.text(tr.options_sfxVolume), findsOneWidget);
     expect(find.text(tr.options_vibrations), findsOneWidget);
+    expect(find.byType(Slider), findsNWidgets(2));
   });
 }

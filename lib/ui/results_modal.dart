@@ -10,6 +10,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 
 import 'glass_container.dart';
+import 'coin_icon.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/colors.dart';
@@ -253,7 +254,7 @@ class _CoinsHero extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.monetization_on, color: Colors.amber, size: 32),
+              const CoinIcon(size: 32),
               const SizedBox(width: 10),
               Text(
                 '$coins',

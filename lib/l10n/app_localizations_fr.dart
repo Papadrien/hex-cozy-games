@@ -18,6 +18,18 @@ class AppLocalizationsFr extends AppLocalizations {
   String get options_sound => 'Son';
 
   @override
+  String get options_music => 'Musique';
+
+  @override
+  String get options_sfx => 'Bruitages';
+
+  @override
+  String get options_musicVolume => 'Volume musique';
+
+  @override
+  String get options_sfxVolume => 'Volume bruitages';
+
+  @override
   String get options_vibrations => 'Vibrations';
 
   @override

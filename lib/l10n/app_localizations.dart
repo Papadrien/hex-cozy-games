@@ -116,6 +116,30 @@ abstract class AppLocalizations {
   /// **'Sound'**
   String get options_sound;
 
+  /// No description provided for @options_music.
+  ///
+  /// In en, this message translates to:
+  /// **'Music'**
+  String get options_music;
+
+  /// No description provided for @options_sfx.
+  ///
+  /// In en, this message translates to:
+  /// **'Sound effects'**
+  String get options_sfx;
+
+  /// No description provided for @options_musicVolume.
+  ///
+  /// In en, this message translates to:
+  /// **'Music volume'**
+  String get options_musicVolume;
+
+  /// No description provided for @options_sfxVolume.
+  ///
+  /// In en, this message translates to:
+  /// **'Sound effects volume'**
+  String get options_sfxVolume;
+
   /// No description provided for @options_vibrations.
   ///
   /// In en, this message translates to:

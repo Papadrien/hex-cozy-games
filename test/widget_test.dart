@@ -9,36 +9,26 @@ import 'package:hex_haven/main.dart';
 
 void main() {
   testWidgets('HomeScreen → Play → GameWidget', (WidgetTester tester) async {
-    // Ce test nécessite des plugins (audio, ads) indisponibles dans
-    // l'environnement CI/test.
-    return;
-
-    // ignore: dead_code
     await tester.pumpWidget(
       const ProviderScope(child: HexCozyGamesApp()),
     );
 
-    // ignore: dead_code
     await tester.pump();
-    // ignore: dead_code
+    // Give SplashScreen enough time to complete its loading (700ms min)
+    // and navigate to HomeScreen.
     await tester.pump(const Duration(seconds: 2));
 
-    // ignore: dead_code
     final hasPlay = find.text('Play').evaluate().isNotEmpty;
     if (!hasPlay) {
-      // ignore: dead_code
+      // If Play wasn't found, just verify the app rendered something
       expect(find.byType(ProviderScope), findsOneWidget);
       return;
     }
 
-    // ignore: dead_code
     await tester.tap(find.text('Play'));
-    // ignore: dead_code
     await tester.pump();
-    // ignore: dead_code
     await tester.pump(const Duration(seconds: 1));
 
-    // ignore: dead_code
     expect(find.byType(GameWidget<HexBoardGame>), findsOneWidget);
   });
 }

@@ -8,6 +8,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 
 import 'glass_container.dart';
+import 'coin_icon.dart';
 import 'tropical_background.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/colors.dart';
@@ -68,7 +69,7 @@ class StatsScreen extends ConsumerWidget {
                             value: '${stats.totalGamesPlayed}',
                           ),
                           _StatCard(
-                            icon: Icons.monetization_on,
+                            iconWidget: const CoinIcon(size: 20),
                             label: context.tr.stats_totalCoins,
                             value: '${stats.totalCoinsEarned}',
                           ),
@@ -215,13 +216,17 @@ class _StatsGlassIconButton extends StatelessWidget {
 
 class _StatCard extends StatelessWidget {
   const _StatCard({
-    required this.icon,
+    this.icon,
+    this.iconWidget,
     required this.label,
     required this.value,
     this.iconColor,
-  });
+  }) : assert(icon != null || iconWidget != null);
 
-  final IconData icon;
+  final IconData? icon;
+
+  /// Widget d'icône personnalisé (ex. logo pièce) — prioritaire sur [icon].
+  final Widget? iconWidget;
   final String label;
   final String value;
   final Color? iconColor;
@@ -244,7 +249,7 @@ class _StatCard extends StatelessWidget {
                     color: color.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: Icon(icon, color: color, size: 20),
+                  child: iconWidget ?? Icon(icon, color: color, size: 20),
                 ),
                 const SizedBox(width: 12),
                 Expanded(

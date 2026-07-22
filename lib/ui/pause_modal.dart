@@ -134,13 +134,41 @@ class _OptionsContent extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _OptionToggle(
-          label: context.tr.options_sound,
-          value: options.soundEnabled,
+          label: context.tr.options_music,
+          value: options.musicEnabled,
           onToggle: () {
             buttonHapticTap(context);
-            ref.read(optionsProvider.notifier).toggleSound();
-            ref.read(audioServiceProvider).refreshMuteState();
+            ref.read(optionsProvider.notifier).toggleMusic();
+            ref.read(audioServiceProvider).refreshMusicVolume();
           },
+        ),
+        const SizedBox(height: 10),
+        _VolumeSlider(
+          label: context.tr.options_musicVolume,
+          volume: options.musicVolume,
+          onChanged: (value) {
+            ref.read(optionsProvider.notifier).setMusicVolume(value);
+            ref.read(audioServiceProvider).refreshMusicVolume();
+          },
+          onChangeEnd: (_) => buttonHapticTap(context),
+        ),
+        const SizedBox(height: 16),
+        _OptionToggle(
+          label: context.tr.options_sfx,
+          value: options.sfxEnabled,
+          onToggle: () {
+            buttonHapticTap(context);
+            ref.read(optionsProvider.notifier).toggleSfx();
+          },
+        ),
+        const SizedBox(height: 10),
+        _VolumeSlider(
+          label: context.tr.options_sfxVolume,
+          volume: options.sfxVolume,
+          onChanged: (value) {
+            ref.read(optionsProvider.notifier).setSfxVolume(value);
+          },
+          onChangeEnd: (_) => buttonHapticTap(context),
         ),
         const SizedBox(height: 16),
         _OptionToggle(
@@ -202,6 +230,66 @@ class _OptionToggle extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Curseur de volume — même esthétique (fond translucide, coins arrondis)
+/// que [_OptionToggle], pour rester cohérent dans la section Options de la
+/// modale de pause. Réutilisé une fois par catégorie (musique, bruitages),
+/// [label] précisant celle concernée.
+class _VolumeSlider extends StatelessWidget {
+  const _VolumeSlider({
+    required this.label,
+    required this.volume,
+    required this.onChanged,
+    this.onChangeEnd,
+  });
+
+  final String label;
+  final double volume;
+  final ValueChanged<double> onChanged;
+  final ValueChanged<double>? onChangeEnd;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 15,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          Expanded(
+            child: SliderTheme(
+              data: SliderTheme.of(context).copyWith(
+                trackHeight: 3,
+                activeTrackColor: const Color(0xFF2A9D8F),
+                inactiveTrackColor: Colors.white.withValues(alpha: 0.18),
+                thumbColor: const Color(0xFF2A9D8F),
+                overlayColor: const Color(0xFF2A9D8F).withValues(alpha: 0.2),
+                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
+              ),
+              child: Slider(
+                value: volume,
+                min: 0.0,
+                max: 1.0,
+                onChanged: onChanged,
+                onChangeEnd: onChangeEnd,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
