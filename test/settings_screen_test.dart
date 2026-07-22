@@ -65,11 +65,11 @@ void main() {
     // Par défaut musicEnabled == true.
     expect(container.read(optionsProvider).musicEnabled, isTrue);
 
-    await tester.tap(find.byIcon(Icons.music_note));
+    await tester.tap(find.byIcon(Icons.music_note).first);
     await tester.pumpAndSettle();
     expect(container.read(optionsProvider).musicEnabled, isFalse);
 
-    await tester.tap(find.byIcon(Icons.music_note));
+    await tester.tap(find.byIcon(Icons.music_note).first);
     await tester.pumpAndSettle();
     expect(container.read(optionsProvider).musicEnabled, isTrue);
   });
@@ -94,11 +94,11 @@ void main() {
     // Par défaut sfxEnabled == true.
     expect(container.read(optionsProvider).sfxEnabled, isTrue);
 
-    await tester.tap(find.byIcon(Icons.graphic_eq));
+    await tester.tap(find.byIcon(Icons.graphic_eq).first);
     await tester.pumpAndSettle();
     expect(container.read(optionsProvider).sfxEnabled, isFalse);
 
-    await tester.tap(find.byIcon(Icons.graphic_eq));
+    await tester.tap(find.byIcon(Icons.graphic_eq).first);
     await tester.pumpAndSettle();
     expect(container.read(optionsProvider).sfxEnabled, isTrue);
   });

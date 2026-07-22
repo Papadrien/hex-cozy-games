@@ -107,9 +107,9 @@ class AudioService {
     // cette configuration, la plateforme peut couper le lecteur en cours
     // (ou le mettre en pause) dès qu'un autre lecteur démarre.
     unawaited(AudioPlayer.global.setAudioContext(
-      const AudioContext(
+      AudioContext(
         iOS: AudioContextIOS(
-          category: AVAudioSessionCategory.ambient,
+          category: AVAudioSessionCategory.playback,
           options: {AVAudioSessionOptions.mixWithOthers},
         ),
         android: AudioContextAndroid(
