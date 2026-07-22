@@ -300,7 +300,7 @@ class _StatRow extends StatelessWidget {
         const Spacer(),
         Text(
           value,
-          style: TextStyle(
+          style: const TextStyle(
             color: Colors.white,
             fontSize: 16,
             fontWeight: FontWeight.bold,

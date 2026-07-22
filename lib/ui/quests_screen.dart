@@ -264,7 +264,7 @@ class _QuestsSummaryBar extends StatelessWidget {
                     value: progress,
                     backgroundColor: Colors.white.withValues(alpha: 0.1),
                     valueColor:
-                        AlwaysStoppedAnimation<Color>(kCoinAmber),
+                        const AlwaysStoppedAnimation<Color>(kCoinAmber),
                     minHeight: 6,
                   ),
                 ),
@@ -782,15 +782,15 @@ class _ClaimedRewardText extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(Icons.auto_awesome, color: kUpgradePurple, size: 18),
+        const Icon(Icons.auto_awesome, color: kUpgradePurple, size: 18),
         const SizedBox(width: 4),
         Text(
           upgradeName ?? context.tr.quests_reward_upgrade,
-          style: TextStyle(
+          style: const TextStyle(
             color: kUpgradePurple,
             fontSize: 14,
             fontWeight: FontWeight.w800,
-            shadows: const [Shadow(color: Colors.black45, blurRadius: 4)],
+            shadows: [Shadow(color: Colors.black45, blurRadius: 4)],
           ),
         ),
       ],
@@ -846,7 +846,7 @@ class _RewardBadge extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.auto_awesome, color: kUpgradePurple, size: 14),
+            const Icon(Icons.auto_awesome, color: kUpgradePurple, size: 14),
             const SizedBox(width: 3),
             Flexible(
               child: Text(

@@ -301,7 +301,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
       },
       child: Scaffold(
       backgroundColor: kBackgroundColor,
-      bottomNavigationBar: _BannerAdWidget(),
+      bottomNavigationBar: const _BannerAdWidget(),
       body: Stack(
         children: [
           // ── Fond océan procédural (shader GLSL, résolution infinie) ──────────
@@ -607,7 +607,7 @@ class _RewardTag extends ConsumerWidget {
             const SizedBox(width: 4),
             Text(
               '+$value${isCoin ? context.tr.reward_coins : context.tr.reward_bonusTiles}',
-              style: TextStyle(
+              style: const TextStyle(
                 color: Colors.white,
                 fontSize: 13,
                 fontWeight: FontWeight.w600,

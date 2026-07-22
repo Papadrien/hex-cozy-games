@@ -135,7 +135,7 @@ class _TutorialOverlayState extends ConsumerState<TutorialOverlay>
                         width: 3,
                       ),
                       boxShadow: [
-                        BoxShadow(
+                        const BoxShadow(
                           color: kGlassBlueBorder,
                           blurRadius: 24,
                           spreadRadius: 6,
@@ -453,11 +453,11 @@ class _TutorialGestureHint extends StatelessWidget {
   }
 
   Widget _fingerIcon() {
-    return Icon(
+    return const Icon(
       Icons.touch_app_rounded,
       color: _kHintColor,
       size: _kIconSize,
-      shadows: const [
+      shadows: [
         Shadow(color: Colors.black54, blurRadius: 8),
       ],
     );

@@ -18,8 +18,8 @@ import 'package:hex_haven/providers/options_provider.dart';
 import 'package:hex_haven/ui/settings_screen.dart';
 
 Widget _wrap() {
-  return ProviderScope(
-    child: const MaterialApp(
+  return const ProviderScope(
+    child: MaterialApp(
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       home: SettingsScreen(),
@@ -47,7 +47,7 @@ void main() {
 
   testWidgets('toggle musique via l\'icône music_note', (tester) async {
     await tester.pumpWidget(
-      ProviderScope(
+      const ProviderScope(
         overrides: [],
         child: MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -76,7 +76,7 @@ void main() {
 
   testWidgets('toggle bruitages via l\'icône graphic_eq', (tester) async {
     await tester.pumpWidget(
-      ProviderScope(
+      const ProviderScope(
         overrides: [],
         child: MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -107,7 +107,7 @@ void main() {
       'déplacer le slider Volume musique met à jour musicVolume uniquement',
       (tester) async {
     await tester.pumpWidget(
-      ProviderScope(
+      const ProviderScope(
         overrides: [],
         child: MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -138,7 +138,7 @@ void main() {
       'déplacer le slider Volume bruitages met à jour sfxVolume uniquement',
       (tester) async {
     await tester.pumpWidget(
-      ProviderScope(
+      const ProviderScope(
         overrides: [],
         child: MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -166,7 +166,7 @@ void main() {
 
   testWidgets('toggle vibration via l\'icône vibration', (tester) async {
     await tester.pumpWidget(
-      ProviderScope(
+      const ProviderScope(
         overrides: [],
         child: MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,

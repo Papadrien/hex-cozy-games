@@ -33,7 +33,7 @@ class PauseButton extends ConsumerWidget {
           buttonHapticTap(context);
           ref.read(pauseProvider.notifier).pause();
         },
-        child: SizedBox(
+        child: const SizedBox(
           width: _kPauseButtonHitSize,
           height: _kPauseButtonHitSize,
           child: Center(
@@ -45,7 +45,7 @@ class PauseButton extends ConsumerWidget {
               borderColor: kGlassBlueBorder,
               width: _kPauseButtonSize,
               height: _kPauseButtonSize,
-              child: const Icon(
+              child: Icon(
                 Icons.pause,
                 color: Colors.white,
                 size: 20,

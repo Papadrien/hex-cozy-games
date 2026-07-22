@@ -82,7 +82,7 @@ void main() {
   group('selectedUpgradesProvider', () {
     test('ne retourne que les améliorations sélectionnées', () {
       final rows = [
-        UpgradeRow(
+        const UpgradeRow(
           id: 'coins_plus',
           name: 'Pièces+',
           effectType: 'coinsPercentBonus',
@@ -91,7 +91,7 @@ void main() {
           unlockConditionType: '',
           unlockConditionValue: 0,
         ),
-        UpgradeRow(
+        const UpgradeRow(
           id: 'starting_tiles_plus',
           name: 'Tuiles départ+',
           effectType: 'startingTilesBonus',

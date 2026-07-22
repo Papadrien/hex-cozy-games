@@ -41,7 +41,7 @@ void main() {
 
       // Les 6 voisins de (0,0) doivent tous être disponibles, même si on
       // n'a aucune tuile compatible en main.
-      expect(available, HexCoords(0, 0).neighbors.toSet());
+      expect(available, const HexCoords(0, 0).neighbors.toSet());
     });
 
     test('une cellule déjà occupée n\'est pas disponible', () {

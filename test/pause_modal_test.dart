@@ -27,10 +27,10 @@ Widget _wrap({required PauseState pause}) {
   );
   return UncontrolledProviderScope(
     container: container,
-    child: MaterialApp(
+    child: const MaterialApp(
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
-      home: const Scaffold(body: PauseModal()),
+      home: Scaffold(body: PauseModal()),
     ),
   );
 }
@@ -87,10 +87,10 @@ void main() {
     await tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,
-        child: MaterialApp(
+        child: const MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
-          home: const Scaffold(body: PauseModal()),
+          home: Scaffold(body: PauseModal()),
         ),
       ),
     );

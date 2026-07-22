@@ -27,8 +27,8 @@ void main() {
   testWidgets('n\'affiche rien quand la partie n\'est pas terminée',
       (tester) async {
     await tester.pumpWidget(
-      ProviderScope(
-        child: const MaterialApp(
+      const ProviderScope(
+        child: MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
           home: ResultsModal(),

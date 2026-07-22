@@ -7,7 +7,6 @@ import 'package:flutter/painting.dart' show TextPainter, TextSpan, TextStyle;
 
 import 'package:flame/components.dart';
 import 'package:flame/effects.dart';
-import 'package:flame/sprite.dart';
 
 import '../core/colors.dart';
 import 'tile_component.dart'; // kIsoScaleY, kTileDepthPriorityPreview
@@ -307,11 +306,10 @@ class BonusTileAnimComponent extends PositionComponent {
     required double hexSize,
     required this.bonusCount,
     this.flyTarget,
-    double startDelay = 0.0,
+    this._startDelay = 0.0,
     this.onImpact,
     int totalBonusTiles = 1,
   })  : _radius = hexSize * 0.22,
-        _startDelay = startDelay,
         _liftPx = kBonusLiftMinPx +
             (kBonusLiftMaxPx - kBonusLiftMinPx) *
                 _intensityFor(totalBonusTiles),
@@ -599,10 +597,9 @@ class BonusWaterBurst extends PositionComponent {
 class TrailDot extends PositionComponent {
   TrailDot({
     required super.position,
-    required double radius,
+    required this._radius,
     required this.color,
-  })  : _radius = radius,
-        super(priority: kTileDepthPriorityPreview);
+  })  : super(priority: kTileDepthPriorityPreview);
 
   final double _radius;
   final Color color;

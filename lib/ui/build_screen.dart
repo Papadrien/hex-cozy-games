@@ -184,7 +184,7 @@ class _SelectionCountBadge extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       child: Text(
         '$count / $kMaxSelectedUpgrades',
-        style: TextStyle(
+        style: const TextStyle(
           color: Colors.white,
           fontSize: 13,
           fontWeight: FontWeight.w700,
@@ -216,7 +216,7 @@ class _CoinBalanceBadge extends StatelessWidget {
           const SizedBox(width: 6),
           Text(
             '$totalCoins',
-            style: TextStyle(
+            style: const TextStyle(
               color: Colors.white,
               fontSize: 13,
               fontWeight: FontWeight.w700,
@@ -638,7 +638,7 @@ class _LevelComparison extends StatelessWidget {
         Expanded(
           child: Text(
             '${context.tr.upgrades_level} ${level + 2} : $nextLabel',
-            style: TextStyle(
+            style: const TextStyle(
               color: kBrandBlue,
               fontSize: 12,
               fontWeight: FontWeight.w700,

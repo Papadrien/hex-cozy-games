@@ -80,6 +80,8 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
 
+  audioplayers_platform_interface: ^7.1.1
+
   # Linter recommandé Flutter.
   flutter_lints: ^6.0.0
 

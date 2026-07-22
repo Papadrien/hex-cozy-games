@@ -17,13 +17,162 @@
 ///    musique n'a jamais été lancée.
 library;
 
+import 'dart:async';
+
+import 'package:audioplayers_platform_interface/audioplayers_platform_interface.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:hex_haven/providers/options_provider.dart';
 import 'package:hex_haven/services/audio_service.dart';
 
+class _FakeAudioplayersPlatform extends AudioplayersPlatformInterface {
+  final Map<String, StreamController<AudioEvent>> _controllers = {};
+
+  StreamController<AudioEvent> _controllerFor(String playerId) {
+    return _controllers.putIfAbsent(
+      playerId,
+      () => StreamController<AudioEvent>.broadcast(),
+    );
+  }
+
+  @override
+  Future<void> create(String playerId) async {
+    _controllerFor(playerId);
+  }
+
+  @override
+  Future<void> dispose(String playerId) async {
+    _controllers[playerId]?.close();
+    _controllers.remove(playerId);
+  }
+
+  @override
+  Future<void> emitError(String playerId, String code, String message) async {}
+
+  @override
+  Future<void> emitLog(String playerId, String message) async {}
+
+  @override
+  Future<int?> getCurrentPosition(String playerId) async => 0;
+
+  @override
+  Future<int?> getDuration(String playerId) async => 0;
+
+  @override
+  Future<void> pause(String playerId) async {}
+
+  @override
+  Future<void> release(String playerId) async {}
+
+  @override
+  Future<void> resume(String playerId) async {}
+
+  @override
+  Future<void> seek(String playerId, Duration position) async {}
+
+  @override
+  Future<void> setAudioContext(String playerId, AudioContext ctx) async {}
+
+  @override
+  Future<void> setBalance(String playerId, double balance) async {}
+
+  @override
+  Future<void> setPlaybackRate(String playerId, double rate) async {}
+
+  @override
+  Future<void> setPlayerMode(String playerId, PlayerMode mode) async {}
+
+  @override
+  Future<void> setReleaseMode(String playerId, ReleaseMode mode) async {}
+
+  @override
+  Future<void> setSourceBytes(
+    String playerId,
+    List<int> bytes, {
+    String? mimeType,
+  }) async {
+    _controllerFor(playerId).add(
+      const AudioEvent(eventType: AudioEventType.prepared, isPrepared: true),
+    );
+  }
+
+  @override
+  Future<void> setSourceUrl(
+    String playerId,
+    String url, {
+    bool? isLocal,
+    String? mimeType,
+  }) async {
+    _controllerFor(playerId).add(
+      const AudioEvent(eventType: AudioEventType.prepared, isPrepared: true),
+    );
+  }
+
+  @override
+  Future<void> setVolume(String playerId, double volume) async {}
+
+  @override
+  Future<void> stop(String playerId) async {}
+
+  @override
+  Stream<AudioEvent> getEventStream(String playerId) =>
+      _controllerFor(playerId).stream;
+}
+
+class _FakeGlobalAudioplayersPlatform
+    extends GlobalAudioplayersPlatformInterface {
+  @override
+  Future<void> init() async {}
+
+  @override
+  Future<void> setGlobalAudioContext(AudioContext ctx) async {}
+
+  @override
+  Future<void> emitGlobalLog(String message) async {}
+
+  @override
+  Future<void> emitGlobalError(String code, String message) async {}
+
+  @override
+  Stream<GlobalAudioEvent> getGlobalEventStream() =>
+      const Stream<GlobalAudioEvent>.empty();
+}
+
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  final previousPlatform = AudioplayersPlatformInterface.instance;
+  final previousGlobalPlatform =
+      GlobalAudioplayersPlatformInterface.instance;
+
+  setUp(() {
+    AudioplayersPlatformInterface.instance = _FakeAudioplayersPlatform();
+    GlobalAudioplayersPlatformInterface.instance =
+        _FakeGlobalAudioplayersPlatform();
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(
+      const MethodChannel('plugins.flutter.io/path_provider'),
+      (MethodCall methodCall) async {
+        if (methodCall.method == 'getTemporaryDirectory') {
+          return '/tmp';
+        }
+        return null;
+      },
+    );
+  });
+
+  tearDown(() {
+    AudioplayersPlatformInterface.instance = previousPlatform;
+    GlobalAudioplayersPlatformInterface.instance = previousGlobalPlatform;
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(
+      const MethodChannel('plugins.flutter.io/path_provider'),
+      null,
+    );
+  });
+
   test('audioServiceProvider construit un AudioService', () {
     final container = ProviderContainer();
     addTearDown(container.dispose);
@@ -51,8 +200,6 @@ void main() {
     await service.playCoinsGained(500);
     stopwatch.stop();
 
-    // Sans le early-return sur sfxEnabled, 500 itérations espacées de 80ms
-    // prendraient ~40s : une exécution quasi instantanée prouve le gate.
     expect(stopwatch.elapsedMilliseconds, lessThan(500));
   });
 
@@ -71,9 +218,8 @@ void main() {
     addTearDown(container.dispose);
     final service = container.read(audioServiceProvider);
 
-    // Sans plafond interne, 500 pièces * 80ms d'écart dépasserait largement
-    // ce délai ; le plafond documenté (6 répétitions max) le rend rapide.
     await service.playCoinsGained(500).timeout(const Duration(seconds: 5));
+    await Future<void>.delayed(const Duration(milliseconds: 50));
   });
 
   test(

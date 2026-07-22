@@ -83,7 +83,7 @@ class GridState {
   /// - Sinon → toute cellule vide adjacente à une tuile posée (sans
   ///   contrainte de compatibilité de biome — story 1.6a).
   Set<HexCoords> availableCellsFor() {
-    if (isEmpty) return {HexCoords(0, 0)};
+    if (isEmpty) return {const HexCoords(0, 0)};
 
     final candidates = <HexCoords>{};
     for (final coords in placedTiles.keys) {
@@ -178,7 +178,7 @@ class GridState {
   /// voisins occupés). [BiomeType.village] est exclu.
   ///
   /// Le suivi des positions visitées est fait PAR biome (une `Map<BiomeType,
-  /// Set<HexCoords>>`), pas dans un set global partagé : une tuile porte
+  /// Set&lt;HexCoords&gt;`), pas dans un set global partagé : une tuile porte
   /// jusqu'à 3 biomes différents (Story 1.3), donc une position déjà
   /// visitée pour un biome (ex: forêt) doit rester explorable pour ses
   /// autres biomes (ex: eau) — sinon certains clusters ne sont jamais

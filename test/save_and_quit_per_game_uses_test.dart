@@ -100,8 +100,8 @@ void main() {
   );
 
   testWidgets(
-    "restoreSession reste rétro-compatible avec une session sauvegardée "
-    "avant ce correctif (sans les clés holdSlot/secondChance dans le JSON)",
+    'restoreSession reste rétro-compatible avec une session sauvegardée '
+    'avant ce correctif (sans les clés holdSlot/secondChance dans le JSON)',
     (tester) async {
       final container = await _makeTestContainer();
       if (container == null) return;

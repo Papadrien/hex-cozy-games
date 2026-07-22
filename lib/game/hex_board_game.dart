@@ -55,8 +55,7 @@ import 'hex_tile.dart';
 
 class HexBoardGame extends FlameGame
     with MultiTouchTapDetector {
-  HexBoardGame({required ProviderContainer container, this.onCameraMove})
-      : _container = container;
+  HexBoardGame({required this._container, this.onCameraMove});
 
   /// Appelé à chaque déplacement de caméra avec le delta cumulé (dx, dy).
   final void Function(double dx, double dy)? onCameraMove;

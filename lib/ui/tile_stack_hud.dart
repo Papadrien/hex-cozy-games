@@ -242,7 +242,7 @@ class _AnimatedTilePileState extends ConsumerState<_AnimatedTilePile> {
               child: GestureDetector(
                 behavior: HitTestBehavior.translucent,
                 onTap: widget.onCancelSelection,
-                child: Center(
+                child: const Center(
                   child: GlassContainer(
                     borderRadius: 13,
                     blurSigma: 10,
@@ -250,7 +250,7 @@ class _AnimatedTilePileState extends ConsumerState<_AnimatedTilePile> {
                     borderColor: _kHudGlassBorder,
                     width: _kCrossSize,
                     height: _kCrossSize,
-                    child: const Icon(Icons.close, size: 16, color: Colors.white),
+                    child: Icon(Icons.close, size: 16, color: Colors.white),
                   ),
                 ),
               ),

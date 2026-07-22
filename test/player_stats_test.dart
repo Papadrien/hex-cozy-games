@@ -38,7 +38,7 @@ Future<AppDatabase> _makeDb() async {
 void main() {
   group('GridState.maxBiomeSizes', () {
     test('plateau vide → toutes les tailles à 0', () {
-      final grid = GridState(placedTiles: {});
+      final grid = const GridState(placedTiles: {});
       final sizes = grid.maxBiomeSizes;
       for (final biome in BiomeType.values) {
         expect(sizes[biome.name], 0);
@@ -47,7 +47,7 @@ void main() {
 
     test('une seule tuile mono-biome → 1 pour ce biome', () {
       final grid = GridState(placedTiles: {
-        HexCoords(0, 0): _mono(BiomeType.forest),
+        const HexCoords(0, 0): _mono(BiomeType.forest),
       });
       final sizes = grid.maxBiomeSizes;
       expect(sizes['forest'], 1);
@@ -57,8 +57,8 @@ void main() {
     test('deux tuiles forest adjacentes connectées → cluster de 2 forest', () {
       final t = _mono(BiomeType.forest);
       final grid = GridState(placedTiles: {
-        HexCoords(0, 0): t,
-        HexCoords(1, 0): t,
+        const HexCoords(0, 0): t,
+        const HexCoords(1, 0): t,
       });
       final sizes = grid.maxBiomeSizes;
       expect(sizes['forest'], 2);
@@ -67,11 +67,11 @@ void main() {
     test('deux clusters forest séparés → max = le plus grand', () {
       final t = _mono(BiomeType.forest);
       final grid = GridState(placedTiles: {
-        HexCoords(0, 0): t,
-        HexCoords(1, 0): t,
-        HexCoords(0, 2): t,
-        HexCoords(1, 2): t,
-        HexCoords(2, 2): t,
+        const HexCoords(0, 0): t,
+        const HexCoords(1, 0): t,
+        const HexCoords(0, 2): t,
+        const HexCoords(1, 2): t,
+        const HexCoords(2, 2): t,
       });
       final sizes = grid.maxBiomeSizes;
       expect(sizes['forest'], 3);
@@ -79,9 +79,9 @@ void main() {
 
     test('tuile mixte forest+village → les deux biomes comptés', () {
       final grid = GridState(placedTiles: {
-        HexCoords(0, 0): _mixed(),
-        HexCoords(1, 0): _mono(BiomeType.forest),
-        HexCoords(0, 1): _mono(BiomeType.village),
+        const HexCoords(0, 0): _mixed(),
+        const HexCoords(1, 0): _mono(BiomeType.forest),
+        const HexCoords(0, 1): _mono(BiomeType.village),
       });
       final sizes = grid.maxBiomeSizes;
       expect(sizes['forest'], 2);

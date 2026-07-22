@@ -35,21 +35,21 @@ void main() {
 
     // Set initial local state
     await db.into(db.playerProfile).insert(
-          PlayerProfileCompanion(
-            id: const Value(1),
-            coins: const Value(100),
-            totalTilesPlaced: const Value(10),
-            isPremium: const Value(false),
+          const PlayerProfileCompanion(
+            id: Value(1),
+            coins: Value(100),
+            totalTilesPlaced: Value(10),
+            isPremium: Value(false),
           ),
         );
 
     // Simulate cloud payload (same format as _serialize output)
     await db.into(db.playerProfile).insertOnConflictUpdate(
-          PlayerProfileCompanion(
-            id: const Value(1),
-            coins: const Value(9999),
-            totalTilesPlaced: const Value(500),
-            isPremium: const Value(true),
+          const PlayerProfileCompanion(
+            id: Value(1),
+            coins: Value(9999),
+            totalTilesPlaced: Value(500),
+            isPremium: Value(true),
           ),
         );
 

@@ -37,7 +37,7 @@ Future<void> _ensureStatsExist(AppDatabase db) async {
           .getSingleOrNull();
   if (existing == null) {
     await db.into(db.playerStats).insert(
-          PlayerStatsCompanion(id: const Value(1), maxBiomeSizes: const Value('{}')),
+          const PlayerStatsCompanion(id: Value(1), maxBiomeSizes: Value('{}')),
         );
   }
 }

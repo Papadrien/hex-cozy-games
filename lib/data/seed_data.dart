@@ -98,7 +98,7 @@ final kBiomesClosedExtensionQuests = [
     targetValue: 50,
     rewardType: RewardType.upgradeUnlock.dbValue,
     rewardValue: 0,
-    nextQuestId: Value('biomes_100'),
+    nextQuestId: const Value('biomes_100'),
   ),
   PermanentQuestsCompanion.insert(
     id: 'biomes_100',
@@ -121,7 +121,7 @@ final _permanentQuests = [
     targetValue: 500,
     rewardType: RewardType.coins.dbValue,
     rewardValue: 50,
-    nextQuestId: Value('coins_1000'),
+    nextQuestId: const Value('coins_1000'),
   ),
   PermanentQuestsCompanion.insert(
     id: 'coins_1000',
@@ -130,7 +130,7 @@ final _permanentQuests = [
     targetValue: 1000,
     rewardType: RewardType.coins.dbValue,
     rewardValue: 100,
-    nextQuestId: Value('coins_2000'),
+    nextQuestId: const Value('coins_2000'),
   ),
   PermanentQuestsCompanion.insert(
     id: 'coins_2000',
@@ -139,7 +139,7 @@ final _permanentQuests = [
     targetValue: 2000,
     rewardType: RewardType.upgradeUnlock.dbValue,
     rewardValue: 0,
-    nextQuestId: Value('coins_3000'),
+    nextQuestId: const Value('coins_3000'),
   ),
   PermanentQuestsCompanion.insert(
     id: 'coins_3000',
@@ -148,7 +148,7 @@ final _permanentQuests = [
     targetValue: 3000,
     rewardType: RewardType.upgradeUnlock.dbValue,
     rewardValue: 0,
-    nextQuestId: Value('coins_5000'),
+    nextQuestId: const Value('coins_5000'),
   ),
   PermanentQuestsCompanion.insert(
     id: 'coins_5000',
@@ -188,7 +188,7 @@ final _permanentQuests = [
     targetValue: 10,
     rewardType: RewardType.coins.dbValue,
     rewardValue: 75,
-    nextQuestId: Value('biomes_25'),
+    nextQuestId: const Value('biomes_25'),
   ),
   PermanentQuestsCompanion.insert(
     id: 'biomes_25',
@@ -197,7 +197,7 @@ final _permanentQuests = [
     targetValue: 25,
     rewardType: RewardType.upgradeUnlock.dbValue,
     rewardValue: 0,
-    nextQuestId: Value('biomes_50'),
+    nextQuestId: const Value('biomes_50'),
   ),
   ...kBiomesClosedExtensionQuests,
 
@@ -337,7 +337,7 @@ class DailyQuestDef {
 /// Pool de toutes les quêtes quotidiennes disponibles.
 /// Le tirage quotidien en sélectionne 3 via un seed reproductible.
 final kDailyQuestPool = [
-  DailyQuestDef(
+  const DailyQuestDef(
     id: 'daily_coins_15',
     category: QuestCategory.coinsEarned,
     description: 'Gagner 15 pièces',
@@ -345,7 +345,7 @@ final kDailyQuestPool = [
     rewardType: RewardType.coins,
     rewardValue: 10,
   ),
-  DailyQuestDef(
+  const DailyQuestDef(
     id: 'daily_coins_30',
     category: QuestCategory.coinsEarned,
     description: 'Gagner 30 pièces',
@@ -353,7 +353,7 @@ final kDailyQuestPool = [
     rewardType: RewardType.coins,
     rewardValue: 12,
   ),
-  DailyQuestDef(
+  const DailyQuestDef(
     id: 'daily_coins_50',
     category: QuestCategory.coinsEarned,
     description: 'Gagner 50 pièces',
@@ -361,7 +361,7 @@ final kDailyQuestPool = [
     rewardType: RewardType.coins,
     rewardValue: 15,
   ),
-  DailyQuestDef(
+  const DailyQuestDef(
     id: 'daily_village_3',
     category: QuestCategory.villageSize,
     description: 'Faire un groupe rouge de 3 tuiles',
@@ -369,7 +369,7 @@ final kDailyQuestPool = [
     rewardType: RewardType.coins,
     rewardValue: 8,
   ),
-  DailyQuestDef(
+  const DailyQuestDef(
     id: 'daily_village_5',
     category: QuestCategory.villageSize,
     description: 'Faire un groupe rouge de 5 tuiles',
@@ -377,7 +377,7 @@ final kDailyQuestPool = [
     rewardType: RewardType.coins,
     rewardValue: 10,
   ),
-  DailyQuestDef(
+  const DailyQuestDef(
     id: 'daily_village_8',
     category: QuestCategory.villageSize,
     description: 'Faire un groupe rouge de 8 tuiles',
@@ -385,7 +385,7 @@ final kDailyQuestPool = [
     rewardType: RewardType.coins,
     rewardValue: 12,
   ),
-  DailyQuestDef(
+  const DailyQuestDef(
     id: 'daily_biomes_2',
     category: QuestCategory.biomesClosed,
     description: 'Fermer 2 zones de couleur',
@@ -393,7 +393,7 @@ final kDailyQuestPool = [
     rewardType: RewardType.coins,
     rewardValue: 6,
   ),
-  DailyQuestDef(
+  const DailyQuestDef(
     id: 'daily_biomes_3',
     category: QuestCategory.biomesClosed,
     description: 'Fermer 3 zones de couleur',
@@ -401,7 +401,7 @@ final kDailyQuestPool = [
     rewardType: RewardType.coins,
     rewardValue: 8,
   ),
-  DailyQuestDef(
+  const DailyQuestDef(
     id: 'daily_biomes_5',
     category: QuestCategory.biomesClosed,
     description: 'Fermer 5 zones de couleur',
