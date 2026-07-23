@@ -71,6 +71,12 @@ class HexBoardGame extends FlameGame
   /// rythme avec l'échelonnement des icônes plutôt qu'un seul pop global.
   void Function()? onBonusImpact;
 
+  /// Appelé à chaque fois qu'une pièce (côté connecté) termine son vol vers
+  /// le compteur de pièces — c'est ce callback, et non la pose de la tuile,
+  /// qui doit déclencher le bruitage `coin.mp3` correspondant pour rester
+  /// synchronisé avec l'impact visuel (voir [HexGridComponent.showRewardIndicators]).
+  void Function()? onCoinImpact;
+
   double get zoom => _grid?.zoom ?? 1.0;
 
   HexGridComponent? _grid;
@@ -227,7 +233,8 @@ class HexBoardGame extends FlameGame
       _grid?.showRewardIndicators(coords, connectedSides,
           bonusTiles: bonusTiles,
           bonusFlyTarget: getBonusFlyTarget?.call(),
-          onBonusImpact: onBonusImpact);
+          onBonusImpact: onBonusImpact,
+          onCoinImpact: onCoinImpact);
     }
   }
 

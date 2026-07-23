@@ -393,8 +393,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get stats_totalCoins => 'Pièces totales gagnées';
 
   @override
-  String stats_biomeMax(Object biome, Object value) {
-    return '$biome max : $value tuiles';
+  String stats_biomeMax(Object value) {
+    return 'Max : $value tuiles';
   }
 
   @override

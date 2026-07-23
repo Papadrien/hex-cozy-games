@@ -105,7 +105,7 @@ class StatsScreen extends ConsumerWidget {
                               icon: Icons.circle,
                               iconColor: _biomeColor(e.key),
                               label: biomeName(context, e.key),
-                              value: context.tr.stats_biomeMax(e.key, e.value),
+                              value: context.tr.stats_biomeMax(e.value),
                             ),
                           ),
                           if (biomeSizes.isEmpty)

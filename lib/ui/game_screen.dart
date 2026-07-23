@@ -112,6 +112,14 @@ class _GameScreenState extends ConsumerState<GameScreen> {
       unawaited(ref.read(hapticsServiceProvider).bonusTileArrived());
       unawaited(ref.read(audioServiceProvider).playTileGained());
     };
+    // Chaque pièce (côté connecté) qui arrive sur le compteur déclenche son
+    // propre `coin.mp3` — c'est désormais le seul déclencheur de ce son pour
+    // les pièces "de base", à la place de la pose elle-même, pour que le son
+    // reste synchronisé avec l'impact visuel plutôt que de l'anticiper (voir
+    // [AudioService.playCoinsGained]).
+    _game.onCoinImpact = () {
+      unawaited(ref.read(audioServiceProvider).playCoinsGained(1));
+    };
     Future.microtask(
       () => ref.read(tutorialProvider.notifier).checkAndStart(),
     );

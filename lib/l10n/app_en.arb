@@ -246,10 +246,9 @@
   "@stats_gamesPlayed": {},
   "stats_totalCoins": "Total coins earned",
   "@stats_totalCoins": {},
-  "stats_biomeMax": "{biome} max: {value} tiles",
+  "stats_biomeMax": "Max: {value} tiles",
   "@stats_biomeMax": {
     "placeholders": {
-      "biome": {},
       "value": {}
     }
   },

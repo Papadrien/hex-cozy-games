@@ -315,21 +315,39 @@ class HexGridComponent extends PositionComponent {
   /// se retrouve collée pile au bord, à moitié masquée par le HUD.
   static const double _centerTileScreenMargin = 32.0;
 
-  /// Empêche le centre du plateau (0, 0) de sortir de l'écran pendant le
+  /// Empêche le plateau posé (l'ensemble des tuiles jouées, pas seulement
+  /// la toute première tuile en (0, 0)) de sortir de l'écran pendant le
   /// pan — sans ça, un pan trop ample fait perdre le joueur, qui ne sait
-  /// plus dans quelle direction revenir vers ses tuiles posées.
+  /// plus dans quelle direction revenir vers ses tuiles posées. Avant, seul
+  /// le centre (0, 0) était contraint à rester visible : la marge de
+  /// sécurité était donc correcte tant qu'on restait près de la première
+  /// tuile, mais devenait insuffisante dès qu'on posait loin d'elle (le
+  /// bord du plateau pouvait sortir de l'écran alors que (0, 0), lui,
+  /// restait dans la marge).
   ///
-  /// Le centre (0, 0) est projeté à l'écran en
-  /// `(cameraOffset + screenSize * (0.42, 0.38))` (voir [_layout]) : on
-  /// clampe donc [cameraOffset] pour que cette position reste comprise
-  /// entre la marge et `screenSize - marge` sur chaque axe.
+  /// On calcule ici la bounding box (en pixels, indépendante de la caméra)
+  /// des tuiles réellement posées, puis on clampe [cameraOffset] pour que
+  /// cette bounding box — et non plus seulement (0, 0) — reste comprise
+  /// entre la marge et `screenSize - marge` sur chaque axe. Avec une seule
+  /// tuile (ou aucune), la bounding box est réduite à (0, 0) et le calcul
+  /// redevient identique à l'ancien comportement.
   void clampCameraOffset() {
     final margin = _centerTileScreenMargin * zoom;
+    final worldLayout = HexLayout(hexSize: kHexSize * zoom, origin: const Point(0, 0));
 
-    final minOffsetX = margin - screenSize.x * 0.42;
-    final maxOffsetX = screenSize.x * (1 - 0.42) - margin;
-    final minOffsetY = margin - screenSize.y * 0.38;
-    final maxOffsetY = screenSize.y * (1 - 0.38) - margin;
+    var minX = 0.0, maxX = 0.0, minY = 0.0, maxY = 0.0;
+    for (final coords in placedTiles.keys) {
+      final p = worldLayout.hexToPixel(coords, isoScaleY: kIsoScaleY);
+      if (p.x < minX) minX = p.x;
+      if (p.x > maxX) maxX = p.x;
+      if (p.y < minY) minY = p.y;
+      if (p.y > maxY) maxY = p.y;
+    }
+
+    final minOffsetX = margin - screenSize.x * 0.42 - maxX;
+    final maxOffsetX = screenSize.x * (1 - 0.42) - margin - minX;
+    final minOffsetY = margin - screenSize.y * 0.38 - maxY;
+    final maxOffsetY = screenSize.y * (1 - 0.38) - margin - minY;
 
     // Écran trop petit pour la marge demandée (ex: tests, fenêtre réduite) :
     // `clamp` plante si min > max, donc on retombe sur un unique point fixe
@@ -505,7 +523,8 @@ class HexGridComponent extends PositionComponent {
   void showRewardIndicators(HexCoords coords, List<int> connectedSides,
       {int bonusTiles = 0,
       Vector2? bonusFlyTarget,
-      VoidCallback? onBonusImpact}) {
+      VoidCallback? onBonusImpact,
+      VoidCallback? onCoinImpact}) {
     final layout = _layout;
     final center = layout.hexToPixel(coords, isoScaleY: kIsoScaleY);
     final centerVec = Vector2(center.x, center.y);
@@ -526,6 +545,7 @@ class HexGridComponent extends PositionComponent {
         hexSize: hexSize,
         animated: true,
         flyTarget: coinCounterTarget,
+        onImpact: onCoinImpact,
         priority: kTileDepthPriorityPreview + 1,
       ));
     }

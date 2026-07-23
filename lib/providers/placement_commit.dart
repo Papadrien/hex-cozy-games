@@ -212,15 +212,18 @@ Future<void> confirmPlacement(
   _checkGameOver(ref);
 }
 
-/// Déclenche le bruitage de gain de pièces (`coin.mp3`) : une occurrence par
-/// pièce effectivement créditée sur ce placement — côtés connectés
-/// (pièces "de base") + pièces bonus, à l'exclusion des tuiles bonus qui ne
-/// sont pas des pièces (voir [_triggerPlacementHaptics], même périmètre côté
-/// vibrations). Aucun son si aucune pièce n'est gagnée (pose sans connexion).
+/// Déclenche le bruitage de gain de pièces (`coin.mp3`) pour les pièces
+/// "bonus" (seuils Pièces+/Jackpot+/biomes) uniquement : contrairement aux
+/// pièces "de base" (une par côté connecté), celles-ci n'ont pas de pièce
+/// volante correspondante à l'écran (voir [HexGridComponent.showRewardIndicators]),
+/// donc rien ne peut synchroniser leur son sur un impact visuel — elles sont
+/// donc jouées ici, à la pose. Les pièces de base, elles, jouent leur son
+/// individuellement à l'arrivée de leur particule sur le compteur (voir
+/// [HexBoardGame.onCoinImpact] dans `game_screen.dart`), pour rester
+/// synchronisées avec l'animation plutôt que de l'anticiper.
 void _triggerPlacementAudio(ProviderContainer ref, PlacementReward reward) {
-  final totalCoins = reward.connectedSides.length + reward.bonusCoins;
-  if (totalCoins <= 0) return;
-  ref.read(audioServiceProvider).playCoinsGained(totalCoins);
+  if (reward.bonusCoins <= 0) return;
+  ref.read(audioServiceProvider).playCoinsGained(reward.bonusCoins);
 }
 
 /// Déclenche les retours haptiques associés à un placement : une vibration

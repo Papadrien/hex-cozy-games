@@ -137,6 +137,7 @@ class CoinComponent extends PositionComponent {
     required double hexSize,
     this.animated = false,
     this.flyTarget,
+    this.onImpact,
     int priority = 10,
   })  : _radius = hexSize * 0.18,
         _alpha = animated ? null : 0.85,
@@ -150,6 +151,13 @@ class CoinComponent extends PositionComponent {
 
   /// Position cible pour le vol vers le compteur (null = pas de vol).
   final Vector2? flyTarget;
+
+  /// Appelé lorsque la pièce termine son vol vers le compteur — c'est à ce
+  /// moment (et non à la pose de la tuile) que le bruitage `coin.mp3`
+  /// correspondant doit être joué, pour que le son soit synchronisé avec
+  /// l'impact visuel plutôt qu'anticipé de plusieurs centaines de ms.
+  final VoidCallback? onImpact;
+
 
   double _life = 0.0;
   static const double _kDuration = 1.2;
@@ -172,7 +180,7 @@ class CoinComponent extends PositionComponent {
       add(MoveEffect.to(
         flyTarget!,
         EffectController(duration: 0.6, curve: Curves.easeInOut),
-      ));
+      )..onComplete = () => onImpact?.call());
     }
   }
 

@@ -803,8 +803,8 @@ abstract class AppLocalizations {
   /// No description provided for @stats_biomeMax.
   ///
   /// In en, this message translates to:
-  /// **'{biome} max: {value} tiles'**
-  String stats_biomeMax(Object biome, Object value);
+  /// **'Max: {value} tiles'**
+  String stats_biomeMax(Object value);
 
   /// No description provided for @settings_title.
   ///

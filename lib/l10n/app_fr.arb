@@ -149,10 +149,9 @@
   "stats_bestScore": "Meilleur score",
   "stats_gamesPlayed": "Parties jou\u00e9es",
   "stats_totalCoins": "Pi\u00e8ces totales gagn\u00e9es",
-  "stats_biomeMax": "{biome} max : {value} tuiles",
+  "stats_biomeMax": "Max : {value} tuiles",
   "@stats_biomeMax": {
     "placeholders": {
-      "biome": {},
       "value": {}
     }
   },
