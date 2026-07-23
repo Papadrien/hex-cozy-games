@@ -87,7 +87,7 @@ const int _kMaxCoinSfxRepeats = 6;
 
 /// Délai entre deux `coin.mp3` d'un même gain, pour qu'ils restent
 /// perceptibles comme des impulsions distinctes plutôt qu'un unique son.
-const Duration _kCoinSfxGap = Duration(milliseconds: 80);
+const Duration _kCoinSfxGap = Duration(milliseconds: 250);
 
 /// Durée par défaut du fondu de sortie appliqué par [AudioService.playMusicWithFadeOut]
 /// avant de basculer sur la nouvelle piste — assez bref pour rester discret

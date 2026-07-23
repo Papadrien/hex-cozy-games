@@ -38,6 +38,12 @@ const double kPreviewLiftPx = 10.0;
 /// Opacité de la tuile en prévisualisation.
 const double kPreviewAlpha = 1.0;
 
+/// Distance (en pixels écran) dont chaque icône de pièce de prévisualisation
+/// est à la fois poussée vers l'extérieur (à l'opposé du centre de la tuile
+/// en cours de pose) et surélevée (effet 3D), pour qu'elle se détache
+/// visuellement de la tuile plutôt que de sembler posée dessus.
+const double kPreviewCoinOffsetPx = 6.0;
+
 /// Nombre maximum d'icônes de tuile bonus envoyées individuellement (effet
 /// "machine à sous" échelonné) sur une même pose. Au-delà, le surplus est
 /// regroupé dans la dernière icône affichée pour éviter de surcharger
@@ -275,14 +281,25 @@ class HexGridComponent extends PositionComponent {
     final center = layout.hexToPixel(_previewCoords!, isoScaleY: kIsoScaleY);
     final hexSize = kHexSize * zoom;
 
-    // Pièces au niveau de chaque côté connecté.
+    // Pièces au niveau de chaque côté connecté. On les décale légèrement
+    // vers l'extérieur (à l'opposé du centre de la tuile en cours de pose)
+    // et on les surélève de la même distance pour un effet de profondeur
+    // 3D — l'icône se détache ainsi mieux de la tuile qui va être posée
+    // au lieu de sembler collée dessus. Opacité pleine (pas de
+    // [staticAlpha] réduit) pour rester bien visible pendant la prévisualisation.
     for (final side in _previewHighlightedSides) {
       final offset = _sideEdgeMidpoint(side, hexSize);
-      final pos = Vector2(center.x + offset.x, center.y + offset.y);
+      final direction = offset.normalized();
+      final pos = Vector2(
+        center.x + offset.x + direction.x * kPreviewCoinOffsetPx,
+        center.y + offset.y + direction.y * kPreviewCoinOffsetPx -
+            kPreviewCoinOffsetPx,
+      );
       final component = CoinComponent(
         position: pos,
         hexSize: hexSize,
         animated: false,
+        staticAlpha: 1.0,
       );
       component.priority = kTileDepthPriorityPreview + 1;
       _previewCoinComponents.add(component);

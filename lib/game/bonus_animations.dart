@@ -14,7 +14,12 @@ import 'tile_component.dart'; // kIsoScaleY, kTileDepthPriorityPreview
 // ── Animation constants ─────────────────────────────────────────────────────
 
 const int kBonusIntensityMaxTiles = 10;
-const double kBonusLiftDurationSec = 0.16;
+/// Durée de la 1ère phase (soulèvement) de l'animation de gain de tuile.
+/// Doublée par rapport à sa valeur initiale (0.16s) pour laisser le temps
+/// à l'animation et au bruitage de gain de pièce (voir
+/// [AudioService.playCoinsGained]) de se terminer avant que l'animation de
+/// tuile ne démarre son enchaînement (éclaboussure puis envol).
+const double kBonusLiftDurationSec = 0.32;
 const double kBonusWaterDurationSec = 0.16;
 const double kBonusLiftMinPx = 6.0;
 const double kBonusLiftMaxPx = 18.0;
@@ -139,8 +144,9 @@ class CoinComponent extends PositionComponent {
     this.flyTarget,
     this.onImpact,
     int priority = 10,
+    double staticAlpha = 0.85,
   })  : _radius = hexSize * 0.18,
-        _alpha = animated ? null : 0.85,
+        _alpha = animated ? null : staticAlpha,
         super(priority: priority);
 
   final double _radius;
