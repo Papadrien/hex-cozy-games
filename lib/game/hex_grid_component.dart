@@ -524,7 +524,7 @@ class HexGridComponent extends PositionComponent {
       {int bonusTiles = 0,
       Vector2? bonusFlyTarget,
       VoidCallback? onBonusImpact,
-      VoidCallback? onCoinImpact}) {
+      void Function(int count)? onCoinImpact}) {
     final layout = _layout;
     final center = layout.hexToPixel(coords, isoScaleY: kIsoScaleY);
     final centerVec = Vector2(center.x, center.y);
@@ -533,8 +533,18 @@ class HexGridComponent extends PositionComponent {
     // Position du compteur de pièces en haut à gauche (coordonnées jeu).
     final coinCounterTarget = Vector2(26, 85);
 
-    // Pièces volant vers le compteur depuis chaque côté connecté.
-    for (final side in connectedSides) {
+    // Pièces volant vers le compteur depuis chaque côté connecté. Toutes
+    // les pièces d'un même placement s'envolent en même temps (même durée
+    // de vol) et atterrissent donc quasi simultanément — un `onImpact` par
+    // pièce déclencherait alors plusieurs lectures de `coin.mp3` sur la
+    // même frame, ce qui ne laisse pas le temps au léger décalage de
+    // [AudioService.playCoinsGained] de s'exprimer (on n'entendrait qu'un
+    // seul bruitage). On ne déclenche donc [onCoinImpact] qu'une fois, à
+    // l'arrivée de la première pièce, avec le nombre total de pièces
+    // gagnées : c'est [playCoinsGained] qui se charge ensuite d'échelonner
+    // lui-même les N lectures.
+    for (var i = 0; i < connectedSides.length; i++) {
+      final side = connectedSides[i];
       final offset = _sideEdgeMidpoint(side, hexSize);
       final pos = Vector2(
         centerVec.x + offset.x,
@@ -545,7 +555,9 @@ class HexGridComponent extends PositionComponent {
         hexSize: hexSize,
         animated: true,
         flyTarget: coinCounterTarget,
-        onImpact: onCoinImpact,
+        onImpact: i == 0
+            ? () => onCoinImpact?.call(connectedSides.length)
+            : null,
         priority: kTileDepthPriorityPreview + 1,
       ));
     }

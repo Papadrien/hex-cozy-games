@@ -75,7 +75,7 @@ class HexBoardGame extends FlameGame
   /// le compteur de pièces — c'est ce callback, et non la pose de la tuile,
   /// qui doit déclencher le bruitage `coin.mp3` correspondant pour rester
   /// synchronisé avec l'impact visuel (voir [HexGridComponent.showRewardIndicators]).
-  void Function()? onCoinImpact;
+  void Function(int count)? onCoinImpact;
 
   double get zoom => _grid?.zoom ?? 1.0;
 

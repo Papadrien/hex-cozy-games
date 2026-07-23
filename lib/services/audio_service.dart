@@ -101,11 +101,21 @@ const int _kMusicFadeSteps = 12;
 
 class AudioService {
   AudioService(this._ref) {
-    // Contexte audio global : `mixWithOthers` sur iOS/Android garantit que
-    // la musique de fond et les bruitages (pool SFX, tile gain) se
-    // superposent toujours au lieu de s'interrompre mutuellement — sans
-    // cette configuration, la plateforme peut couper le lecteur en cours
-    // (ou le mettre en pause) dès qu'un autre lecteur démarre.
+    // Contexte audio global : `mixWithOthers` sur iOS et `audioFocus: none`
+    // sur Android garantissent que la musique de fond et les bruitages
+    // (pool SFX, tile gain) se superposent toujours au lieu de s'interrompre
+    // mutuellement.
+    //
+    // Sur Android, `AndroidAudioFocus.gainTransientMayDuck` (valeur
+    // précédente) fait que CHAQUE lecture d'un bruitage demande le focus
+    // audio transitoire auprès du système : ça déclenche un événement de
+    // perte de focus ("duck") sur le lecteur déjà actif — ici la musique —
+    // que la plateforme/le plugin traduit en pause plutôt qu'en simple
+    // baisse de volume, sans jamais la relancer une fois le bruitage
+    // terminé (aucun listener de reprise de focus n'est câblé). D'où la
+    // musique qui se coupe au premier bruitage et ne reprend plus.
+    // `none` supprime toute demande de focus : aucun lecteur n'interrompt
+    // plus jamais les autres, ils se superposent librement.
     unawaited(AudioPlayer.global.setAudioContext(
       AudioContext(
         iOS: AudioContextIOS(
@@ -117,7 +127,7 @@ class AudioService {
           stayAwake: false,
           contentType: AndroidContentType.music,
           usageType: AndroidUsageType.game,
-          audioFocus: AndroidAudioFocus.gainTransientMayDuck,
+          audioFocus: AndroidAudioFocus.none,
         ),
       ),
     ));
