@@ -332,6 +332,14 @@ class HexGridComponent extends PositionComponent {
   /// se retrouve collée pile au bord, à moitié masquée par le HUD.
   static const double _centerTileScreenMargin = 32.0;
 
+  /// Ancre écran (fraction de la largeur/hauteur) de l'origine du plateau
+  /// (0, 0) — utilisée à la fois par [_layout] et [clampCameraOffset], qui
+  /// doivent rester synchronisés. Plateau centré à l'écran (0.5/0.5) : au
+  /// lancement d'une partie (`cameraOffset` à zéro), la première tuile
+  /// posée apparaît donc pile au centre de l'écran plutôt que décalée.
+  static const double _originAnchorX = 0.5;
+  static const double _originAnchorY = 0.5;
+
   /// Empêche le plateau posé (l'ensemble des tuiles jouées, pas seulement
   /// la toute première tuile en (0, 0)) de sortir de l'écran pendant le
   /// pan — sans ça, un pan trop ample fait perdre le joueur, qui ne sait
@@ -361,10 +369,10 @@ class HexGridComponent extends PositionComponent {
       if (p.y > maxY) maxY = p.y;
     }
 
-    final minOffsetX = margin - screenSize.x * 0.42 - maxX;
-    final maxOffsetX = screenSize.x * (1 - 0.42) - margin - minX;
-    final minOffsetY = margin - screenSize.y * 0.38 - maxY;
-    final maxOffsetY = screenSize.y * (1 - 0.38) - margin - minY;
+    final minOffsetX = margin - screenSize.x * _originAnchorX - maxX;
+    final maxOffsetX = screenSize.x * (1 - _originAnchorX) - margin - minX;
+    final minOffsetY = margin - screenSize.y * _originAnchorY - maxY;
+    final maxOffsetY = screenSize.y * (1 - _originAnchorY) - margin - minY;
 
     // Écran trop petit pour la marge demandée (ex: tests, fenêtre réduite) :
     // `clamp` plante si min > max, donc on retombe sur un unique point fixe
@@ -384,13 +392,13 @@ class HexGridComponent extends PositionComponent {
     await super.onLoad();
   }
 
-  /// Origine de la grille en coordonnées écran (avant iso).
-  /// Décalée à 42 % de la largeur pour laisser la place au HUD droit.
+  /// Origine de la grille en coordonnées écran (avant iso). Ancrée au
+  /// centre de l'écran ([_originAnchorX]/[_originAnchorY]).
   HexLayout get _layout => HexLayout(
         hexSize: kHexSize * zoom,
         origin: Point(
-          cameraOffset.x + screenSize.x * 0.42,
-          cameraOffset.y + screenSize.y * 0.38,
+          cameraOffset.x + screenSize.x * _originAnchorX,
+          cameraOffset.y + screenSize.y * _originAnchorY,
         ),
       );
 

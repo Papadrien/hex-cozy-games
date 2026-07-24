@@ -143,13 +143,13 @@ class _ReviewBottomSheet extends ConsumerWidget {
   }
 
   void _rateNow(BuildContext context, WidgetRef ref) {
-    buttonHapticTap(context);
+    buttonTapFeedback(context);
     ref.read(reviewServiceProvider).requestReview();
     Navigator.of(context).pop();
   }
 
   void _later(BuildContext context) {
-    buttonHapticTap(context);
+    buttonTapFeedback(context);
     Navigator.of(context).pop();
   }
 }

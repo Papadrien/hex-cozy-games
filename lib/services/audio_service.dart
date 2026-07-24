@@ -37,10 +37,19 @@
 /// dédié unique ([_tileGainPlayer]) plutôt que le pool, pour qu'un gain
 /// multi-tuiles coupe net le son de la tuile précédente à chaque nouvelle
 /// arrivée au lieu de les superposer.
+///
+/// Clic de bouton ([playButtonClick]) : contrairement aux autres bruitages,
+/// il n'est associé à aucun fichier audio — la forme d'onde est générée
+/// procéduralement en mémoire ([_generateClickWaveform], un bref chirp
+/// sinusoïdal descendant enveloppé d'une décroissance exponentielle) puis
+/// jouée via [BytesSource]. Pensé pour être déclenché par [buttonTapFeedback]
+/// (voir `haptics_service.dart`) sur tout bouton de l'application qui ne
+/// possède pas déjà son propre bruitage dédié.
 library;
 
 import 'dart:async';
 import 'dart:math';
+import 'dart:typed_data';
 
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -99,6 +108,90 @@ const Duration _kMusicFadeOutDuration = Duration(milliseconds: 500);
 /// et nombre d'appels à [AudioPlayer.setVolume].
 const int _kMusicFadeSteps = 12;
 
+/// Fréquence d'échantillonnage du clic de bouton généré procéduralement
+/// (voir [_generateClickWaveform]). 44,1 kHz suffit largement pour un son
+/// aussi bref et évite tout souci de compatibilité de lecture.
+const int _kClickSampleRate = 44100;
+
+/// Durée du clic généré, en millisecondes — volontairement très bref pour
+/// rester discret même en cas de taps rapprochés (navigation rapide entre
+/// plusieurs boutons).
+const double _kClickDurationMs = 28;
+
+/// Fréquence de départ (Hz) du léger « chirp » descendant qui donne au son
+/// généré son caractère sec de clic plutôt qu'un simple bip.
+const double _kClickStartFreq = 1600;
+
+/// Fréquence d'arrivée (Hz) du chirp.
+const double _kClickEndFreq = 380;
+
+/// Facteur multiplicatif appliqué au réglage « Bruitages »
+/// ([OptionsState.sfxVolume]) pour le clic de bouton — plus discret que les
+/// autres bruitages (gain de pièces, pose de tuile) puisqu'il accompagne
+/// une simple interaction d'interface plutôt qu'un événement de jeu.
+const double _kClickVolumeScale = 0.5;
+
+/// Génère procéduralement un bref clic de bouton — sans aucun fichier audio
+/// associé — sous la forme d'un chirp sinusoïdal descendant ([_kClickStartFreq]
+/// → [_kClickEndFreq]) enveloppé d'une décroissance exponentielle rapide, ce
+/// qui lui donne un caractère de « tac » sec plutôt qu'un bip qui traîne.
+/// Encodé en PCM 16 bits mono puis enveloppé dans un en-tête WAV minimal par
+/// [_pcm16MonoToWav] pour être jouable directement via [BytesSource] — voir
+/// [AudioService.playButtonClick]. Calculé une seule fois à la construction
+/// du service ([AudioService._clickWaveform]).
+Uint8List _generateClickWaveform() {
+  final sampleCount =
+      (_kClickSampleRate * _kClickDurationMs / 1000).round();
+  final samples = Int16List(sampleCount);
+  for (var i = 0; i < sampleCount; i++) {
+    final progress = i / sampleCount;
+    final t = i / _kClickSampleRate;
+    final freq =
+        _kClickStartFreq + (_kClickEndFreq - _kClickStartFreq) * progress;
+    final envelope = exp(-progress * 10);
+    final value = sin(2 * pi * freq * t) * envelope;
+    samples[i] = (value * 0.55 * 32767).round().clamp(-32768, 32767);
+  }
+  return _pcm16MonoToWav(samples, _kClickSampleRate);
+}
+
+/// Enveloppe un buffer PCM 16 bits mono dans un en-tête RIFF/WAV minimal,
+/// pour lecture directe en mémoire (aucune écriture sur disque nécessaire).
+Uint8List _pcm16MonoToWav(Int16List samples, int sampleRate) {
+  final dataBytes = samples.buffer.asUint8List(
+    samples.offsetInBytes,
+    samples.lengthInBytes,
+  );
+  final byteRate = sampleRate * 2; // mono, 16 bits => 2 octets/échantillon
+  final buffer = BytesBuilder();
+
+  void writeAscii(String s) => buffer.add(s.codeUnits);
+  void writeUint32(int v) => buffer.add([
+        v & 0xFF,
+        (v >> 8) & 0xFF,
+        (v >> 16) & 0xFF,
+        (v >> 24) & 0xFF,
+      ]);
+  void writeUint16(int v) => buffer.add([v & 0xFF, (v >> 8) & 0xFF]);
+
+  writeAscii('RIFF');
+  writeUint32(36 + dataBytes.length);
+  writeAscii('WAVE');
+  writeAscii('fmt ');
+  writeUint32(16); // taille du sous-bloc fmt
+  writeUint16(1); // format PCM
+  writeUint16(1); // mono
+  writeUint32(sampleRate);
+  writeUint32(byteRate);
+  writeUint16(2); // block align (octets par trame)
+  writeUint16(16); // bits par échantillon
+  writeAscii('data');
+  writeUint32(dataBytes.length);
+  buffer.add(dataBytes);
+
+  return buffer.toBytes();
+}
+
 class AudioService {
   AudioService(this._ref) {
     // Contexte audio global : `mixWithOthers` sur iOS et `audioFocus: none`
@@ -149,6 +242,11 @@ class AudioService {
   /// doit couper net le son de la précédente si elle n'est pas terminée,
   /// jamais les superposer (voir [playTileGained]).
   final AudioPlayer _tileGainPlayer = AudioPlayer();
+
+  /// Forme d'onde du clic de bouton, générée une seule fois (voir
+  /// [_generateClickWaveform]) puis rejouée à chaque appel de
+  /// [playButtonClick] — évite de la recalculer à chaque tap.
+  final Uint8List _clickWaveform = _generateClickWaveform();
 
   bool get _musicEnabled => _ref.read(optionsProvider).musicEnabled;
   bool get _sfxEnabled => _ref.read(optionsProvider).sfxEnabled;
@@ -270,6 +368,26 @@ class AudioService {
     await _tileGainPlayer.stop();
     await _tileGainPlayer.setVolume(_sfxVolume);
     await _tileGainPlayer.play(AssetSource(SfxTrack.tileGain.assetPath));
+  }
+
+  /// Joue le clic de bouton généré procéduralement ([_clickWaveform], voir
+  /// [_generateClickWaveform]) — aucun fichier audio associé. Pioche dans le
+  /// même pool tournant que [_playSfx] (même hauteur légèrement randomisée)
+  /// pour se superposer librement à la musique et aux autres bruitages, avec
+  /// un volume atténué ([_kClickVolumeScale]) pour rester discret.
+  ///
+  /// À appeler via [buttonTapFeedback] (voir `haptics_service.dart`) plutôt
+  /// que directement, sur tout bouton qui ne déclenche pas déjà son propre
+  /// bruitage dédié.
+  Future<void> playButtonClick() async {
+    if (!_sfxEnabled) return;
+    final player = _sfxPool[_sfxCursor];
+    _sfxCursor = (_sfxCursor + 1) % _sfxPool.length;
+    final pitch = 1.0 + (_random.nextDouble() * 2 - 1) * _kPitchVariance;
+    await player.stop();
+    await player.setVolume(_sfxVolume * _kClickVolumeScale);
+    await player.setPlaybackRate(pitch);
+    await player.play(BytesSource(_clickWaveform));
   }
 
   void _dispose() {

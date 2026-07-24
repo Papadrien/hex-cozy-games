@@ -113,7 +113,7 @@ class TileStackHud extends ConsumerWidget {
             visible: visible,
             hasSelection: placement.hasSelection,
             onCancelSelection: () {
-              buttonHapticTap(context);
+              buttonTapFeedback(context);
               ref.read(placementProvider.notifier).clearSelection();
             },
           ),
@@ -360,7 +360,7 @@ class _AnimatedTilePileState extends ConsumerState<_AnimatedTilePile> {
       dragAnchorStrategy: pointerDragAnchorStrategy,
       feedback: _DraggedTileFeedback(tile: tile),
       childWhenDragging: Opacity(opacity: 0.25, child: preview),
-      onDragStarted: () => buttonHapticTap(context),
+      onDragStarted: () => buttonTapFeedback(context),
       child: preview,
     );
   }

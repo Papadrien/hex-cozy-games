@@ -76,7 +76,7 @@ class _ShopAppBar extends StatelessWidget {
           _ShopGlassIconButton(
             icon: Icons.close,
             onPressed: () {
-              buttonHapticTap(context);
+              buttonTapFeedback(context);
               Navigator.of(context).pop();
             },
           ),
@@ -268,7 +268,7 @@ class _CoinPackCardState extends ConsumerState<_CoinPackCard> {
             onTap: (_loading || !iapAvailable)
                 ? null
                 : () async {
-                    buttonHapticTap(context);
+                    buttonTapFeedback(context);
                     setState(() => _loading = true);
                     try {
                       final result =
@@ -498,7 +498,7 @@ class _PremiumCardState extends ConsumerState<_PremiumCard> {
             onTap: (widget.isPremium || _loading || !iapAvailable)
                 ? null
                 : () async {
-                    buttonHapticTap(context);
+                    buttonTapFeedback(context);
                     setState(() => _loading = true);
                     try {
                       final result = await purchasePremium(ref);
@@ -602,7 +602,7 @@ class _RestoreButtonState extends ConsumerState<_RestoreButton> {
       onTap: _loading
           ? null
           : () async {
-              buttonHapticTap(context);
+              buttonTapFeedback(context);
               setState(() => _loading = true);
               try {
                 final ok = await restoreAllPurchases(ref);

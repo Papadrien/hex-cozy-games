@@ -194,7 +194,7 @@ class _TutorialOverlayState extends ConsumerState<TutorialOverlay>
               borderColor: kGlassBlueBorder,
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               onTap: () {
-                buttonHapticTap(context);
+                buttonTapFeedback(context);
                 notifier.skip();
               },
               child: Text(
@@ -220,7 +220,7 @@ class _TutorialOverlayState extends ConsumerState<TutorialOverlay>
               borderColor: kGlassBlueBorder,
               padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
               onTap: () {
-                buttonHapticTap(context);
+                buttonTapFeedback(context);
                 notifier.next();
               },
               child: Text(

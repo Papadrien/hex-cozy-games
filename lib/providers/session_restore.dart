@@ -96,6 +96,18 @@ Future<void> restoreSession(WidgetRef ref) async {
     final secondChanceRemainingUses =
         stackJson['secondChanceRemainingUses'] as int? ?? 0;
 
+    // Compteurs cumulatifs d'améliorations (Combo+/série de connexions) —
+    // `?? 0` : rétro-compatibilité avec les sessions sauvegardées avant ce
+    // correctif, qui n'ont pas ces clés (elles retombent alors sur 0 comme
+    // avant, sans crash). Sans cette restauration, currentDoubleStreak
+    // (Combo+) et currentStreak/bestStreak repartaient de zéro à chaque
+    // reprise de partie via "Sauvegarder et quitter", contrairement à
+    // Annuler qui les restaure déjà correctement via SessionState
+    // .previousSession.
+    final currentStreak = stackJson['currentStreak'] as int? ?? 0;
+    final bestStreak = stackJson['bestStreak'] as int? ?? 0;
+    final currentDoubleStreak = stackJson['currentDoubleStreak'] as int? ?? 0;
+
     // Restaurer la session (pièces, tuiles bonus, connexions).
     final grid = ref.read(gridProvider);
     int c3 = 0, c4 = 0, c5 = 0, c6 = 0;
@@ -113,6 +125,9 @@ Future<void> restoreSession(WidgetRef ref) async {
           connections4: c4,
           connections5: c5,
           connections6: c6,
+          currentStreak: currentStreak,
+          bestStreak: bestStreak,
+          currentDoubleStreak: currentDoubleStreak,
           holdSlotRemainingUses: holdSlotRemainingUses,
           secondChanceRemainingUses: secondChanceRemainingUses,
         ));

@@ -159,7 +159,7 @@ class _TopBar extends StatelessWidget {
             icon: Icons.settings,
             tooltip: context.tr.home_settings,
             onPressed: () {
-              buttonHapticTap(context);
+              buttonTapFeedback(context);
               clearAppSnackBars();
               Navigator.of(context).push(
                 BlurFadePageRoute<void>(builder: (_) => const SettingsScreen()),
@@ -171,7 +171,7 @@ class _TopBar extends StatelessWidget {
             icon: Icons.store,
             tooltip: context.tr.home_shop,
             onPressed: () {
-              buttonHapticTap(context);
+              buttonTapFeedback(context);
               clearAppSnackBars();
               Navigator.of(context).push(
                 BlurFadePageRoute<void>(builder: (_) => const ShopScreen()),
@@ -486,7 +486,7 @@ class _PlayButton extends StatelessWidget {
                   onTap: onTap == null
                       ? null
                       : () async {
-                          buttonHapticTap(context);
+                          buttonTapFeedback(context);
                           await onTap();
                         },
                   child: Container(
@@ -620,7 +620,7 @@ class _BuildButton extends StatelessWidget {
         tint: hasResumableGame ? Colors.grey : Colors.transparent,
         onPressed: hasResumableGame
             ? () {
-                buttonHapticTap(context);
+                buttonTapFeedback(context);
                 showAppSnackBar(
                   SnackBar(
                     content: Text(context.tr.home_buildSelectionLockedResume),
@@ -629,7 +629,7 @@ class _BuildButton extends StatelessWidget {
                 );
               }
             : () {
-                buttonHapticTap(context);
+                buttonTapFeedback(context);
                 clearAppSnackBars();
                 Navigator.of(context).push(
                   BlurFadePageRoute<void>(builder: (_) => const BuildScreen()),
@@ -979,7 +979,7 @@ class _DebugButton extends StatelessWidget {
         ),
         label: const Text('DEBUG : tout débloquer'),
         onPressed: () async {
-          buttonHapticTap(context);
+          buttonTapFeedback(context);
           await ref.read(progressionServiceProvider).unlockAllUpgrades();
           if (context.mounted) {
             showAppSnackBar(

@@ -75,7 +75,7 @@ class BuildScreen extends ConsumerWidget {
                                     isSelected: selected.contains(u.id),
                                     totalCoins: totalCoins,
                                     onToggleSelect: () {
-                                      buttonHapticTap(context);
+                                      buttonTapFeedback(context);
                                       ref
                                           .read(selectedUpgradeIdsProvider
                                               .notifier)
@@ -115,7 +115,7 @@ class _BuildAppBar extends StatelessWidget {
               _BuildGlassIconButton(
                 icon: Icons.close,
                 onPressed: () {
-                  buttonHapticTap(context);
+                  buttonTapFeedback(context);
                   Navigator.of(context).pop();
                 },
               ),
@@ -259,7 +259,7 @@ class _BuildCardState extends ConsumerState<_BuildCard>
   bool get wantKeepAlive => _expanded;
 
   void _toggleExpanded() {
-    buttonHapticTap(context);
+    buttonTapFeedback(context);
     setState(() => _expanded = !_expanded);
     updateKeepAlive();
   }
@@ -685,7 +685,7 @@ class _UpgradeButtonState extends ConsumerState<_UpgradeButton> {
   }
 
   void _startConfirm() {
-    buttonHapticTap(context);
+    buttonTapFeedback(context);
     setState(() => _confirming = true);
     _revertTimer?.cancel();
     _revertTimer = Timer(const Duration(seconds: 4), () {
@@ -771,7 +771,7 @@ class _UpgradeButtonState extends ConsumerState<_UpgradeButton> {
   }
 
   Future<void> _handleUpgrade(BuildContext context, WidgetRef ref) async {
-    buttonHapticTap(context);
+    buttonTapFeedback(context);
     final upgrade = widget.upgrade;
     final service = ref.read(progressionServiceProvider);
     final result = await service.levelUpUpgrade(upgrade.id);

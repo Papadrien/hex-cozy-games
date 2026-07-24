@@ -3,7 +3,7 @@
 /// le joueur.
 ///
 /// Le centre (0, 0) est projeté à l'écran en
-/// `cameraOffset + screenSize * (0.42, 0.38)` (voir [HexGridComponent._layout]
+/// `cameraOffset + screenSize * (0.5, 0.5)` (voir [HexGridComponent._layout]
 /// / [HexLayout.hexToPixel]) : ces tests vérifient que cette position reste
 /// toujours à l'intérieur de l'écran (avec la marge de confort) quel que
 /// soit le pan appliqué.
@@ -16,10 +16,10 @@ import 'package:hex_haven/game/hex_coords.dart';
 import 'package:hex_haven/game/hex_grid_component.dart';
 
 /// Reproduit la projection écran du centre (0, 0), telle que définie par
-/// [HexGridComponent._layout] (origin = cameraOffset + screenSize * (0.42, 0.38)).
+/// [HexGridComponent._layout] (origin = cameraOffset + screenSize * (0.5, 0.5)).
 Vector2 _centerScreenPos(HexGridComponent grid) => Vector2(
-      grid.cameraOffset.x + grid.screenSize.x * 0.42,
-      grid.cameraOffset.y + grid.screenSize.y * 0.38,
+      grid.cameraOffset.x + grid.screenSize.x * 0.5,
+      grid.cameraOffset.y + grid.screenSize.y * 0.5,
     );
 
 void main() {
@@ -110,13 +110,13 @@ void main() {
       final grid = HexGridComponent(screenSize: Vector2(400, 800));
       grid.previewCoords = const HexCoords(0, 0);
 
-      // Le centre (0,0) est projeté à l'origine de la grille, elle-même à
-      // 42%/38% de l'écran (voir HexGridComponent._layout), inchangée tant
+      // Le centre (0,0) est projeté à l'origine de la grille, elle-même au
+      // centre de l'écran (voir HexGridComponent._layout), inchangée tant
       // que cameraOffset == 0.
       final center = grid.previewScreenCenter;
       expect(center, isNotNull);
-      expect(center!.x, closeTo(400 * 0.42, 0.01));
-      expect(center.y, closeTo(800 * 0.38, 0.01));
+      expect(center!.x, closeTo(400 * 0.5, 0.01));
+      expect(center.y, closeTo(800 * 0.5, 0.01));
     });
 
     test('suit le pan (cameraOffset) de la grille', () {
@@ -125,8 +125,8 @@ void main() {
       grid.cameraOffset = Vector2(50, -30);
 
       final center = grid.previewScreenCenter!;
-      expect(center.x, closeTo(400 * 0.42 + 50, 0.01));
-      expect(center.y, closeTo(800 * 0.38 - 30, 0.01));
+      expect(center.x, closeTo(400 * 0.5 + 50, 0.01));
+      expect(center.y, closeTo(800 * 0.5 - 30, 0.01));
     });
 
     test('redevient null une fois la sélection annulée', () {

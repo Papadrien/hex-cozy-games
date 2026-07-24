@@ -389,9 +389,10 @@ class QuestService {
 
   // ─── bestConnectionStreak (Story B2) ────────────────────────────────────
 
-  /// Met à jour la quête `best_streak_10` si [streak] dépasse la valeur
-  /// actuelle. Même logique record que `_updateBestGameCoins` : on ne
-  /// retient que le maximum jamais atteint, toutes parties confondues.
+  /// Met à jour les quêtes `bestConnectionStreak` (paliers 20/40/60/80/100)
+  /// si [streak] dépasse leur valeur actuelle. Même logique record que
+  /// `_updateBestGameCoins` : on ne retient que le maximum jamais atteint,
+  /// toutes parties confondues.
   Future<void> _updateBestConnectionStreak(int streak) async {
     if (streak <= 0) return;
     final db = _ref.read(appDatabaseProvider);

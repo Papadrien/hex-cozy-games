@@ -49,40 +49,45 @@ final kBestGameCoinsQuest = PermanentQuestsCompanion.insert(
 );
 
 /// Quêtes record "cluster couleur" (forêt/eau/plaine/montagne).
-/// Modèle exact de "village_100" : palier unique, pas de nextQuestId,
+/// Modèle exact de "village_10" : palier unique, pas de nextQuestId,
 /// récompense = déblocage d'amélioration. Réutilisent `maxBiomeSizes`
 /// (déjà calculé par [BoardAnalysis]), aucune nouvelle logique de board
 /// analysis.
+///
+/// Paliers échelonnés (et non plus un palier unique à 50 partout) pour
+/// étaler la difficulté d'obtention entre les 5 couleurs : Rouge 10 → Vert
+/// 15 → Bleu 20 → Jaune 25 → Violet 30. Les récompenses (déblocage d'une
+/// amélioration par couleur) restent inchangées.
 final kClusterColorQuests = [
   PermanentQuestsCompanion.insert(
-    id: 'forest_51',
+    id: 'forest_15',
     category: QuestCategory.forestClusterSize.dbValue,
-    description: 'Faire un groupe vert de plus de 50 tuiles',
-    targetValue: 51,
+    description: 'Faire un groupe vert de 15 tuiles',
+    targetValue: 15,
     rewardType: RewardType.upgradeUnlock.dbValue,
     rewardValue: 0,
   ),
   PermanentQuestsCompanion.insert(
-    id: 'water_51',
+    id: 'water_20',
     category: QuestCategory.waterClusterSize.dbValue,
-    description: 'Faire un groupe bleu de plus de 50 tuiles',
-    targetValue: 51,
+    description: 'Faire un groupe bleu de 20 tuiles',
+    targetValue: 20,
     rewardType: RewardType.upgradeUnlock.dbValue,
     rewardValue: 0,
   ),
   PermanentQuestsCompanion.insert(
-    id: 'plain_51',
+    id: 'plain_25',
     category: QuestCategory.plainClusterSize.dbValue,
-    description: 'Faire un groupe jaune de plus de 50 tuiles',
-    targetValue: 51,
+    description: 'Faire un groupe jaune de 25 tuiles',
+    targetValue: 25,
     rewardType: RewardType.upgradeUnlock.dbValue,
     rewardValue: 0,
   ),
   PermanentQuestsCompanion.insert(
-    id: 'mountain_51',
+    id: 'mountain_30',
     category: QuestCategory.mountainClusterSize.dbValue,
-    description: 'Faire un groupe violet de plus de 50 tuiles',
-    targetValue: 51,
+    description: 'Faire un groupe violet de 30 tuiles',
+    targetValue: 30,
     rewardType: RewardType.upgradeUnlock.dbValue,
     rewardValue: 0,
   ),
@@ -165,12 +170,14 @@ final _permanentQuests = [
   // amélioration.
   kBestGameCoinsQuest,
 
-  // Chaîne "village_size" — débloque Rouge+.
+  // Chaîne "village_size" — débloque Rouge+. Premier palier de la série
+  // "cluster couleur" (voir [kClusterColorQuests]) : Rouge est la couleur
+  // la plus facile à obtenir (10 tuiles).
   PermanentQuestsCompanion.insert(
-    id: 'village_100',
+    id: 'village_10',
     category: QuestCategory.villageSize.dbValue,
-    description: 'Faire un groupe rouge de plus de 50 tuiles',
-    targetValue: 51,
+    description: 'Faire un groupe rouge de 10 tuiles',
+    targetValue: 10,
     rewardType: RewardType.upgradeUnlock.dbValue,
     rewardValue: 0,
   ),
@@ -210,22 +217,59 @@ final _permanentQuests = [
   // Emplacement Joker / Deuxième chance (Story A9).
   ...kOneShotConnectionQuests,
 
-  // Quête "record de série" (Story A10) — débloque Combo+ (Story A11).
-  // Alimentée par le compteur de série en session, branché en Story B2.
-  kBestConnectionStreakQuest,
+  // Quêtes "record de série" (Story A10) — palier 20 débloque Combo+
+  // (Story A11), paliers suivants (40/60/80/100) rapportent des pièces.
+  // Alimentées par le compteur de série en session, branché en Story B2.
+  ...kConnectionStreakQuests,
 ];
 
-/// Quête record "meilleure série de connexions consécutives".
-/// Palier unique, pas de nextQuestId, récompense = déblocage d'amélioration
-/// (Combo+, Story A11).
-final kBestConnectionStreakQuest = PermanentQuestsCompanion.insert(
-  id: 'best_streak_10',
-  category: QuestCategory.bestConnectionStreak.dbValue,
-  description: 'Réaliser une série de 10 connexions consécutives',
-  targetValue: 10,
-  rewardType: RewardType.upgradeUnlock.dbValue,
-  rewardValue: 0,
-);
+/// Quêtes record "meilleure série de connexions consécutives". Paliers
+/// échelonnés indépendants (voir `quest_provider.dart`,
+/// `_updateBestConnectionStreak`, qui met à jour toutes les quêtes de la
+/// catégorie non complétées à chaque nouveau record) : le premier palier
+/// débloque Combo+ (Story A11), les suivants rapportent 200 pièces chacun.
+final kConnectionStreakQuests = [
+  PermanentQuestsCompanion.insert(
+    id: 'best_streak_20',
+    category: QuestCategory.bestConnectionStreak.dbValue,
+    description: 'Réaliser une série de 20 connexions consécutives',
+    targetValue: 20,
+    rewardType: RewardType.upgradeUnlock.dbValue,
+    rewardValue: 0,
+  ),
+  PermanentQuestsCompanion.insert(
+    id: 'best_streak_40',
+    category: QuestCategory.bestConnectionStreak.dbValue,
+    description: 'Réaliser une série de 40 connexions consécutives',
+    targetValue: 40,
+    rewardType: RewardType.coins.dbValue,
+    rewardValue: 200,
+  ),
+  PermanentQuestsCompanion.insert(
+    id: 'best_streak_60',
+    category: QuestCategory.bestConnectionStreak.dbValue,
+    description: 'Réaliser une série de 60 connexions consécutives',
+    targetValue: 60,
+    rewardType: RewardType.coins.dbValue,
+    rewardValue: 200,
+  ),
+  PermanentQuestsCompanion.insert(
+    id: 'best_streak_80',
+    category: QuestCategory.bestConnectionStreak.dbValue,
+    description: 'Réaliser une série de 80 connexions consécutives',
+    targetValue: 80,
+    rewardType: RewardType.coins.dbValue,
+    rewardValue: 200,
+  ),
+  PermanentQuestsCompanion.insert(
+    id: 'best_streak_100',
+    category: QuestCategory.bestConnectionStreak.dbValue,
+    description: 'Réaliser une série de 100 connexions consécutives',
+    targetValue: 100,
+    rewardType: RewardType.coins.dbValue,
+    rewardValue: 200,
+  ),
+];
 
 /// Quêtes répétables de connexions multiples. Chaque quête cumule le nombre
 /// de fois où une tuile posée obtient exactement N côtés connectés (toutes
@@ -442,8 +486,8 @@ final _upgrades = [
     id: 'villages_plus',
     name: 'Rouge+',
     effectType: UpgradeEffectType.villageCoinsPercentBonus.dbValue,
-    unlockConditionType: 'village_100',
-    unlockConditionValue: 51,
+    unlockConditionType: 'village_10',
+    unlockConditionValue: 10,
   ),
   kJackpotPlusUpgrade,
 
@@ -471,14 +515,14 @@ final _upgrades = [
   kWarehouseUpgrade,
 ];
 
-/// Amélioration débloquée par la quête record "best_streak_10" (série de
-/// 10 connexions consécutives).
+/// Amélioration débloquée par la quête record "best_streak_20" (série de
+/// 20 connexions consécutives).
 final kComboPlusUpgrade = UpgradesCompanion.insert(
   id: 'combo_plus',
   name: 'Combo+',
   effectType: UpgradeEffectType.comboBonusTiles.dbValue,
-  unlockConditionType: 'best_streak_10',
-  unlockConditionValue: 10,
+  unlockConditionType: 'best_streak_20',
+  unlockConditionValue: 20,
 );
 
 /// Améliorations liées aux quêtes one-shot de connexions (Story A9) —
@@ -513,29 +557,29 @@ final kClusterColorUpgrades = [
     id: 'forest_plus',
     name: 'Vert+',
     effectType: UpgradeEffectType.forestCoinsPercentBonus.dbValue,
-    unlockConditionType: 'forest_51',
-    unlockConditionValue: 51,
+    unlockConditionType: 'forest_15',
+    unlockConditionValue: 15,
   ),
   UpgradesCompanion.insert(
     id: 'water_plus',
     name: 'Bleu+',
     effectType: UpgradeEffectType.waterCoinsPercentBonus.dbValue,
-    unlockConditionType: 'water_51',
-    unlockConditionValue: 51,
+    unlockConditionType: 'water_20',
+    unlockConditionValue: 20,
   ),
   UpgradesCompanion.insert(
     id: 'plain_plus',
     name: 'Jaune+',
     effectType: UpgradeEffectType.plainCoinsPercentBonus.dbValue,
-    unlockConditionType: 'plain_51',
-    unlockConditionValue: 51,
+    unlockConditionType: 'plain_25',
+    unlockConditionValue: 25,
   ),
   UpgradesCompanion.insert(
     id: 'mountain_plus',
     name: 'Violet+',
     effectType: UpgradeEffectType.mountainCoinsPercentBonus.dbValue,
-    unlockConditionType: 'mountain_51',
-    unlockConditionValue: 51,
+    unlockConditionType: 'mountain_30',
+    unlockConditionValue: 30,
   ),
 ];
 

@@ -167,7 +167,7 @@ class _StatsAppBar extends StatelessWidget {
           _StatsGlassIconButton(
             icon: Icons.close,
             onPressed: () {
-              buttonHapticTap(context);
+              buttonTapFeedback(context);
               Navigator.of(context).pop();
             },
           ),

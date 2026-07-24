@@ -51,7 +51,7 @@ void drawHex(Canvas canvas, Offset center, double radius,
 }
 
 /// Coins d'un hexagone régulier (pointy-top), avec écrasement isométrique
-/// optionnel en Y (1.0 = pas d'écrasement — cas de [PreviewBonusComponent]).
+/// optionnel en Y (1.0 = pas d'écrasement).
 List<Offset> _hexCorners(Offset center, double radius, {double squashY = 1.0}) {
   return List.generate(6, (i) {
     final angleDeg = 60.0 * i - 90.0;
@@ -253,24 +253,23 @@ class PreviewBonusComponent extends PositionComponent {
     final r = _radius;
 
     // Face latérale (extrusion 3D) sous l'icône, raccord avec les tuiles
-    // du plateau plutôt qu'un simple aplat bleu.
-    _drawHexSideDepth(canvas, Offset.zero, r, r * 0.28, kBonusBlueLight, alpha);
+    // du plateau plutôt qu'un simple aplat bleu. Écrasement isométrique
+    // ([kIsoScaleY]) pour rester identique à l'icône de la particule de
+    // gain ([BonusTileAnimComponent]) plutôt qu'un hexagone régulier.
+    _drawHexSideDepth(canvas, Offset.zero, r, r * 0.28, kBonusBlueLight, alpha,
+        squashY: kIsoScaleY);
 
     // Hexagone extérieur (fond).
-    canvas.drawPath(
-      _hexagonPath(r),
-      Paint()
-        ..color = kBonusBlueLight.withValues(alpha: alpha)
-        ..style = PaintingStyle.fill,
-    );
-    canvas.drawPath(
-      _hexagonPath(r * 0.75),
-      Paint()
-        ..color = kBonusBlueLighter.withValues(alpha: alpha * 0.7)
-        ..style = PaintingStyle.fill,
-    );
+    drawHex(canvas, Offset.zero, r,
+        paint: Paint()
+          ..color = kBonusBlueLight.withValues(alpha: alpha)
+          ..style = PaintingStyle.fill);
+    drawHex(canvas, Offset.zero, r * 0.75,
+        paint: Paint()
+          ..color = kBonusBlueLighter.withValues(alpha: alpha * 0.7)
+          ..style = PaintingStyle.fill);
     // Fin liseré clair sur le bord supérieur pour un léger effet de biseau.
-    _drawHexTopRim(canvas, Offset.zero, r, alpha);
+    _drawHexTopRim(canvas, Offset.zero, r, alpha, squashY: kIsoScaleY);
 
     // Nombre de tuiles bonus (+N) centré en blanc.
     _textPainter.text = TextSpan(
@@ -286,22 +285,6 @@ class PreviewBonusComponent extends PositionComponent {
       canvas,
       Offset(-_textPainter.width / 2, -_textPainter.height / 2),
     );
-  }
-
-  Path _hexagonPath(double radius) {
-    final path = Path();
-    for (var i = 0; i < 6; i++) {
-      final angle = (60.0 * i - 90.0) * pi / 180.0;
-      final x = radius * cos(angle);
-      final y = radius * sin(angle);
-      if (i == 0) {
-        path.moveTo(x, y);
-      } else {
-        path.lineTo(x, y);
-      }
-    }
-    path.close();
-    return path;
   }
 }
 

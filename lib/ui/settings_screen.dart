@@ -43,7 +43,7 @@ class SettingsScreen extends ConsumerWidget {
                         label: context.tr.options_music,
                         value: options.musicEnabled,
                         onToggle: () {
-                          buttonHapticTap(context);
+                          buttonTapFeedback(context);
                           ref.read(optionsProvider.notifier).toggleMusic();
                           ref.read(audioServiceProvider).refreshMusicVolume();
                         },
@@ -58,14 +58,14 @@ class SettingsScreen extends ConsumerWidget {
                               .setMusicVolume(value);
                           ref.read(audioServiceProvider).refreshMusicVolume();
                         },
-                        onChangeEnd: (_) => buttonHapticTap(context),
+                        onChangeEnd: (_) => buttonTapFeedback(context),
                       ),
                       _ToggleTile(
                         icon: Icons.graphic_eq,
                         label: context.tr.options_sfx,
                         value: options.sfxEnabled,
                         onToggle: () {
-                          buttonHapticTap(context);
+                          buttonTapFeedback(context);
                           ref.read(optionsProvider.notifier).toggleSfx();
                         },
                       ),
@@ -78,14 +78,14 @@ class SettingsScreen extends ConsumerWidget {
                               .read(optionsProvider.notifier)
                               .setSfxVolume(value);
                         },
-                        onChangeEnd: (_) => buttonHapticTap(context),
+                        onChangeEnd: (_) => buttonTapFeedback(context),
                       ),
                       _ToggleTile(
                         icon: Icons.vibration,
                         label: context.tr.options_vibrations,
                         value: options.vibrationEnabled,
                         onToggle: () {
-                          buttonHapticTap(context);
+                          buttonTapFeedback(context);
                           ref.read(optionsProvider.notifier).toggleVibration();
                         },
                       ),
@@ -98,7 +98,7 @@ class SettingsScreen extends ConsumerWidget {
                         label: context.tr.settings_rateApp,
                         subtitle: context.tr.settings_rateAppSubtitle,
                         onTap: () {
-                          buttonHapticTap(context);
+                          buttonTapFeedback(context);
                           ref.read(reviewServiceProvider).openStoreListing();
                         },
                       ),
@@ -123,7 +123,7 @@ class _SettingsAppBar extends StatelessWidget {
           _SettingsGlassIconButton(
             icon: Icons.close,
             onPressed: () {
-              buttonHapticTap(context);
+              buttonTapFeedback(context);
               Navigator.of(context).pop();
             },
           ),

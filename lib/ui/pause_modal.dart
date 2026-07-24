@@ -137,7 +137,7 @@ class _OptionsContent extends ConsumerWidget {
           label: context.tr.options_music,
           value: options.musicEnabled,
           onToggle: () {
-            buttonHapticTap(context);
+            buttonTapFeedback(context);
             ref.read(optionsProvider.notifier).toggleMusic();
             ref.read(audioServiceProvider).refreshMusicVolume();
           },
@@ -150,14 +150,14 @@ class _OptionsContent extends ConsumerWidget {
             ref.read(optionsProvider.notifier).setMusicVolume(value);
             ref.read(audioServiceProvider).refreshMusicVolume();
           },
-          onChangeEnd: (_) => buttonHapticTap(context),
+          onChangeEnd: (_) => buttonTapFeedback(context),
         ),
         const SizedBox(height: 16),
         _OptionToggle(
           label: context.tr.options_sfx,
           value: options.sfxEnabled,
           onToggle: () {
-            buttonHapticTap(context);
+            buttonTapFeedback(context);
             ref.read(optionsProvider.notifier).toggleSfx();
           },
         ),
@@ -168,14 +168,14 @@ class _OptionsContent extends ConsumerWidget {
           onChanged: (value) {
             ref.read(optionsProvider.notifier).setSfxVolume(value);
           },
-          onChangeEnd: (_) => buttonHapticTap(context),
+          onChangeEnd: (_) => buttonTapFeedback(context),
         ),
         const SizedBox(height: 16),
         _OptionToggle(
           label: context.tr.options_vibrations,
           value: options.vibrationEnabled,
           onToggle: () {
-            buttonHapticTap(context);
+            buttonTapFeedback(context);
             ref.read(optionsProvider.notifier).toggleVibration();
           },
         ),
@@ -310,7 +310,7 @@ class _ResumeButton extends ConsumerWidget {
           ),
         ),
         onPressed: () {
-          buttonHapticTap(context);
+          buttonTapFeedback(context);
           ref.read(pauseProvider.notifier).resume();
         },
         child: Text(
@@ -335,16 +335,13 @@ class _OptionsButton extends ConsumerWidget {
         style: TextButton.styleFrom(
           padding: const EdgeInsets.symmetric(vertical: 14),
           foregroundColor: Colors.white,
-          backgroundColor: const Color(0xFF2E3B52).withValues(alpha: 0.22),
+          backgroundColor: Colors.white.withValues(alpha: 0.06),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-            side: BorderSide(
-              color: const Color(0xFF3DBFAF).withValues(alpha: 0.38),
-            ),
+            borderRadius: BorderRadius.circular(12),
           ),
         ),
         onPressed: () {
-          buttonHapticTap(context);
+          buttonTapFeedback(context);
           ref.read(pauseProvider.notifier).toggleOptions();
         },
         child: Text(
@@ -365,12 +362,13 @@ class _BackButton extends ConsumerWidget {
         style: TextButton.styleFrom(
           padding: const EdgeInsets.symmetric(vertical: 14),
           foregroundColor: Colors.white.withValues(alpha: 0.6),
+          backgroundColor: Colors.white.withValues(alpha: 0.06),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(12),
           ),
         ),
         onPressed: () {
-          buttonHapticTap(context);
+          buttonTapFeedback(context);
           ref.read(pauseProvider.notifier).toggleOptions();
         },
         child: const Text(
@@ -391,16 +389,13 @@ class _SaveAndQuitButton extends ConsumerWidget {
         style: TextButton.styleFrom(
           padding: const EdgeInsets.symmetric(vertical: 14),
           foregroundColor: Colors.white,
-          backgroundColor: const Color(0xFF2E3B52).withValues(alpha: 0.22),
+          backgroundColor: Colors.white.withValues(alpha: 0.06),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-            side: BorderSide(
-              color: const Color(0xFF3DBFAF).withValues(alpha: 0.38),
-            ),
+            borderRadius: BorderRadius.circular(12),
           ),
         ),
         onPressed: () async {
-          buttonHapticTap(context);
+          buttonTapFeedback(context);
           await SessionSaver.save(ref.container);
           ref.invalidate(activeSessionProvider);
           // Forcer la destruction immédiate de la bannière AdMob plutôt que
@@ -442,12 +437,13 @@ class _AbandonButton extends ConsumerWidget {
         style: TextButton.styleFrom(
           padding: const EdgeInsets.symmetric(vertical: 14),
           foregroundColor: kDestructiveRed,
+          backgroundColor: Colors.white.withValues(alpha: 0.06),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(12),
           ),
         ),
         onPressed: () {
-          buttonHapticTap(context);
+          buttonTapFeedback(context);
           _showAbandonConfirmDialog(context, ref);
         },
         child: Text(
@@ -482,7 +478,7 @@ Future<void> _showAbandonConfirmDialog(
       actions: [
         TextButton(
           onPressed: () {
-            buttonHapticTap(dialogContext);
+            buttonTapFeedback(dialogContext);
             Navigator.of(dialogContext).pop();
           },
           child: Text(
@@ -492,7 +488,7 @@ Future<void> _showAbandonConfirmDialog(
         ),
         TextButton(
           onPressed: () {
-            buttonHapticTap(dialogContext);
+            buttonTapFeedback(dialogContext);
             Navigator.of(dialogContext).pop();
             _abandonGame(context, ref);
           },

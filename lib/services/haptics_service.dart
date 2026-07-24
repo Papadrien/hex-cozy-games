@@ -6,8 +6,11 @@
 /// n'ont pas besoin de tester le réglage eux-mêmes.
 ///
 /// Deux familles de retours :
-///  - Boutons/UI : [buttonHapticTap], utilisable depuis n'importe quel widget
-///    (Consumer ou non) via son [BuildContext] — pas besoin d'accès à `ref`.
+///  - Boutons/UI : [buttonTapFeedback], utilisable depuis n'importe quel
+///    widget (Consumer ou non) via son [BuildContext] — pas besoin d'accès à
+///    `ref`. Combine le clic haptique et le clic sonore généré
+///    procéduralement (voir [AudioService.playButtonClick]) pour tout
+///    bouton qui ne possède pas déjà son propre bruitage dédié.
 ///  - Jeu (via [HapticsService], accessible par [hapticsServiceProvider]) :
 ///     - [HapticsService.tileRotated]   : un clic par cran de rotation.
 ///     - [HapticsService.tilePreviewed] : un clic léger à la sélection d'un
@@ -16,11 +19,14 @@
 ///       d'un placement (pièces / pièces bonus / tuiles bonus), voir sa doc.
 library;
 
+import 'dart:async';
+
 import 'package:flutter/material.dart' show BuildContext;
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/options_provider.dart';
+import 'audio_service.dart';
 
 /// Nombre maximal de pulsations jouées pour une même catégorie de récompense
 /// en un seul placement. Les améliorations peuvent multiplier fortement les
@@ -140,14 +146,27 @@ final hapticsServiceProvider = Provider<HapticsService>((ref) {
   return HapticsService(ref);
 });
 
-/// Retour haptique bref pour n'importe quel bouton de l'application.
+/// Retour bref — haptique et sonore — pour n'importe quel bouton de
+/// l'application.
+///
+/// Combine :
+///  - un clic haptique léger ([HapticFeedback.selectionClick]), sous
+///    réserve du réglage « Vibrations » ([OptionsState.vibrationEnabled]) ;
+///  - un clic sonore généré procéduralement, sans aucun fichier audio
+///    associé (voir [AudioService.playButtonClick]), sous réserve du
+///    réglage « Bruitages » ([OptionsState.sfxEnabled]).
 ///
 /// Utilisable depuis n'importe quel widget disposant d'un [BuildContext] —
 /// y compris les widgets `StatelessWidget` sans accès direct à `ref` — via le
 /// [ProviderContainer] déjà attaché à l'arbre de widgets par [ProviderScope].
-/// À placer en première instruction de chaque `onPressed`/`onTap` de bouton.
-void buttonHapticTap(BuildContext context) {
+/// À placer en première instruction de chaque `onPressed`/`onTap` de bouton
+/// qui ne déclenche pas déjà son propre bruitage dédié (ex. pose de tuile,
+/// gain de pièces) — pour ces boutons-là, le clic sonore générique serait
+/// redondant.
+void buttonTapFeedback(BuildContext context) {
   final container = ProviderScope.containerOf(context, listen: false);
-  if (!container.read(optionsProvider).vibrationEnabled) return;
-  HapticFeedback.selectionClick();
+  if (container.read(optionsProvider).vibrationEnabled) {
+    HapticFeedback.selectionClick();
+  }
+  unawaited(container.read(audioServiceProvider).playButtonClick());
 }

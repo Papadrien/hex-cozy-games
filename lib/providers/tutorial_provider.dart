@@ -16,11 +16,11 @@ const String _kHasSeenTutorialKey = 'hasSeenTutorial';
 
 /// Position du geste doigt pour les étapes ciblant le plateau : le plateau
 /// occupe tout l'écran (aucune zone en évidence précise n'est calculable),
-/// on ancre donc le geste sur le pivot visuel de la grille — mêmes
-/// fractions que le pivot utilisé par [HexGridComponent] et le shader
-/// d'océan (0.42, 0.38), pour rester cohérent avec l'endroit où les tuiles
-/// apparaissent réellement à l'écran.
-const Offset _kBoardHintAnchor = Offset(0.42, 0.40);
+/// on ancre donc le geste sur le pivot visuel de la grille — même fraction
+/// que le pivot utilisé par [HexGridComponent] (plateau centré à l'écran,
+/// 0.5/0.5), pour rester cohérent avec l'endroit où les tuiles apparaissent
+/// réellement à l'écran.
+const Offset _kBoardHintAnchor = Offset(0.5, 0.5);
 
 /// Position du geste doigt pour l'étape swipe (rotation) : décalée vers la
 /// droite de l'écran, là où le swipe de rotation est réellement effectué

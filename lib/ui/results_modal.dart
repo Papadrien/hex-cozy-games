@@ -17,8 +17,12 @@ import '../core/colors.dart';
 import '../core/snackbar_utils.dart';
 import '../core/strings.dart';
 import '../providers/end_game_provider.dart';
+import '../providers/grid_state_provider.dart';
 import '../providers/placement_commit.dart';
+import '../providers/session_provider.dart';
 import '../providers/session_restore.dart';
+import '../providers/tile_stack_provider.dart';
+import '../services/ad_service.dart';
 import '../services/audio_service.dart';
 import '../services/haptics_service.dart';
 
@@ -186,7 +190,7 @@ class _ResultsCard extends ConsumerWidget {
   }
 
   void _replay(BuildContext context, WidgetRef ref) {
-    buttonHapticTap(context);
+    buttonTapFeedback(context);
     SessionSaver.endSession(ref.container);
     startNewGame(ref);
     clearAppSnackBars();
@@ -194,8 +198,25 @@ class _ResultsCard extends ConsumerWidget {
   }
 
   void _goHome(BuildContext context, WidgetRef ref) {
-    buttonHapticTap(context);
+    buttonTapFeedback(context);
     SessionSaver.endSession(ref.container);
+    // Sans ce nettoyage complet (identique à _abandonGame dans
+    // pause_modal.dart), l'état de la partie terminée restait en mémoire
+    // (grille, pile à 0, session, isGameOverProvider toujours true) : au
+    // prochain "Reprendre" depuis l'accueil, restoreSession() ne trouvait
+    // plus de session active en base (déjà marquée inactive ci-dessus) et
+    // ne faisait donc rien, laissant GameScreen réafficher l'ancien
+    // plateau terminé avec la pop-up de résultats toujours ouverte.
+    ref.invalidate(activeSessionProvider);
+    // Voir le commentaire équivalent dans pause_modal.dart : force le
+    // nettoyage immédiat de la bannière AdMob pour éviter qu'elle ne
+    // bloque les taps sur l'accueil pendant la transition de route.
+    ref.invalidate(bannerAdProvider);
+    ref.read(sessionProvider.notifier).reset();
+    ref.read(lastPlacementProvider.notifier).set(null);
+    ref.read(gridProvider.notifier).reset();
+    ref.read(tileStackProvider.notifier).reset();
+    resetEndGame(ref);
     // '/' est le splash screen (précache polices/images + délai minimum) :
     // le réafficher ici provoquait un flash de splash inutile à chaque
     // retour à l'accueil après une partie. On va directement sur '/home'.

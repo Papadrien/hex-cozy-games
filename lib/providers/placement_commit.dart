@@ -126,6 +126,14 @@ class SessionSaver {
         'hatedDuration': stack.hatedDuration,
         'hatedStartCount': stack.hatedStartCount,
         'hatedActivated': stack.hatedActivated,
+        // Compteurs cumulatifs d'améliorations (Combo+/série de connexions) :
+        // sans eux, "Sauvegarder et quitter" perdait currentDoubleStreak,
+        // currentStreak et bestStreak à la reprise — contrairement à
+        // Annuler, qui les restaure déjà via SessionState.previousSession
+        // (voir SessionStateJson.toJson).
+        'currentStreak': session.currentStreak,
+        'bestStreak': session.bestStreak,
+        'currentDoubleStreak': session.currentDoubleStreak,
       });
 
       String? lastTileJson;

@@ -30,7 +30,7 @@ class PauseButton extends ConsumerWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(_kPauseButtonHitSize / 2),
         onTap: () {
-          buttonHapticTap(context);
+          buttonTapFeedback(context);
           ref.read(pauseProvider.notifier).pause();
         },
         child: const SizedBox(

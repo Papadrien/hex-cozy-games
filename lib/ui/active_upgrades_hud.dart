@@ -126,7 +126,7 @@ class _UpgradeSlotState extends ConsumerState<_UpgradeSlot>
   }
 
   void _showDescription(BuildContext context) {
-    buttonHapticTap(context);
+    buttonTapFeedback(context);
     final effectType = UpgradeEffectType.fromDb(widget.upgrade.effectType);
     showModalBottomSheet<void>(
       context: context,
@@ -226,7 +226,7 @@ class _UpgradeSlotState extends ConsumerState<_UpgradeSlot>
           borderWidth: glowAlpha > 0 ? 1.0 + glowAlpha : 1.0,
           onTap: canSwap
               ? () {
-                  buttonHapticTap(context);
+                  buttonTapFeedback(context);
                   swapHoldSlot(ref);
                 }
               : null,
@@ -271,7 +271,7 @@ class _UpgradeSlotState extends ConsumerState<_UpgradeSlot>
           borderWidth: isActive ? 1.5 : (glowAlpha > 0 ? 1.0 + glowAlpha : 1.0),
           onTap: canTap
               ? () {
-                  buttonHapticTap(context);
+                  buttonTapFeedback(context);
                   toggleSecondChanceMode(ref);
                 }
               : null,
@@ -315,7 +315,7 @@ class _UpgradeSlotState extends ConsumerState<_UpgradeSlot>
           onTap: activated
               ? null
               : () {
-                  buttonHapticTap(context);
+                  buttonTapFeedback(context);
                   activateHatedColor(ref);
                 },
           child: Opacity(

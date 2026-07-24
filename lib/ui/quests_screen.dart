@@ -1,7 +1,10 @@
 /// Écran des quêtes permanentes — Story 2.3b.
 ///
-/// Affiche toutes les quêtes (actives, complétées, verrouillées)
-/// organisées par catégorie.
+/// Affiche les quêtes actives et complétées (en attente de réclamation),
+/// organisées par catégorie. Les quêtes verrouillées (prédécesseur de
+/// chaîne pas encore complété) restent invisibles — pas de cadenas —
+/// jusqu'à leur déblocage ; les quêtes entièrement terminées (récompense
+/// réclamée) disparaissent de la liste (voir [_QuestsList._visibleQuests]).
 library;
 
 import 'dart:async';
@@ -66,7 +69,7 @@ class _QuestsList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final grouped = _groupByCategory(quests);
+    final grouped = _groupByCategory(_visibleQuests(quests));
     final completedCount = quests.where((q) => q.isCompleted).length;
 
     return ListView(
@@ -214,6 +217,20 @@ class _QuestsList extends StatelessWidget {
     ];
   }
 
+  /// Quêtes affichées dans la liste : les quêtes verrouillées (prédécesseur
+  /// de chaîne pas encore complété) restent invisibles — pas de cadenas —
+  /// et apparaissent dès qu'elles se débloquent ; les quêtes entièrement
+  /// terminées (récompense déjà réclamée) sont masquées pour ne pas
+  /// encombrer la liste. Une quête complétée mais dont la récompense n'a
+  /// pas encore été réclamée reste affichée (point rouge, voir
+  /// [_QuestCardState._isPendingClaim]).
+  List<PermanentQuestRow> _visibleQuests(List<PermanentQuestRow> all) {
+    return all
+        .where((q) => !(q.isCompleted && q.rewardClaimed))
+        .where((q) => _computeStatus(q, all) != _QuestStatus.locked)
+        .toList();
+  }
+
   Map<String, List<PermanentQuestRow>> _groupByCategory(
     List<PermanentQuestRow> quests,
   ) {
@@ -287,7 +304,7 @@ class _QuestsAppBar extends StatelessWidget {
           _QuestsGlassIconButton(
             icon: Icons.close,
             onPressed: () {
-              buttonHapticTap(context);
+              buttonTapFeedback(context);
               Navigator.of(context).pop();
             },
           ),
@@ -393,6 +410,7 @@ class _CategorySection extends StatelessWidget {
         ),
         const SizedBox(height: 10),
         ...quests.map((q) => Padding(
+              key: ValueKey(q.id),
               padding: const EdgeInsets.only(bottom: 8),
               child: _QuestCard(
                 quest: q,
@@ -498,6 +516,7 @@ class _QuestCardState extends ConsumerState<_QuestCard>
 
   Future<void> _handleClaim() async {
     if (!_isPendingClaim || _isClaiming) return;
+    buttonTapFeedback(context);
     setState(() => _isClaiming = true);
     unawaited(ref.read(hapticsServiceProvider).questRewardClaimed());
     unawaited(_claimController.forward(from: 0));
@@ -513,7 +532,6 @@ class _QuestCardState extends ConsumerState<_QuestCard>
     final progress = quest.targetValue > 0
         ? (quest.currentValue / quest.targetValue).clamp(0.0, 1.0)
         : 0.0;
-    final isLocked = status == _QuestStatus.locked;
     // Le point rouge et l'invite au tap disparaissent dès que le tap est
     // pris en compte, sans attendre l'aller-retour base de données.
     final showPendingClaimUi = _isPendingClaim && !_isClaiming;
@@ -584,7 +602,7 @@ class _QuestCardState extends ConsumerState<_QuestCard>
           child: GlassContainer(
             borderRadius: 14,
             tintColor: kGlassBlue,
-            tintAlpha: isLocked ? 0.10 : 0.22,
+            tintAlpha: 0.22,
             borderColor: showPendingClaimUi
                 ? kCoinAmber.withValues(alpha: 0.7)
                 : status == _QuestStatus.completed
@@ -602,28 +620,22 @@ class _QuestCardState extends ConsumerState<_QuestCard>
                       width: 36,
                       height: 36,
                       decoration: BoxDecoration(
-                        color: isLocked
-                            ? Colors.white.withValues(alpha: 0.08)
-                            : showPendingClaimUi
-                                ? kCoinAmber.withValues(alpha: 0.22)
-                                : color.withValues(alpha: 0.2),
+                        color: showPendingClaimUi
+                            ? kCoinAmber.withValues(alpha: 0.22)
+                            : color.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Icon(
-                        isLocked
-                            ? Icons.lock
-                            : showPendingClaimUi
-                                ? Icons.card_giftcard
-                                : status == _QuestStatus.completed
-                                    ? Icons.check_circle
-                                    : Icons.flag,
-                        color: isLocked
-                            ? Colors.white.withValues(alpha: 0.4)
-                            : showPendingClaimUi
-                                ? kCoinAmber
-                                : status == _QuestStatus.completed
-                                    ? color
-                                    : Colors.white,
+                        showPendingClaimUi
+                            ? Icons.card_giftcard
+                            : status == _QuestStatus.completed
+                                ? Icons.check_circle
+                                : Icons.flag,
+                        color: showPendingClaimUi
+                            ? kCoinAmber
+                            : status == _QuestStatus.completed
+                                ? color
+                                : Colors.white,
                         size: 20,
                       ),
                     ),
@@ -644,10 +656,8 @@ class _QuestCardState extends ConsumerState<_QuestCard>
                       // Description
                       Text(
                         quest.description,
-                        style: TextStyle(
-                          color: isLocked
-                              ? Colors.white.withValues(alpha: 0.5)
-                              : Colors.white,
+                        style: const TextStyle(
+                          color: Colors.white,
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
                         ),
@@ -662,11 +672,7 @@ class _QuestCardState extends ConsumerState<_QuestCard>
                             backgroundColor: Colors.white.withValues(
                               alpha: 0.1,
                             ),
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              isLocked
-                                  ? Colors.white.withValues(alpha: 0.25)
-                                  : color,
-                            ),
+                            valueColor: AlwaysStoppedAnimation<Color>(color),
                             minHeight: 6,
                           ),
                         ),
@@ -697,16 +703,11 @@ class _QuestCardState extends ConsumerState<_QuestCard>
                                         ),
                                       )
                                     : Text(
-                                        isLocked
-                                            ? context.tr.quests_status_locked
-                                            : '${quest.currentValue}/${quest.targetValue}',
+                                        '${quest.currentValue}/${quest.targetValue}',
                                         overflow: TextOverflow.ellipsis,
                                         style: TextStyle(
-                                          color: isLocked
-                                              ? Colors.white
-                                                  .withValues(alpha: 0.4)
-                                              : Colors.white
-                                                  .withValues(alpha: 0.7),
+                                          color: Colors.white
+                                              .withValues(alpha: 0.7),
                                           fontSize: 12,
                                         ),
                                       ),

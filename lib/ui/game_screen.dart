@@ -14,10 +14,9 @@ library;
 
 import 'dart:async';
 import 'dart:math' show sin, pi;
-import 'dart:ui' show FragmentProgram, FragmentShader, Offset;
+import 'dart:ui' as ui;
 import 'package:flame/game.dart' hide Matrix4;
 import 'package:flutter/material.dart';
-import 'package:flutter/scheduler.dart' show Ticker;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:google_mobile_ads/google_mobile_ads.dart';
@@ -412,7 +411,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                   height: kActiveUpgradeSlotSize,
                   onTap: canUndo
                       ? () {
-                          buttonHapticTap(context);
+                          buttonTapFeedback(context);
                           final target = _stackHudFlyTarget();
                           undoPlacement(
                             ref,
@@ -658,17 +657,23 @@ class _BannerAdWidget extends ConsumerWidget {
   }
 }
 
-/// Fond d'océan procédural généré par shader GLSL.
+/// Fond d'océan procédural — dégradés Flutter natifs (plus de shader GLSL).
 ///
-/// Remplace l'ancien [_ParallaxBackground] bitmap. Avantages :
-///   - Résolution infinie : aucun flou au zoom.
-///   - Infini dans toutes les directions : jamais de bord visible.
-///   - Animé : léger mouvement de l'eau (très lent, non intrusif).
+/// L'ancien shader `ocean.frag` n'avait plus d'animation réelle (uTime
+/// n'était plus utilisé) : il ne produisait qu'une couleur de fond unie, un
+/// dégradé de profondeur ancré à la grille hexagonale, et un vignettage fixe
+/// en espace écran. Faire tourner un `Ticker` + un fragment shader plein
+/// écran à chaque frame pour un résultat statique était donc du travail GPU
+/// pur perdu (contributeur direct à la chauffe/consommation). Ce widget
+/// reproduit exactement les mêmes trois couches avec `ui.Gradient.radial`
+/// (dégradés accélérés matériellement, natifs Skia) : le `CustomPainter` ne
+/// redessine que lorsque `offsetX`/`offsetY`/`zoom` changent réellement,
+/// c'est-à-dire lors d'un pan/zoom caméra — jamais en continu.
 ///
-/// Les coordonnées monde sont calculées avec le même pivot que
-/// [HexGridComponent._layout], ce qui garantit un ancrage parfait
-/// du motif à la grille hexagonale.
-class _OceanBackground extends StatefulWidget {
+/// Les coordonnées monde du dégradé de profondeur utilisent le même pivot
+/// que [HexGridComponent._layout], ce qui garantit un ancrage identique à
+/// l'ancien rendu shader.
+class _OceanBackground extends StatelessWidget {
   const _OceanBackground({
     required this.offsetX,
     required this.offsetY,
@@ -680,83 +685,114 @@ class _OceanBackground extends StatefulWidget {
   final double zoom;
 
   @override
-  State<_OceanBackground> createState() => _OceanBackgroundState();
-}
-
-class _OceanBackgroundState extends State<_OceanBackground>
-    with SingleTickerProviderStateMixin {
-  late final Ticker _ticker;
-  double _time = 0.0;
-  FragmentProgram? _program;
-
-  @override
-  void initState() {
-    super.initState();
-    _ticker = createTicker(_onTick)..start();
-    _loadShader();
-  }
-
-  void _onTick(Duration elapsed) {
-    setState(() {
-      _time = elapsed.inMicroseconds / 1e6;
-    });
-  }
-
-  Future<void> _loadShader() async {
-    try {
-      final program =
-          await FragmentProgram.fromAsset('assets/shaders/ocean.frag');
-      if (mounted) setState(() => _program = program);
-    } catch (e) {
-      debugPrint('OceanBackground: shader load failed: $e');
-    }
-  }
-
-  @override
-  void dispose() {
-    _ticker.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final program = _program;
-    if (program == null) {
-      return const ColoredBox(color: Color(0xFF42E0F5));
-    }
-
     final size = MediaQuery.sizeOf(context);
-    final shader = program.fragmentShader();
-
-    shader.setFloat(0, _time);
-    shader.setFloat(1, size.width);
-    shader.setFloat(2, size.height);
-    shader.setFloat(3, widget.offsetX);
-    shader.setFloat(4, widget.offsetY);
-    shader.setFloat(5, widget.zoom);
-
     return CustomPaint(
-      painter: _OceanPainter(shader: shader),
+      painter: _OceanPainter(offsetX: offsetX, offsetY: offsetY, zoom: zoom),
       size: size,
     );
   }
 }
 
 class _OceanPainter extends CustomPainter {
-  const _OceanPainter({required this.shader});
+  const _OceanPainter({
+    required this.offsetX,
+    required this.offsetY,
+    required this.zoom,
+  });
 
-  final FragmentShader shader;
+  final double offsetX;
+  final double offsetY;
+  final double zoom;
 
-  @override
-  void paint(Canvas canvas, Size size) {
-    canvas.drawRect(
-      Rect.fromLTWH(0, 0, size.width, size.height),
-      Paint()..shader = shader,
-    );
+  // Couleur de fond dominante = #40D2FF exact (identique à l'ancien
+  // shader : vec3(0.251, 0.824, 1.000)).
+  static const Color _cA = Color(0xFF40D2FF);
+  // Couleur "profonde" = cA mixée à 40% avec cA * (0.55, 0.68, 0.88),
+  // précalculée une fois (mix(cA, cA*deepFactor, 0.4) par canal).
+  static const Color _cDeep = Color(0xFF34B7F3);
+
+  // ── Dégradé de profondeur (ancré grille hexagonale) ─────────────────────
+  // Rayons monde d'origine : smoothstep(280, 900, length(world)). Le
+  // rapport 280/900 est constant quel que soit le zoom, donc les fractions
+  // de stops ci-dessous sont fixes ; seul le rayon extérieur (outerR)
+  // change avec le zoom.
+  static const double _innerRatio = 280.0 / 900.0;
+
+  static double _smoothstep(double t) => t * t * (3 - 2 * t);
+
+  Shader _depthShader(Offset pivot, double outerR) {
+    const steps = 6;
+    final colors = <Color>[_cA];
+    final stops = <double>[0.0, _innerRatio];
+    colors.add(_cA);
+    for (var i = 1; i <= steps; i++) {
+      final u = i / steps;
+      stops.add(_innerRatio + u * (1 - _innerRatio));
+      colors.add(Color.lerp(_cA, _cDeep, _smoothstep(u))!);
+    }
+    return ui.Gradient.radial(pivot, outerR, colors, stops);
+  }
+
+  // ── Vignettage (fixe en espace écran, indépendant du zoom/pan) ─────────
+  // Original : vigDist = length(screenUv - 0.5) avec screenUv normalisé
+  // par (largeur, hauteur) indépendamment — donc une ellipse en pixels,
+  // pas un cercle. Reproduite via une transformation d'échelle du canvas
+  // (scale non uniforme) autour d'un dégradé radial unitaire.
+  static const double _vigBrightEdge = 0.35; // vig = 1 (pas d'assombrissement)
+  static const double _vigDarkEdge = 0.85; // vig = 0 (assombrissement max)
+
+  Shader _vignetteShader() {
+    const steps = 6;
+    final colors = <Color>[Colors.transparent];
+    final stops = <double>[0.0, _vigBrightEdge];
+    colors.add(Colors.transparent);
+    for (var i = 1; i <= steps; i++) {
+      final u = i / steps;
+      final dist = _vigBrightEdge + u * (_vigDarkEdge - _vigBrightEdge);
+      stops.add(dist);
+      // color *= mix(0.82, 1.0, vig) <=> assombrir de (1 - mix) par-dessus
+      // en noir semi-transparent, vig décroissant de 1 à 0 sur ce segment.
+      final vig = 1 - _smoothstep(u);
+      final darken = 1 - (0.82 + 0.18 * vig);
+      colors.add(Colors.black.withValues(alpha: darken));
+    }
+    return ui.Gradient.radial(Offset.zero, 1.0, colors, stops);
   }
 
   @override
-  bool shouldRepaint(_OceanPainter oldDelegate) => true;
+  void paint(Canvas canvas, Size size) {
+    final rect = Offset.zero & size;
+
+    // 1) Fond uni.
+    canvas.drawRect(rect, Paint()..color = _cA);
+
+    // 2) Dégradé de profondeur ancré à la grille hexagonale.
+    final pivot = Offset(
+      offsetX + size.width * 0.42,
+      offsetY + size.height * 0.38,
+    );
+    final outerR = 900.0 * zoom;
+    if (outerR > 0) {
+      canvas.drawRect(rect, Paint()..shader = _depthShader(pivot, outerR));
+    }
+
+    // 3) Vignettage, ellipse fixe couvrant tout l'écran en espace écran.
+    canvas.save();
+    canvas.translate(size.width / 2, size.height / 2);
+    canvas.scale(size.width, size.height);
+    canvas.drawRect(
+      const Rect.fromLTWH(-0.5, -0.5, 1.0, 1.0),
+      Paint()..shader = _vignetteShader(),
+    );
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(_OceanPainter oldDelegate) =>
+      oldDelegate.offsetX != offsetX ||
+      oldDelegate.offsetY != offsetY ||
+      oldDelegate.zoom != zoom;
 }
 
 /// Bannière d'indication affichée pendant le mode sélection de Deuxième
