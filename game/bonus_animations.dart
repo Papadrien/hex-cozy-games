@@ -180,8 +180,10 @@ class CoinComponent extends PositionComponent {
     this.onImpact,
     int priority = 10,
     double staticAlpha = 0.85,
+    double startDelay = 0.0,
   })  : _radius = hexSize * 0.18,
         _alpha = animated ? null : staticAlpha,
+        _startDelay = startDelay,
         super(priority: priority);
 
   final double _radius;
@@ -199,6 +201,13 @@ class CoinComponent extends PositionComponent {
   /// l'impact visuel plutôt qu'anticipé de plusieurs centaines de ms.
   final VoidCallback? onImpact;
 
+  /// Délai avant que la pièce n'apparaisse et ne s'envole — permet
+  /// d'échelonner plusieurs pièces issues d'améliorations différentes
+  /// déclenchées sur la même pose (voir
+  /// [HexGridComponent.showCoinParticleFrom]), plutôt qu'un envol
+  /// simultané qui les rendrait indiscernables.
+  final double _startDelay;
+  double _delayElapsed = 0.0;
 
   double _life = 0.0;
   static const double _kDuration = 1.2;
@@ -220,7 +229,8 @@ class CoinComponent extends PositionComponent {
     if (flyTarget != null) {
       add(MoveEffect.to(
         flyTarget!,
-        EffectController(duration: 0.6, curve: Curves.easeInOut),
+        EffectController(
+            duration: 0.6, startDelay: _startDelay, curve: Curves.easeInOut),
       )..onComplete = () => onImpact?.call());
     }
   }
@@ -228,6 +238,10 @@ class CoinComponent extends PositionComponent {
   @override
   void update(double dt) {
     super.update(dt);
+    if (_delayElapsed < _startDelay) {
+      _delayElapsed += dt;
+      return;
+    }
     if (!animated) return;
     _life += dt;
     if (_life >= _kDuration) {
@@ -237,6 +251,7 @@ class CoinComponent extends PositionComponent {
 
   @override
   void render(Canvas canvas) {
+    if (_delayElapsed < _startDelay) return;
     final sprite = _sprite;
     if (sprite == null) return;
 

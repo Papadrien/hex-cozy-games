@@ -38,6 +38,7 @@ class HomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final activeSession = ref.watch(activeSessionProvider);
     final totalCoins = ref.watch(totalCoinsProvider);
+    final isWatchingAd = ref.watch(isWatchingRewardedAdProvider);
 
     // Story rate-us : propose la bottom sheet d'avis dès que
     // `player_stats.total_games_played` atteint le seuil — ne se déclenche
@@ -115,6 +116,19 @@ class HomeScreen extends ConsumerWidget {
               ],
             ),
           ),
+          // ── Blocage plein écran pendant le chargement/affichage de la
+          // rewarded ad — RewardedAd.load peut prendre plusieurs secondes
+          // avant que la pub ne s'affiche réellement, sans quoi l'utilisateur
+          // peut naviguer ailleurs (settings, shop, jouer) pendant ce temps.
+          if (isWatchingAd)
+            AbsorbPointer(
+              child: Container(
+                color: Colors.black.withValues(alpha: 0.45),
+                child: const Center(
+                  child: CircularProgressIndicator(color: kRewardGold),
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -425,7 +439,7 @@ class _CenterContentState extends ConsumerState<_CenterContent>
                   CoinIcon(size: 28),
                   SizedBox(width: 6),
                   Text(
-                    '+50',
+                    '+$kAdRewardedCoins',
                     style: TextStyle(
                       color: Colors.amber,
                       fontSize: 22,
@@ -701,6 +715,7 @@ class _RewardedAdButton extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final adAvailable = ref.watch(isDailyRewardAvailableProvider);
+    final isLoading = ref.watch(isWatchingRewardedAdProvider);
 
     return SizedBox(
       width: double.infinity,
@@ -714,39 +729,62 @@ class _RewardedAdButton extends ConsumerWidget {
         borderWidth: adAvailable ? 1.5 : 1,
         blurSigma: 10,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
-        onTap: adAvailable
+        // Désactivé pendant le chargement pour éviter un double tap, en plus
+        // du blocage plein écran posé par HomeScreen via
+        // isWatchingRewardedAdProvider.
+        onTap: adAvailable && !isLoading
             ? () async {
                 buttonTapFeedback(context);
-                final rewarded = await claimDailyReward(ref);
-                if (rewarded && context.mounted) {
-                  showAppSnackBar(
-                    SnackBar(
-                      content: Text(
-                          '+$kAdRewardedCoins ${context.tr.reward_coins}'),
-                      backgroundColor: Colors.green.withValues(alpha: 0.3),
-                      behavior: SnackBarBehavior.floating,
-                    ),
-                  );
+                ref.read(isWatchingRewardedAdProvider.notifier).state = true;
+                try {
+                  final rewarded = await claimDailyReward(ref);
+                  if (rewarded && context.mounted) {
+                    showAppSnackBar(
+                      SnackBar(
+                        content: Text(
+                            '+$kAdRewardedCoins ${context.tr.reward_coins}'),
+                        backgroundColor: Colors.green.withValues(alpha: 0.3),
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                  }
+                } finally {
+                  if (context.mounted) {
+                    ref.read(isWatchingRewardedAdProvider.notifier).state =
+                        false;
+                  }
                 }
               }
             : null,
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              adAvailable
-                  ? Icons.play_circle_outline
-                  : Icons.check_circle_outline,
-              size: 20,
-              color: adAvailable
-                  ? kRewardGold
-                  : Colors.white.withValues(alpha: 0.4),
-            ),
+            if (isLoading)
+              const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: kRewardGold,
+                ),
+              )
+            else
+              Icon(
+                adAvailable
+                    ? Icons.play_circle_outline
+                    : Icons.check_circle_outline,
+                size: 20,
+                color: adAvailable
+                    ? kRewardGold
+                    : Colors.white.withValues(alpha: 0.4),
+              ),
             const SizedBox(width: 8),
             Text(
-              adAvailable
-                  ? context.tr.ads_watchForCoins
-                  : context.tr.ads_comeBackTomorrow,
+              isLoading
+                  ? context.tr.ads_loading
+                  : adAvailable
+                      ? context.tr.ads_watchForCoins
+                      : context.tr.ads_comeBackTomorrow,
               style: TextStyle(
                 fontFamily: 'Nunito',
                 color: adAvailable

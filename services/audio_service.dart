@@ -47,17 +47,21 @@
 /// [playCoinsGained] / [playTilePlaced] — déclenché depuis [undoPlacement]
 /// (voir `undo_placement.dart`) à chaque annulation du dernier placement.
 ///
-/// Clic de bouton ([playButtonClick]) et clic de pose de tuile
-/// ([playTilePlaced]) : contrairement aux autres bruitages, ils ne sont
-/// associés à aucun fichier audio — leur forme d'onde est générée
+/// Clic de bouton ([playButtonClick]) : contrairement aux autres bruitages,
+/// il n'est associé à aucun fichier audio — sa forme d'onde est générée
 /// procéduralement en mémoire ([_generateClickWaveform], un bref clic dans
 /// la tonalité d'une touche de clavier mécanique : transitoire de bruit
 /// filtré + corps résonant à deux harmoniques, chacun avec sa propre
-/// décroissance exponentielle) puis jouée via [BytesSource]. Le clic de
-/// pose de tuile réutilise le même générateur avec des fréquences plus
-/// aiguës ([_kTileKnockFundamentalFreq]/[_kTileKnockHarmonicFreq]) que le
-/// clic de bouton, pour rester distinct à l'oreille. [playButtonClick] est
-/// pensé pour être déclenché par [buttonTapFeedback]
+/// décroissance exponentielle) puis jouée via [BytesSource].
+///
+/// Pose de tuile ([playTilePlaced]) : également générée procéduralement
+/// ([_generateTileKnockWaveform]), mais avec son propre timbre dédié plutôt
+/// que le clic de bouton — un "toc" de tuile en bois posée sur le plateau :
+/// un "thud" d'impact (bruit passe-bas, plus sourd qu'un clic) superposé à
+/// un corps résonant à deux partiels non harmoniques (timbre bois plutôt que
+/// cloche) avec un bref glissando de hauteur descendant au tout début
+/// (l'effet "plop" du mallet qui frappe puis se stabilise). [playButtonClick]
+/// est pensé pour être déclenché par [buttonTapFeedback]
 /// (voir `haptics_service.dart`) sur tout bouton de l'application qui ne
 /// possède pas déjà son propre bruitage dédié.
 library;
@@ -157,33 +161,56 @@ const double _kButtonKnockFundamentalFreq = 1100;
 /// au corps résonant son timbre plastique plutôt qu'un simple ton pur.
 const double _kButtonKnockHarmonicFreq = 2600;
 
-/// Durée du clic de pose de tuile généré, en millisecondes — un peu plus
-/// court que le clic de bouton ([_kButtonClickDurationMs]), cohérent avec
-/// sa tonalité plus aiguë et son corps résonant plus bref.
-const double _kTileClickDurationMs = 28;
+/// Durée du son de pose de tuile généré, en millisecondes — un peu plus
+/// long que le clic de bouton ([_kButtonClickDurationMs]) pour laisser le
+/// corps résonant en bois ([_kTileWoodDecayTauSeconds]) sonner brièvement,
+/// tout en restant assez bref pour des poses rapprochées.
+const double _kTileKnockDurationMs = 55;
 
-/// Constante de temps (secondes) de la décroissance du transitoire « tac »
-/// du clic de pose de tuile.
-const double _kTileTickDecayTauSeconds = 0.0018;
+/// Constante de temps (secondes) de la décroissance du "thud" d'impact
+/// (bruit basse fréquence) du son de pose de tuile — très rapide, pour un
+/// impact ponctuel plutôt qu'un souffle qui traîne.
+const double _kTileThudDecayTauSeconds = 0.006;
 
-/// Constante de temps (secondes) de la décroissance du corps résonant du
-/// clic de pose de tuile.
-const double _kTileKnockDecayTauSeconds = 0.008;
+/// Constante de temps (secondes) de la décroissance du corps résonant en
+/// bois du son de pose de tuile.
+const double _kTileWoodDecayTauSeconds = 0.02;
 
-/// Fréquence fondamentale (Hz) du corps résonant du clic de pose de
-/// tuile — plus aiguë que celle du clic de bouton
-/// ([_kButtonKnockFundamentalFreq]) pour rester distincte à l'oreille.
-const double _kTileKnockFundamentalFreq = 1550;
+/// Fréquence fondamentale (Hz) du corps résonant en bois du son de pose de
+/// tuile.
+const double _kTileWoodFundamentalFreq = 380;
 
-/// Fréquence de l'harmonique secondaire (Hz) du clic de pose de tuile.
-const double _kTileKnockHarmonicFreq = 3500;
+/// Fréquence du second partiel (Hz) du corps résonant en bois — rapport
+/// volontairement non harmonique avec [_kTileWoodFundamentalFreq] pour un
+/// timbre "bois"/"pierre" plutôt qu'un timbre "cloche" (partiels
+/// harmoniques).
+const double _kTileWoodPartialFreq = 520;
+
+/// Amplitude du glissando de hauteur (Hz) au tout début de l'impact du son
+/// de pose de tuile, qui redescend rapidement vers la fréquence de repos —
+/// simule le "plop" d'un objet qui frappe une surface puis se stabilise,
+/// plutôt qu'une hauteur constante du premier au dernier échantillon.
+const double _kTileWoodPitchBendHz = 90;
+
+/// Constante de temps (secondes) de la décroissance du glissando de
+/// hauteur ([_kTileWoodPitchBendHz]) — très rapide, quelques millisecondes,
+/// pour un effet perceptible seulement sur l'attaque du son.
+const double _kTileWoodPitchBendDecayTauSeconds = 0.006;
+
+/// Poids relatif du "thud" d'impact dans le mixage final du son de pose de
+/// tuile.
+const double _kTileThudMix = 0.5;
+
+/// Poids relatif du corps résonant en bois dans le mixage final du son de
+/// pose de tuile.
+const double _kTileWoodMix = 0.55;
 
 /// Poids relatif du transitoire « tac » (bruit filtré) dans le mixage
-/// final — commun aux deux clics (bouton et pose de tuile).
+/// final du clic de bouton ([_generateClickWaveform]).
 const double _kTickMix = 0.55;
 
-/// Poids relatif du corps résonant « thock » dans le mixage final — commun
-/// aux deux clics (bouton et pose de tuile).
+/// Poids relatif du corps résonant « thock » dans le mixage final du clic
+/// de bouton ([_generateClickWaveform]).
 const double _kKnockMix = 0.35;
 
 /// Facteur multiplicatif appliqué au réglage « Bruitages »
@@ -202,13 +229,13 @@ const double _kClickVolumeScale = 0.5;
 ///    ([knockFundamentalFreq] + [knockHarmonicFreq]) à décroissance un peu
 ///    plus longue ([knockDecayTauSeconds]), pour la caisse qui vibre
 ///    brièvement après l'impact.
-/// Paramétrée pour être réutilisée avec des fréquences différentes : le
-/// clic de bouton ([AudioService._clickWaveform]) et le clic de pose de
-/// tuile ([AudioService._tilePlacedClickWaveform], plus aigu) partagent ce
-/// même générateur. Encodé en PCM 16 bits mono puis enveloppé dans un
-/// en-tête WAV minimal par [_pcm16MonoToWav] pour être jouable directement
-/// via [BytesSource]. Calculé une seule fois par forme d'onde, à la
-/// construction du service.
+/// Paramétrée pour être réutilisée avec des fréquences différentes, mais
+/// aujourd'hui utilisée uniquement pour le clic de bouton
+/// ([AudioService._clickWaveform]) — la pose de tuile a son propre
+/// générateur dédié ([_generateTileKnockWaveform]). Encodé en PCM 16 bits
+/// mono puis enveloppé dans un en-tête WAV minimal par [_pcm16MonoToWav]
+/// pour être jouable directement via [BytesSource]. Calculé une seule fois
+/// par forme d'onde, à la construction du service.
 Uint8List _generateClickWaveform({
   required double durationMs,
   required double tickDecayTauSeconds,
@@ -219,9 +246,8 @@ Uint8List _generateClickWaveform({
 }) {
   final sampleCount = (_kClickSampleRate * durationMs / 1000).round();
   final samples = Int16List(sampleCount);
-  // Seed fixe : chaque forme d'onde n'a besoin d'être calculée qu'une seule
-  // fois (voir [AudioService._clickWaveform] /
-  // [AudioService._tilePlacedClickWaveform]), son contenu n'a donc pas
+  // Seed fixe : la forme d'onde n'a besoin d'être calculée qu'une seule
+  // fois (voir [AudioService._clickWaveform]), son contenu n'a donc pas
   // besoin d'être aléatoire d'un lancement de l'app à l'autre.
   final noiseRandom = Random(noiseSeed);
   var prevNoise = 0.0;
@@ -244,6 +270,61 @@ Uint8List _generateClickWaveform({
         knockEnvelope;
 
     final value = tick * _kTickMix + knock * _kKnockMix;
+    samples[i] = (value * 32767).round().clamp(-32768, 32767);
+  }
+  return _pcm16MonoToWav(samples, _kClickSampleRate);
+}
+
+/// Génère procéduralement le son de pose de tuile — sans aucun fichier
+/// audio associé — un "toc" évoquant une tuile en bois/pierre posée sur le
+/// plateau plutôt qu'un clic d'interface, en superposant deux composantes :
+///  - un "thud" d'impact : bruit blanc filtré passe-bas (moyenne mobile
+///    simple, à l'inverse du passe-haut du clic de bouton) à décroissance
+///    exponentielle très rapide ([_kTileThudDecayTauSeconds]), pour un
+///    impact sourd plutôt qu'un claquement sec ;
+///  - un corps résonant "bois" : deux sinusoïdes à des fréquences non
+///    harmoniques ([_kTileWoodFundamentalFreq] / [_kTileWoodPartialFreq],
+///    timbre bois/pierre plutôt que cloche), affectées d'un bref glissando
+///    de hauteur descendant ([_kTileWoodPitchBendHz], calculé par
+///    accumulation de phase pour rester continu) qui simule le "plop" de
+///    l'impact avant que la hauteur ne se stabilise, avec une décroissance
+///    un peu plus longue que le thud ([_kTileWoodDecayTauSeconds]).
+/// Encodé en PCM 16 bits mono puis enveloppé dans un en-tête WAV minimal
+/// par [_pcm16MonoToWav]. Calculé une seule fois, à la construction du
+/// service (voir [AudioService._tilePlacedKnockWaveform]).
+Uint8List _generateTileKnockWaveform() {
+  final sampleCount =
+      (_kClickSampleRate * _kTileKnockDurationMs / 1000).round();
+  final samples = Int16List(sampleCount);
+  // Seed fixe : la forme d'onde n'a besoin d'être calculée qu'une seule
+  // fois, son contenu n'a donc pas besoin d'être aléatoire d'un lancement
+  // de l'app à l'autre.
+  final noiseRandom = Random(29);
+  final dt = 1 / _kClickSampleRate;
+  var lowPassState = 0.0;
+  var phaseFundamental = 0.0;
+  var phasePartial = 0.0;
+  for (var i = 0; i < sampleCount; i++) {
+    final t = i / _kClickSampleRate;
+
+    // Thud d'impact : bruit blanc lissé par une moyenne mobile (passe-bas
+    // simple) pour un "boum" sourd plutôt qu'un claquement métallique.
+    final rawNoise = noiseRandom.nextDouble() * 2 - 1;
+    lowPassState += (rawNoise - lowPassState) * 0.35;
+    final thud = lowPassState * exp(-t / _kTileThudDecayTauSeconds);
+
+    // Corps résonant "bois" : glissando de hauteur descendant au tout
+    // début (accumulation de phase pour éviter toute discontinuité),
+    // superposant fondamentale et partiel non harmonique.
+    final bend =
+        _kTileWoodPitchBendHz * exp(-t / _kTileWoodPitchBendDecayTauSeconds);
+    phaseFundamental += 2 * pi * (_kTileWoodFundamentalFreq + bend) * dt;
+    phasePartial += 2 * pi * (_kTileWoodPartialFreq + bend) * dt;
+    final woodEnvelope = exp(-t / _kTileWoodDecayTauSeconds);
+    final wood =
+        (sin(phaseFundamental) + 0.5 * sin(phasePartial)) * woodEnvelope;
+
+    final value = thud * _kTileThudMix + wood * _kTileWoodMix;
     samples[i] = (value * 32767).round().clamp(-32768, 32767);
   }
   return _pcm16MonoToWav(samples, _kClickSampleRate);
@@ -357,19 +438,13 @@ class AudioService {
     noiseSeed: 7,
   );
 
-  /// Forme d'onde du clic de pose de tuile, générée une seule fois — mêmes
-  /// composantes que [_clickWaveform] (transitoire + corps résonant) mais
-  /// avec des fréquences plus aiguës ([_kTileKnockFundamentalFreq] /
-  /// [_kTileKnockHarmonicFreq]), pour rester distincte à l'oreille du clic
-  /// de bouton. Voir [playTilePlaced].
-  final Uint8List _tilePlacedClickWaveform = _generateClickWaveform(
-    durationMs: _kTileClickDurationMs,
-    tickDecayTauSeconds: _kTileTickDecayTauSeconds,
-    knockDecayTauSeconds: _kTileKnockDecayTauSeconds,
-    knockFundamentalFreq: _kTileKnockFundamentalFreq,
-    knockHarmonicFreq: _kTileKnockHarmonicFreq,
-    noiseSeed: 13,
-  );
+  /// Forme d'onde du son de pose de tuile, générée une seule fois (voir
+  /// [_generateTileKnockWaveform]) puis rejouée à chaque appel de
+  /// [playTilePlaced] — évite de la recalculer à chaque pose. Timbre dédié
+  /// ("toc" de tuile en bois/pierre) plutôt qu'une réutilisation du clic de
+  /// bouton, pour rester distinct à l'oreille et cohérent avec l'action de
+  /// jeu qu'il accompagne.
+  final Uint8List _tilePlacedKnockWaveform = _generateTileKnockWaveform();
 
   bool get _musicEnabled => _ref.read(optionsProvider).musicEnabled;
   bool get _sfxEnabled => _ref.read(optionsProvider).sfxEnabled;
@@ -431,14 +506,32 @@ class AudioService {
   /// [resumeMusicFromBackground]. Sans effet sur les bruitages ponctuels
   /// (pool SFX, tile gain), qui n'ont pas vocation à continuer en tâche de
   /// fond de toute façon.
-  Future<void> pauseMusicForBackground() async {
-    await _musicPlayer.pause();
-  }
+  Future<void> pauseMusicForBackground() => _pauseMusicPlayer();
 
   /// Reprend la musique de fond interrompue par [pauseMusicForBackground] au
   /// retour au premier plan ([AppLifecycleState.resumed]). Ne fait rien si
   /// aucune piste n'a jamais été lancée.
-  Future<void> resumeMusicFromBackground() async {
+  Future<void> resumeMusicFromBackground() => _resumeMusicPlayer();
+
+  /// Met en pause la musique de fond (accueil ou partie) pendant qu'une pub
+  /// plein écran est à l'affichage — rewarded (voir `home_screen.dart`,
+  /// `_RewardedAdButton`) ou interstitielle (voir `game_screen.dart`,
+  /// déclenchement toutes les [kAdInterstitialFrequency] tuiles). Même
+  /// mécanique que [pauseMusicForBackground] : conserve la position de
+  /// lecture pour une reprise transparente via [resumeMusicFromAd].
+  Future<void> pauseMusicForAd() => _pauseMusicPlayer();
+
+  /// Reprend la musique interrompue par [pauseMusicForAd], une fois la pub
+  /// fermée (visionnage complet, fermeture anticipée, ou échec
+  /// d'affichage — toujours appelé pour ne jamais laisser la musique
+  /// coupée).
+  Future<void> resumeMusicFromAd() => _resumeMusicPlayer();
+
+  Future<void> _pauseMusicPlayer() async {
+    await _musicPlayer.pause();
+  }
+
+  Future<void> _resumeMusicPlayer() async {
     if (_currentTrack == null) return;
     await _musicPlayer.resume();
   }
@@ -475,12 +568,13 @@ class AudioService {
   }
 
   /// Arrivée d'une tuile posée à sa position finale (fin du rebond). Comme
-  /// [playButtonClick], il s'agit d'un clic généré procéduralement
-  /// ([_tilePlacedClickWaveform]) plutôt que d'un fichier audio — même
-  /// principe (transitoire + corps résonant) mais dans une tonalité plus
-  /// aiguë, pour rester distinct du clic de bouton d'interface. Pioche dans
-  /// le même pool tournant que [_playSfx] pour laisser plusieurs poses se
-  /// chevaucher sans se couper, avec la même variation de hauteur.
+  /// [playButtonClick], il s'agit d'un son généré procéduralement
+  /// ([_tilePlacedKnockWaveform]) plutôt que d'un fichier audio, mais avec
+  /// son propre timbre dédié ("toc" de tuile en bois/pierre — voir
+  /// [_generateTileKnockWaveform]) plutôt qu'une réutilisation du clic de
+  /// bouton d'interface. Pioche dans le même pool tournant que [_playSfx]
+  /// pour laisser plusieurs poses se chevaucher sans se couper, avec la
+  /// même variation de hauteur.
   Future<void> playTilePlaced() async {
     if (!_sfxEnabled) return;
     final player = _sfxPool[_sfxCursor];
@@ -489,7 +583,7 @@ class AudioService {
     await player.stop();
     await player.setVolume(_sfxVolume);
     await player.setPlaybackRate(pitch);
-    await player.play(BytesSource(_tilePlacedClickWaveform));
+    await player.play(BytesSource(_tilePlacedKnockWaveform));
   }
 
   /// Joue `tile_gain.mp3` à chaque tuile bonus qui arrive sur la pile HUD

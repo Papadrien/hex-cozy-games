@@ -44,8 +44,8 @@ final kBestGameCoinsQuest = PermanentQuestsCompanion.insert(
   category: QuestCategory.bestGameCoins.dbValue,
   description: 'Gagner 500 pièces en une seule partie',
   targetValue: 500,
-  rewardType: RewardType.upgradeUnlock.dbValue,
-  rewardValue: 0,
+  rewardType: RewardType.coins.dbValue,
+  rewardValue: 200,
 );
 
 /// Quêtes record "cluster couleur" (forêt/eau/plaine/montagne).
@@ -489,7 +489,6 @@ final _upgrades = [
     unlockConditionType: 'village_10',
     unlockConditionValue: 10,
   ),
-  kJackpotPlusUpgrade,
 
   // Story A5 — déblocage uniquement. L'effet réel (bonus % pièces par
   // biome) est branché en Story B1 ; les upgrades ci-dessous restent
@@ -601,16 +600,6 @@ final kBiomesClosedExtensionUpgrades = [
     unlockConditionValue: 100,
   ),
 ];
-
-/// Amélioration débloquée par la quête record "best_game_coins_500" (500
-/// pièces gagnées en une seule partie).
-final kJackpotPlusUpgrade = UpgradesCompanion.insert(
-  id: 'jackpot_plus',
-  name: 'Jackpot+',
-  effectType: UpgradeEffectType.coinsPercentBonus.dbValue,
-  unlockConditionType: 'best_game_coins_500',
-  unlockConditionValue: 500,
-);
 
 /// Millionnaire (debug) : crédite 1 000 000 pièces sur le profil.
 final kMillionaireUpgrade = UpgradesCompanion.insert(

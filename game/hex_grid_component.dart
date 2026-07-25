@@ -44,6 +44,11 @@ const double kPreviewAlpha = 1.0;
 /// visuellement de la tuile plutôt que de sembler posée dessus.
 const double kPreviewCoinOffsetPx = 20.0;
 
+/// Surélévation supplémentaire (en pixels écran), en plus de [kPreviewLiftPx],
+/// de l'icône de tuile bonus centrée sur la prévisualisation — pour qu'elle
+/// se détache mieux au-dessus de la tuile plutôt que de sembler posée dessus.
+const double kPreviewBonusExtraLiftPx = 5.0;
+
 /// Nombre maximum d'icônes de tuile bonus envoyées individuellement (effet
 /// "machine à sous" échelonné) sur une même pose. Au-delà, le surplus est
 /// regroupé dans la dernière icône affichée pour éviter de surcharger
@@ -84,6 +89,12 @@ class HexGridComponent extends PositionComponent {
       : super(position: Vector2.zero(), priority: 0);
 
   Vector2 screenSize;
+
+  /// Position du compteur de pièces en haut à gauche (coordonnées jeu) —
+  /// cible de vol partagée par [showRewardIndicators] (pièces de connexion)
+  /// et [showCoinParticleFrom] (pièces bonus des améliorations Pièces+/
+  /// Rouge+/Vert+/Bleu+/Jaune+/Violet+).
+  static final Vector2 _coinCounterTarget = Vector2(26, 85);
 
   /// Appelé lorsqu'une tuile posée en animé atteint sa position finale (fin
   /// du rebond). Permet au [FlameGame] parent de déclencher un bruitage
@@ -309,9 +320,14 @@ class HexGridComponent extends PositionComponent {
     // Tuile bonus centrée sur la prévisualisation (story 1.7e) — même
     // surélévation ([kPreviewLiftPx]) que le [TileComponent] de
     // prévisualisation (voir [_syncPreviewComponent]) pour être bien
-    // centrée dessus plutôt qu'à mi-hauteur entre le sol et la tuile.
+    // centrée dessus plutôt qu'à mi-hauteur entre le sol et la tuile, plus
+    // [kPreviewBonusExtraLiftPx] pour se détacher visuellement au-dessus de
+    // la tuile plutôt que de sembler posée dessus.
     if (previewBonusTiles > 0) {
-      final pos = Vector2(center.x, center.y - kPreviewLiftPx);
+      final pos = Vector2(
+        center.x,
+        center.y - kPreviewLiftPx - kPreviewBonusExtraLiftPx,
+      );
       final component = PreviewBonusComponent(
         position: pos,
         hexSize: hexSize,
@@ -558,9 +574,6 @@ class HexGridComponent extends PositionComponent {
     final centerVec = Vector2(center.x, center.y);
     final hexSize = kHexSize * zoom;
 
-    // Position du compteur de pièces en haut à gauche (coordonnées jeu).
-    final coinCounterTarget = Vector2(26, 85);
-
     // Pièces volant vers le compteur depuis chaque côté connecté. Toutes
     // les pièces d'un même placement s'envolent en même temps (même durée
     // de vol) et atterrissent donc quasi simultanément — un `onImpact` par
@@ -582,7 +595,7 @@ class HexGridComponent extends PositionComponent {
         position: pos,
         hexSize: hexSize,
         animated: true,
-        flyTarget: coinCounterTarget,
+        flyTarget: _coinCounterTarget,
         onImpact: i == 0
             ? () => onCoinImpact?.call(connectedSides.length)
             : null,
@@ -638,6 +651,30 @@ class HexGridComponent extends PositionComponent {
       flyTarget: flyTarget,
       onImpact: onImpact,
       totalBonusTiles: count,
+    ));
+  }
+
+  /// Fait s'envoler une pièce depuis [origin] (coordonnées jeu, hors
+  /// plateau) vers le compteur de pièces — même animation ([CoinComponent])
+  /// que celles jouées depuis les côtés connectés dans
+  /// [showRewardIndicators]. Utilisée par les améliorations de gain de
+  /// pièces (Pièces+ global, Rouge+/Vert+/Bleu+/Jaune+/Violet+ par
+  /// biome) : comme pour la particule dédiée de Combo+
+  /// ([showBonusParticleFrom]), ce gain n'est lié à aucun côté de la tuile
+  /// posée, donc la pièce part de l'icône de l'amélioration dans l'encart
+  /// HUD plutôt que de la tuile. [startDelay] permet d'échelonner plusieurs
+  /// particules si plusieurs améliorations se déclenchent sur la même pose.
+  void showCoinParticleFrom(Vector2 origin,
+      {VoidCallback? onImpact, double startDelay = 0.0}) {
+    final hexSize = kHexSize * zoom;
+    add(CoinComponent(
+      position: origin.clone(),
+      hexSize: hexSize,
+      animated: true,
+      flyTarget: _coinCounterTarget,
+      onImpact: onImpact,
+      startDelay: startDelay,
+      priority: kTileDepthPriorityPreview + 1,
     ));
   }
 

@@ -5,7 +5,7 @@
 ///   - CONNECTION_BONUS_MULTIPLIER : ajoute des tuiles bonus fixes sur les
 ///     connexions quintuple/sextuple (Tuile bonus)
 ///   - COINS_THRESHOLD : accorde 1 pièce bonus si le nombre de pièces de base
-///     gagnées sur la pose atteint un seuil (Pièces+, Jackpot+)
+///     gagnées sur la pose atteint un seuil (Pièces+)
 ///   - BIOME_COINS_THRESHOLD : accorde 1 pièce bonus si le nombre de côtés
 ///     d'un biome connectés sur la pose atteint un seuil (Rouge+/Vert+/Bleu+/
 ///     Jaune+/Violet+)
@@ -47,7 +47,7 @@ class GameEffectsService {
   /// Calcule les pièces finales après application des bonus — Story 2.8b / B1
   /// (revisité : modèle seuil « 1 pièce bonus si ≥ N » non-cumulable).
   ///
-  /// Pour chaque type d'amélioration active (Pièces+/Jackpot+ global, et
+  /// Pour chaque type d'amélioration active (Pièces+ global, et
   /// Rouge+/Vert+/Bleu+/Jaune+/Violet+ par biome), accorde exactement 1 pièce
   /// bonus si la condition de seuil est remplie :
   ///   - bonus global : [baseCoins] ≥ [coinsThreshold]

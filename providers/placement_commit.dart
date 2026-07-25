@@ -193,6 +193,7 @@ Future<void> confirmPlacement(
           {int bonusCoins})
       onConfirm,
   void Function(int count)? onComboBonusTiles,
+  void Function(Set<UpgradeEffectType> types)? onCoinBonusTypes,
 }) async {
   final p = ref.read(placementProvider);
   final tile = ref.read(placementProvider.notifier).previewTile;
@@ -210,12 +211,12 @@ Future<void> confirmPlacement(
   _placeTileOnGrid(ref, coords, tile);
   onConfirm(coords, tile, reward.connectedSides, reward.bonusTiles,
       bonusCoins: reward.bonusCoins);
-  final (appliedReward, totalBonusTilesAdded, comboBonusTilesCount) =
+  final (appliedReward, totalBonusTilesAdded, comboBonusTilesCount, coinBonusTypes) =
       _applyReward(ref, coords, tile, reward);
   _recordPlacement(
       ref, coords, tile, appliedReward, totalBonusTilesAdded, previousSession);
   _triggerPlacementHaptics(ref, appliedReward);
-  _triggerPlacementAudio(ref, appliedReward);
+  _triggerPlacementAudio(ref, appliedReward, coinBonusTypes);
   // Combo+ génère sa tuile bonus indépendamment des côtés connectés de la
   // tuile posée : sa particule part donc de l'icône de l'amélioration
   // (voir [HexBoardGame.spawnComboBonusParticle]) plutôt que de la tuile,
@@ -223,23 +224,32 @@ Future<void> confirmPlacement(
   if (comboBonusTilesCount > 0) {
     onComboBonusTiles?.call(comboBonusTilesCount);
   }
+  // Idem pour les pièces bonus (Pièces+/Rouge+/Vert+/Bleu+/Jaune+/
+  // Violet+) : voir [HexBoardGame.spawnCoinBonusParticles].
+  if (coinBonusTypes.isNotEmpty) {
+    onCoinBonusTypes?.call(coinBonusTypes);
+  }
   _advanceStack(ref, reward.connectedSides.length);
   await SessionSaver.save(ref);
   _checkGameOver(ref);
 }
 
 /// Déclenche le bruitage de gain de pièces (`coin.mp3`) pour les pièces
-/// "bonus" (seuils Pièces+/Jackpot+/biomes) uniquement : contrairement aux
-/// pièces "de base" (une par côté connecté), celles-ci n'ont pas de pièce
-/// volante correspondante à l'écran (voir [HexGridComponent.showRewardIndicators]),
-/// donc rien ne peut synchroniser leur son sur un impact visuel — elles sont
-/// donc jouées ici, à la pose. Les pièces de base, elles, jouent leur son
-/// individuellement à l'arrivée de leur particule sur le compteur (voir
+/// "bonus" (seuils Pièces+/biomes) qui n'ont pas de particule
+/// volante dédiée sur cette pose (voir [coinBonusTypes] /
+/// [HexBoardGame.spawnCoinBonusParticles]). Les pièces bonus animées, elles,
+/// jouent leur son à l'arrivée de leur particule sur le compteur (voir
 /// [HexBoardGame.onCoinImpact] dans `game_screen.dart`), pour rester
-/// synchronisées avec l'animation plutôt que de l'anticiper.
-void _triggerPlacementAudio(ProviderContainer ref, PlacementReward reward) {
-  if (reward.bonusCoins <= 0) return;
-  ref.read(audioServiceProvider).playCoinsGained(reward.bonusCoins);
+/// synchronisées avec l'animation plutôt que de l'anticiper — même logique
+/// que les pièces "de base" (une par côté connecté).
+void _triggerPlacementAudio(
+  ProviderContainer ref,
+  PlacementReward reward,
+  Set<UpgradeEffectType> coinBonusTypes,
+) {
+  final unanimatedBonusCoins = reward.bonusCoins - coinBonusTypes.length;
+  if (unanimatedBonusCoins <= 0) return;
+  ref.read(audioServiceProvider).playCoinsGained(unanimatedBonusCoins);
 }
 
 /// Déclenche les retours haptiques associés à un placement : une vibration
@@ -295,8 +305,12 @@ void _recordPlacement(
 /// bonus générées spécifiquement par Combo+ sur cette pose (0 si non
 /// déclenché), pour piloter la particule dédiée qui part de l'icône de
 /// l'amélioration plutôt que de la tuile posée (voir
-/// [HexBoardGame.spawnComboBonusParticle]).
-(PlacementReward, int, int) _applyReward(
+/// [HexBoardGame.spawnComboBonusParticle]) — et enfin l'ensemble des types
+/// d'amélioration de gain de pièces (Pièces+/Rouge+/Vert+/Bleu+/Jaune+/
+/// Jaune+/Violet+) ayant effectivement rapporté 1 pièce bonus sur cette
+/// pose, pour la même raison côté pièces (voir
+/// [HexBoardGame.spawnCoinBonusParticles]).
+(PlacementReward, int, int, Set<UpgradeEffectType>) _applyReward(
     ProviderContainer ref, HexCoords pos, HexTile tile, PlacementReward reward) {
   if (reward.connectedSides.isEmpty && reward.bonusTiles == 0) {
     ref.read(sessionProvider.notifier).addReward(reward);
@@ -304,7 +318,7 @@ void _recordPlacement(
     // déclenché) pour que l'encart des améliorations actives puisse malgré
     // tout réagir à l'évènement pose si besoin.
     ref.read(upgradeFeedbackProvider.notifier).reportTriggered(const {});
-    return (reward, 0, 0);
+    return (reward, 0, 0, const {});
   }
   // Story B12a — accumule au fil du calcul les UpgradeEffectType ayant
   // effectivement produit un bonus sur CETTE pose, pour piloter le feedback
@@ -337,7 +351,7 @@ void _recordPlacement(
   );
   ref.read(sessionProvider.notifier).addReward(applied, forcedCoins: totalCoins);
 
-  // Seuils pièces (Pièces+/Jackpot+ global + Rouge+/Vert+/Bleu+/Jaune+/
+  // Seuils pièces (Pièces+ global + Rouge+/Vert+/Bleu+/Jaune+/
   // Violet+ par biome) — même logique que
   // [GameEffectsService.applyCoinBonuses], dupliquée pour identifier QUEL
   // seuil précis a été franchi sur cette pose.
@@ -429,7 +443,23 @@ void _recordPlacement(
   }
 
   ref.read(upgradeFeedbackProvider.notifier).reportTriggered(triggeredTypes);
-  return (applied, totalBonusTilesAdded, comboBonusTilesCount);
+
+  // Sous-ensemble de triggeredTypes correspondant aux améliorations de gain
+  // de pièces (par opposition aux tuiles bonus : Combo+/Bonus de clôture/
+  // Tuile bonus) — chacune de ces 6 n'accorde jamais plus d'1 pièce
+  // non-cumulable par pose (voir [GameEffectsService.applyCoinBonuses]),
+  // donc une particule par type suffit à représenter le gain.
+  const kCoinBonusEffectTypes = {
+    UpgradeEffectType.coinsPercentBonus,
+    UpgradeEffectType.villageCoinsPercentBonus,
+    UpgradeEffectType.forestCoinsPercentBonus,
+    UpgradeEffectType.waterCoinsPercentBonus,
+    UpgradeEffectType.plainCoinsPercentBonus,
+    UpgradeEffectType.mountainCoinsPercentBonus,
+  };
+  final coinBonusTypes = triggeredTypes.intersection(kCoinBonusEffectTypes);
+
+  return (applied, totalBonusTilesAdded, comboBonusTilesCount, coinBonusTypes);
 }
 
 void _advanceStack(ProviderContainer ref, int connectedSidesCount) {

@@ -41,6 +41,7 @@ import 'package:flame/game.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/game_enums.dart' show UpgradeEffectType;
 import '../providers/grid_state_provider.dart';
 import '../providers/pause_provider.dart';
 import '../providers/placement_provider.dart';
@@ -49,6 +50,7 @@ import '../providers/second_chance_ops.dart';
 import '../providers/second_chance_provider.dart';
 import '../services/audio_service.dart';
 import '../services/haptics_service.dart';
+import 'bonus_animations.dart' show kBonusIconStaggerInterval;
 import 'hex_coords.dart';
 import 'hex_grid_component.dart';
 import 'hex_tile.dart';
@@ -71,6 +73,14 @@ class HexBoardGame extends FlameGame
   /// déclenchée par [spawnComboBonusParticle]. Null = amélioration non
   /// sélectionnée dans le build en cours (pas d'animation possible).
   Vector2? Function()? getComboUpgradeOrigin;
+
+  /// Retourne la position (coordonnées jeu) de l'icône de l'amélioration
+  /// [type] dans l'encart des améliorations actives — point de départ des
+  /// particules pièces dédiées déclenchées par [spawnCoinBonusParticles]
+  /// (Pièces+ global, Rouge+/Vert+/Bleu+/Jaune+/Violet+ par biome).
+  /// Null = amélioration non sélectionnée dans le build en cours (pas
+  /// d'animation possible).
+  Vector2? Function(UpgradeEffectType type)? getCoinUpgradeOrigin;
 
   /// Appelé à chaque fois qu'une icône de tuile bonus arrive sur la pile
   /// HUD — permet au widget Flutter du HUD de faire "pop" le compteur en
@@ -267,6 +277,34 @@ class HexBoardGame extends FlameGame
         flyTarget: getBonusFlyTarget?.call(), onImpact: onBonusImpact);
   }
 
+  /// Déclenche une particule "pièce" par amélioration de gain de pièces
+  /// (Pièces+ global, Rouge+/Vert+/Bleu+/Jaune+/Violet+ par biome)
+  /// ayant effectivement rapporté 1 pièce bonus sur cette pose. Ce bonus
+  /// n'étant jamais cumulable (au plus 1 pièce par type et par pose — voir
+  /// [GameEffectsService.applyCoinBonuses]), une seule particule par type
+  /// suffit à représenter le gain.
+  ///
+  /// Comme pour Combo+ ([spawnComboBonusParticle]), ce gain n'est lié à
+  /// aucun côté de la tuile posée : chaque particule part donc de l'icône
+  /// de son amélioration dans l'encart HUD ([getCoinUpgradeOrigin]) plutôt
+  /// que de la tuile, vers le compteur de pièces. Si plusieurs types se
+  /// déclenchent sur la même pose, leurs particules sont légèrement
+  /// échelonnées plutôt que simultanées.
+  void spawnCoinBonusParticles(Set<UpgradeEffectType> types) {
+    var i = 0;
+    for (final type in types) {
+      final origin = getCoinUpgradeOrigin?.call(type);
+      if (origin != null) {
+        _grid?.showCoinParticleFrom(
+          origin,
+          startDelay: i * kBonusIconStaggerInterval,
+          onImpact: () => onCoinImpact?.call(1),
+        );
+      }
+      i++;
+    }
+  }
+
   /// Retire une tuile du rendu Flame (appelé depuis le bouton Annuler).
   ///
   /// [flyTarget] : position (coordonnées jeu) de la pile de prévisualisation
@@ -410,7 +448,8 @@ class HexBoardGame extends FlameGame
     // via l'abonnement Riverpod (voir [_setupPreviewListeners]).
     await confirmPlacement(_container,
         onConfirm: placeTileOnFlame,
-        onComboBonusTiles: spawnComboBonusParticle);
+        onComboBonusTiles: spawnComboBonusParticle,
+        onCoinBonusTypes: spawnCoinBonusParticles);
   }
 
   // ── Pan / Zoom / Rotation (via ScaleGestureRecognizer) ──────────────────

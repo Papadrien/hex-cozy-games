@@ -15,6 +15,7 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../core/constants.dart';
 import '../data/app_database.dart';
 import '../providers/player_profile_provider.dart';
+import 'audio_service.dart';
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -95,19 +96,27 @@ final adTilesPlacedProvider =
     NotifierProvider<AdTilesPlacedNotifier, int>(AdTilesPlacedNotifier.new);
 
 /// Charge et affiche une interstitielle AdMob. Retourne immédiatement
-/// si le chargement échoue (pas de crash).
-Future<void> showInterstitialAd() async {
+/// si le chargement échoue (pas de crash). Met en pause la musique de fond
+/// (partie en cours) pendant l'affichage de la pub, et la reprend
+/// systématiquement à sa fermeture (fermeture normale ou échec d'affichage),
+/// voir [AudioService.pauseMusicForAd] / [resumeMusicFromAd].
+Future<void> showInterstitialAd(WidgetRef ref) async {
   await InterstitialAd.load(
     adUnitId: _interstitialAdUnitId,
     request: const AdRequest(),
     adLoadCallback: InterstitialAdLoadCallback(
       onAdLoaded: (ad) {
         ad.fullScreenContentCallback = FullScreenContentCallback(
+          onAdShowedFullScreenContent: (ad) {
+            ref.read(audioServiceProvider).pauseMusicForAd();
+          },
           onAdDismissedFullScreenContent: (ad) {
+            ref.read(audioServiceProvider).resumeMusicFromAd();
             ad.dispose();
           },
           onAdFailedToShowFullScreenContent: (ad, error) {
             debugPrint('[AdMob] Interstitial show failed: $error');
+            ref.read(audioServiceProvider).resumeMusicFromAd();
             ad.dispose();
           },
         );
@@ -135,6 +144,13 @@ String get _rewardedAdUnitId {
   return kAdMobRewardedTestIdAndroid;
 }
 
+/// true pendant le chargement/affichage d'une rewarded AdMob (entre le tap
+/// sur le bouton "Regarder une pub" et la résolution de [claimDailyReward]).
+/// Sert à bloquer le reste de l'interface le temps que la pub charge, car
+/// [RewardedAd.load] peut prendre plusieurs secondes avant que la pub ne
+/// s'affiche réellement (rien ne l'indique visuellement côté SDK).
+final isWatchingRewardedAdProvider = StateProvider<bool>((ref) => false);
+
 /// Date du dernier reward quotidien.
 final lastDailyRewardDateProvider = Provider<DateTime?>((ref) {
   final profile = ref.watch(playerProfileProvider);
@@ -158,8 +174,11 @@ final isDailyRewardAvailableProvider = Provider<bool>((ref) {
 ///
 /// Retourne `true` si l'utilisateur a regardé la vidéo entièrement et gagné
 /// la récompense, `false` en cas d'échec (fermeture anticipée, erreur de
-/// chargement, etc.). Ne crash jamais.
-Future<bool> showRewardedAd() async {
+/// chargement, etc.). Ne crash jamais. Met en pause la musique de fond
+/// (accueil) pendant l'affichage de la pub, et la reprend systématiquement à
+/// sa fermeture (fermeture normale ou échec d'affichage), voir
+/// [AudioService.pauseMusicForAd] / [resumeMusicFromAd].
+Future<bool> showRewardedAd(WidgetRef ref) async {
   final completer = Completer<bool>();
 
   await RewardedAd.load(
@@ -168,12 +187,17 @@ Future<bool> showRewardedAd() async {
     rewardedAdLoadCallback: RewardedAdLoadCallback(
       onAdLoaded: (ad) {
         ad.fullScreenContentCallback = FullScreenContentCallback(
+          onAdShowedFullScreenContent: (ad) {
+            ref.read(audioServiceProvider).pauseMusicForAd();
+          },
           onAdDismissedFullScreenContent: (ad) {
+            ref.read(audioServiceProvider).resumeMusicFromAd();
             ad.dispose();
             if (!completer.isCompleted) completer.complete(false);
           },
           onAdFailedToShowFullScreenContent: (ad, error) {
             debugPrint('[AdMob] Rewarded show failed: $error');
+            ref.read(audioServiceProvider).resumeMusicFromAd();
             ad.dispose();
             if (!completer.isCompleted) completer.complete(false);
           },
@@ -206,7 +230,7 @@ Future<bool> claimDailyReward(WidgetRef ref) async {
   final available = ref.read(isDailyRewardAvailableProvider);
   if (!available) return false;
 
-  final rewarded = await showRewardedAd();
+  final rewarded = await showRewardedAd(ref);
   if (!rewarded) return false;
 
   final db = ref.read(appDatabaseProvider);
@@ -232,7 +256,7 @@ final isPremiumDailyCoinsAvailableProvider = Provider<bool>((ref) {
       now.day != lastDate.day;
 });
 
-/// Crédite les 50 pièces quotidiennes premium et met à jour la date.
+/// Crédite les [kAdRewardedCoins] pièces quotidiennes premium et met à jour la date.
 ///
 /// Retourne `true` si les pièces ont été créditées, `false` si déjà fait
 /// aujourd'hui ou si l'utilisateur n'est pas premium.

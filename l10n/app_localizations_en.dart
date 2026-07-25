@@ -284,10 +284,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'Tap this upgrade during the game to temporarily exclude a random color (among the base colors) from the tile stack. One use per game.';
 
   @override
-  String get upgrade_desc_jackpot_plus =>
-      'Further boosts the coin bonus: grants 1 bonus coin whenever you earn at least N coins on a placement (4/2/1 depending on level). Non-stacking — unlocked as a reward for a standout game.';
-
-  @override
   String get upgrade_desc_millionaire =>
       'Instantly credits 1,000,000 coins to your profile (developer tool).';
 
@@ -320,7 +316,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get shop_premiumDescription =>
-      'Removes all ads + 50 coins/day automatically';
+      'Removes all ads + 100 coins/day automatically';
 
   @override
   String get shop_buy => 'Buy';
@@ -366,10 +362,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get home_stats => 'Statistics';
 
   @override
-  String get ads_watchForCoins => 'Watch an ad (+50 coins)';
+  String get ads_watchForCoins => 'Watch an ad (+100 coins)';
 
   @override
   String get ads_comeBackTomorrow => 'Come back tomorrow';
+
+  @override
+  String get ads_loading => 'Loading…';
 
   @override
   String get premium_dailyCoinsButton => 'Your daily coins';

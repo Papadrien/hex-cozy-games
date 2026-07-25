@@ -602,12 +602,6 @@ abstract class AppLocalizations {
   /// **'Tap this upgrade during the game to temporarily exclude a random color (among the base colors) from the tile stack. One use per game.'**
   String get upgrade_desc_hated_color;
 
-  /// No description provided for @upgrade_desc_jackpot_plus.
-  ///
-  /// In en, this message translates to:
-  /// **'Further boosts the coin bonus: grants 1 bonus coin whenever you earn at least N coins on a placement (4/2/1 depending on level). Non-stacking — unlocked as a reward for a standout game.'**
-  String get upgrade_desc_jackpot_plus;
-
   /// No description provided for @upgrade_desc_millionaire.
   ///
   /// In en, this message translates to:
@@ -763,6 +757,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Come back tomorrow'**
   String get ads_comeBackTomorrow;
+
+  /// No description provided for @ads_loading.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading…'**
+  String get ads_loading;
 
   /// No description provided for @premium_dailyCoinsButton.
   ///

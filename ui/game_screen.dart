@@ -111,6 +111,17 @@ class _GameScreenState extends ConsumerState<GameScreen> {
           UpgradeHudAnchors.globalCenterFor(UpgradeEffectType.comboBonusTiles);
       return center == null ? null : Vector2(center.dx, center.dy);
     };
+    // Point de départ des particules "pièce" des améliorations de gain de
+    // pièces (Pièces+/Rouge+/Vert+/Bleu+/Jaune+/Violet+) — même
+    // principe que Combo+ ci-dessus : la position écran de l'icône de
+    // l'amélioration concernée dans l'encart des améliorations actives,
+    // plutôt que la tuile posée (voir
+    // [HexBoardGame.spawnCoinBonusParticles]). [UpgradeHudAnchors] est déjà
+    // générique par [UpgradeEffectType], donc réutilisable telle quelle ici.
+    _game.getCoinUpgradeOrigin = (type) {
+      final center = UpgradeHudAnchors.globalCenterFor(type);
+      return center == null ? null : Vector2(center.dx, center.dy);
+    };
     // Chaque icône de tuile bonus qui arrive sur le HUD (échelonnées sur
     // les gains multi-tuiles) fait "pop" le compteur avec une intensité
     // fixe. C'est désormais le seul déclencheur du pulse doré de la pile :
@@ -271,7 +282,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                   orElse: () => false,
                 );
         if (!isPremium) {
-          showInterstitialAd();
+          showInterstitialAd(ref);
         }
       }
     });

@@ -287,10 +287,6 @@ class AppLocalizationsFr extends AppLocalizations {
       'Tape sur cette amélioration en cours de partie pour exclure temporairement une couleur aléatoire (parmi les couleurs de base) de la pile de tuiles. Usage unique par partie.';
 
   @override
-  String get upgrade_desc_jackpot_plus =>
-      'Booste encore le bonus de pièces : octroie une pièce bonus dès que tu gagnes au moins N pièces sur une pose (4/2/1 selon le niveau). Non-cumulable — débloqué en récompense d\'une partie exceptionnelle.';
-
-  @override
   String get upgrade_desc_millionaire =>
       'Crédite instantanément 1 000 000 de pièces sur ton profil (outil de développement).';
 
@@ -323,7 +319,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get shop_premiumDescription =>
-      'Supprime toutes les pubs + 50 pièces/jour automatiques';
+      'Supprime toutes les pubs + 100 pièces/jour automatiques';
 
   @override
   String get shop_buy => 'Acheter';
@@ -369,10 +365,13 @@ class AppLocalizationsFr extends AppLocalizations {
   String get home_stats => 'Statistiques';
 
   @override
-  String get ads_watchForCoins => 'Regarder une pub (+50 pièces)';
+  String get ads_watchForCoins => 'Regarder une pub (+100 pièces)';
 
   @override
   String get ads_comeBackTomorrow => 'Revenez demain';
+
+  @override
+  String get ads_loading => 'Chargement…';
 
   @override
   String get premium_dailyCoinsButton => 'Vos pièces quotidiennes';

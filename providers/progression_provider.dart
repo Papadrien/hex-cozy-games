@@ -205,9 +205,8 @@ IconData upgradeIconData(UpgradeEffectType effectType) {
     case UpgradeEffectType.connectionBonusMultiplier:
       return Icons.speed_2x;
     case UpgradeEffectType.coinsPercentBonus:
-      // Icône générique/repli pour ce type d'effet — `jackpot_plus` s'en
-      // sert tel quel (garde la pièce), mais `coins_plus` est différencié
-      // au niveau du widget [UpgradeEffectIcon] via son ID d'amélioration.
+      // Repli générique pour ce type d'effet — [UpgradeEffectIcon] affiche
+      // une icône "savings" dédiée à la place pour l'amélioration "Pièces+".
       return Icons.monetization_on;
     case UpgradeEffectType.villageCoinsPercentBonus:
     case UpgradeEffectType.forestCoinsPercentBonus:
@@ -271,7 +270,7 @@ List<String> upgradeAllLevelEffects(UpgradeEffectType effectType) {
     case UpgradeEffectType.connectionBonusMultiplier:
       return ['+1 tuile', '+2 tuiles', '+5 tuiles'];
     case UpgradeEffectType.coinsPercentBonus:
-      // Bonus global (Pièces+, Jackpot+) : 1 pièce bonus si le joueur gagne
+      // Bonus global (Pièces+) : 1 pièce bonus si le joueur gagne
       // au moins N pièces sur la pose (non-cumulable — une seule pièce bonus
       // par pose, même si baseCoins >> seuil).
       return ['+1 dès 4 pièces', '+1 dès 2 pièces', '+1 dès 1 pièce'];

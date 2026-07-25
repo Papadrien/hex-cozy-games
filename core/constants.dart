@@ -94,8 +94,9 @@ const String kAdMobRewardedProdIdAndroid =
 /// TODO: renseigner avant publication iOS.
 const String kAdMobRewardedProdIdIOS = '';
 
-/// Nombre de pièces créditées après visionnage de la pub rewarded quotidienne.
-const int kAdRewardedCoins = 50;
+/// Nombre de pièces créditées après visionnage de la pub rewarded quotidienne
+/// (également utilisé pour les pièces quotidiennes premium).
+const int kAdRewardedCoins = 100;
 
 // ── Boutique — Story 3.3a / 3.5a ─────────────────────────────────────────────
 

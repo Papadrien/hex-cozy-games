@@ -75,7 +75,7 @@ class ActiveUpgradeEffects {
   final int connectionBonusLevel;
 
   /// Seuil (en pièces de base gagnées sur une pose) au-delà duquel 1 pièce
-  /// bonus est accordée (Pièces+, Jackpot+). 0 = inactif ; 4/2/1 selon niveau.
+  /// bonus est accordée (Pièces+). 0 = inactif ; 4/2/1 selon niveau.
   /// Non-cumulable : une seule pièce bonus par pose, même si baseCoins >> seuil.
   final int coinsThreshold;
 
@@ -163,8 +163,9 @@ final activeUpgradeEffectsProvider = Provider<ActiveUpgradeEffects>((ref) {
       case UpgradeEffectType.connectionBonusMultiplier:
         connectionBonusLevel = val.toInt();
       case UpgradeEffectType.coinsPercentBonus:
-        // En cas de multiples améliorations globales sélectionnées (Pièces+ +
-        // Jackpot+), on conserve le seuil le plus permissif (le plus petit).
+        // Seul "Pièces+" porte cet effet actuellement ; le seuil le plus
+        // permissif (le plus petit) serait conservé si une autre
+        // amélioration globale venait un jour s'y ajouter.
         final v = val.toInt();
         if (v > 0 && (coinsThreshold == 0 || v < coinsThreshold)) {
           coinsThreshold = v;

@@ -109,7 +109,7 @@ UpgradeCounterInfo upgradeCounterFor(WidgetRef ref, UpgradeEffectType effectType
       if (remaining <= 0) return const UpgradeCounterInfo.none();
       return UpgradeCounterInfo.numberWithSwatch(remaining, biome.color);
 
-    // Toutes les autres améliorations (Tuile bonus, Pièces+/Jackpot+,
+    // Toutes les autres améliorations (Tuile bonus, Pièces+,
     // Rouge+/Vert+/Bleu+/Jaune+/Violet+, Bonus de clôture, Aperçu prolongé,
     // Tuiles de départ+, debug) : pas de compteur — seul le pulse/contour de
     // déclenchement (voir upgrade_feedback_provider.dart) donne le feedback.
