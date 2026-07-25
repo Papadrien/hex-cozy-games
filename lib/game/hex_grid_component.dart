@@ -42,7 +42,7 @@ const double kPreviewAlpha = 1.0;
 /// est à la fois poussée vers l'extérieur (à l'opposé du centre de la tuile
 /// en cours de pose) et surélevée (effet 3D), pour qu'elle se détache
 /// visuellement de la tuile plutôt que de sembler posée dessus.
-const double kPreviewCoinOffsetPx = 6.0;
+const double kPreviewCoinOffsetPx = 20.0;
 
 /// Nombre maximum d'icônes de tuile bonus envoyées individuellement (effet
 /// "machine à sous" échelonné) sur une même pose. Au-delà, le surplus est
@@ -610,6 +610,27 @@ class HexGridComponent extends PositionComponent {
         ));
       }
     }
+  }
+
+  /// Fait s'envoler une icône de tuile bonus depuis [origin] (coordonnées
+  /// jeu, hors plateau) vers [flyTarget] — même animation
+  /// ([BonusTileAnimComponent]) que celle jouée depuis la tuile posée dans
+  /// [showRewardIndicators]. Utilisée par Combo+ (voir
+  /// [HexBoardGame.spawnComboBonusParticle]) : contrairement au bonus de
+  /// connexion, sa tuile bonus n'est pas liée à un côté de la tuile posée,
+  /// donc sa particule part de l'icône de l'amélioration dans l'encart HUD
+  /// plutôt que de la tuile.
+  void showBonusParticleFrom(Vector2 origin, int count,
+      {Vector2? flyTarget, VoidCallback? onImpact}) {
+    final hexSize = kHexSize * zoom;
+    add(BonusTileAnimComponent(
+      position: origin.clone(),
+      hexSize: hexSize,
+      bonusCount: count,
+      flyTarget: flyTarget,
+      onImpact: onImpact,
+      totalBonusTiles: count,
+    ));
   }
 
   /// Calcule le décalage (dx, dy) du point milieu du côté [side] (0-5) par

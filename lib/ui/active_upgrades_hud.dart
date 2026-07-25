@@ -69,6 +69,32 @@ const Duration _kPulseDuration = Duration(milliseconds: 550);
 const Color _kActiveGlass = Color(0xFFFFB300);
 const Color _kActiveBorder = Color(0xFFFFD54F);
 
+/// Registre statique des slots de l'encart des améliorations actives,
+/// indexé par type d'effet — permet à du code hors de l'arbre Flutter (ici
+/// [HexBoardGame], via `game_screen.dart`) de cibler la position écran d'un
+/// slot précis pour y ancrer une animation Flame (ex. particule Combo+),
+/// sans coupler ce widget au jeu Flame. Un build ne peut pas sélectionner
+/// deux fois la même amélioration, donc une clé par [UpgradeEffectType]
+/// suffit et peut être réutilisée d'un build à l'autre plutôt que recréée.
+class UpgradeHudAnchors {
+  UpgradeHudAnchors._();
+  static final Map<UpgradeEffectType, GlobalKey> _keys = {};
+
+  static GlobalKey keyFor(UpgradeEffectType type) =>
+      _keys.putIfAbsent(type, () => GlobalKey());
+
+  /// Position globale (coordonnées jeu Flame — même origine que
+  /// [GameWidget], voir `game_screen.dart`) du centre du slot pour [type],
+  /// ou null si ce slot n'est pas affiché actuellement (amélioration non
+  /// sélectionnée dans le build en cours).
+  static Offset? globalCenterFor(UpgradeEffectType type) {
+    final key = _keys[type];
+    final box = key?.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null || !box.hasSize) return null;
+    return box.localToGlobal(box.size.center(Offset.zero));
+  }
+}
+
 class ActiveUpgradesHud extends ConsumerWidget {
   const ActiveUpgradesHud({super.key});
 
@@ -174,6 +200,7 @@ class _UpgradeSlotState extends ConsumerState<_UpgradeSlot>
     return GestureDetector(
       onLongPress: () => _showDescription(context),
       child: _slotShell(
+        effectType: effectType,
         counter: counter,
         builder: (glowAlpha, scale) => GlassContainer(
           width: kActiveUpgradeSlotSize,
@@ -215,6 +242,7 @@ class _UpgradeSlotState extends ConsumerState<_UpgradeSlot>
     return GestureDetector(
       onLongPress: () => _showDescription(context),
       child: _slotShell(
+        effectType: UpgradeEffectType.holdSlotUses,
         counter: counter,
         builder: (glowAlpha, scale) => GlassContainer(
           width: kActiveUpgradeSlotSize,
@@ -257,6 +285,7 @@ class _UpgradeSlotState extends ConsumerState<_UpgradeSlot>
     return GestureDetector(
       onLongPress: () => _showDescription(context),
       child: _slotShell(
+        effectType: UpgradeEffectType.secondChanceUses,
         counter: counter,
         builder: (glowAlpha, scale) => GlassContainer(
           width: kActiveUpgradeSlotSize,
@@ -303,6 +332,7 @@ class _UpgradeSlotState extends ConsumerState<_UpgradeSlot>
     return GestureDetector(
       onLongPress: () => _showDescription(context),
       child: _slotShell(
+        effectType: UpgradeEffectType.hatedColorExclusion,
         counter: counter,
         builder: (glowAlpha, scale) => GlassContainer(
           width: kActiveUpgradeSlotSize,
@@ -334,12 +364,14 @@ class _UpgradeSlotState extends ConsumerState<_UpgradeSlot>
   /// Coque commune à tous les slots : pulse d'échelle/contour au
   /// déclenchement + badge de suivi éventuel en overlay bas-droite.
   Widget _slotShell({
+    required UpgradeEffectType effectType,
     required UpgradeCounterInfo counter,
     required Widget Function(double glowAlpha, double scale) builder,
   }) {
     return Tooltip(
       message: widget.upgrade.name,
       child: SizedBox(
+        key: UpgradeHudAnchors.keyFor(effectType),
         width: kActiveUpgradeSlotSize,
         height: kActiveUpgradeSlotSize,
         child: AnimatedBuilder(

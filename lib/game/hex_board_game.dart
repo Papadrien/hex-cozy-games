@@ -66,6 +66,12 @@ class HexBoardGame extends FlameGame
   /// doivent voler après placement. Null = animation stationnaire par défaut.
   Vector2? Function()? getBonusFlyTarget;
 
+  /// Retourne la position (coordonnées jeu) de l'icône Combo+ dans l'encart
+  /// des améliorations actives — point de départ de la particule dédiée
+  /// déclenchée par [spawnComboBonusParticle]. Null = amélioration non
+  /// sélectionnée dans le build en cours (pas d'animation possible).
+  Vector2? Function()? getComboUpgradeOrigin;
+
   /// Appelé à chaque fois qu'une icône de tuile bonus arrive sur la pile
   /// HUD — permet au widget Flutter du HUD de faire "pop" le compteur en
   /// rythme avec l'échelonnement des icônes plutôt qu'un seul pop global.
@@ -238,6 +244,19 @@ class HexBoardGame extends FlameGame
     }
   }
 
+  /// Déclenche la particule dédiée de tuile bonus Combo+ : contrairement au
+  /// bonus de connexion (géré dans [placeTileOnFlame]), la tuile bonus de
+  /// Combo+ n'est liée à aucun côté de la tuile posée — sa particule part
+  /// donc de l'icône de l'amélioration dans l'encart HUD ([getComboUpgradeOrigin])
+  /// plutôt que de la tuile, avec la même animation d'envol vers la pile
+  /// (voir [HexGridComponent.showBonusParticleFrom]).
+  void spawnComboBonusParticle(int count) {
+    final origin = getComboUpgradeOrigin?.call();
+    if (origin == null) return;
+    _grid?.showBonusParticleFrom(origin, count,
+        flyTarget: getBonusFlyTarget?.call(), onImpact: onBonusImpact);
+  }
+
   /// Retire une tuile du rendu Flame (appelé depuis le bouton Annuler).
   ///
   /// [flyTarget] : position (coordonnées jeu) de la pile de prévisualisation
@@ -379,7 +398,9 @@ class HexBoardGame extends FlameGame
     // l'annuler est désormais la croix sur la pile HUD (clearSelection()
     // appelé depuis ui/tile_stack_hud.dart), qui positionne le flag dirty
     // via l'abonnement Riverpod (voir [_setupPreviewListeners]).
-    await confirmPlacement(_container, onConfirm: placeTileOnFlame);
+    await confirmPlacement(_container,
+        onConfirm: placeTileOnFlame,
+        onComboBonusTiles: spawnComboBonusParticle);
   }
 
   // ── Pan / Zoom / Rotation (via ScaleGestureRecognizer) ──────────────────

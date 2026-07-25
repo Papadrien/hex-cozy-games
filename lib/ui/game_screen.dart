@@ -23,6 +23,7 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import '../core/colors.dart';
 import '../core/constants.dart';
+import '../core/game_enums.dart';
 import '../core/strings.dart';
 import '../game/hex_board_game.dart';
 import '../game/hex_coords.dart';
@@ -101,6 +102,15 @@ class _GameScreenState extends ConsumerState<GameScreen> {
       },
     );
     _game.getBonusFlyTarget = () => _stackHudFlyTarget();
+    // Point de départ de la particule dédiée Combo+ (voir
+    // [HexBoardGame.spawnComboBonusParticle]) : la position écran de
+    // l'icône Combo+ dans l'encart des améliorations actives, plutôt que
+    // la tuile posée — ce bonus n'étant lié à aucun de ses côtés.
+    _game.getComboUpgradeOrigin = () {
+      final center =
+          UpgradeHudAnchors.globalCenterFor(UpgradeEffectType.comboBonusTiles);
+      return center == null ? null : Vector2(center.dx, center.dy);
+    };
     // Chaque icône de tuile bonus qui arrive sur le HUD (échelonnées sur
     // les gains multi-tuiles) fait "pop" le compteur avec une intensité
     // fixe. C'est désormais le seul déclencheur du pulse doré de la pile :

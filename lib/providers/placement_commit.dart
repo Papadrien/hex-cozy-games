@@ -192,6 +192,7 @@ Future<void> confirmPlacement(
   required void Function(HexCoords coords, HexTile tile, List<int> connectedSides, int bonusTiles,
           {int bonusCoins})
       onConfirm,
+  void Function(int count)? onComboBonusTiles,
 }) async {
   final p = ref.read(placementProvider);
   final tile = ref.read(placementProvider.notifier).previewTile;
@@ -209,12 +210,19 @@ Future<void> confirmPlacement(
   _placeTileOnGrid(ref, coords, tile);
   onConfirm(coords, tile, reward.connectedSides, reward.bonusTiles,
       bonusCoins: reward.bonusCoins);
-  final (appliedReward, totalBonusTilesAdded) =
+  final (appliedReward, totalBonusTilesAdded, comboBonusTilesCount) =
       _applyReward(ref, coords, tile, reward);
   _recordPlacement(
       ref, coords, tile, appliedReward, totalBonusTilesAdded, previousSession);
   _triggerPlacementHaptics(ref, appliedReward);
   _triggerPlacementAudio(ref, appliedReward);
+  // Combo+ génère sa tuile bonus indépendamment des côtés connectés de la
+  // tuile posée : sa particule part donc de l'icône de l'amélioration
+  // (voir [HexBoardGame.spawnComboBonusParticle]) plutôt que de la tuile,
+  // contrairement au bonus de connexion géré via [onConfirm] ci-dessus.
+  if (comboBonusTilesCount > 0) {
+    onComboBonusTiles?.call(comboBonusTilesCount);
+  }
   _advanceStack(ref, reward.connectedSides.length);
   await SessionSaver.save(ref);
   _checkGameOver(ref);
@@ -280,11 +288,15 @@ void _recordPlacement(
   );
 }
 
-/// Retourne la récompense appliquée (pour l'UI/session, pièces uniquement)
-/// et le nombre TOTAL de tuiles bonus effectivement ajoutées à la pile pour
-/// cette pose (connexion + Combo+ + Bonus de clôture) — ce second nombre
-/// sert uniquement à ce qu'[undoPlacement] puisse toutes les retirer.
-(PlacementReward, int) _applyReward(
+/// Retourne la récompense appliquée (pour l'UI/session, pièces uniquement),
+/// le nombre TOTAL de tuiles bonus effectivement ajoutées à la pile pour
+/// cette pose (connexion + Combo+ + Bonus de clôture) — sert uniquement à
+/// ce qu'[undoPlacement] puisse toutes les retirer — et le nombre de tuiles
+/// bonus générées spécifiquement par Combo+ sur cette pose (0 si non
+/// déclenché), pour piloter la particule dédiée qui part de l'icône de
+/// l'amélioration plutôt que de la tuile posée (voir
+/// [HexBoardGame.spawnComboBonusParticle]).
+(PlacementReward, int, int) _applyReward(
     ProviderContainer ref, HexCoords pos, HexTile tile, PlacementReward reward) {
   if (reward.connectedSides.isEmpty && reward.bonusTiles == 0) {
     ref.read(sessionProvider.notifier).addReward(reward);
@@ -292,7 +304,7 @@ void _recordPlacement(
     // déclenché) pour que l'encart des améliorations actives puisse malgré
     // tout réagir à l'évènement pose si besoin.
     ref.read(upgradeFeedbackProvider.notifier).reportTriggered(const {});
-    return (reward, 0);
+    return (reward, 0, 0);
   }
   // Story B12a — accumule au fil du calcul les UpgradeEffectType ayant
   // effectivement produit un bonus sur CETTE pose, pour piloter le feedback
@@ -373,6 +385,7 @@ void _recordPlacement(
   // (exactement 2 côtés connectés) cumulées sur la partie (plus besoin
   // d'être d'affilée), ajoute 1 tuile bonus. N dépend du niveau de
   // l'amélioration (10/8/5 aux niveaux 1/2/3).
+  var comboBonusTilesCount = 0;
   final doubleStreak = ref.read(sessionProvider).currentDoubleStreak;
   final comboInterval = effects.getComboStreakInterval();
   if (comboInterval > 0 && doubleStreak > 0 && doubleStreak % comboInterval == 0) {
@@ -380,6 +393,7 @@ void _recordPlacement(
     ref.read(tileStackProvider.notifier).addBonusTiles(comboCount);
     ref.read(sessionProvider.notifier).addExtraBonusTiles(comboCount);
     totalBonusTilesAdded += comboCount;
+    comboBonusTilesCount = comboCount;
     triggeredTypes.add(UpgradeEffectType.comboBonusTiles);
   }
   // Story B7 — Bonus de clôture : détecte les biomes qui viennent de se
@@ -405,7 +419,7 @@ void _recordPlacement(
   }
 
   ref.read(upgradeFeedbackProvider.notifier).reportTriggered(triggeredTypes);
-  return (applied, totalBonusTilesAdded);
+  return (applied, totalBonusTilesAdded, comboBonusTilesCount);
 }
 
 void _advanceStack(ProviderContainer ref, int connectedSidesCount) {
