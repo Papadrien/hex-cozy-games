@@ -201,9 +201,9 @@ class ProgressionService {
 IconData upgradeIconData(UpgradeEffectType effectType) {
   switch (effectType) {
     case UpgradeEffectType.startingTilesBonus:
-      return Icons.stacks;
+      return Icons.layers;
     case UpgradeEffectType.connectionBonusMultiplier:
-      return Icons.speed_2x;
+      return Icons.speed;
     case UpgradeEffectType.coinsPercentBonus:
       // Repli générique pour ce type d'effet — [UpgradeEffectIcon] affiche
       // une icône "savings" dédiée à la place pour l'amélioration "Pièces+".
@@ -215,7 +215,7 @@ IconData upgradeIconData(UpgradeEffectType effectType) {
     case UpgradeEffectType.mountainCoinsPercentBonus:
       return Icons.circle;
     case UpgradeEffectType.closureBonusTiles:
-      return Icons.gate;
+      return Icons.fence;
     case UpgradeEffectType.hatedColorExclusion:
       return Icons.format_color_reset;
     case UpgradeEffectType.extendedPreviewCount:
@@ -223,9 +223,9 @@ IconData upgradeIconData(UpgradeEffectType effectType) {
     case UpgradeEffectType.holdSlotUses:
       return Icons.swap_horiz;
     case UpgradeEffectType.secondChanceUses:
-      return Icons.reset_iso;
+      return Icons.restart_alt;
     case UpgradeEffectType.comboBonusTiles:
-      return Icons.component_exchange;
+      return Icons.sync_alt;
     case UpgradeEffectType.millionaireCoins:
       return Icons.workspace_premium;
     case UpgradeEffectType.warehouseStartingTiles:
