@@ -655,6 +655,7 @@ class _BuildButton extends StatelessWidget {
                       opacity: hasResumableGame ? 0.4 : 1,
                       child: _BuildMiniIcon(
                         effectType: UpgradeEffectType.fromDb(u.effectType),
+                        upgradeId: u.id,
                       ),
                     ),
                   )),
@@ -943,9 +944,10 @@ class _GlassIconButton extends StatelessWidget {
 
 /// Mini icône d'amélioration dans le bouton Build
 class _BuildMiniIcon extends StatelessWidget {
-  const _BuildMiniIcon({required this.effectType});
+  const _BuildMiniIcon({required this.effectType, this.upgradeId});
 
   final UpgradeEffectType effectType;
+  final String? upgradeId;
 
   @override
   Widget build(BuildContext context) {
@@ -959,6 +961,7 @@ class _BuildMiniIcon extends StatelessWidget {
       ),
       child: UpgradeEffectIcon(
         effectType: effectType,
+        upgradeId: upgradeId,
         color: tintOverride ?? Colors.white,
         size: 14,
       ),

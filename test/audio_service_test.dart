@@ -11,8 +11,9 @@
 ///    ([_kMaxCoinSfxRepeats] en interne) : un très grand nombre de pièces
 ///    ne doit jamais faire attendre indéfiniment (sinon le test expire) ;
 ///  - [AudioService.playCoinsGained] avec `count: 0` ne joue rien ;
-///  - [AudioService.playTilePlaced] / [AudioService.playTileGained] ne
-///    lèvent pas d'exception, bruitages activés ou non ;
+///  - [AudioService.playTilePlaced] / [AudioService.playTileGained] /
+///    [AudioService.playEndGame] ne lèvent pas d'exception, bruitages
+///    activés ou non ;
 ///  - [AudioService.resumeMusicFromBackground] ne fait rien tant qu'aucune
 ///    musique n'a jamais été lancée.
 library;
@@ -235,6 +236,19 @@ void main() {
     container.read(optionsProvider.notifier).toggleSfx();
     await service.playTilePlaced();
     await service.playTileGained();
+  });
+
+  test(
+      'playEndGame ne lève pas d\'exception, bruitages activés ou '
+      'désactivés', () async {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    final service = container.read(audioServiceProvider);
+
+    await service.playEndGame();
+
+    container.read(optionsProvider.notifier).toggleSfx();
+    await service.playEndGame();
   });
 
   test(

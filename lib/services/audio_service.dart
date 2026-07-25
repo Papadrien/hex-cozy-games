@@ -38,6 +38,15 @@
 /// multi-tuiles coupe net le son de la tuile précédente à chaque nouvelle
 /// arrivée au lieu de les superposer.
 ///
+/// [playEndGame] (end_game.mp3) suit le même principe de lecteur dédié
+/// ([_endGamePlayer]) — déclenché une seule fois par [ResultsModal] (voir
+/// `results_modal.dart`) à l'apparition de la pop-up de résultats, sur la
+/// transition de [isGameOverProvider] vers `true`.
+///
+/// [playUndo] (undo.mp3) pioche dans le pool tournant comme
+/// [playCoinsGained] / [playTilePlaced] — déclenché depuis [undoPlacement]
+/// (voir `undo_placement.dart`) à chaque annulation du dernier placement.
+///
 /// Clic de bouton ([playButtonClick]) et clic de pose de tuile
 /// ([playTilePlaced]) : contrairement aux autres bruitages, ils ne sont
 /// associés à aucun fichier audio — leur forme d'onde est générée
@@ -78,7 +87,9 @@ enum MusicTrack {
 /// [AudioService.playTilePlaced]).
 enum SfxTrack {
   coin('audio/coin.mp3'),
-  tileGain('audio/tile_gain.mp3');
+  tileGain('audio/tile_gain.mp3'),
+  endGame('audio/end_game.mp3'),
+  undo('audio/undo.mp3');
 
   const SfxTrack(this.assetPath);
 
@@ -326,6 +337,14 @@ class AudioService {
   /// jamais les superposer (voir [playTileGained]).
   final AudioPlayer _tileGainPlayer = AudioPlayer();
 
+  /// Lecteur dédié pour [SfxTrack.endGame] — comme [_tileGainPlayer], en
+  /// dehors du pool : la fin de partie ne peut survenir qu'une fois par
+  /// partie, aucun besoin de chevauchement, mais un lecteur dédié évite
+  /// aussi qu'un bruitage du pool encore en cours de lecture (pose de
+  /// tuile, pièce gagnée) ne coupe le son de fin de partie en réutilisant
+  /// le même lecteur (voir [playEndGame]).
+  final AudioPlayer _endGamePlayer = AudioPlayer();
+
   /// Forme d'onde du clic de bouton, générée une seule fois (voir
   /// [_generateClickWaveform]) puis rejouée à chaque appel de
   /// [playButtonClick] — évite de la recalculer à chaque tap.
@@ -489,6 +508,28 @@ class AudioService {
     await _tileGainPlayer.play(AssetSource(SfxTrack.tileGain.assetPath));
   }
 
+  /// Joue `end_game.mp3` une fois, au moment où l'écran de résultats
+  /// apparaît (voir `results_modal.dart`, déclenché sur la transition de
+  /// [isGameOverProvider] vers `true`). Lecteur dédié ([_endGamePlayer])
+  /// plutôt que le pool tournant : pas de besoin de chevauchement (un seul
+  /// déclenchement par partie) et ça évite qu'un bruitage encore actif du
+  /// pool ne coupe ce son en réutilisant le même lecteur.
+  Future<void> playEndGame() async {
+    if (!_sfxEnabled) return;
+    await _endGamePlayer.stop();
+    await _endGamePlayer.setVolume(_sfxVolume);
+    await _endGamePlayer.play(AssetSource(SfxTrack.endGame.assetPath));
+  }
+
+  /// Joue `undo.mp3` à chaque annulation du dernier placement (voir
+  /// [undoPlacement] dans `undo_placement.dart`, déclenché aussi bien par
+  /// le bouton Annuler que par l'annulation automatique du tutoriel).
+  /// Pioche dans le pool tournant comme [playCoinsGained] / [playTilePlaced]
+  /// plutôt qu'un lecteur dédié : une action ponctuelle déclenchée par
+  /// l'utilisateur, sans besoin de couper un déclenchement précédent qui
+  /// n'aurait pas eu le temps de se terminer.
+  Future<void> playUndo() => _playSfx(SfxTrack.undo);
+
   /// Joue le clic de bouton généré procéduralement ([_clickWaveform], voir
   /// [_generateClickWaveform]) — aucun fichier audio associé. Pioche dans le
   /// même pool tournant que [_playSfx] (même hauteur légèrement randomisée)
@@ -515,6 +556,7 @@ class AudioService {
       p.dispose();
     }
     _tileGainPlayer.dispose();
+    _endGamePlayer.dispose();
   }
 }
 

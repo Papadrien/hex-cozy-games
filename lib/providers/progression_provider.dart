@@ -201,10 +201,13 @@ class ProgressionService {
 IconData upgradeIconData(UpgradeEffectType effectType) {
   switch (effectType) {
     case UpgradeEffectType.startingTilesBonus:
-      return Icons.grid_on;
+      return Icons.stacks;
     case UpgradeEffectType.connectionBonusMultiplier:
-      return Icons.auto_awesome;
+      return Icons.speed_2x;
     case UpgradeEffectType.coinsPercentBonus:
+      // Icône générique/repli pour ce type d'effet — `jackpot_plus` s'en
+      // sert tel quel (garde la pièce), mais `coins_plus` est différencié
+      // au niveau du widget [UpgradeEffectIcon] via son ID d'amélioration.
       return Icons.monetization_on;
     case UpgradeEffectType.villageCoinsPercentBonus:
     case UpgradeEffectType.forestCoinsPercentBonus:
@@ -213,17 +216,17 @@ IconData upgradeIconData(UpgradeEffectType effectType) {
     case UpgradeEffectType.mountainCoinsPercentBonus:
       return Icons.circle;
     case UpgradeEffectType.closureBonusTiles:
-      return Icons.all_inclusive;
+      return Icons.gate;
     case UpgradeEffectType.hatedColorExclusion:
-      return Icons.block;
+      return Icons.format_color_reset;
     case UpgradeEffectType.extendedPreviewCount:
       return Icons.visibility;
     case UpgradeEffectType.holdSlotUses:
       return Icons.swap_horiz;
     case UpgradeEffectType.secondChanceUses:
-      return Icons.undo;
+      return Icons.reset_iso;
     case UpgradeEffectType.comboBonusTiles:
-      return Icons.bolt;
+      return Icons.component_exchange;
     case UpgradeEffectType.millionaireCoins:
       return Icons.workspace_premium;
     case UpgradeEffectType.warehouseStartingTiles:

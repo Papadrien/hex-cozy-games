@@ -32,6 +32,16 @@ class ResultsModal extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isGameOver = ref.watch(isGameOverProvider);
+
+    // Joue le bruitage de fin de partie une seule fois, exactement au
+    // moment où la pop-up de résultats apparaît (transition false → true)
+    // — pas à chaque rebuild pendant qu'elle reste affichée.
+    ref.listen<bool>(isGameOverProvider, (previous, next) {
+      if (next && previous != true) {
+        ref.read(audioServiceProvider).playEndGame();
+      }
+    });
+
     if (!isGameOver) return const SizedBox.shrink();
 
     final stats = ref.watch(endGameStatsProvider);

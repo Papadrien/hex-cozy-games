@@ -432,6 +432,7 @@ class _BuildIconBadge extends StatelessWidget {
       height: 42,
       child: UpgradeEffectIcon(
         effectType: UpgradeEffectType.fromDb(upgrade.effectType),
+        upgradeId: upgrade.id,
         color: iconColor,
         size: 20,
       ),

@@ -212,6 +212,7 @@ class _UpgradeSlotState extends ConsumerState<_UpgradeSlot>
           borderWidth: glowAlpha > 0 ? 1.0 + glowAlpha : 1.0,
           child: UpgradeEffectIcon(
             effectType: effectType,
+            upgradeId: widget.upgrade.id,
             color: tint ?? Colors.white,
             size: 22,
           ),
@@ -587,6 +588,7 @@ class _UpgradeDescriptionSheet extends StatelessWidget {
                       borderColor: kGlassBlueBorder,
                       child: UpgradeEffectIcon(
                         effectType: effectType,
+                        upgradeId: upgrade.id,
                         color: tint ?? Colors.white,
                         size: 20,
                       ),

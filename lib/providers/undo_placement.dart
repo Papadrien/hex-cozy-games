@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../game/hex_coords.dart';
+import '../services/audio_service.dart';
 import 'grid_state_provider.dart';
 import 'placement_commit.dart';
 import 'session_provider.dart';
@@ -46,4 +47,9 @@ void undoPlacement(
 
   // 6. Effacer la mémoire d'annulation (1 seul niveau).
   ref.read(lastPlacementProvider.notifier).set(null);
+
+  // 7. Bruitage d'annulation — centralisé ici plutôt que dans les deux
+  // sites d'appel (bouton Annuler + annulation automatique du tutoriel,
+  // voir `game_screen.dart`), pour couvrir les deux d'un coup.
+  ref.read(audioServiceProvider).playUndo();
 }

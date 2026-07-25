@@ -112,6 +112,8 @@ flutter:
     - assets/audio/ambient_1.mp3
     - assets/audio/coin.mp3
     - assets/audio/tile_gain.mp3
+    - assets/audio/end_game.mp3
+    - assets/audio/undo.mp3
 
   fonts:
     - family: Pacifico
