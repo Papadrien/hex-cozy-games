@@ -35,7 +35,10 @@ class ResultsModal extends ConsumerWidget {
 
     // Joue le bruitage de fin de partie une seule fois, exactement au
     // moment où la pop-up de résultats apparaît (transition false → true)
-    // — pas à chaque rebuild pendant qu'elle reste affichée.
+    // — pas à chaque rebuild pendant qu'elle reste affichée. La transition
+    // elle-même n'a lieu qu'une fois les `coin.mp3` de la toute dernière
+    // pose terminés (voir `placement_commit.dart`, `_checkGameOver`), donc
+    // popup et bruitage démarrent déjà ensemble sans délai à ajouter ici.
     ref.listen<bool>(isGameOverProvider, (previous, next) {
       if (next && previous != true) {
         ref.read(audioServiceProvider).playEndGame();

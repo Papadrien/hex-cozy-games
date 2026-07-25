@@ -641,8 +641,14 @@ class HexGridComponent extends PositionComponent {
   /// connexion, sa tuile bonus n'est pas liée à un côté de la tuile posée,
   /// donc sa particule part de l'icône de l'amélioration dans l'encart HUD
   /// plutôt que de la tuile.
+  ///
+  /// [coinCount] : nombre de `coin.mp3` attendus sur cette même pose
+  /// (pièces de connexion + pièces bonus) — comme pour la tuile bonus de
+  /// connexion dans [showRewardIndicators], la phase de soulèvement est
+  /// étendue dynamiquement pour que l'envol ne démarre qu'une fois le
+  /// dernier son de pièce terminé (voir [BonusTileAnimComponent.coinCount]).
   void showBonusParticleFrom(Vector2 origin, int count,
-      {Vector2? flyTarget, VoidCallback? onImpact}) {
+      {Vector2? flyTarget, VoidCallback? onImpact, int coinCount = 0}) {
     final hexSize = kHexSize * zoom;
     add(BonusTileAnimComponent(
       position: origin.clone(),
@@ -651,6 +657,7 @@ class HexGridComponent extends PositionComponent {
       flyTarget: flyTarget,
       onImpact: onImpact,
       totalBonusTiles: count,
+      coinCount: coinCount,
     ));
   }
 

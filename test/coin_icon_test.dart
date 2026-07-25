@@ -66,7 +66,7 @@ void main() {
     expect(image.height, 42);
   });
 
-  testWidgets('UpgradeEffectIcon affiche un CoinIcon pour coinsPercentBonus',
+  testWidgets('UpgradeEffectIcon affiche une icône savings pour coinsPercentBonus',
       (tester) async {
     await tester.pumpWidget(
       const MaterialApp(
@@ -79,11 +79,12 @@ void main() {
       ),
     );
 
-    expect(find.byType(CoinIcon), findsOneWidget);
-    expect(find.byType(Icon), findsNothing);
+    expect(find.byType(CoinIcon), findsNothing);
+    expect(find.byType(Icon), findsOneWidget);
 
-    final image = tester.widget<Image>(find.byType(Image));
-    expect(image.width, 24);
+    final icon = tester.widget<Icon>(find.byType(Icon));
+    expect(icon.icon, Icons.savings);
+    expect(icon.size, 24);
   });
 
   for (final effectType in _nonCoinEffectTypes) {

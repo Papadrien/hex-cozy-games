@@ -41,7 +41,12 @@
 /// [playEndGame] (end_game.mp3) suit le même principe de lecteur dédié
 /// ([_endGamePlayer]) — déclenché une seule fois par [ResultsModal] (voir
 /// `results_modal.dart`) à l'apparition de la pop-up de résultats, sur la
-/// transition de [isGameOverProvider] vers `true`.
+/// transition de [isGameOverProvider] vers `true`. Cette transition
+/// elle-même n'est déclenchée qu'une fois les `coin.mp3` de la toute
+/// dernière pose terminés (voir [AudioService.coinSoundsFinishDelay],
+/// utilisé dans `placement_commit.dart`, `_checkGameOver`) : popup et son
+/// de fin de partie apparaissent donc ensemble plutôt que la popup
+/// immédiatement suivie du son en décalé.
 ///
 /// [playUndo] (undo.mp3) pioche dans le pool tournant comme
 /// [playCoinsGained] / [playTilePlaced] — déclenché depuis [undoPlacement]
@@ -119,6 +124,18 @@ const int _kMaxCoinSfxRepeats = 6;
 /// Délai entre deux `coin.mp3` d'un même gain, pour qu'ils restent
 /// perceptibles comme des impulsions distinctes plutôt qu'un unique son.
 const Duration _kCoinSfxGap = Duration(milliseconds: 250);
+
+/// Durée de vol d'une pièce vers son compteur avant l'impact (dupliquée
+/// depuis [CoinComponent]/`bonus_animations.dart`, qui ne l'exposent pas
+/// sous forme de constante partagée ici) — point de départ du calcul de
+/// [_coinSoundsFinishDelay].
+const Duration _kCoinFlyDuration = Duration(milliseconds: 600);
+
+/// Durée de lecture d'un `coin.mp3` (mesurée ~0.696s, arrondie à 0.7s par
+/// prudence) — sert à estimer quand la dernière pièce d'un gain a fini de
+/// sonner. Dupliquée depuis `bonus_animations.dart`
+/// ([kCoinSfxClipDurationSec]).
+const Duration _kCoinSfxClipDuration = Duration(milliseconds: 700);
 
 /// Durée par défaut du fondu de sortie appliqué par [AudioService.playMusicWithFadeOut]
 /// avant de basculer sur la nouvelle piste — assez bref pour rester discret
@@ -608,11 +625,36 @@ class AudioService {
   /// plutôt que le pool tournant : pas de besoin de chevauchement (un seul
   /// déclenchement par partie) et ça évite qu'un bruitage encore actif du
   /// pool ne coupe ce son en réutilisant le même lecteur.
+  ///
+  /// [isGameOverProvider] n'est lui-même positionné à `true` qu'une fois
+  /// les `coin.mp3` de la toute dernière pose terminés (voir
+  /// [coinSoundsFinishDelay], utilisé côté appelant dans
+  /// `placement_commit.dart`, `_checkGameOver`) : popup de résultats et
+  /// bruitage de fin de partie apparaissent donc déjà ensemble, sans qu'un
+  /// délai supplémentaire soit nécessaire ici.
   Future<void> playEndGame() async {
     if (!_sfxEnabled) return;
     await _endGamePlayer.stop();
     await _endGamePlayer.setVolume(_sfxVolume);
     await _endGamePlayer.play(AssetSource(SfxTrack.endGame.assetPath));
+  }
+
+  /// Estime le délai à partir duquel le dernier `coin.mp3` d'un gain de
+  /// [coinCount] pièces aura fini de sonner : vol de la pièce jusqu'au
+  /// compteur ([_kCoinFlyDuration]) puis lectures échelonnées
+  /// ([_kCoinSfxGap] entre chacune, plafonnées à [_kMaxCoinSfxRepeats])
+  /// jusqu'à la fin de la dernière ([_kCoinSfxClipDuration]). Retourne
+  /// [Duration.zero] si [coinCount] est nul (aucune pièce, donc aucun
+  /// bruitage à attendre).
+  ///
+  /// Statique et publique pour être réutilisée par
+  /// `placement_commit.dart` (`_checkGameOver`) : la popup de résultats
+  /// (voir [isGameOverProvider]) n'est révélée qu'une fois ce délai
+  /// écoulé, pour apparaître exactement en même temps que [playEndGame].
+  static Duration coinSoundsFinishDelay(int coinCount) {
+    if (coinCount <= 0) return Duration.zero;
+    final n = coinCount.clamp(0, _kMaxCoinSfxRepeats);
+    return _kCoinFlyDuration + _kCoinSfxGap * (n - 1) + _kCoinSfxClipDuration;
   }
 
   /// Joue `undo.mp3` à chaque annulation du dernier placement (voir

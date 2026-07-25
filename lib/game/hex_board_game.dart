@@ -269,12 +269,16 @@ class HexBoardGame extends FlameGame
   /// Combo+ n'est liée à aucun côté de la tuile posée — sa particule part
   /// donc de l'icône de l'amélioration dans l'encart HUD ([getComboUpgradeOrigin])
   /// plutôt que de la tuile, avec la même animation d'envol vers la pile
-  /// (voir [HexGridComponent.showBonusParticleFrom]).
-  void spawnComboBonusParticle(int count) {
+  /// (voir [HexGridComponent.showBonusParticleFrom]), y compris le délai
+  /// d'attente de [coinCount] sons `coin.mp3` avant l'envol proprement dit
+  /// — mêmes caractéristiques que la tuile bonus posée lors d'un placement.
+  void spawnComboBonusParticle(int count, {int coinCount = 0}) {
     final origin = getComboUpgradeOrigin?.call();
     if (origin == null) return;
     _grid?.showBonusParticleFrom(origin, count,
-        flyTarget: getBonusFlyTarget?.call(), onImpact: onBonusImpact);
+        flyTarget: getBonusFlyTarget?.call(),
+        onImpact: onBonusImpact,
+        coinCount: coinCount);
   }
 
   /// Déclenche une particule "pièce" par amélioration de gain de pièces
@@ -448,7 +452,8 @@ class HexBoardGame extends FlameGame
     // via l'abonnement Riverpod (voir [_setupPreviewListeners]).
     await confirmPlacement(_container,
         onConfirm: placeTileOnFlame,
-        onComboBonusTiles: spawnComboBonusParticle,
+        onComboBonusTiles: (count, coinCount) =>
+            spawnComboBonusParticle(count, coinCount: coinCount),
         onCoinBonusTypes: spawnCoinBonusParticles);
   }
 

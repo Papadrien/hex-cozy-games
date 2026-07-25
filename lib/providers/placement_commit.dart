@@ -192,7 +192,7 @@ Future<void> confirmPlacement(
   required void Function(HexCoords coords, HexTile tile, List<int> connectedSides, int bonusTiles,
           {int bonusCoins})
       onConfirm,
-  void Function(int count)? onComboBonusTiles,
+  void Function(int count, int coinCount)? onComboBonusTiles,
   void Function(Set<UpgradeEffectType> types)? onCoinBonusTypes,
 }) async {
   final p = ref.read(placementProvider);
@@ -221,8 +221,14 @@ Future<void> confirmPlacement(
   // tuile posée : sa particule part donc de l'icône de l'amélioration
   // (voir [HexBoardGame.spawnComboBonusParticle]) plutôt que de la tuile,
   // contrairement au bonus de connexion géré via [onConfirm] ci-dessus.
+  // On transmet le nombre total de `coin.mp3` attendus sur cette pose
+  // (pièces de connexion + pièces bonus Pièces+/biomes) pour que la
+  // particule Combo+ n'entame son envol qu'une fois tous ces sons joués —
+  // mêmes caractéristiques que la tuile bonus de connexion (voir
+  // [BonusTileAnimComponent.coinCount]).
   if (comboBonusTilesCount > 0) {
-    onComboBonusTiles?.call(comboBonusTilesCount);
+    onComboBonusTiles?.call(
+        comboBonusTilesCount, reward.connectedSides.length + coinBonusTypes.length);
   }
   // Idem pour les pièces bonus (Pièces+/Rouge+/Vert+/Bleu+/Jaune+/
   // Violet+) : voir [HexBoardGame.spawnCoinBonusParticles].
@@ -486,9 +492,6 @@ void _checkGameOver(ProviderContainer ref) {
   );
   final analysis = BoardAnalysis.fromGrid(grid);
 
-  ref.read(isGameOverProvider.notifier).set(true);
-  ref.read(endGameStatsProvider.notifier).set(stats);
-
   SessionSaver.endSession(ref);
 
   final db = ref.read(appDatabaseProvider);
@@ -509,4 +512,17 @@ void _checkGameOver(ProviderContainer ref) {
     bestStreak: session.bestStreak,
   );
   ref.read(cloudSaveServiceProvider).syncAfterGame();
+
+  // Révèle la popup de résultats une fois que les `coin.mp3` de cette toute
+  // dernière pose ont fini de sonner — [ResultsModal] joue `end_game.mp3`
+  // sur cette même transition (voir [AudioService.playEndGame]), donc
+  // popup et bruitage de fin de partie apparaissent ensemble plutôt que la
+  // popup immédiatement suivie du son en décalé. Sauvegarde de session et
+  // écritures en base, elles, restent immédiates : rien ne justifie de
+  // retarder la persistance des données.
+  final coinCount = ref.read(lastPlacementProvider)?.coins ?? 0;
+  Future<void>.delayed(AudioService.coinSoundsFinishDelay(coinCount), () {
+    ref.read(isGameOverProvider.notifier).set(true);
+    ref.read(endGameStatsProvider.notifier).set(stats);
+  });
 }
