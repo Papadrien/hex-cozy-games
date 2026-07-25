@@ -14,11 +14,14 @@ import 'tile_component.dart'; // kIsoScaleY, kTileDepthPriorityPreview
 // ── Animation constants ─────────────────────────────────────────────────────
 
 const int kBonusIntensityMaxTiles = 10;
-/// Durée de la 1ère phase (soulèvement) de l'animation de gain de tuile.
-/// Doublée par rapport à sa valeur initiale (0.16s) pour laisser le temps
-/// à l'animation et au bruitage de gain de pièce (voir
-/// [AudioService.playCoinsGained]) de se terminer avant que l'animation de
-/// tuile ne démarre son enchaînement (éclaboussure puis envol).
+/// Durée de base de la 1ère phase (soulèvement) de l'animation de gain de
+/// tuile — utilisée telle quelle quand la pose ne rapporte aucune pièce
+/// (voir [BonusTileAnimComponent.coinCount]). Sinon, la durée réellement
+/// utilisée est étendue dynamiquement (voir [BonusTileAnimComponent._liftDurationSec])
+/// pour couvrir tout l'enchaînement `coin.mp3` de [AudioService.playCoinsGained]
+/// (vol de la/des pièce(s) + lectures échelonnées), afin que l'éclaboussure
+/// et l'envol de la tuile ne démarrent qu'une fois le dernier `coin.mp3`
+/// terminé.
 const double kBonusLiftDurationSec = 0.32;
 const double kBonusWaterDurationSec = 0.16;
 const double kBonusLiftMinPx = 6.0;
@@ -28,6 +31,38 @@ const double kBonusGrowMaxScale = 2.2;
 const int kBonusWaterParticleMin = 3;
 const int kBonusWaterParticleMax = 10;
 const double kBonusIconStaggerInterval = 0.12;
+
+/// Durée de vol d'une pièce vers son compteur avant l'impact (dupliquée
+/// depuis [CoinComponent], qui ne l'expose pas sous forme de constante
+/// nommée) — point de départ du calcul de [_coinSoundsFinishDelaySec].
+const double kCoinFlyDurationSec = 0.6;
+
+/// Délai entre deux lectures de `coin.mp3` d'un même gain — dupliqué depuis
+/// [AudioService.playCoinsGained] (constante privée à ce fichier côté
+/// service) pour pouvoir estimer ici la fin du bruitage.
+const double kCoinSfxGapSec = 0.25;
+
+/// Durée de lecture d'un `coin.mp3` (mesurée ~0.696s, arrondie à 0.7s par
+/// prudence) — sert à estimer quand la dernière pièce d'un gain a fini de
+/// sonner.
+const double kCoinSfxClipDurationSec = 0.7;
+
+/// Nombre max de `coin.mp3` joués pour un même gain — dupliqué depuis
+/// [AudioService.playCoinsGained] (`_kMaxCoinSfxRepeats`).
+const int kMaxCoinSfxRepeats = 6;
+
+/// Estime le délai, à partir de la pose de la tuile, auquel le dernier
+/// `coin.mp3` d'un gain de [coinCount] pièces aura fini de sonner :
+/// vol de la pièce jusqu'au compteur ([kCoinFlyDurationSec]) puis lectures
+/// échelonnées ([kCoinSfxGapSec] entre chacune, plafonnées à
+/// [kMaxCoinSfxRepeats]) jusqu'à la fin de la dernière ([kCoinSfxClipDurationSec]).
+/// Retourne 0 si [coinCount] est nul (aucune pièce, donc aucun bruitage à
+/// attendre).
+double _coinSoundsFinishDelaySec(int coinCount) {
+  if (coinCount <= 0) return 0.0;
+  final n = coinCount.clamp(0, kMaxCoinSfxRepeats);
+  return kCoinFlyDurationSec + (n - 1) * kCoinSfxGapSec + kCoinSfxClipDurationSec;
+}
 
 // ── Helper ──────────────────────────────────────────────────────────────────
 
@@ -306,6 +341,7 @@ class BonusTileAnimComponent extends PositionComponent {
     this._startDelay = 0.0,
     this.onImpact,
     int totalBonusTiles = 1,
+    int coinCount = 0,
   })  : _radius = hexSize * 0.22,
         _liftPx = kBonusLiftMinPx +
             (kBonusLiftMaxPx - kBonusLiftMinPx) *
@@ -317,6 +353,13 @@ class BonusTileAnimComponent extends PositionComponent {
                 (kBonusWaterParticleMax - kBonusWaterParticleMin) *
                     _intensityFor(totalBonusTiles))
             .round(),
+        // Étend la phase de soulèvement au-delà de sa durée de base si le
+        // gain de cette pose comprend des pièces (voir
+        // [_coinSoundsFinishDelaySec]), pour que l'éclaboussure puis
+        // l'envol de la tuile n'enchaînent qu'une fois le dernier
+        // `coin.mp3` terminé.
+        _liftDurationSec = max(
+            kBonusLiftDurationSec, _coinSoundsFinishDelaySec(coinCount)),
         super(priority: kTileDepthPriorityPreview + 1);
 
   final double _radius;
@@ -332,6 +375,7 @@ class BonusTileAnimComponent extends PositionComponent {
   final double _liftPx;
   final double _growScale;
   final int _waterParticleCount;
+  final double _liftDurationSec;
 
   late final TextPainter _textPainter = TextPainter(
     text: TextSpan(
@@ -358,8 +402,7 @@ class BonusTileAnimComponent extends PositionComponent {
   double _life = 0.0;
   static const double _kFlyDuration = 0.6;
   static const double _kFloatDuration = 0.58;
-  static const double _kPreFlyDuration =
-      kBonusLiftDurationSec + kBonusWaterDurationSec;
+  double get _preFlyDuration => _liftDurationSec + kBonusWaterDurationSec;
   static const double _kArrivalBounceDuration = 0.22;
   bool _arrived = false;
   double _arrivalLife = 0.0;
@@ -390,9 +433,9 @@ class BonusTileAnimComponent extends PositionComponent {
       return;
     }
 
-    if (_life < kBonusLiftDurationSec) {
+    if (_life < _liftDurationSec) {
       final t = Curves.easeOut
-          .transform((_life / kBonusLiftDurationSec).clamp(0.0, 1.0));
+          .transform((_life / _liftDurationSec).clamp(0.0, 1.0));
       position = Vector2(
         _spawnPos.x + (_liftedPos.x - _spawnPos.x) * t,
         _spawnPos.y + (_liftedPos.y - _spawnPos.y) * t,
@@ -400,7 +443,7 @@ class BonusTileAnimComponent extends PositionComponent {
       return;
     }
 
-    if (_life < _kPreFlyDuration) {
+    if (_life < _preFlyDuration) {
       position = _liftedPos.clone();
       if (!_waterSpawned) {
         _waterSpawned = true;
@@ -414,7 +457,7 @@ class BonusTileAnimComponent extends PositionComponent {
     }
 
     if (flyTarget != null) {
-      final flyLife = _life - _kPreFlyDuration;
+      final flyLife = _life - _preFlyDuration;
       final t = Curves.easeInOut.transform(
         (flyLife / _kFlyDuration).clamp(0.0, 1.0),
       );
@@ -438,7 +481,7 @@ class BonusTileAnimComponent extends PositionComponent {
         onImpact?.call();
       }
     } else {
-      final floatLife = _life - _kPreFlyDuration;
+      final floatLife = _life - _preFlyDuration;
       position = Vector2(_liftedPos.x, _liftedPos.y - floatLife * 40);
       if (floatLife >= _kFloatDuration) {
         removeFromParent();
@@ -458,24 +501,24 @@ class BonusTileAnimComponent extends PositionComponent {
     if (_arrived) {
       scaleMul = travelScale;
       alpha = 1.0 - _arrivalLife / _kArrivalBounceDuration;
-    } else if (_life < kBonusLiftDurationSec) {
+    } else if (_life < _liftDurationSec) {
       final t = Curves.easeOut
-          .transform((_life / kBonusLiftDurationSec).clamp(0.0, 1.0));
+          .transform((_life / _liftDurationSec).clamp(0.0, 1.0));
       scaleMul = 1.0 + (_growScale - 1.0) * t;
-      alpha = (_life / kBonusLiftDurationSec).clamp(0.0, 1.0);
-    } else if (_life < _kPreFlyDuration) {
-      final t = ((_life - kBonusLiftDurationSec) / kBonusWaterDurationSec)
+      alpha = (_life / _liftDurationSec).clamp(0.0, 1.0);
+    } else if (_life < _preFlyDuration) {
+      final t = ((_life - _liftDurationSec) / kBonusWaterDurationSec)
           .clamp(0.0, 1.0);
       scaleMul = _growScale - (_growScale - travelScale) * t;
       alpha = 1.0;
     } else if (flyTarget != null) {
-      final flyLife = _life - _kPreFlyDuration;
+      final flyLife = _life - _preFlyDuration;
       final flyT = (flyLife / _kFlyDuration).clamp(0.0, 1.0);
       final pulse = 1.0 + sin(flyLife * 18) * 0.08;
       scaleMul = travelScale * pulse;
       alpha = flyT < 0.7 ? 1.0 : (1.0 - (flyT - 0.7) / 0.3).clamp(0.0, 1.0);
     } else {
-      final floatLife = _life - _kPreFlyDuration;
+      final floatLife = _life - _preFlyDuration;
       final t = (floatLife / _kFloatDuration).clamp(0.0, 1.0);
       scaleMul = travelScale;
       alpha = 1.0 - t;

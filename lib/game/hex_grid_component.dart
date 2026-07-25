@@ -607,6 +607,11 @@ class HexGridComponent extends PositionComponent {
           startDelay: i * kBonusIconStaggerInterval,
           onImpact: onBonusImpact,
           totalBonusTiles: bonusTiles,
+          // Nombre de pièces (`coin.mp3`) attendues sur cette pose — étend
+          // dynamiquement la phase de soulèvement pour que l'éclaboussure
+          // et l'envol n'enchaînent qu'une fois le dernier son de pièce
+          // terminé (voir [BonusTileAnimComponent._liftDurationSec]).
+          coinCount: connectedSides.length,
         ));
       }
     }
