@@ -388,7 +388,17 @@ void _recordPlacement(
   var comboBonusTilesCount = 0;
   final doubleStreak = ref.read(sessionProvider).currentDoubleStreak;
   final comboInterval = effects.getComboStreakInterval();
-  if (comboInterval > 0 && doubleStreak > 0 && doubleStreak % comboInterval == 0) {
+  // reward.connectedSides.length == 2 : le palier ne doit être considéré
+  // comme franchi QUE sur la pose qui vient elle-même d'incrémenter
+  // currentDoubleStreak (Story B3). Sans cette condition, comme le compteur
+  // est cumulatif et ne redescend jamais, `doubleStreak % comboInterval == 0`
+  // restait vrai sur TOUTES les poses suivantes tant qu'aucune nouvelle
+  // double connexion n'avait eu lieu — redéclenchant à tort le bonus
+  // Combo+ (et son highlight) sur des poses simples/triples/etc.
+  if (comboInterval > 0 &&
+      reward.connectedSides.length == 2 &&
+      doubleStreak > 0 &&
+      doubleStreak % comboInterval == 0) {
     const comboCount = 1;
     ref.read(tileStackProvider.notifier).addBonusTiles(comboCount);
     ref.read(sessionProvider.notifier).addExtraBonusTiles(comboCount);
