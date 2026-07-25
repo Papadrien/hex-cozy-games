@@ -362,7 +362,8 @@ class _UpgradeSlotState extends ConsumerState<_UpgradeSlot>
   }
 
   /// Coque commune à tous les slots : pulse d'échelle/contour au
-  /// déclenchement + badge de suivi éventuel en overlay bas-droite.
+  /// déclenchement + badge(s) de suivi éventuel(s) en overlay (chiffre en
+  /// bas-droite, pastille de couleur en haut-droite pour Couleur détestée).
   Widget _slotShell({
     required UpgradeEffectType effectType,
     required UpgradeCounterInfo counter,
@@ -386,11 +387,20 @@ class _UpgradeSlotState extends ConsumerState<_UpgradeSlot>
                 alignment: Alignment.center,
                 children: [
                   builder(glowAlpha, scale),
-                  if (counter.hasBadge)
+                  if (counter.swatchColor != null)
+                    Positioned(
+                      right: -4,
+                      top: -4,
+                      child: _SwatchBadge(color: counter.swatchColor!),
+                    ),
+                  if (counter.value != null)
                     Positioned(
                       right: -4,
                       bottom: -4,
-                      child: _CounterBadge(counter: counter),
+                      child: _NumberBadge(
+                        value: counter.value!,
+                        max: counter.max,
+                      ),
                     ),
                 ],
               ),
@@ -402,30 +412,39 @@ class _UpgradeSlotState extends ConsumerState<_UpgradeSlot>
   }
 }
 
-/// Badge de suivi affiché en overlay d'une icône d'amélioration —
-/// numérique (avec palier optionnel "valeur/max") ou pastille de couleur
-/// (Couleur détestée).
-class _CounterBadge extends StatelessWidget {
-  const _CounterBadge({required this.counter});
+/// Pastille ronde de la couleur du biome exclu — affichée en haut-droite de
+/// l'icône (Couleur détestée).
+class _SwatchBadge extends StatelessWidget {
+  const _SwatchBadge({required this.color});
 
-  final UpgradeCounterInfo counter;
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
-    if (counter.swatchColor != null) {
-      return Container(
-        width: 16,
-        height: 16,
-        decoration: BoxDecoration(
-          color: counter.swatchColor,
-          shape: BoxShape.circle,
-          border: Border.all(color: Colors.black.withValues(alpha: 0.45), width: 1),
-        ),
-      );
-    }
+    return Container(
+      width: 16,
+      height: 16,
+      decoration: BoxDecoration(
+        color: color,
+        shape: BoxShape.circle,
+        border: Border.all(color: Colors.black.withValues(alpha: 0.45), width: 1),
+      ),
+    );
+  }
+}
 
-    final label =
-        counter.max != null ? '${counter.value}/${counter.max}' : '${counter.value}';
+/// Badge numérique de suivi — affiché en bas-droite de l'icône, avec palier
+/// optionnel ("valeur/max", ex. Combo+) ou simple compteur d'utilisations/
+/// tuiles restantes (Emplacement Joker, Deuxième chance, Couleur détestée).
+class _NumberBadge extends StatelessWidget {
+  const _NumberBadge({required this.value, this.max});
+
+  final int value;
+  final int? max;
+
+  @override
+  Widget build(BuildContext context) {
+    final label = max != null ? '$value/$max' : '$value';
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),

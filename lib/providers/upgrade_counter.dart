@@ -22,25 +22,34 @@ import 'tile_stack_provider.dart';
 /// Ce qu'il faut afficher en overlay sur l'icône d'une amélioration dans
 /// l'encart des améliorations actives.
 ///
-/// Exactement un des trois cas suivants :
 ///  - [UpgradeCounterInfo.none] : aucun badge (icône seule).
-///  - [UpgradeCounterInfo.number] : un chiffre, avec un palier optionnel
-///    (ex. "7/15" pour Combo+ via [max], ou juste "2" pour Emplacement
-///    Joker/Deuxième chance restants).
+///  - [UpgradeCounterInfo.number] : un chiffre en bas-droite, avec un palier
+///    optionnel (ex. "7/15" pour Combo+ via [max], ou juste "2" pour
+///    Emplacement Joker/Deuxième chance restants).
 ///  - [UpgradeCounterInfo.colorSwatch] : une pastille de la couleur du biome
-///    concerné (Couleur détestée : couleur du biome actuellement exclu).
+///    concerné, seule, en bas-droite.
+///  - [UpgradeCounterInfo.numberWithSwatch] : les deux à la fois (Couleur
+///    détestée) — le chiffre (utilisations/tuiles restantes) reprend la
+///    position bas-droite habituelle, la pastille de couleur passe en
+///    haut-droite pour ne pas se superposer.
 class UpgradeCounterInfo {
   const UpgradeCounterInfo._({this.value, this.max, this.swatchColor});
 
   /// Aucun badge à afficher.
   const UpgradeCounterInfo.none() : this._();
 
-  /// Badge numérique. [max] optionnel affiche un palier ("value/max").
+  /// Badge numérique (bas-droite). [max] optionnel affiche un palier
+  /// ("value/max").
   const UpgradeCounterInfo.number(int value, {int? max})
       : this._(value: value, max: max);
 
-  /// Badge pastille de couleur (Couleur détestée).
+  /// Badge pastille de couleur seule (bas-droite).
   const UpgradeCounterInfo.colorSwatch(Color color) : this._(swatchColor: color);
+
+  /// Badge combiné : chiffre en bas-droite + pastille de couleur en
+  /// haut-droite (Couleur détestée).
+  const UpgradeCounterInfo.numberWithSwatch(int value, Color swatchColor)
+      : this._(value: value, swatchColor: swatchColor);
 
   final int? value;
   final int? max;
@@ -84,9 +93,9 @@ UpgradeCounterInfo upgradeCounterFor(WidgetRef ref, UpgradeEffectType effectType
       return UpgradeCounterInfo.number(remaining);
 
     // Couleur détestée : pastille de la couleur du biome actuellement
-    // exclu, tant que l'exclusion est encore active (tuiles posées depuis
-    // l'activation < durée). Pas de chiffre — juste la couleur, comme
-    // demandé.
+    // exclu + nombre de tuiles restantes avant la fin de l'exclusion, tant
+    // que celle-ci est encore active (tuiles posées depuis l'activation <
+    // durée).
     case UpgradeEffectType.hatedColorExclusion:
       final stack = ref.watch(tileStackProvider);
       final biome = stack.excludeBiome;
@@ -98,7 +107,7 @@ UpgradeCounterInfo upgradeCounterFor(WidgetRef ref, UpgradeEffectType effectType
           ref.watch(gridProvider.select((g) => g.placedTiles.length));
       final remaining = stack.hatedDuration - (placedCount - startCount);
       if (remaining <= 0) return const UpgradeCounterInfo.none();
-      return UpgradeCounterInfo.colorSwatch(biome.color);
+      return UpgradeCounterInfo.numberWithSwatch(remaining, biome.color);
 
     // Toutes les autres améliorations (Tuile bonus, Pièces+/Jackpot+,
     // Rouge+/Vert+/Bleu+/Jaune+/Violet+, Bonus de clôture, Aperçu prolongé,
