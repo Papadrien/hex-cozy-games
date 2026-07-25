@@ -180,10 +180,9 @@ class CoinComponent extends PositionComponent {
     this.onImpact,
     int priority = 10,
     double staticAlpha = 0.85,
-    double startDelay = 0.0,
+    this._startDelay = 0.0,
   })  : _radius = hexSize * 0.18,
         _alpha = animated ? null : staticAlpha,
-        _startDelay = startDelay,
         super(priority: priority);
 
   final double _radius;
