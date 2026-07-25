@@ -50,6 +50,30 @@ final hasUnclaimedQuestProvider = Provider<bool>((ref) {
   return ref.watch(unclaimedQuestsProvider).isNotEmpty;
 });
 
+/// IDs des quêtes dont la récompense est en cours de réclamation — le temps
+/// de l'écriture en base (voir [QuestService.claimReward]) et de
+/// l'animation de récompense associée (voir `quests_screen.dart`,
+/// `_QuestCardState._handleClaim`). Tant qu'un ID figure dans cet
+/// ensemble, la quête correspondante reste affichée dans la liste même si
+/// elle est déjà marquée comme réclamée en base — pour ne pas faire
+/// disparaître sa carte en pleine animation.
+final claimingQuestIdsProvider =
+    NotifierProvider<ClaimingQuestIdsNotifier, Set<String>>(
+        ClaimingQuestIdsNotifier.new);
+
+class ClaimingQuestIdsNotifier extends Notifier<Set<String>> {
+  @override
+  Set<String> build() => {};
+
+  void start(String questId) {
+    state = {...state, questId};
+  }
+
+  void finish(String questId) {
+    state = {...state}..remove(questId);
+  }
+}
+
 final questServiceProvider = Provider<QuestService>((ref) {
   return QuestService(ref);
 });

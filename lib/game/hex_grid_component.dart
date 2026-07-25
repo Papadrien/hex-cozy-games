@@ -306,9 +306,12 @@ class HexGridComponent extends PositionComponent {
       add(component);
     }
 
-    // Tuile bonus centrée sur la prévisualisation (story 1.7e).
+    // Tuile bonus centrée sur la prévisualisation (story 1.7e) — même
+    // surélévation ([kPreviewLiftPx]) que le [TileComponent] de
+    // prévisualisation (voir [_syncPreviewComponent]) pour être bien
+    // centrée dessus plutôt qu'à mi-hauteur entre le sol et la tuile.
     if (previewBonusTiles > 0) {
-      final pos = Vector2(center.x, center.y - kPreviewLiftPx * 0.5);
+      final pos = Vector2(center.x, center.y - kPreviewLiftPx);
       final component = PreviewBonusComponent(
         position: pos,
         hexSize: hexSize,

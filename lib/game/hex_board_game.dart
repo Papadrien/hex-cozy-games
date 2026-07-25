@@ -159,6 +159,16 @@ class HexBoardGame extends FlameGame
     _container.listen(previewRewardProvider, (prev, next) {
       _previewDirty = true;
     });
+    // Grille (pose / annulation). Nécessaire en plus de [previewRewardProvider]
+    // ci-dessus : quand aucun emplacement n'est sélectionné (cas de
+    // [undoPlacement], qui retire une tuile sans jamais toucher à la
+    // sélection), la valeur de [previewRewardProvider] ne change pas — son
+    // écouteur ne se déclenche donc pas — alors que les cases disponibles
+    // ([HexGridComponent.availableHighlights]) doivent quand même être
+    // recalculées pour refléter la tuile retirée.
+    _container.listen(gridProvider, (prev, next) {
+      _previewDirty = true;
+    });
   }
 
   @override

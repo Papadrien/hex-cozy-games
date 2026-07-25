@@ -4,7 +4,9 @@
 /// organisées par catégorie. Les quêtes verrouillées (prédécesseur de
 /// chaîne pas encore complété) restent invisibles — pas de cadenas —
 /// jusqu'à leur déblocage ; les quêtes entièrement terminées (récompense
-/// réclamée) disparaissent de la liste (voir [_QuestsList._visibleQuests]).
+/// réclamée) disparaissent de la liste une fois leur animation de
+/// réclamation terminée (voir [_QuestsList._visibleQuests] et
+/// [claimingQuestIdsProvider]).
 library;
 
 import 'dart:async';
@@ -29,6 +31,7 @@ class QuestsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final questsAsync = ref.watch(permanentQuestsProvider);
+    final claimingIds = ref.watch(claimingQuestIdsProvider);
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -51,7 +54,10 @@ class QuestsScreen extends ConsumerWidget {
                         ),
                       ),
                     ),
-                    data: (quests) => _QuestsList(quests: quests),
+                    data: (quests) => _QuestsList(
+                      quests: quests,
+                      claimingIds: claimingIds,
+                    ),
                   ),
                 ),
               ],
@@ -63,9 +69,14 @@ class QuestsScreen extends ConsumerWidget {
 }
 
 class _QuestsList extends StatelessWidget {
-  const _QuestsList({required this.quests});
+  const _QuestsList({required this.quests, required this.claimingIds});
 
   final List<PermanentQuestRow> quests;
+
+  /// IDs des quêtes actuellement en cours de réclamation (voir
+  /// [claimingQuestIdsProvider]) — restent visibles même si déjà marquées
+  /// réclamées en base, le temps que leur animation se termine.
+  final Set<String> claimingIds;
 
   @override
   Widget build(BuildContext context) {
@@ -189,10 +200,14 @@ class _QuestsList extends StatelessWidget {
       }
     }
     // On continue d'afficher la quête one-shot tant que sa récompense n'a
-    // pas été réclamée (même complétée) : sinon le point rouge du bouton
-    // "Quêtes" (piloté par isCompleted && !rewardClaimed) reste allumé
-    // alors qu'aucune quête n'apparaît plus comme terminée dans la liste.
-    if (oneShot != null && !(oneShot.isCompleted && oneShot.rewardClaimed)) {
+    // pas été réclamée (même complétée), ou tant que son animation de
+    // réclamation est en cours ([claimingIds]) : sinon le point rouge du
+    // bouton "Quêtes" (piloté par isCompleted && !rewardClaimed) reste
+    // allumé alors qu'aucune quête n'apparaît plus comme terminée dans la
+    // liste, ou la carte bascule vers la répétable en pleine animation.
+    if (oneShot != null &&
+        (claimingIds.contains(oneShot.id) ||
+            !(oneShot.isCompleted && oneShot.rewardClaimed))) {
       return [oneShot];
     }
     if (repeatable != null) return [repeatable];
@@ -221,12 +236,15 @@ class _QuestsList extends StatelessWidget {
   /// de chaîne pas encore complété) restent invisibles — pas de cadenas —
   /// et apparaissent dès qu'elles se débloquent ; les quêtes entièrement
   /// terminées (récompense déjà réclamée) sont masquées pour ne pas
-  /// encombrer la liste. Une quête complétée mais dont la récompense n'a
-  /// pas encore été réclamée reste affichée (point rouge, voir
-  /// [_QuestCardState._isPendingClaim]).
+  /// encombrer la liste, sauf si leur animation de réclamation est encore
+  /// en cours ([claimingIds]) — sans ce garde-fou, la carte disparaîtrait
+  /// de la liste dès l'écriture en base, en pleine animation. Une quête
+  /// complétée mais dont la récompense n'a pas encore été réclamée reste
+  /// affichée (point rouge, voir [_QuestCardState._isPendingClaim]).
   List<PermanentQuestRow> _visibleQuests(List<PermanentQuestRow> all) {
     return all
-        .where((q) => !(q.isCompleted && q.rewardClaimed))
+        .where((q) =>
+            claimingIds.contains(q.id) || !(q.isCompleted && q.rewardClaimed))
         .where((q) => _computeStatus(q, all) != _QuestStatus.locked)
         .toList();
   }
@@ -517,10 +535,20 @@ class _QuestCardState extends ConsumerState<_QuestCard>
   Future<void> _handleClaim() async {
     if (!_isPendingClaim || _isClaiming) return;
     buttonTapFeedback(context);
+    final questId = widget.quest.id;
     setState(() => _isClaiming = true);
+    // Garde la quête visible dans la liste (voir
+    // [_QuestsList._visibleQuests]) tant que l'écriture en base et
+    // l'animation de récompense ne sont pas toutes les deux terminées —
+    // sinon la carte disparaîtrait de la liste dès que `rewardClaimed`
+    // passe à vrai en base, en pleine animation.
+    ref.read(claimingQuestIdsProvider.notifier).start(questId);
     unawaited(ref.read(hapticsServiceProvider).questRewardClaimed());
-    unawaited(_claimController.forward(from: 0));
-    await ref.read(questServiceProvider).claimReward(widget.quest.id);
+    await Future.wait([
+      _claimController.forward(from: 0),
+      ref.read(questServiceProvider).claimReward(questId),
+    ]);
+    ref.read(claimingQuestIdsProvider.notifier).finish(questId);
     if (mounted) setState(() => _isClaiming = false);
   }
 

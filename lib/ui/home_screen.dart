@@ -371,6 +371,7 @@ class _CenterContentState extends ConsumerState<_CenterContent>
                       label: context.tr.quests_title,
                       showBadge: hasUnclaimedQuest,
                       onTap: () {
+                        buttonTapFeedback(context);
                         clearAppSnackBars();
                         Navigator.of(context).push(
                           BlurFadePageRoute<void>(
@@ -385,6 +386,7 @@ class _CenterContentState extends ConsumerState<_CenterContent>
                       icon: Icons.bar_chart_outlined,
                       label: context.tr.home_stats,
                       onTap: () {
+                        buttonTapFeedback(context);
                         clearAppSnackBars();
                         Navigator.of(context).push(
                           BlurFadePageRoute<void>(
@@ -713,6 +715,7 @@ class _RewardedAdButton extends ConsumerWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
         onTap: adAvailable
             ? () async {
+                buttonTapFeedback(context);
                 final rewarded = await claimDailyReward(ref);
                 if (rewarded && context.mounted) {
                   showAppSnackBar(
@@ -778,6 +781,7 @@ class _PremiumDailyCoinsButton extends ConsumerWidget {
         tint: available ? kUpgradePurple : Colors.grey,
         onPressed: available
             ? () async {
+                buttonTapFeedback(context);
                 final claimed = await claimPremiumDailyCoins(ref);
                 if (claimed && context.mounted) {
                   animController.forward().then((_) {

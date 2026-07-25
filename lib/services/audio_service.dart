@@ -38,11 +38,17 @@
 /// multi-tuiles coupe net le son de la tuile précédente à chaque nouvelle
 /// arrivée au lieu de les superposer.
 ///
-/// Clic de bouton ([playButtonClick]) : contrairement aux autres bruitages,
-/// il n'est associé à aucun fichier audio — la forme d'onde est générée
-/// procéduralement en mémoire ([_generateClickWaveform], un bref chirp
-/// sinusoïdal descendant enveloppé d'une décroissance exponentielle) puis
-/// jouée via [BytesSource]. Pensé pour être déclenché par [buttonTapFeedback]
+/// Clic de bouton ([playButtonClick]) et clic de pose de tuile
+/// ([playTilePlaced]) : contrairement aux autres bruitages, ils ne sont
+/// associés à aucun fichier audio — leur forme d'onde est générée
+/// procéduralement en mémoire ([_generateClickWaveform], un bref clic dans
+/// la tonalité d'une touche de clavier mécanique : transitoire de bruit
+/// filtré + corps résonant à deux harmoniques, chacun avec sa propre
+/// décroissance exponentielle) puis jouée via [BytesSource]. Le clic de
+/// pose de tuile réutilise le même générateur avec des fréquences plus
+/// aiguës ([_kTileKnockFundamentalFreq]/[_kTileKnockHarmonicFreq]) que le
+/// clic de bouton, pour rester distinct à l'oreille. [playButtonClick] est
+/// pensé pour être déclenché par [buttonTapFeedback]
 /// (voir `haptics_service.dart`) sur tout bouton de l'application qui ne
 /// possède pas déjà son propre bruitage dédié.
 library;
@@ -67,10 +73,11 @@ enum MusicTrack {
   final String assetPath;
 }
 
-/// Bruitages ponctuels disponibles.
+/// Bruitages ponctuels disponibles, basés sur un fichier audio. Le clic de
+/// pose de tuile n'en fait pas partie : il est généré procéduralement (voir
+/// [AudioService.playTilePlaced]).
 enum SfxTrack {
   coin('audio/coin.mp3'),
-  tilePlaced('audio/tile_placed.mp3'),
   tileGain('audio/tile_gain.mp3');
 
   const SfxTrack(this.assetPath);
@@ -113,17 +120,60 @@ const int _kMusicFadeSteps = 12;
 /// aussi bref et évite tout souci de compatibilité de lecture.
 const int _kClickSampleRate = 44100;
 
-/// Durée du clic généré, en millisecondes — volontairement très bref pour
-/// rester discret même en cas de taps rapprochés (navigation rapide entre
-/// plusieurs boutons).
-const double _kClickDurationMs = 28;
+/// Durée du clic de bouton généré, en millisecondes — volontairement bref
+/// pour rester discret même en cas de taps rapprochés (navigation rapide
+/// entre plusieurs boutons), tout en laissant le temps au « corps »
+/// résonant du clic ([_kButtonKnockDecayTauSeconds]) de s'éteindre
+/// naturellement.
+const double _kButtonClickDurationMs = 35;
 
-/// Fréquence de départ (Hz) du léger « chirp » descendant qui donne au son
-/// généré son caractère sec de clic plutôt qu'un simple bip.
-const double _kClickStartFreq = 1600;
+/// Constante de temps (secondes) de la décroissance exponentielle du
+/// transitoire « tac » du clic de bouton ([_generateClickWaveform]) — très
+/// courte pour un claquement sec de switch mécanique plutôt qu'un souffle
+/// qui traîne.
+const double _kButtonTickDecayTauSeconds = 0.0022;
 
-/// Fréquence d'arrivée (Hz) du chirp.
-const double _kClickEndFreq = 380;
+/// Constante de temps (secondes) de la décroissance du « corps » résonant
+/// qui suit le tac du clic de bouton — plus longue, pour évoquer la caisse
+/// d'une touche de clavier mécanique qui continue de vibrer brièvement
+/// après l'impact.
+const double _kButtonKnockDecayTauSeconds = 0.011;
+
+/// Fréquence fondamentale (Hz) du corps résonant du clic de bouton.
+const double _kButtonKnockFundamentalFreq = 1100;
+
+/// Fréquence de l'harmonique secondaire (Hz) du clic de bouton, qui donne
+/// au corps résonant son timbre plastique plutôt qu'un simple ton pur.
+const double _kButtonKnockHarmonicFreq = 2600;
+
+/// Durée du clic de pose de tuile généré, en millisecondes — un peu plus
+/// court que le clic de bouton ([_kButtonClickDurationMs]), cohérent avec
+/// sa tonalité plus aiguë et son corps résonant plus bref.
+const double _kTileClickDurationMs = 28;
+
+/// Constante de temps (secondes) de la décroissance du transitoire « tac »
+/// du clic de pose de tuile.
+const double _kTileTickDecayTauSeconds = 0.0018;
+
+/// Constante de temps (secondes) de la décroissance du corps résonant du
+/// clic de pose de tuile.
+const double _kTileKnockDecayTauSeconds = 0.008;
+
+/// Fréquence fondamentale (Hz) du corps résonant du clic de pose de
+/// tuile — plus aiguë que celle du clic de bouton
+/// ([_kButtonKnockFundamentalFreq]) pour rester distincte à l'oreille.
+const double _kTileKnockFundamentalFreq = 1550;
+
+/// Fréquence de l'harmonique secondaire (Hz) du clic de pose de tuile.
+const double _kTileKnockHarmonicFreq = 3500;
+
+/// Poids relatif du transitoire « tac » (bruit filtré) dans le mixage
+/// final — commun aux deux clics (bouton et pose de tuile).
+const double _kTickMix = 0.55;
+
+/// Poids relatif du corps résonant « thock » dans le mixage final — commun
+/// aux deux clics (bouton et pose de tuile).
+const double _kKnockMix = 0.35;
 
 /// Facteur multiplicatif appliqué au réglage « Bruitages »
 /// ([OptionsState.sfxVolume]) pour le clic de bouton — plus discret que les
@@ -131,26 +181,59 @@ const double _kClickEndFreq = 380;
 /// une simple interaction d'interface plutôt qu'un événement de jeu.
 const double _kClickVolumeScale = 0.5;
 
-/// Génère procéduralement un bref clic de bouton — sans aucun fichier audio
-/// associé — sous la forme d'un chirp sinusoïdal descendant ([_kClickStartFreq]
-/// → [_kClickEndFreq]) enveloppé d'une décroissance exponentielle rapide, ce
-/// qui lui donne un caractère de « tac » sec plutôt qu'un bip qui traîne.
-/// Encodé en PCM 16 bits mono puis enveloppé dans un en-tête WAV minimal par
-/// [_pcm16MonoToWav] pour être jouable directement via [BytesSource] — voir
-/// [AudioService.playButtonClick]. Calculé une seule fois à la construction
-/// du service ([AudioService._clickWaveform]).
-Uint8List _generateClickWaveform() {
-  final sampleCount =
-      (_kClickSampleRate * _kClickDurationMs / 1000).round();
+/// Génère procéduralement un bref clic — sans aucun fichier audio associé —
+/// dans la tonalité d'une touche de clavier mécanique, en superposant deux
+/// composantes :
+///  - un transitoire « tac » : bruit filtré (léger passe-haut par
+///    différenciation d'un bruit blanc) à décroissance exponentielle très
+///    rapide ([tickDecayTauSeconds]), pour le claquement sec du switch ;
+///  - un corps résonant « thock » : deux sinusoïdes amorties
+///    ([knockFundamentalFreq] + [knockHarmonicFreq]) à décroissance un peu
+///    plus longue ([knockDecayTauSeconds]), pour la caisse qui vibre
+///    brièvement après l'impact.
+/// Paramétrée pour être réutilisée avec des fréquences différentes : le
+/// clic de bouton ([AudioService._clickWaveform]) et le clic de pose de
+/// tuile ([AudioService._tilePlacedClickWaveform], plus aigu) partagent ce
+/// même générateur. Encodé en PCM 16 bits mono puis enveloppé dans un
+/// en-tête WAV minimal par [_pcm16MonoToWav] pour être jouable directement
+/// via [BytesSource]. Calculé une seule fois par forme d'onde, à la
+/// construction du service.
+Uint8List _generateClickWaveform({
+  required double durationMs,
+  required double tickDecayTauSeconds,
+  required double knockDecayTauSeconds,
+  required double knockFundamentalFreq,
+  required double knockHarmonicFreq,
+  required int noiseSeed,
+}) {
+  final sampleCount = (_kClickSampleRate * durationMs / 1000).round();
   final samples = Int16List(sampleCount);
+  // Seed fixe : chaque forme d'onde n'a besoin d'être calculée qu'une seule
+  // fois (voir [AudioService._clickWaveform] /
+  // [AudioService._tilePlacedClickWaveform]), son contenu n'a donc pas
+  // besoin d'être aléatoire d'un lancement de l'app à l'autre.
+  final noiseRandom = Random(noiseSeed);
+  var prevNoise = 0.0;
   for (var i = 0; i < sampleCount; i++) {
-    final progress = i / sampleCount;
     final t = i / _kClickSampleRate;
-    final freq =
-        _kClickStartFreq + (_kClickEndFreq - _kClickStartFreq) * progress;
-    final envelope = exp(-progress * 10);
-    final value = sin(2 * pi * freq * t) * envelope;
-    samples[i] = (value * 0.55 * 32767).round().clamp(-32768, 32767);
+
+    // Transitoire "tac" : bruit blanc légèrement filtré (différenciation
+    // simple, effet passe-haut) pour un claquement plus sec qu'un bruit
+    // brut, enveloppé d'une décroissance très rapide.
+    final rawNoise = noiseRandom.nextDouble() * 2 - 1;
+    final filteredNoise = rawNoise - prevNoise * 0.5;
+    prevNoise = rawNoise;
+    final tick = filteredNoise * exp(-t / tickDecayTauSeconds);
+
+    // Corps résonant "thock" : fondamentale + harmonique, décroissance
+    // un peu plus longue que le tac pour simuler la caisse de la touche.
+    final knockEnvelope = exp(-t / knockDecayTauSeconds);
+    final knock = (sin(2 * pi * knockFundamentalFreq * t) +
+            0.4 * sin(2 * pi * knockHarmonicFreq * t)) *
+        knockEnvelope;
+
+    final value = tick * _kTickMix + knock * _kKnockMix;
+    samples[i] = (value * 32767).round().clamp(-32768, 32767);
   }
   return _pcm16MonoToWav(samples, _kClickSampleRate);
 }
@@ -246,7 +329,28 @@ class AudioService {
   /// Forme d'onde du clic de bouton, générée une seule fois (voir
   /// [_generateClickWaveform]) puis rejouée à chaque appel de
   /// [playButtonClick] — évite de la recalculer à chaque tap.
-  final Uint8List _clickWaveform = _generateClickWaveform();
+  final Uint8List _clickWaveform = _generateClickWaveform(
+    durationMs: _kButtonClickDurationMs,
+    tickDecayTauSeconds: _kButtonTickDecayTauSeconds,
+    knockDecayTauSeconds: _kButtonKnockDecayTauSeconds,
+    knockFundamentalFreq: _kButtonKnockFundamentalFreq,
+    knockHarmonicFreq: _kButtonKnockHarmonicFreq,
+    noiseSeed: 7,
+  );
+
+  /// Forme d'onde du clic de pose de tuile, générée une seule fois — mêmes
+  /// composantes que [_clickWaveform] (transitoire + corps résonant) mais
+  /// avec des fréquences plus aiguës ([_kTileKnockFundamentalFreq] /
+  /// [_kTileKnockHarmonicFreq]), pour rester distincte à l'oreille du clic
+  /// de bouton. Voir [playTilePlaced].
+  final Uint8List _tilePlacedClickWaveform = _generateClickWaveform(
+    durationMs: _kTileClickDurationMs,
+    tickDecayTauSeconds: _kTileTickDecayTauSeconds,
+    knockDecayTauSeconds: _kTileKnockDecayTauSeconds,
+    knockFundamentalFreq: _kTileKnockFundamentalFreq,
+    knockHarmonicFreq: _kTileKnockHarmonicFreq,
+    noiseSeed: 13,
+  );
 
   bool get _musicEnabled => _ref.read(optionsProvider).musicEnabled;
   bool get _sfxEnabled => _ref.read(optionsProvider).sfxEnabled;
@@ -351,8 +455,23 @@ class AudioService {
     }
   }
 
-  /// Arrivée d'une tuile posée à sa position finale (fin du rebond).
-  Future<void> playTilePlaced() => _playSfx(SfxTrack.tilePlaced);
+  /// Arrivée d'une tuile posée à sa position finale (fin du rebond). Comme
+  /// [playButtonClick], il s'agit d'un clic généré procéduralement
+  /// ([_tilePlacedClickWaveform]) plutôt que d'un fichier audio — même
+  /// principe (transitoire + corps résonant) mais dans une tonalité plus
+  /// aiguë, pour rester distinct du clic de bouton d'interface. Pioche dans
+  /// le même pool tournant que [_playSfx] pour laisser plusieurs poses se
+  /// chevaucher sans se couper, avec la même variation de hauteur.
+  Future<void> playTilePlaced() async {
+    if (!_sfxEnabled) return;
+    final player = _sfxPool[_sfxCursor];
+    _sfxCursor = (_sfxCursor + 1) % _sfxPool.length;
+    final pitch = 1.0 + (_random.nextDouble() * 2 - 1) * _kPitchVariance;
+    await player.stop();
+    await player.setVolume(_sfxVolume);
+    await player.setPlaybackRate(pitch);
+    await player.play(BytesSource(_tilePlacedClickWaveform));
+  }
 
   /// Joue `tile_gain.mp3` à chaque tuile bonus qui arrive sur la pile HUD
   /// (voir `game_screen.dart`, `onBonusImpact` — un appel par icône de
