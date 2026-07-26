@@ -21,19 +21,24 @@ ProviderContainer _makeContainer() => ProviderContainer();
 
 void main() {
   group('Session — initPerGameUses (Story B9)', () {
-    test('initialise les deux compteurs depuis les améliorations actives',
+    test('initialise les trois compteurs depuis les améliorations actives',
         () {
       final container = _makeContainer();
       addTearDown(container.dispose);
       final notifier = container.read(sessionProvider.notifier);
 
       notifier.initPerGameUses(
-        const ActiveUpgradeEffects(holdSlotUses: 2, secondChanceUses: 1),
+        const ActiveUpgradeEffects(
+          holdSlotUses: 2,
+          secondChanceUses: 1,
+          hatedColorExclusionUses: 3,
+        ),
       );
 
       final state = container.read(sessionProvider);
       expect(state.holdSlotRemainingUses, 2);
       expect(state.secondChanceRemainingUses, 1);
+      expect(state.hatedColorRemainingUses, 3);
     });
 
     test('améliorations à zéro → compteurs à zéro', () {
@@ -46,6 +51,7 @@ void main() {
       final state = container.read(sessionProvider);
       expect(state.holdSlotRemainingUses, 0);
       expect(state.secondChanceRemainingUses, 0);
+      expect(state.hatedColorRemainingUses, 0);
     });
   });
 
@@ -99,6 +105,33 @@ void main() {
       expect(state.holdSlotRemainingUses, 0);
       expect(state.secondChanceRemainingUses, 0);
     });
+
+    test(
+        'consumeHatedColor décrémente uniquement le compteur Couleur '
+        'détestée, sans descendre sous 0', () {
+      final container = _makeContainer();
+      addTearDown(container.dispose);
+      final notifier = container.read(sessionProvider.notifier);
+
+      notifier.initPerGameUses(
+        const ActiveUpgradeEffects(
+          holdSlotUses: 2,
+          secondChanceUses: 1,
+          hatedColorExclusionUses: 2,
+        ),
+      );
+      notifier.consumeHatedColor();
+
+      var state = container.read(sessionProvider);
+      expect(state.holdSlotRemainingUses, 2);
+      expect(state.secondChanceRemainingUses, 1);
+      expect(state.hatedColorRemainingUses, 1);
+
+      notifier.consumeHatedColor();
+      notifier.consumeHatedColor();
+      state = container.read(sessionProvider);
+      expect(state.hatedColorRemainingUses, 0);
+    });
   });
 
   group('Session — non-interférence avec le reste de l\'état (Story B9)', () {
@@ -128,19 +161,24 @@ void main() {
   });
 
   group('Session — reset (Story B9)', () {
-    test('reset remet les deux compteurs à 0', () {
+    test('reset remet les trois compteurs à 0', () {
       final container = _makeContainer();
       addTearDown(container.dispose);
       final notifier = container.read(sessionProvider.notifier);
 
       notifier.initPerGameUses(
-        const ActiveUpgradeEffects(holdSlotUses: 3, secondChanceUses: 3),
+        const ActiveUpgradeEffects(
+          holdSlotUses: 3,
+          secondChanceUses: 3,
+          hatedColorExclusionUses: 3,
+        ),
       );
       notifier.reset();
 
       final state = container.read(sessionProvider);
       expect(state.holdSlotRemainingUses, 0);
       expect(state.secondChanceRemainingUses, 0);
+      expect(state.hatedColorRemainingUses, 0);
     });
   });
 }

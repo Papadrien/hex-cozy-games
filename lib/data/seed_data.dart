@@ -224,10 +224,15 @@ final _permanentQuests = [
 ];
 
 /// Quêtes record "meilleure série de connexions consécutives". Paliers
-/// échelonnés indépendants (voir `quest_provider.dart`,
-/// `_updateBestConnectionStreak`, qui met à jour toutes les quêtes de la
-/// catégorie non complétées à chaque nouveau record) : le premier palier
-/// débloque Combo+ (Story A11), les suivants rapportent 200 pièces chacun.
+/// chaînés par `nextQuestId` (comme `biomes_closed`/`coins_earned`) : un
+/// seul palier est visible à la fois — le plus bas non complété — grâce à
+/// la mécanique de verrouillage de `quests_screen.dart` (`_computeStatus`).
+/// La progression, elle, reste alimentée pour tous les paliers non
+/// complétés à chaque nouveau record (voir `quest_provider.dart`,
+/// `_updateBestConnectionStreak`), verrouillés ou non : un palier peut donc
+/// se retrouver déjà complété dès son déblocage si le record le dépassait.
+/// Le premier palier débloque Combo+ (Story A11), les suivants rapportent
+/// 200 pièces chacun.
 final kConnectionStreakQuests = [
   PermanentQuestsCompanion.insert(
     id: 'best_streak_20',
@@ -236,6 +241,7 @@ final kConnectionStreakQuests = [
     targetValue: 20,
     rewardType: RewardType.upgradeUnlock.dbValue,
     rewardValue: 0,
+    nextQuestId: const Value('best_streak_40'),
   ),
   PermanentQuestsCompanion.insert(
     id: 'best_streak_40',
@@ -244,6 +250,7 @@ final kConnectionStreakQuests = [
     targetValue: 40,
     rewardType: RewardType.coins.dbValue,
     rewardValue: 200,
+    nextQuestId: const Value('best_streak_60'),
   ),
   PermanentQuestsCompanion.insert(
     id: 'best_streak_60',
@@ -252,6 +259,7 @@ final kConnectionStreakQuests = [
     targetValue: 60,
     rewardType: RewardType.coins.dbValue,
     rewardValue: 200,
+    nextQuestId: const Value('best_streak_80'),
   ),
   PermanentQuestsCompanion.insert(
     id: 'best_streak_80',
@@ -260,6 +268,7 @@ final kConnectionStreakQuests = [
     targetValue: 80,
     rewardType: RewardType.coins.dbValue,
     rewardValue: 200,
+    nextQuestId: const Value('best_streak_100'),
   ),
   PermanentQuestsCompanion.insert(
     id: 'best_streak_100',

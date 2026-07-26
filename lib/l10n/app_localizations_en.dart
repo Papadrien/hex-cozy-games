@@ -281,7 +281,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get upgrade_desc_hated_color =>
-      'Tap this upgrade during the game to temporarily exclude a random color (among the base colors) from the tile stack. One use per game.';
+      'Tap this upgrade during the game to temporarily exclude a random color (among the base colors) from the tile stack, a limited number of times per game. Wait for the current exclusion to end before you can trigger a new one.';
 
   @override
   String get upgrade_desc_millionaire =>

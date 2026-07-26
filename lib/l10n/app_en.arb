@@ -170,7 +170,7 @@
   "@upgrade_desc_mountain_plus": {},
   "upgrade_desc_closure_bonus": "Grants bonus tiles every time a color zone closes completely.",
   "@upgrade_desc_closure_bonus": {},
-  "upgrade_desc_hated_color": "Tap this upgrade during the game to temporarily exclude a random color (among the base colors) from the tile stack. One use per game.",
+  "upgrade_desc_hated_color": "Tap this upgrade during the game to temporarily exclude a random color (among the base colors) from the tile stack, a limited number of times per game. Wait for the current exclusion to end before you can trigger a new one.",
   "@upgrade_desc_hated_color": {},
   "upgrade_desc_millionaire": "Instantly credits 1,000,000 coins to your profile (developer tool).",
   "@upgrade_desc_millionaire": {},

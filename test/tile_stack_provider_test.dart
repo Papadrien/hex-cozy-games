@@ -158,7 +158,7 @@ void main() {
       }
     });
 
-    test('activateHatedColor est un usage unique par partie', () {
+    test('un deuxième appel pendant une exclusion en cours ne change rien', () {
       final container = makeContainer(hatedColorExclusionDuration: 5);
       addTearDown(container.dispose);
 
@@ -166,11 +166,36 @@ void main() {
       notifier.activateHatedColor();
       final biomeAfterFirstCall = container.read(tileStackProvider).excludeBiome;
 
-      // Un deuxième appel ne doit rien changer (déjà activée).
+      // Un deuxième appel ne doit rien changer (exclusion déjà en cours).
       notifier.activateHatedColor();
       final state = container.read(tileStackProvider);
       expect(state.excludeBiome, biomeAfterFirstCall);
       expect(state.hatedActivated, isTrue);
+    });
+
+    test('activateHatedColor peut être réactivée une fois l\'exclusion précédente terminée', () {
+      final container = makeContainer(hatedColorExclusionDuration: 3);
+      addTearDown(container.dispose);
+
+      final notifier = container.read(tileStackProvider.notifier);
+      notifier.activateHatedColor();
+      expect(hatedColorTilesRemaining(container.read(tileStackProvider), 0), 3);
+
+      // Consomme les 3 tuiles de la fenêtre d'exclusion : elle se termine.
+      for (var i = 0; i < 3; i++) {
+        notifier.consumeActiveTile();
+      }
+      expect(
+        hatedColorTilesRemaining(container.read(tileStackProvider), 3),
+        isNull,
+      );
+
+      // Une nouvelle activation doit maintenant réussir (nouvelle couleur
+      // possible, durée repart à zéro).
+      notifier.activateHatedColor();
+      final state = container.read(tileStackProvider);
+      expect(state.hatedStartCount, 3);
+      expect(hatedColorTilesRemaining(state, 3), 3);
     });
 
     test('activateHatedColor ne fait rien si l\'amélioration n\'est pas possédée', () {

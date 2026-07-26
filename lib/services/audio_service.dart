@@ -69,6 +69,16 @@
 /// est pensé pour être déclenché par [buttonTapFeedback]
 /// (voir `haptics_service.dart`) sur tout bouton de l'application qui ne
 /// possède pas déjà son propre bruitage dédié.
+///
+/// Rotation de tuile ([playTileRotated]) : même générateur que le clic de
+/// bouton ([_generateClickWaveform]), réutilisé avec des paramètres dédiés
+/// (plus bref, plus aigu, décroissances plus courtes) pour un tic sec et
+/// léger — un cran de rotation n'est qu'une micro-confirmation répétée
+/// jusqu'à 6 fois par tour complet, donc volontairement plus discret et
+/// moins "plein" que le clic de bouton. Déclenché depuis
+/// [HexBoardGame._handleRotation] (`hex_board_game.dart`), une fois par
+/// cran de 60° franchi — même granularité que le retour haptique
+/// [HapticsService.tileRotated].
 library;
 
 import 'dart:async';
@@ -235,6 +245,38 @@ const double _kKnockMix = 0.35;
 /// autres bruitages (gain de pièces, pose de tuile) puisqu'il accompagne
 /// une simple interaction d'interface plutôt qu'un événement de jeu.
 const double _kClickVolumeScale = 0.5;
+
+/// Durée du clic de rotation généré, en millisecondes — plus bref encore
+/// que le clic de bouton ([_kButtonClickDurationMs]) : jusqu'à 6 clics par
+/// tour complet lors d'une rotation rapide, un son qui traîne donnerait une
+/// impression de bouillie plutôt qu'une suite de crans nets et distincts.
+const double _kRotationClickDurationMs = 18;
+
+/// Constante de temps (secondes) de la décroissance du transitoire « tac »
+/// du clic de rotation — encore plus courte que celle du clic de bouton
+/// ([_kButtonTickDecayTauSeconds]) pour un tic léger plutôt qu'un claquement.
+const double _kRotationTickDecayTauSeconds = 0.0012;
+
+/// Constante de temps (secondes) de la décroissance du corps résonant du
+/// clic de rotation — bref lui aussi, pour ne laisser qu'une pointe de
+/// hauteur perceptible sans corps qui traîne.
+const double _kRotationKnockDecayTauSeconds = 0.005;
+
+/// Fréquence fondamentale (Hz) du corps résonant du clic de rotation — plus
+/// aiguë que celle du clic de bouton ([_kButtonKnockFundamentalFreq]) pour
+/// un timbre plus léger, cohérent avec un cran de 60° plutôt qu'un appui de
+/// bouton.
+const double _kRotationKnockFundamentalFreq = 1800;
+
+/// Fréquence de l'harmonique secondaire (Hz) du clic de rotation.
+const double _kRotationKnockHarmonicFreq = 3400;
+
+/// Facteur multiplicatif appliqué au réglage « Bruitages »
+/// ([OptionsState.sfxVolume]) pour le clic de rotation — nettement plus
+/// discret que le clic de bouton ([_kClickVolumeScale]) : jusqu'à 6
+/// occurrences par tour complet, il doit rester un léger tic en fond plutôt
+/// qu'attirer l'attention à chaque cran.
+const double _kRotationClickVolumeScale = 0.3;
 
 /// Génère procéduralement un bref clic — sans aucun fichier audio associé —
 /// dans la tonalité d'une touche de clavier mécanique, en superposant deux
@@ -453,6 +495,22 @@ class AudioService {
     knockFundamentalFreq: _kButtonKnockFundamentalFreq,
     knockHarmonicFreq: _kButtonKnockHarmonicFreq,
     noiseSeed: 7,
+  );
+
+  /// Forme d'onde du clic de rotation, générée une seule fois (même
+  /// générateur que [_clickWaveform], [_generateClickWaveform], mais avec
+  /// un timbre dédié plus bref et plus aigu — voir les constantes
+  /// `_kRotation*`) puis rejouée à chaque appel de [playTileRotated].
+  /// Seed de bruit différent de [_clickWaveform] (31 plutôt que 7) pour ne
+  /// pas partager exactement le même grain de bruit, même si les deux sons
+  /// ne se chevauchent normalement jamais dans l'usage.
+  final Uint8List _rotationClickWaveform = _generateClickWaveform(
+    durationMs: _kRotationClickDurationMs,
+    tickDecayTauSeconds: _kRotationTickDecayTauSeconds,
+    knockDecayTauSeconds: _kRotationKnockDecayTauSeconds,
+    knockFundamentalFreq: _kRotationKnockFundamentalFreq,
+    knockHarmonicFreq: _kRotationKnockHarmonicFreq,
+    noiseSeed: 31,
   );
 
   /// Forme d'onde du son de pose de tuile, générée une seule fois (voir
@@ -684,6 +742,28 @@ class AudioService {
     await player.setVolume(_sfxVolume * _kClickVolumeScale);
     await player.setPlaybackRate(pitch);
     await player.play(BytesSource(_clickWaveform));
+  }
+
+  /// Joue le clic de rotation généré procéduralement ([_rotationClickWaveform],
+  /// même générateur que [playButtonClick] mais timbre dédié plus bref/aigu —
+  /// voir [_generateClickWaveform]) — aucun fichier audio associé. Pioche
+  /// dans le même pool tournant que [_playSfx]/[playButtonClick] (même
+  /// hauteur légèrement randomisée), avec un volume encore plus atténué
+  /// ([_kRotationClickVolumeScale]) pour rester discret même en rafale (un
+  /// clic par cran de 60°, jusqu'à 6 par tour complet).
+  ///
+  /// À appeler depuis [HexBoardGame._handleRotation] (`hex_board_game.dart`)
+  /// à chaque cran de rotation franchi — même déclencheur que
+  /// [HapticsService.tileRotated].
+  Future<void> playTileRotated() async {
+    if (!_sfxEnabled) return;
+    final player = _sfxPool[_sfxCursor];
+    _sfxCursor = (_sfxCursor + 1) % _sfxPool.length;
+    final pitch = 1.0 + (_random.nextDouble() * 2 - 1) * _kPitchVariance;
+    await player.stop();
+    await player.setVolume(_sfxVolume * _kRotationClickVolumeScale);
+    await player.setPlaybackRate(pitch);
+    await player.play(BytesSource(_rotationClickWaveform));
   }
 
   void _dispose() {

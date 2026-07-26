@@ -59,6 +59,7 @@ class ActiveUpgradeEffects {
     this.comboStreakInterval = 0,
     this.extendedPreviewCount = 0,
     this.hatedColorExclusionDuration = 0,
+    this.hatedColorExclusionUses = 0,
     this.closureBonusTiles = 0,
     this.holdSlotUses = 0,
     this.secondChanceUses = 0,
@@ -114,6 +115,13 @@ class ActiveUpgradeEffects {
   /// Valeurs : 5/8/10 selon niveau ; 0 = inactif.
   final int hatedColorExclusionDuration;
 
+  /// Nombre d'utilisations de "Couleur détestée" par partie (Story B12x+) :
+  /// chaque activation exclut un nouveau biome aléatoire pour
+  /// [hatedColorExclusionDuration] tuiles ; impossible de réactiver tant
+  /// que l'exclusion en cours n'est pas terminée. Valeurs : 1/2/3 selon
+  /// niveau ; 0 = inactif.
+  final int hatedColorExclusionUses;
+
   /// Multiplicateur du Bonus de clôture (Story B7) : tuiles bonus = (taille du
   /// biome ÷ 10) × [closureBonusTiles] pour chaque fermeture détectée.
   /// Valeurs : 1/2/3 selon niveau ; 0 = inactif.
@@ -148,6 +156,7 @@ final activeUpgradeEffectsProvider = Provider<ActiveUpgradeEffects>((ref) {
   int comboStreakInterval = 0;
   int extendedPreviewCount = 0;
   int hatedColorExclusionDuration = 0;
+  int hatedColorExclusionUses = 0;
   int closureBonus = 0;
   int holdSlotUses = 0;
   int secondChanceUses = 0;
@@ -200,6 +209,7 @@ final activeUpgradeEffectsProvider = Provider<ActiveUpgradeEffects>((ref) {
         break;
       case UpgradeEffectType.hatedColorExclusion:
         hatedColorExclusionDuration = val.toInt();
+        hatedColorExclusionUses = hatedColorExclusionUsesForLevel(u.currentLevel);
         break;
       case UpgradeEffectType.closureBonusTiles:
         closureBonus = val.toInt();
@@ -231,6 +241,7 @@ final activeUpgradeEffectsProvider = Provider<ActiveUpgradeEffects>((ref) {
     comboStreakInterval: comboStreakInterval,
     extendedPreviewCount: extendedPreviewCount,
     hatedColorExclusionDuration: hatedColorExclusionDuration,
+    hatedColorExclusionUses: hatedColorExclusionUses,
     closureBonusTiles: closureBonus,
     holdSlotUses: holdSlotUses,
     secondChanceUses: secondChanceUses,

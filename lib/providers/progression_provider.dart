@@ -285,7 +285,11 @@ List<String> upgradeAllLevelEffects(UpgradeEffectType effectType) {
     case UpgradeEffectType.closureBonusTiles:
       return ['+1/10 tuiles', '+2/10 tuiles', '+3/10 tuiles'];
     case UpgradeEffectType.hatedColorExclusion:
-      return ['5 tuiles', '8 tuiles', '10 tuiles'];
+      return [
+        '5 tuiles, 1 usage/partie',
+        '8 tuiles, 2 usages/partie',
+        '10 tuiles, 3 usages/partie',
+      ];
     case UpgradeEffectType.extendedPreviewCount:
       return ['4 tuiles', '5 tuiles', '6 tuiles'];
     case UpgradeEffectType.holdSlotUses:
@@ -300,6 +304,14 @@ List<String> upgradeAllLevelEffects(UpgradeEffectType effectType) {
       return ['500 tuiles'];
   }
 }
+
+/// Nombre d'utilisations de "Couleur détestée" par partie au niveau
+/// [level] — indépendant de [upgradeEffectValue], qui porte la durée
+/// (en tuiles) de chaque exclusion. Même paliers que [holdSlotUses] /
+/// [secondChanceUses] (1/2/3 selon niveau) pour rester cohérent avec les
+/// autres améliorations à usages limités.
+int hatedColorExclusionUsesForLevel(int level) =>
+    [1, 2, 3][level.clamp(0, 2)];
 
 /// Valeur numérique de l'effet au niveau [level] pour un [effectType].
 double upgradeEffectValue(UpgradeEffectType effectType, int level) {

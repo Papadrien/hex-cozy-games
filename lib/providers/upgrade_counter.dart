@@ -92,22 +92,28 @@ UpgradeCounterInfo upgradeCounterFor(WidgetRef ref, UpgradeEffectType effectType
           .watch(sessionProvider.select((s) => s.secondChanceRemainingUses));
       return UpgradeCounterInfo.number(remaining);
 
-    // Couleur détestée : pastille de la couleur du biome actuellement
-    // exclu + nombre de tuiles restantes avant la fin de l'exclusion, tant
-    // que celle-ci est encore active (tuiles posées depuis l'activation <
-    // durée).
+    // Couleur détestée (Story B12x+) : pendant une exclusion en cours,
+    // pastille de la couleur du biome exclu + nombre de tuiles restantes
+    // avant la fin de l'exclusion. En dehors (pas encore activée cette
+    // partie, ou dernière exclusion déjà terminée), badge du nombre
+    // d'utilisations restantes ("restant/max", ex. "1/2").
     case UpgradeEffectType.hatedColorExclusion:
       final stack = ref.watch(tileStackProvider);
-      final biome = stack.excludeBiome;
-      final startCount = stack.hatedStartCount;
-      if (biome == null || stack.hatedDuration <= 0 || startCount == null) {
-        return const UpgradeCounterInfo.none();
-      }
       final placedCount =
           ref.watch(gridProvider.select((g) => g.placedTiles.length));
-      final remaining = stack.hatedDuration - (placedCount - startCount);
-      if (remaining <= 0) return const UpgradeCounterInfo.none();
-      return UpgradeCounterInfo.numberWithSwatch(remaining, biome.color);
+      final tilesRemaining = hatedColorTilesRemaining(stack, placedCount);
+      if (tilesRemaining != null) {
+        return UpgradeCounterInfo.numberWithSwatch(
+          tilesRemaining,
+          stack.excludeBiome!.color,
+        );
+      }
+      final maxUses =
+          ref.watch(activeUpgradeEffectsProvider).hatedColorExclusionUses;
+      if (maxUses <= 0) return const UpgradeCounterInfo.none();
+      final usesRemaining =
+          ref.watch(sessionProvider.select((s) => s.hatedColorRemainingUses));
+      return UpgradeCounterInfo.number(usesRemaining, max: maxUses);
 
     // Toutes les autres améliorations (Tuile bonus, Pièces+,
     // Rouge+/Vert+/Bleu+/Jaune+/Violet+, Bonus de clôture, Aperçu prolongé,

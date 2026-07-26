@@ -385,10 +385,13 @@ class HexBoardGame extends FlameGame
     if (delta != 0) {
       _container.read(placementProvider.notifier).rotate(delta);
       _rotationNotchesApplied = targetNotches;
-      // Un clic haptique par mise à jour de rotation (un ou plusieurs crans
-      // d'un coup lors d'un swipe rapide comptent pour un seul retour, afin
-      // de ne pas spammer de vibrations en rafale).
+      // Un clic haptique + un léger clic sonore généré procéduralement par
+      // mise à jour de rotation (un ou plusieurs crans d'un coup lors d'un
+      // swipe rapide comptent pour un seul retour de chaque, afin de ne pas
+      // spammer vibrations/sons en rafale) — voir
+      // [AudioService.playTileRotated].
       _container.read(hapticsServiceProvider).tileRotated();
+      _container.read(audioServiceProvider).playTileRotated();
     }
   }
 

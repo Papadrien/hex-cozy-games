@@ -39,6 +39,7 @@ import '../data/app_database.dart';
 import '../game/hex_tile.dart';
 import '../game/tile_component.dart' show BiomeColor;
 import '../providers/build_provider.dart';
+import '../providers/grid_state_provider.dart';
 import '../providers/hold_slot_provider.dart';
 import '../providers/hold_slot_swap.dart';
 import '../providers/second_chance_ops.dart';
@@ -318,15 +319,24 @@ class _UpgradeSlotState extends ConsumerState<_UpgradeSlot>
     );
   }
 
-  /// Slot "Couleur détestée" — amélioration à usage unique par partie :
-  /// tant qu'elle n'a pas été activée, un tap déclenche l'exclusion (voir
-  /// [activateHatedColor]) ; une fois activée (en cours ou terminée), le
-  /// slot n'a plus d'action au tap, seul l'appui long reste disponible. La
-  /// pastille de couleur du biome exclu (voir [upgradeCounterFor]) reste le
-  /// seul indicateur visuel de l'effet en cours.
+  /// Slot "Couleur détestée" (Story B12x+) — amélioration à utilisations
+  /// limitées par partie (1/2/3 selon niveau) : un tap déclenche une
+  /// nouvelle exclusion (voir [activateHatedColor]) tant qu'il reste des
+  /// utilisations ET qu'aucune exclusion n'est déjà en cours ; le slot n'a
+  /// alors plus d'action au tap (mais reste consultable en appui long)
+  /// jusqu'à ce que l'exclusion en cours se termine. Le badge affiche la
+  /// pastille de couleur + tuiles restantes pendant une exclusion, ou le
+  /// nombre d'utilisations restantes ("restant/max") le reste du temps
+  /// (voir [upgradeCounterFor]).
   Widget _buildHatedColor(BuildContext context) {
-    final activated =
-        ref.watch(tileStackProvider.select((s) => s.hatedActivated));
+    final stack = ref.watch(tileStackProvider);
+    final placedCount =
+        ref.watch(gridProvider.select((g) => g.placedTiles.length));
+    final isExclusionActive =
+        hatedColorTilesRemaining(stack, placedCount) != null;
+    final usesRemaining =
+        ref.watch(sessionProvider.select((s) => s.hatedColorRemainingUses));
+    final canActivate = !isExclusionActive && usesRemaining > 0;
     final tint = upgradeIconColor(UpgradeEffectType.hatedColorExclusion);
     final counter = upgradeCounterFor(ref, UpgradeEffectType.hatedColorExclusion);
 
@@ -343,14 +353,14 @@ class _UpgradeSlotState extends ConsumerState<_UpgradeSlot>
               ? Color.lerp(kGlassBlueBorder, kRewardGold, glowAlpha)
               : kGlassBlueBorder,
           borderWidth: glowAlpha > 0 ? 1.0 + glowAlpha : 1.0,
-          onTap: activated
-              ? null
-              : () {
+          onTap: canActivate
+              ? () {
                   buttonTapFeedback(context);
                   activateHatedColor(ref);
-                },
+                }
+              : null,
           child: Opacity(
-            opacity: activated ? 0.4 : 1.0,
+            opacity: canActivate ? 1.0 : 0.4,
             child: Icon(
               upgradeIconData(UpgradeEffectType.hatedColorExclusion),
               color: tint ?? Colors.white,

@@ -294,6 +294,54 @@ void main() {
       );
     });
 
+    test('hated_color (niveau 1) → hatedColorExclusionUses = 1', () {
+      final container = containerWithUpgrades([
+        row(
+          id: 'hated_color',
+          effectType: 'hatedColorExclusion',
+          currentLevel: 0,
+        ),
+      ]);
+      addTearDown(container.dispose);
+
+      expect(
+        container.read(activeUpgradeEffectsProvider).hatedColorExclusionUses,
+        1,
+      );
+    });
+
+    test('hated_color (niveau 2) → hatedColorExclusionUses = 2', () {
+      final container = containerWithUpgrades([
+        row(
+          id: 'hated_color',
+          effectType: 'hatedColorExclusion',
+          currentLevel: 1,
+        ),
+      ]);
+      addTearDown(container.dispose);
+
+      expect(
+        container.read(activeUpgradeEffectsProvider).hatedColorExclusionUses,
+        2,
+      );
+    });
+
+    test('hated_color (niveau 3) → hatedColorExclusionUses = 3', () {
+      final container = containerWithUpgrades([
+        row(
+          id: 'hated_color',
+          effectType: 'hatedColorExclusion',
+          currentLevel: 2,
+        ),
+      ]);
+      addTearDown(container.dispose);
+
+      expect(
+        container.read(activeUpgradeEffectsProvider).hatedColorExclusionUses,
+        3,
+      );
+    });
+
     test('closure_bonus (niveau 1) → closureBonusTiles = 1', () {
       final container = containerWithUpgrades([
         row(

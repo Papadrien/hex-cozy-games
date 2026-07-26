@@ -61,14 +61,36 @@ class TileStackState {
   /// l'exclusion (voir [upgradeCounterFor]).
   final int? hatedStartCount;
 
-  /// Vrai dès que le joueur a activé "Couleur détestée" pour cette partie
-  /// (amélioration à usage unique par partie) — reste vrai même une fois
-  /// l'exclusion terminée, pour indiquer que le slot ne peut plus être
-  /// réactivé.
+  /// Vrai dès que le joueur a activé "Couleur détestée" au moins une fois
+  /// pour cette partie — purement indicatif (persistance/rétro-
+  /// compatibilité) : ne bloque plus la réactivation à lui seul. Voir
+  /// [hatedColorTilesRemaining] pour savoir si une exclusion est
+  /// actuellement en cours, et [SessionState.hatedColorRemainingUses]
+  /// (session_provider.dart) pour le nombre d'utilisations qu'il reste.
   final bool hatedActivated;
 
   /// La tuile que le joueur va poser ensuite, ou null si la pile est vide.
   HexTile? get activeTile => visible.isEmpty ? null : visible.first;
+}
+
+/// Nombre de tuiles restantes avant la fin de l'exclusion "Couleur
+/// détestée" actuellement en cours dans [stack], ou `null` si aucune
+/// exclusion n'est active en ce moment (pas encore activée cette partie,
+/// ou la dernière activée est déjà terminée). [placedCount] est le nombre
+/// de tuiles posées à l'instant présent (voir `gridProvider`).
+///
+/// Fonction pure partagée entre l'encart des améliorations actives
+/// (`active_upgrades_hud.dart`, pour savoir si le slot est réactivable) et
+/// le badge de suivi (`upgrade_counter.dart`), pour ne pas dupliquer le
+/// calcul.
+int? hatedColorTilesRemaining(TileStackState stack, int placedCount) {
+  final biome = stack.excludeBiome;
+  final startCount = stack.hatedStartCount;
+  if (biome == null || stack.hatedDuration <= 0 || startCount == null) {
+    return null;
+  }
+  final remaining = stack.hatedDuration - (placedCount - startCount);
+  return remaining > 0 ? remaining : null;
 }
 
 // keepAlive: indispensable — sans ça, ce provider autoDispose se
@@ -131,25 +153,31 @@ class TileStack extends _$TileStack {
     return _buildState(seed: seed, visibleCount: visibleCount);
   }
 
-  /// Active "Couleur détestée" (Story B12x) : tire une couleur au hasard
+  /// Active "Couleur détestée" (Story B12x+) : tire une couleur au hasard
   /// parmi les couleurs disponibles dès le lancement de la partie (les
   /// couleurs bonus soumises à un palier de tuiles posées, voir
   /// [kBiomeUnlockThresholds], ne peuvent pas être tirées) et l'exclut du
   /// pool pour les [ActiveUpgradeEffects.hatedColorExclusionDuration]
   /// prochaines tuiles à partir de maintenant.
   ///
-  /// Amélioration à usage unique par partie : ne fait rien si elle n'est
-  /// pas possédée pour ce build ou si elle a déjà été activée.
+  /// Amélioration à utilisations limitées par partie (1/2/3 selon niveau —
+  /// voir [ActiveUpgradeEffects.hatedColorExclusionUses]) : le décompte des
+  /// utilisations restantes est géré côté appelant (voir
+  /// [activateHatedColor] dans `second_chance_ops.dart`, qui consomme une
+  /// utilisation via `sessionProvider`). Ici, on ne fait rien si
+  /// l'amélioration n'est pas possédée pour ce build, ou si une exclusion
+  /// est déjà en cours (pas de superposition : il faut attendre la fin de
+  /// l'exclusion active avant d'en déclencher une nouvelle).
   void activateHatedColor() {
-    if (_hatedActivated) return;
     final effects = ref.read(activeUpgradeEffectsProvider);
     final duration = effects.hatedColorExclusionDuration;
     if (duration <= 0) return;
+    final placedCount = ref.read(gridProvider).placedTiles.length;
+    if (hatedColorTilesRemaining(state, placedCount) != null) return;
 
     final rng = Random();
     final launchBiomes = unlockedBiomesAt(1);
     final biome = launchBiomes[rng.nextInt(launchBiomes.length)];
-    final placedCount = ref.read(gridProvider).placedTiles.length;
 
     // Régénère les prochaines tuiles de la file (pas encore posées) en
     // excluant [biome], pour que l'exclusion s'applique bien à partir de

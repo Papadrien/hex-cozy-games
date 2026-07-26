@@ -167,6 +167,12 @@ void main() {
       );
     });
 
+    test('hatedColorExclusionUsesForLevel → 1, 2, 3', () {
+      expect(hatedColorExclusionUsesForLevel(0), 1);
+      expect(hatedColorExclusionUsesForLevel(1), 2);
+      expect(hatedColorExclusionUsesForLevel(2), 3);
+    });
+
     test('extendedPreviewCount → 4, 5, 6', () {
       expect(
         upgradeEffectValue(UpgradeEffectType.extendedPreviewCount, 0),
@@ -320,10 +326,14 @@ void main() {
       );
     });
 
-    test('hatedColorExclusion → 5, 8, 10 tuiles', () {
+    test('hatedColorExclusion → 5/1, 8/2, 10/3 (tuiles/usages)', () {
       expect(
         upgradeAllLevelEffects(UpgradeEffectType.hatedColorExclusion),
-        ['5 tuiles', '8 tuiles', '10 tuiles'],
+        [
+          '5 tuiles, 1 usage/partie',
+          '8 tuiles, 2 usages/partie',
+          '10 tuiles, 3 usages/partie',
+        ],
       );
     });
 

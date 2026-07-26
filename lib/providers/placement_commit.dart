@@ -120,6 +120,7 @@ class SessionSaver {
         'queue': queueJson,
         'holdSlotRemainingUses': session.holdSlotRemainingUses,
         'secondChanceRemainingUses': session.secondChanceRemainingUses,
+        'hatedColorRemainingUses': session.hatedColorRemainingUses,
         // État "Couleur détestée" (Story B12b/B12x) — sans eux, la reprise
         // de partie après kill de l'app perdait l'exclusion de biome.
         'excludeBiome': stack.excludeBiome?.name,

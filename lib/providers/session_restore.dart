@@ -95,6 +95,8 @@ Future<void> restoreSession(WidgetRef ref) async {
         stackJson['holdSlotRemainingUses'] as int? ?? 0;
     final secondChanceRemainingUses =
         stackJson['secondChanceRemainingUses'] as int? ?? 0;
+    final hatedColorRemainingUses =
+        stackJson['hatedColorRemainingUses'] as int? ?? 0;
 
     // Compteurs cumulatifs d'améliorations (Combo+/série de connexions) —
     // `?? 0` : rétro-compatibilité avec les sessions sauvegardées avant ce
@@ -130,6 +132,7 @@ Future<void> restoreSession(WidgetRef ref) async {
           currentDoubleStreak: currentDoubleStreak,
           holdSlotRemainingUses: holdSlotRemainingUses,
           secondChanceRemainingUses: secondChanceRemainingUses,
+          hatedColorRemainingUses: hatedColorRemainingUses,
         ));
 
     // Restaurer le dernier placement (pour le bouton Annuler).

@@ -12,8 +12,8 @@
 ///    ne doit jamais faire attendre indéfiniment (sinon le test expire) ;
 ///  - [AudioService.playCoinsGained] avec `count: 0` ne joue rien ;
 ///  - [AudioService.playTilePlaced] / [AudioService.playTileGained] /
-///    [AudioService.playEndGame] ne lèvent pas d'exception, bruitages
-///    activés ou non ;
+///    [AudioService.playEndGame] / [AudioService.playTileRotated] ne lèvent
+///    pas d'exception, bruitages activés ou non ;
 ///  - [AudioService.resumeMusicFromBackground] ne fait rien tant qu'aucune
 ///    musique n'a jamais été lancée.
 library;
@@ -236,6 +236,22 @@ void main() {
     container.read(optionsProvider.notifier).toggleSfx();
     await service.playTilePlaced();
     await service.playTileGained();
+  });
+
+  test(
+      'playTileRotated ne lève pas d\'exception, bruitages activés ou '
+      'désactivés, y compris en rafale (plusieurs crans à la suite)',
+      () async {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    final service = container.read(audioServiceProvider);
+
+    for (var i = 0; i < 6; i++) {
+      await service.playTileRotated();
+    }
+
+    container.read(optionsProvider.notifier).toggleSfx();
+    await service.playTileRotated();
   });
 
   test(

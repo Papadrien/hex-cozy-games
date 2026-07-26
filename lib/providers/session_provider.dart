@@ -26,6 +26,7 @@ class SessionState {
     this.currentDoubleStreak = 0,
     this.holdSlotRemainingUses = 0,
     this.secondChanceRemainingUses = 0,
+    this.hatedColorRemainingUses = 0,
   });
 
   final int coins;
@@ -57,6 +58,11 @@ class SessionState {
   /// Utilisations restantes de Deuxième chance pour cette partie (Story B9).
   final int secondChanceRemainingUses;
 
+  /// Utilisations restantes de "Couleur détestée" pour cette partie
+  /// (Story B12x+) — 1/2/3 selon niveau, comme Emplacement Joker /
+  /// Deuxième chance.
+  final int hatedColorRemainingUses;
+
   /// Sentinel utilisé par [copyWith] pour distinguer "non fourni" de "null".
   static const _sentinel = Object();
 
@@ -76,6 +82,7 @@ class SessionState {
     Object? currentDoubleStreak = _sentinel,
     Object? holdSlotRemainingUses = _sentinel,
     Object? secondChanceRemainingUses = _sentinel,
+    Object? hatedColorRemainingUses = _sentinel,
   }) {
     return SessionState(
       coins: coins == _sentinel ? this.coins : coins as int,
@@ -106,6 +113,9 @@ class SessionState {
       secondChanceRemainingUses: secondChanceRemainingUses == _sentinel
           ? this.secondChanceRemainingUses
           : secondChanceRemainingUses as int,
+      hatedColorRemainingUses: hatedColorRemainingUses == _sentinel
+          ? this.hatedColorRemainingUses
+          : hatedColorRemainingUses as int,
     );
   }
 }
@@ -214,6 +224,7 @@ class Session extends _$Session {
     state = state.copyWith(
       holdSlotRemainingUses: effects.holdSlotUses,
       secondChanceRemainingUses: effects.secondChanceUses,
+      hatedColorRemainingUses: effects.hatedColorExclusionUses,
     );
   }
 
@@ -230,6 +241,14 @@ class Session extends _$Session {
     if (state.secondChanceRemainingUses <= 0) return;
     state = state.copyWith(
       secondChanceRemainingUses: state.secondChanceRemainingUses - 1,
+    );
+  }
+
+  /// Consomme une utilisation de "Couleur détestée" (Story B12x+).
+  void consumeHatedColor() {
+    if (state.hatedColorRemainingUses <= 0) return;
+    state = state.copyWith(
+      hatedColorRemainingUses: state.hatedColorRemainingUses - 1,
     );
   }
 
@@ -263,6 +282,7 @@ extension SessionStateJson on SessionState {
         'currentDoubleStreak': currentDoubleStreak,
         'holdSlotRemainingUses': holdSlotRemainingUses,
         'secondChanceRemainingUses': secondChanceRemainingUses,
+        'hatedColorRemainingUses': hatedColorRemainingUses,
       };
 
   static SessionState fromJson(Map<String, dynamic> json) => SessionState(
@@ -278,6 +298,8 @@ extension SessionStateJson on SessionState {
         holdSlotRemainingUses: json['holdSlotRemainingUses'] as int? ?? 0,
         secondChanceRemainingUses:
             json['secondChanceRemainingUses'] as int? ?? 0,
+        hatedColorRemainingUses:
+            json['hatedColorRemainingUses'] as int? ?? 0,
       );
 }
 
