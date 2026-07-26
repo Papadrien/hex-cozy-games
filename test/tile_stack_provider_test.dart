@@ -12,8 +12,10 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:hex_haven/core/constants.dart';
 import 'package:hex_haven/game/hex_cell.dart';
+import 'package:hex_haven/game/hex_coords.dart';
 import 'package:hex_haven/game/hex_tile.dart';
 import 'package:hex_haven/providers/build_provider.dart';
+import 'package:hex_haven/providers/grid_state_provider.dart';
 import 'package:hex_haven/providers/tile_stack_provider.dart';
 
 void main() {
@@ -182,7 +184,9 @@ void main() {
       expect(hatedColorTilesRemaining(container.read(tileStackProvider), 0), 3);
 
       // Consomme les 3 tuiles de la fenêtre d'exclusion : elle se termine.
+      final dummyTile = HexTile(sides: const [BiomeType.forest, BiomeType.forest, BiomeType.village, BiomeType.village, BiomeType.plain, BiomeType.plain]);
       for (var i = 0; i < 3; i++) {
+        container.read(gridProvider.notifier).placeTile(HexCoords(i, 0), dummyTile);
         notifier.consumeActiveTile();
       }
       expect(
