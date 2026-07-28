@@ -284,7 +284,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get upgrade_desc_hated_color =>
-      'Tape sur cette amélioration en cours de partie pour exclure temporairement une couleur aléatoire (parmi les couleurs de base) de la pile de tuiles, un nombre limité de fois par partie. Attends la fin d\'une exclusion en cours avant de pouvoir en déclencher une nouvelle.';
+      'Tape sur cette amélioration en cours de partie pour exclure temporairement une couleur aléatoire (parmi les couleurs de base) de la pile de tuiles, un nombre limité de fois par partie.';
 
   @override
   String get upgrade_desc_millionaire =>

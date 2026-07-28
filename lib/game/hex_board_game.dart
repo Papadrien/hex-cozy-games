@@ -42,6 +42,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/game_enums.dart' show UpgradeEffectType;
+import '../providers/biome_size_overlay_provider.dart';
 import '../providers/grid_state_provider.dart';
 import '../providers/pause_provider.dart';
 import '../providers/placement_provider.dart';
@@ -73,6 +74,13 @@ class HexBoardGame extends FlameGame
   /// déclenchée par [spawnComboBonusParticle]. Null = amélioration non
   /// sélectionnée dans le build en cours (pas d'animation possible).
   Vector2? Function()? getComboUpgradeOrigin;
+
+  /// Retourne la position (coordonnées jeu) de l'icône Tuile bonus dans
+  /// l'encart des améliorations actives — point de départ de la particule
+  /// dédiée déclenchée par [spawnConnectionBonusParticle] (même principe que
+  /// [getComboUpgradeOrigin]). Null = amélioration non sélectionnée dans le
+  /// build en cours (pas d'animation possible).
+  Vector2? Function()? getConnectionBonusUpgradeOrigin;
 
   /// Retourne la position (coordonnées jeu) de l'icône de l'amélioration
   /// [type] dans l'encart des améliorations actives — point de départ des
@@ -179,6 +187,28 @@ class HexBoardGame extends FlameGame
     _container.listen(gridProvider, (prev, next) {
       _previewDirty = true;
     });
+    // Mode sélection Deuxième chance (Story B11) : contour doré sur les
+    // tuiles posées pour les distinguer pendant qu'on cherche laquelle
+    // taper (voir [HexGridComponent.secondChanceHighlightActive]).
+    _container.listen(secondChanceModeProvider, (prev, next) {
+      _grid?.secondChanceHighlightActive = next;
+    }, fireImmediately: true);
+    // Affichage à la demande des tailles de zone (slot "Bonus de clôture") :
+    // recalculé à chaque pose/retrait tant que l'overlay reste actif, sinon
+    // liste vidée pour arrêter l'affichage (voir
+    // [HexGridComponent.biomeSizeClusters]).
+    void syncBiomeSizeOverlay() {
+      final active = _container.read(biomeSizeOverlayProvider);
+      _grid?.biomeSizeClusters =
+          active ? _container.read(gridProvider).allBiomeClusters : const [];
+    }
+
+    _container.listen(biomeSizeOverlayProvider, (prev, next) {
+      syncBiomeSizeOverlay();
+    }, fireImmediately: true);
+    _container.listen(gridProvider, (prev, next) {
+      syncBiomeSizeOverlay();
+    });
   }
 
   @override
@@ -274,6 +304,23 @@ class HexBoardGame extends FlameGame
   /// — mêmes caractéristiques que la tuile bonus posée lors d'un placement.
   void spawnComboBonusParticle(int count, {int coinCount = 0}) {
     final origin = getComboUpgradeOrigin?.call();
+    if (origin == null) return;
+    _grid?.showBonusParticleFrom(origin, count,
+        flyTarget: getBonusFlyTarget?.call(),
+        onImpact: onBonusImpact,
+        coinCount: coinCount);
+  }
+
+  /// Déclenche la particule dédiée de tuile bonus Tuile bonus
+  /// (connectionBonusMultiplier) : comme pour Combo+
+  /// ([spawnComboBonusParticle]), seule la part de bonus SUPPLÉMENTAIRE
+  /// attribuable à l'amélioration (au-delà du bonus de base
+  /// [kBonusScale] sur une connexion quint/sext, voir `placement_commit.dart`)
+  /// prend cette particule dédiée partant de l'icône de l'amélioration —
+  /// le bonus de base continue de voler depuis les côtés connectés de la
+  /// tuile posée comme avant (voir [placeTileOnFlame]).
+  void spawnConnectionBonusParticle(int count, {int coinCount = 0}) {
+    final origin = getConnectionBonusUpgradeOrigin?.call();
     if (origin == null) return;
     _grid?.showBonusParticleFrom(origin, count,
         flyTarget: getBonusFlyTarget?.call(),
@@ -457,6 +504,8 @@ class HexBoardGame extends FlameGame
         onConfirm: placeTileOnFlame,
         onComboBonusTiles: (count, coinCount) =>
             spawnComboBonusParticle(count, coinCount: coinCount),
+        onConnectionBonusExtra: (count, coinCount) =>
+            spawnConnectionBonusParticle(count, coinCount: coinCount),
         onCoinBonusTypes: spawnCoinBonusParticles);
   }
 

@@ -194,6 +194,7 @@ Future<void> confirmPlacement(
           {int bonusCoins})
       onConfirm,
   void Function(int count, int coinCount)? onComboBonusTiles,
+  void Function(int count, int coinCount)? onConnectionBonusExtra,
   void Function(Set<UpgradeEffectType> types)? onCoinBonusTypes,
 }) async {
   final p = ref.read(placementProvider);
@@ -203,6 +204,17 @@ Future<void> confirmPlacement(
   final coords = p.selected!;
   final reward = ref.read(previewRewardProvider);
 
+  // Tuile bonus (connectionBonusMultiplier) : comme pour Combo+, seule la
+  // part SUPPLÉMENTAIRE de bonus attribuable à l'amélioration (au-delà du
+  // bonus de base [kBonusScale] pour ce nombre de côtés connectés) anime
+  // depuis l'icône de l'amélioration plutôt que depuis la tuile posée — le
+  // reste (bonus de base, présent même sans l'amélioration) continue de
+  // voler depuis les côtés connectés comme avant (voir [onConfirm]
+  // ci-dessous, qui ne reçoit donc que ce reste plutôt que reward.bonusTiles
+  // en entier).
+  final baseConnectionBonus = kBonusScale[reward.connectedSides.length] ?? 0;
+  final connectionBonusExtra = reward.bonusTiles - baseConnectionBonus;
+
   // Capturé AVANT _applyReward (qui mute sessionProvider) : c'est l'état
   // exact vers lequel Annuler doit revenir, y compris les compteurs
   // cumulatifs (currentDoubleStreak pour Combo+, currentStreak/bestStreak)
@@ -210,7 +222,7 @@ Future<void> confirmPlacement(
   final previousSession = ref.read(sessionProvider);
 
   _placeTileOnGrid(ref, coords, tile);
-  onConfirm(coords, tile, reward.connectedSides, reward.bonusTiles,
+  onConfirm(coords, tile, reward.connectedSides, baseConnectionBonus,
       bonusCoins: reward.bonusCoins);
   final (appliedReward, totalBonusTilesAdded, comboBonusTilesCount, coinBonusTypes) =
       _applyReward(ref, coords, tile, reward);
@@ -230,6 +242,13 @@ Future<void> confirmPlacement(
   if (comboBonusTilesCount > 0) {
     onComboBonusTiles?.call(
         comboBonusTilesCount, reward.connectedSides.length + coinBonusTypes.length);
+  }
+  // Idem pour la part "extra" de Tuile bonus ci-dessus (voir
+  // [HexBoardGame.spawnConnectionBonusParticle]) — mêmes caractéristiques
+  // (délai calé sur les sons de pièces de cette pose) que Combo+.
+  if (connectionBonusExtra > 0) {
+    onConnectionBonusExtra?.call(
+        connectionBonusExtra, reward.connectedSides.length + coinBonusTypes.length);
   }
   // Idem pour les pièces bonus (Pièces+/Rouge+/Vert+/Bleu+/Jaune+/
   // Violet+) : voir [HexBoardGame.spawnCoinBonusParticles].

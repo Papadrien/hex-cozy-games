@@ -39,6 +39,7 @@ import '../data/app_database.dart';
 import '../game/hex_tile.dart';
 import '../game/tile_component.dart' show BiomeColor;
 import '../providers/build_provider.dart';
+import '../providers/biome_size_overlay_provider.dart';
 import '../providers/grid_state_provider.dart';
 import '../providers/hold_slot_provider.dart';
 import '../providers/hold_slot_swap.dart';
@@ -186,6 +187,8 @@ class _UpgradeSlotState extends ConsumerState<_UpgradeSlot>
         return _buildSecondChance(context);
       case UpgradeEffectType.hatedColorExclusion:
         return _buildHatedColor(context);
+      case UpgradeEffectType.closureBonusTiles:
+        return _buildClosureBonus(context);
       default:
         return _buildPassiveSlot(context, effectType);
     }
@@ -224,7 +227,11 @@ class _UpgradeSlotState extends ConsumerState<_UpgradeSlot>
 
   /// Slot "Emplacement Joker" — reprend le comportement de l'ex
   /// `HoldSlotHud` : tap = échange tuile active ↔ tuile en réserve, aperçu
-  /// de la tuile tenue affiché à la place de l'icône par défaut.
+  /// de la tuile tenue affiché à la place de l'icône par défaut. Contour et
+  /// fond illuminés en doré (mêmes teintes que le slot Deuxième chance actif,
+  /// `_kActiveGlass`/`_kActiveBorder`) tant qu'une tuile est effectivement
+  /// stockée, pour signaler l'état "en réserve" en un coup d'œil plutôt que
+  /// seulement via l'aperçu de la tuile.
   Widget _buildHoldSlot(BuildContext context) {
     final effects = ref.watch(activeUpgradeEffectsProvider);
     final remainingUses =
@@ -249,11 +256,16 @@ class _UpgradeSlotState extends ConsumerState<_UpgradeSlot>
         builder: (glowAlpha, scale) => GlassContainer(
           width: kActiveUpgradeSlotSize,
           height: kActiveUpgradeSlotSize,
-          tintColor: kGlassBlue,
-          borderColor: glowAlpha > 0
-              ? Color.lerp(kGlassBlueBorder, kRewardGold, glowAlpha)
-              : kGlassBlueBorder,
-          borderWidth: glowAlpha > 0 ? 1.0 + glowAlpha : 1.0,
+          tintColor: heldTile != null ? _kActiveGlass : kGlassBlue,
+          tintAlpha: heldTile != null ? 0.28 : 0.22,
+          borderColor: heldTile != null
+              ? _kActiveBorder.withValues(alpha: 0.6)
+              : (glowAlpha > 0
+                  ? Color.lerp(kGlassBlueBorder, kRewardGold, glowAlpha)
+                  : kGlassBlueBorder),
+          borderWidth: heldTile != null
+              ? 1.5
+              : (glowAlpha > 0 ? 1.0 + glowAlpha : 1.0),
           onTap: canSwap
               ? () {
                   buttonTapFeedback(context);
@@ -372,7 +384,53 @@ class _UpgradeSlotState extends ConsumerState<_UpgradeSlot>
     );
   }
 
-  /// Coque commune à tous les slots : pulse d'échelle/contour au
+  /// Slot "Bonus de clôture" — un tap bascule l'affichage à la demande de la
+  /// taille de chaque zone de couleur (cluster de tuiles connectées par un
+  /// même biome, hors village) directement sur le plateau (voir
+  /// [biomeSizeOverlayProvider] et `hex_grid_component.dart`,
+  /// `biomeSizeClusters`) : un chiffre blanc sur fond noir translucide
+  /// au-dessus de chaque zone, pour visualiser la progression vers le seuil
+  /// de 10 tuiles du bonus. Un second tap masque l'affichage. Contour et
+  /// fond illuminés en doré tant que l'affichage reste actif (mêmes teintes
+  /// que le slot Deuxième chance actif), pour signaler l'état en un coup
+  /// d'œil.
+  Widget _buildClosureBonus(BuildContext context) {
+    final isActive = ref.watch(biomeSizeOverlayProvider);
+    final tint = upgradeIconColor(UpgradeEffectType.closureBonusTiles);
+    final counter = upgradeCounterFor(ref, UpgradeEffectType.closureBonusTiles);
+
+    return GestureDetector(
+      onLongPress: () => _showDescription(context),
+      child: _slotShell(
+        effectType: UpgradeEffectType.closureBonusTiles,
+        counter: counter,
+        builder: (glowAlpha, scale) => GlassContainer(
+          width: kActiveUpgradeSlotSize,
+          height: kActiveUpgradeSlotSize,
+          tintColor: isActive ? _kActiveGlass : kGlassBlue,
+          tintAlpha: isActive ? 0.28 : 0.22,
+          borderColor: isActive
+              ? _kActiveBorder.withValues(alpha: 0.6)
+              : (glowAlpha > 0
+                  ? Color.lerp(kGlassBlueBorder, kRewardGold, glowAlpha)
+                  : kGlassBlueBorder),
+          borderWidth: isActive ? 1.5 : (glowAlpha > 0 ? 1.0 + glowAlpha : 1.0),
+          onTap: () {
+            buttonTapFeedback(context);
+            ref.read(biomeSizeOverlayProvider.notifier).toggle();
+          },
+          child: UpgradeEffectIcon(
+            effectType: UpgradeEffectType.closureBonusTiles,
+            upgradeId: widget.upgrade.id,
+            color: tint ?? Colors.white,
+            size: 22,
+          ),
+        ),
+      ),
+    );
+  }
+
+
   /// déclenchement + badge(s) de suivi éventuel(s) en overlay (chiffre en
   /// bas-droite, pastille de couleur en haut-droite pour Couleur détestée).
   Widget _slotShell({

@@ -15,10 +15,23 @@
 library;
 
 import 'dart:math';
-import 'dart:ui' show Canvas, Color, Offset, Paint, PaintingStyle, Path;
+import 'dart:ui'
+    show
+        Canvas,
+        Color,
+        FontWeight,
+        Offset,
+        Paint,
+        PaintingStyle,
+        Path,
+        RRect,
+        Radius,
+        Rect,
+        TextDirection;
 
 import 'package:flutter/animation.dart' show Curves;
 import 'package:flutter/foundation.dart' show VoidCallback;
+import 'package:flutter/painting.dart' show TextPainter, TextSpan, TextStyle;
 
 import 'package:flame/components.dart';
 import 'package:flame/effects.dart';
@@ -47,7 +60,7 @@ const double kPreviewCoinOffsetPx = 20.0;
 /// Surélévation supplémentaire (en pixels écran), en plus de [kPreviewLiftPx],
 /// de l'icône de tuile bonus centrée sur la prévisualisation — pour qu'elle
 /// se détache mieux au-dessus de la tuile plutôt que de sembler posée dessus.
-const double kPreviewBonusExtraLiftPx = 5.0;
+const double kPreviewBonusExtraLiftPx = 8.0;
 
 /// Nombre maximum d'icônes de tuile bonus envoyées individuellement (effet
 /// "machine à sous" échelonné) sur une même pose. Au-delà, le surplus est
@@ -106,6 +119,29 @@ class HexGridComponent extends PositionComponent {
 
   final Map<HexCoords, HexCell> placedCells = {};
   final Map<HexCoords, TileComponent> placedTiles = {};
+
+  /// Mode sélection de Deuxième chance actif (voir `hex_board_game.dart`) :
+  /// propage le contour doré ([TileComponent.showSecondChanceOutline]) à
+  /// toutes les tuiles déjà posées, et sert de valeur par défaut pour toute
+  /// nouvelle tuile ajoutée pendant que le mode reste actif (restauration de
+  /// partie mise à part, ces deux modes sont mutuellement exclusifs).
+  bool _secondChanceHighlightActive = false;
+  bool get secondChanceHighlightActive => _secondChanceHighlightActive;
+  set secondChanceHighlightActive(bool value) {
+    if (_secondChanceHighlightActive == value) return;
+    _secondChanceHighlightActive = value;
+    for (final tile in placedTiles.values) {
+      tile.showSecondChanceOutline = value;
+    }
+  }
+
+  /// Zones de couleur (clusters de tuiles connectées par un même biome, hors
+  /// village) à afficher avec leur taille — bascule tap sur le slot "Bonus
+  /// de clôture" de l'encart des améliorations actives (voir
+  /// `active_upgrades_hud.dart`, [biomeSizeOverlayProvider]). Liste vide =
+  /// aucun affichage. Recalculée par [HexBoardGame] à chaque pose/retrait
+  /// tant que l'overlay reste actif — voir [render].
+  List<Set<HexCoords>> biomeSizeClusters = const [];
 
   // ── Prévisualisation de placement (story 1.5a) ──────────────────────────
 
@@ -473,6 +509,8 @@ class HexGridComponent extends PositionComponent {
       component.startGlow(connectedSides);
     }
 
+    component.showSecondChanceOutline = _secondChanceHighlightActive;
+
     placedTiles[coords] = component;
     add(component);
 
@@ -720,6 +758,10 @@ class HexGridComponent extends PositionComponent {
 
   @override
   void render(Canvas canvas) {
+    if (biomeSizeClusters.isNotEmpty) {
+      _renderBiomeSizeLabels(canvas);
+    }
+
     // Pendant la prévisualisation, on masque les emplacements libres.
     if (_previewCoords != null && _previewTile != null) return;
     if (availableHighlights.isEmpty) return;
@@ -729,6 +771,61 @@ class HexGridComponent extends PositionComponent {
       final center = layout.hexToPixel(coords, isoScaleY: kIsoScaleY);
       _renderHighlight(canvas, Offset(center.x, center.y));
     }
+  }
+
+  /// Dessine, pour chaque zone de [biomeSizeClusters], une pastille (chiffre
+  /// blanc sur fond noir translucide) centrée sur le cluster — position
+  /// moyenne (x, y) de toutes ses tuiles — pas de cache de positions écran :
+  /// recalculé à chaque frame à partir des coordonnées de tuiles stockées,
+  /// pour rester juste après un pan/zoom.
+  void _renderBiomeSizeLabels(Canvas canvas) {
+    final layout = _layout;
+    for (final cluster in biomeSizeClusters) {
+      if (cluster.isEmpty) continue;
+      var sumX = 0.0;
+      var sumY = 0.0;
+      for (final coords in cluster) {
+        final center = layout.hexToPixel(coords, isoScaleY: kIsoScaleY);
+        sumX += center.x;
+        sumY += center.y;
+      }
+      final anchor = Offset(sumX / cluster.length, sumY / cluster.length);
+      _drawBiomeSizeBadge(canvas, anchor, cluster.length);
+    }
+  }
+
+  static final TextPainter _biomeSizeTextPainter =
+      TextPainter(textDirection: TextDirection.ltr);
+
+  void _drawBiomeSizeBadge(Canvas canvas, Offset center, int size) {
+    _biomeSizeTextPainter.text = TextSpan(
+      text: '$size',
+      style: const TextStyle(
+        color: Color(0xFFFFFFFF),
+        fontSize: 13,
+        fontWeight: FontWeight.bold,
+      ),
+    );
+    _biomeSizeTextPainter.layout();
+
+    const paddingH = 7.0;
+    const paddingV = 3.0;
+    final rect = Rect.fromCenter(
+      center: center,
+      width: _biomeSizeTextPainter.width + paddingH * 2,
+      height: _biomeSizeTextPainter.height + paddingV * 2,
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(rect, const Radius.circular(8)),
+      Paint()..color = const Color(0xCC000000),
+    );
+    _biomeSizeTextPainter.paint(
+      canvas,
+      Offset(
+        center.dx - _biomeSizeTextPainter.width / 2,
+        center.dy - _biomeSizeTextPainter.height / 2,
+      ),
+    );
   }
 
   /// Ratio de surface occupée par le remplissage des emplacements

@@ -111,6 +111,15 @@ class _GameScreenState extends ConsumerState<GameScreen> {
           UpgradeHudAnchors.globalCenterFor(UpgradeEffectType.comboBonusTiles);
       return center == null ? null : Vector2(center.dx, center.dy);
     };
+    // Point de départ de la particule dédiée Tuile bonus (voir
+    // [HexBoardGame.spawnConnectionBonusParticle]) — même principe que
+    // Combo+ ci-dessus, pour la part de bonus supplémentaire attribuable à
+    // l'amélioration sur une connexion quint/sext.
+    _game.getConnectionBonusUpgradeOrigin = () {
+      final center = UpgradeHudAnchors.globalCenterFor(
+          UpgradeEffectType.connectionBonusMultiplier);
+      return center == null ? null : Vector2(center.dx, center.dy);
+    };
     // Point de départ des particules "pièce" des améliorations de gain de
     // pièces (Pièces+/Rouge+/Vert+/Bleu+/Jaune+/Violet+) — même
     // principe que Combo+ ci-dessus : la position écran de l'icône de
@@ -461,11 +470,22 @@ class _GameScreenState extends ConsumerState<GameScreen> {
           // sont désormais interactifs directement depuis leur slot ici,
           // au lieu d'un HUD dédié séparé à gauche (audit UX : un seul
           // emplacement à repérer par amélioration pendant la partie).
+          // La bannière d'indication du mode sélection Deuxième chance est
+          // empilée juste au-dessus, dans la même colonne centrée, pour
+          // qu'elle reste ancrée à l'encart plutôt qu'en haut d'écran.
           const Positioned(
             bottom: 24,
             left: 0,
             right: 0,
-            child: Center(child: ActiveUpgradesHud()),
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _SecondChanceHintBanner(),
+                  ActiveUpgradesHud(),
+                ],
+              ),
+            ),
           ),
 
           // ── HUD pile de tuiles + tag tuiles bonus (story 1.7g) ──────────
@@ -481,14 +501,6 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                 _RewardTag(opacity: _rewardOpacity, isCoin: false),
               ],
             ),
-          ),
-
-          // ── Bannière d'indication du mode sélection Deuxième chance ─────
-          const Positioned(
-            top: 48,
-            left: 0,
-            right: 0,
-            child: Center(child: _SecondChanceHintBanner()),
           ),
 
           // ── Modale Pause ──────────────────────────────────────────────────
@@ -826,18 +838,21 @@ class _SecondChanceHintBanner extends ConsumerWidget {
     final isActive = ref.watch(secondChanceModeProvider);
     if (!isActive) return const SizedBox.shrink();
 
-    return GlassContainer(
-      borderRadius: 20,
-      tintColor: const Color(0xFFFFB300),
-      tintAlpha: 0.28,
-      borderColor: const Color(0xFFFFD54F).withValues(alpha: 0.6),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Text(
-        context.tr.game_secondChance_tooltipActive,
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: GlassContainer(
+        borderRadius: 20,
+        tintColor: const Color(0xFFFFB300),
+        tintAlpha: 0.28,
+        borderColor: const Color(0xFFFFD54F).withValues(alpha: 0.6),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: Text(
+          context.tr.game_secondChance_tooltipActive,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ),
     );

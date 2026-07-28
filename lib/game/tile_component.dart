@@ -209,6 +209,22 @@ class TileComponent extends PositionComponent {
 
   Set<int> highlightedSides;
 
+  /// Mode sélection de Deuxième chance actif (voir `hex_board_game.dart`,
+  /// propagé depuis [HexGridComponent.secondChanceHighlightActive]) : fait
+  /// apparaître un contour doré autour de la tuile pour la distinguer de ses
+  /// voisines pendant qu'on cherche laquelle taper pour la récupérer.
+  bool showSecondChanceOutline = false;
+
+  /// Couleur du contour de Deuxième chance — reprend la teinte du contour du
+  /// slot d'amélioration actif dans `active_upgrades_hud.dart`
+  /// (`_kActiveBorder`), pour une cohérence visuelle entre le HUD et le
+  /// plateau.
+  static const Color _kSecondChanceOutlineColor = Color(0xFFFFD54F);
+
+  /// Épaisseur (en pixels écran, avant mise à l'échelle du zoom) du contour
+  /// de Deuxième chance.
+  static const double _kSecondChanceOutlineWidth = 2.5;
+
   // ── Glow ─────────────────────────────────────────────────────────────────
   Set<int>? _glowSides;
   double _glowAlpha = 0.0;
@@ -374,6 +390,22 @@ class TileComponent extends PositionComponent {
             ..style = PaintingStyle.fill,
         );
       }
+    }
+
+    // ── Contour doré (mode sélection Deuxième chance) ───────────────────
+    if (showSecondChanceOutline) {
+      final outline = Path()..moveTo(topCorners[0].dx, topCorners[0].dy);
+      for (var i = 1; i < topCorners.length; i++) {
+        outline.lineTo(topCorners[i].dx, topCorners[i].dy);
+      }
+      outline.close();
+      canvas.drawPath(
+        outline,
+        Paint()
+          ..color = _kSecondChanceOutlineColor.withValues(alpha: _alpha)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = _kSecondChanceOutlineWidth * (_hexSize / kHexSize),
+      );
     }
 
     // ── Polygone central du biome majoritaire ────────────────────────────

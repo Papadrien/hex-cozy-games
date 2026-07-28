@@ -239,6 +239,33 @@ class GridState {
     return true;
   }
 
+  /// Énumère TOUS les clusters connexes de biome (hors village) présents
+  /// sur le plateau, fermés ou non — contrairement à [closedBiomes] (qui ne
+  /// fait que les compter) ou [biomesJustClosed] (qui ne regarde que les
+  /// fermetures d'une pose précise), utilisé pour l'affichage à la demande
+  /// des tailles de zone (voir `active_upgrades_hud.dart`, slot "Bonus de
+  /// clôture" / `biomeSizeOverlayProvider`). Même logique de suivi PAR
+  /// biome que [closedBiomes] — une tuile porte jusqu'à 3 biomes différents,
+  /// une position déjà visitée pour l'un doit rester explorable pour les
+  /// autres.
+  List<Set<HexCoords>> get allBiomeClusters {
+    final visitedByBiome = <BiomeType, Set<HexCoords>>{};
+    final clusters = <Set<HexCoords>>[];
+    for (final entry in placedTiles.entries) {
+      final uniqueBiomes = entry.value.sides.toSet();
+      for (final biome in uniqueBiomes) {
+        if (biome == BiomeType.village) continue;
+        final visited = visitedByBiome.putIfAbsent(biome, () => <HexCoords>{});
+        if (visited.contains(entry.key)) continue;
+        final cluster = clusterAt(entry.key, biome);
+        if (cluster.isEmpty) continue;
+        visited.addAll(cluster);
+        clusters.add(cluster);
+      }
+    }
+    return clusters;
+  }
+
   /// Taille maximale de cluster pour chaque [BiomeType] (sous forme de Map
   /// nom → taille). Équivalent à [computeMaxBiomeSizes] mais utilisant le
   /// BFS partagé.

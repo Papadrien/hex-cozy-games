@@ -135,6 +135,13 @@ const int _kMaxCoinSfxRepeats = 6;
 /// perceptibles comme des impulsions distinctes plutôt qu'un unique son.
 const Duration _kCoinSfxGap = Duration(milliseconds: 250);
 
+/// Délai minimal entre deux lectures de `tile_gain.mp3` (voir
+/// [AudioService.playTileGained]) — un gain multi-tuiles peut déclencher
+/// [AudioService.playTileGained] plus vite que ça (impacts d'icônes
+/// rapprochés), auquel cas les lectures excédentaires sont mises en
+/// attente plutôt que de couper net le son précédent trop tôt.
+const Duration _kTileGainSfxGap = Duration(milliseconds: 250);
+
 /// Durée de vol d'une pièce vers son compteur avant l'impact (dupliquée
 /// depuis [CoinComponent]/`bonus_animations.dart`, qui ne l'exposent pas
 /// sous forme de constante partagée ici) — point de départ du calcul de
@@ -205,13 +212,13 @@ const double _kTileWoodDecayTauSeconds = 0.02;
 
 /// Fréquence fondamentale (Hz) du corps résonant en bois du son de pose de
 /// tuile.
-const double _kTileWoodFundamentalFreq = 380;
+const double _kTileWoodFundamentalFreq = 480;
 
 /// Fréquence du second partiel (Hz) du corps résonant en bois — rapport
 /// volontairement non harmonique avec [_kTileWoodFundamentalFreq] pour un
 /// timbre "bois"/"pierre" plutôt qu'un timbre "cloche" (partiels
 /// harmoniques).
-const double _kTileWoodPartialFreq = 520;
+const double _kTileWoodPartialFreq = 660;
 
 /// Amplitude du glissando de hauteur (Hz) au tout début de l'impact du son
 /// de pose de tuile, qui redescend rapidement vers la fréquence de repos —
@@ -246,21 +253,29 @@ const double _kKnockMix = 0.35;
 /// une simple interaction d'interface plutôt qu'un événement de jeu.
 const double _kClickVolumeScale = 0.5;
 
+/// Atténuation appliquée au son de pose de tuile ([AudioService.playTilePlaced])
+/// par rapport au réglage « Bruitages » — 10 % plus discret que le volume
+/// nominal.
+const double _kTilePlacedVolumeScale = 0.9;
+
 /// Durée du clic de rotation généré, en millisecondes — plus bref encore
 /// que le clic de bouton ([_kButtonClickDurationMs]) : jusqu'à 6 clics par
 /// tour complet lors d'une rotation rapide, un son qui traîne donnerait une
 /// impression de bouillie plutôt qu'une suite de crans nets et distincts.
-const double _kRotationClickDurationMs = 18;
+/// Relevé de 18 à 26ms (avec les décroissances ci-dessous) : à 18ms le son
+/// était en pratique inaudible, la quasi-totalité de l'énergie tenant dans
+/// la première milliseconde.
+const double _kRotationClickDurationMs = 26;
 
 /// Constante de temps (secondes) de la décroissance du transitoire « tac »
 /// du clic de rotation — encore plus courte que celle du clic de bouton
 /// ([_kButtonTickDecayTauSeconds]) pour un tic léger plutôt qu'un claquement.
-const double _kRotationTickDecayTauSeconds = 0.0012;
+const double _kRotationTickDecayTauSeconds = 0.0018;
 
 /// Constante de temps (secondes) de la décroissance du corps résonant du
 /// clic de rotation — bref lui aussi, pour ne laisser qu'une pointe de
 /// hauteur perceptible sans corps qui traîne.
-const double _kRotationKnockDecayTauSeconds = 0.005;
+const double _kRotationKnockDecayTauSeconds = 0.009;
 
 /// Fréquence fondamentale (Hz) du corps résonant du clic de rotation — plus
 /// aiguë que celle du clic de bouton ([_kButtonKnockFundamentalFreq]) pour
@@ -272,11 +287,12 @@ const double _kRotationKnockFundamentalFreq = 1800;
 const double _kRotationKnockHarmonicFreq = 3400;
 
 /// Facteur multiplicatif appliqué au réglage « Bruitages »
-/// ([OptionsState.sfxVolume]) pour le clic de rotation — nettement plus
-/// discret que le clic de bouton ([_kClickVolumeScale]) : jusqu'à 6
-/// occurrences par tour complet, il doit rester un léger tic en fond plutôt
-/// qu'attirer l'attention à chaque cran.
-const double _kRotationClickVolumeScale = 0.3;
+/// ([OptionsState.sfxVolume]) pour le clic de rotation — plus discret que le
+/// clic de bouton ([_kClickVolumeScale]) pour rester un léger tic même en
+/// rafale (un clic par cran de 60°, jusqu'à 6 par tour complet), mais relevé
+/// de 0.3 à 0.5 : à 0.3, combiné à la brièveté d'origine ci-dessus, le son
+/// n'était en pratique pas perceptible.
+const double _kRotationClickVolumeScale = 0.5;
 
 /// Génère procéduralement un bref clic — sans aucun fichier audio associé —
 /// dans la tonalité d'une touche de clavier mécanique, en superposant deux
@@ -477,6 +493,13 @@ class AudioService {
   /// jamais les superposer (voir [playTileGained]).
   final AudioPlayer _tileGainPlayer = AudioPlayer();
 
+  /// Prochain instant auquel [playTileGained] est autorisé à démarrer une
+  /// lecture — avance de [_kTileGainSfxGap] à chaque appel (calculé de façon
+  /// synchrone, avant tout `await`, pour que des appels concurrents ne lisent
+  /// pas la même valeur et se programment correctement les uns après les
+  /// autres) plutôt que d'être limité à l'instant présent.
+  DateTime? _nextTileGainAllowedAt;
+
   /// Lecteur dédié pour [SfxTrack.endGame] — comme [_tileGainPlayer], en
   /// dehors du pool : la fin de partie ne peut survenir qu'une fois par
   /// partie, aucun besoin de chevauchement, mais un lecteur dédié évite
@@ -656,7 +679,7 @@ class AudioService {
     _sfxCursor = (_sfxCursor + 1) % _sfxPool.length;
     final pitch = 1.0 + (_random.nextDouble() * 2 - 1) * _kPitchVariance;
     await player.stop();
-    await player.setVolume(_sfxVolume);
+    await player.setVolume(_sfxVolume * _kTilePlacedVolumeScale);
     await player.setPlaybackRate(pitch);
     await player.play(BytesSource(_tilePlacedKnockWaveform));
   }
@@ -670,7 +693,23 @@ class AudioService {
   /// dédié ([_tileGainPlayer]) : si le son de la tuile précédente n'est pas
   /// terminé quand une nouvelle tuile arrive, il est coupé net avant de
   /// démarrer le nouveau, plutôt que superposé.
+  ///
+  /// Impose aussi un délai minimal de [_kTileGainSfxGap] entre deux lectures
+  /// ([_nextTileGainAllowedAt]) : pour un gain multi-tuiles où les icônes
+  /// arrivent plus vite que ça, les appels excédentaires patientent au lieu
+  /// de couper le son précédent trop tôt.
   Future<void> playTileGained() async {
+    if (!_sfxEnabled) return;
+    final now = DateTime.now();
+    final scheduledAt =
+        _nextTileGainAllowedAt != null && _nextTileGainAllowedAt!.isAfter(now)
+            ? _nextTileGainAllowedAt!
+            : now;
+    _nextTileGainAllowedAt = scheduledAt.add(_kTileGainSfxGap);
+    final wait = scheduledAt.difference(now);
+    if (wait > Duration.zero) {
+      await Future<void>.delayed(wait);
+    }
     if (!_sfxEnabled) return;
     await _tileGainPlayer.stop();
     await _tileGainPlayer.setVolume(_sfxVolume);

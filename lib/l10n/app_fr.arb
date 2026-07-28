@@ -87,7 +87,7 @@
   "upgrade_desc_plain_plus": "Octroie une pièce bonus dès que tu connectes au moins N côtés jaunes sur une pose (4/2/1 selon le niveau). Non-cumulable.",
   "upgrade_desc_mountain_plus": "Octroie une pièce bonus dès que tu connectes au moins N côtés violets sur une pose (4/2/1 selon le niveau). Non-cumulable.",
   "upgrade_desc_closure_bonus": "Offre des tuiles bonus \u00e0 chaque fermeture compl\u00e8te d'une zone de couleur.",
-  "upgrade_desc_hated_color": "Tape sur cette amélioration en cours de partie pour exclure temporairement une couleur aléatoire (parmi les couleurs de base) de la pile de tuiles, un nombre limité de fois par partie. Attends la fin d'une exclusion en cours avant de pouvoir en déclencher une nouvelle.",
+  "upgrade_desc_hated_color": "Tape sur cette amélioration en cours de partie pour exclure temporairement une couleur aléatoire (parmi les couleurs de base) de la pile de tuiles, un nombre limité de fois par partie.",
   "upgrade_desc_millionaire": "Cr\u00e9dite instantan\u00e9ment 1\u00a0000\u00a0000 de pi\u00e8ces sur ton profil (outil de d\u00e9veloppement).",
   "upgrade_desc_warehouse": "D\u00e9marre une partie avec 500 tuiles en r\u00e9serve (outil de d\u00e9veloppement).",
 
