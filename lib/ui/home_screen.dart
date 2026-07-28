@@ -721,10 +721,10 @@ class _RewardedAdButton extends ConsumerWidget {
       width: double.infinity,
       child: GlassContainer(
         borderRadius: 16,
-        tintColor: adAvailable ? kRewardGold : kGlassBlue,
+        tintColor: adAvailable ? kAdRewardOrange : kGlassBlue,
         tintAlpha: adAvailable ? 0.10 : 0.18,
         borderColor: adAvailable
-            ? kRewardGold.withValues(alpha: 0.45)
+            ? kAdRewardOrange.withValues(alpha: 0.45)
             : kGlassBlueBorder,
         borderWidth: adAvailable ? 1.5 : 1,
         blurSigma: 10,
@@ -765,7 +765,7 @@ class _RewardedAdButton extends ConsumerWidget {
                 height: 20,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
-                  color: kRewardGold,
+                  color: kAdRewardOrange,
                 ),
               )
             else
@@ -775,7 +775,7 @@ class _RewardedAdButton extends ConsumerWidget {
                     : Icons.check_circle_outline,
                 size: 20,
                 color: adAvailable
-                    ? kRewardGold
+                    ? kAdRewardOrange
                     : Colors.white.withValues(alpha: 0.4),
               ),
             const SizedBox(width: 8),

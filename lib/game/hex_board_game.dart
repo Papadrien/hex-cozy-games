@@ -82,6 +82,13 @@ class HexBoardGame extends FlameGame
   /// build en cours (pas d'animation possible).
   Vector2? Function()? getConnectionBonusUpgradeOrigin;
 
+  /// Retourne la position (coordonnées jeu) de l'icône Bonus de clôture
+  /// dans l'encart des améliorations actives — point de départ de la
+  /// particule dédiée déclenchée par [spawnClosureBonusParticle] (même
+  /// principe que [getComboUpgradeOrigin]). Null = amélioration non
+  /// sélectionnée dans le build en cours (pas d'animation possible).
+  Vector2? Function()? getClosureBonusUpgradeOrigin;
+
   /// Retourne la position (coordonnées jeu) de l'icône de l'amélioration
   /// [type] dans l'encart des améliorations actives — point de départ des
   /// particules pièces dédiées déclenchées par [spawnCoinBonusParticles]
@@ -328,6 +335,22 @@ class HexBoardGame extends FlameGame
         coinCount: coinCount);
   }
 
+  /// Déclenche la particule dédiée de tuile bonus Bonus de clôture : comme
+  /// pour Combo+ ([spawnComboBonusParticle]), les tuiles bonus du Bonus de
+  /// clôture ne sont liées à aucun côté de la tuile posée mais à la
+  /// fermeture d'un biome détectée sur cette pose — sa particule part donc
+  /// de l'icône de l'amélioration dans l'encart HUD
+  /// ([getClosureBonusUpgradeOrigin]) plutôt que de la tuile, avec la même
+  /// animation d'envol vers la pile que les autres tuiles bonus dédiées.
+  void spawnClosureBonusParticle(int count, {int coinCount = 0}) {
+    final origin = getClosureBonusUpgradeOrigin?.call();
+    if (origin == null) return;
+    _grid?.showBonusParticleFrom(origin, count,
+        flyTarget: getBonusFlyTarget?.call(),
+        onImpact: onBonusImpact,
+        coinCount: coinCount);
+  }
+
   /// Déclenche une particule "pièce" par amélioration de gain de pièces
   /// (Pièces+ global, Rouge+/Vert+/Bleu+/Jaune+/Violet+ par biome)
   /// ayant effectivement rapporté 1 pièce bonus sur cette pose. Ce bonus
@@ -504,6 +527,8 @@ class HexBoardGame extends FlameGame
         onConfirm: placeTileOnFlame,
         onComboBonusTiles: (count, coinCount) =>
             spawnComboBonusParticle(count, coinCount: coinCount),
+        onClosureBonusTiles: (count, coinCount) =>
+            spawnClosureBonusParticle(count, coinCount: coinCount),
         onConnectionBonusExtra: (count, coinCount) =>
             spawnConnectionBonusParticle(count, coinCount: coinCount),
         onCoinBonusTypes: spawnCoinBonusParticles);

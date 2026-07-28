@@ -33,9 +33,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/colors.dart';
+import '../core/constants.dart';
 import '../core/game_enums.dart';
 import '../core/strings.dart';
 import '../data/app_database.dart';
+import '../game/hex_cell.dart' show BiomeType;
 import '../game/hex_tile.dart';
 import '../game/tile_component.dart' show BiomeColor;
 import '../providers/build_provider.dart';
@@ -62,9 +64,11 @@ const double kActiveUpgradeSlotSize = 44.0;
 const double _kSlotSpacing = 8.0;
 
 /// Durée totale de la pulsation (aller-retour d'échelle + flash de contour)
-/// jouée au déclenchement d'un effet — cohérente avec les autres animations
-/// de feedback courtes du jeu (glow de connexion : [kGlowDurationSec]).
-const Duration _kPulseDuration = Duration(milliseconds: 550);
+/// jouée au déclenchement d'un effet — doublée par rapport à la durée des
+/// autres animations de feedback courtes du jeu (glow de connexion :
+/// [kGlowDurationSec]) pour laisser le contour d'activation bien plus
+/// visible.
+const Duration _kPulseDuration = Duration(milliseconds: 1100);
 
 // Teinte ambre pour signaler le mode Deuxième chance actif — reprise à
 // l'identique de l'ancien `second_chance_hud.dart`.
@@ -332,14 +336,30 @@ class _UpgradeSlotState extends ConsumerState<_UpgradeSlot>
   }
 
   /// Slot "Couleur détestée" (Story B12x+) — amélioration à utilisations
-  /// limitées par partie (1/2/3 selon niveau) : un tap déclenche une
-  /// nouvelle exclusion (voir [activateHatedColor]) tant qu'il reste des
+  /// limitées par partie (1/2/3 selon niveau) : un tap ouvre la pop-up de
+  /// choix de couleur ([_showColorPicker]) tant qu'il reste des
   /// utilisations ET qu'aucune exclusion n'est déjà en cours ; le slot n'a
   /// alors plus d'action au tap (mais reste consultable en appui long)
   /// jusqu'à ce que l'exclusion en cours se termine. Le badge affiche la
   /// pastille de couleur + tuiles restantes pendant une exclusion, ou le
   /// nombre d'utilisations restantes ("restant/max") le reste du temps
   /// (voir [upgradeCounterFor]).
+
+  /// Ouvre la pop-up de choix de couleur à exclure — un tap sur une couleur
+  /// valide immédiatement le choix (voir [_HatedColorPickerSheet], qui se
+  /// referme en renvoyant la couleur tapée) et déclenche l'activation.
+  Future<void> _showColorPicker(BuildContext context) async {
+    final biome = await showModalBottomSheet<BiomeType>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => const _HatedColorPickerSheet(),
+    );
+    if (biome != null) {
+      activateHatedColor(ref, biome);
+    }
+  }
+
   Widget _buildHatedColor(BuildContext context) {
     final stack = ref.watch(tileStackProvider);
     final placedCount =
@@ -368,7 +388,7 @@ class _UpgradeSlotState extends ConsumerState<_UpgradeSlot>
           onTap: canActivate
               ? () {
                   buttonTapFeedback(context);
-                  activateHatedColor(ref);
+                  _showColorPicker(context);
                 }
               : null,
           child: Opacity(
@@ -687,6 +707,126 @@ class _UpgradeDescriptionSheet extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Pop-up de choix de couleur ouverte au tap du slot "Couleur détestée"
+/// (Story B12x+, revue UX) — remplace l'ancien tirage aléatoire : le joueur
+/// choisit lui-même, parmi les couleurs de base disponibles dès le
+/// lancement de la partie ([unlockedBiomesAt]), celle qu'il veut exclure
+/// temporairement de la pile. Un tap sur une pastille de couleur valide
+/// immédiatement le choix et referme la pop-up en renvoyant la couleur
+/// choisie (voir [_UpgradeSlotState._showColorPicker]). Même habillage
+/// (GlassContainer + poignée) que [_UpgradeDescriptionSheet], pour rester
+/// cohérent avec le reste du HUD.
+class _HatedColorPickerSheet extends StatelessWidget {
+  const _HatedColorPickerSheet();
+
+  @override
+  Widget build(BuildContext context) {
+    final biomes = unlockedBiomesAt(1);
+    return Padding(
+      // Laisse respirer la sheet au-dessus de la zone home indicator.
+      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+          child: GlassContainer(
+            tintColor: kGlassBlue,
+            tintAlpha: 0.32,
+            borderColor: kGlassBlueBorder,
+            borderWidth: 1.5,
+            borderRadius: 24,
+            blurSigma: 16,
+            padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    margin: const EdgeInsets.only(bottom: 20),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.25),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                Text(
+                  context.tr.upgrade_hated_color_picker_title,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 17,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Wrap(
+                  spacing: 18,
+                  runSpacing: 18,
+                  alignment: WrapAlignment.center,
+                  children: [
+                    for (final biome in biomes) _HatedColorSwatch(biome: biome),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Pastille tappable d'une couleur dans [_HatedColorPickerSheet] — couleur
+/// pleine + léger halo lumineux assorti (cohérent avec le glow doré des
+/// autres slots de l'encart) + nom localisé de la couleur en dessous.
+class _HatedColorSwatch extends StatelessWidget {
+  const _HatedColorSwatch({required this.biome});
+
+  final BiomeType biome;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = biome.color;
+    return GestureDetector(
+      onTap: () {
+        buttonTapFeedback(context);
+        Navigator.of(context).pop(biome);
+      },
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: color,
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.55),
+                width: 2,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: color.withValues(alpha: 0.55),
+                  blurRadius: 12,
+                  spreadRadius: 1,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            biomeName(context, biome.name),
+            style: const TextStyle(color: Colors.white, fontSize: 12),
+          ),
+        ],
       ),
     );
   }

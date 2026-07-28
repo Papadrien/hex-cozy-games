@@ -153,11 +153,13 @@ class TileStack extends _$TileStack {
     return _buildState(seed: seed, visibleCount: visibleCount);
   }
 
-  /// Active "Couleur détestée" (Story B12x+) : tire une couleur au hasard
-  /// parmi les couleurs disponibles dès le lancement de la partie (les
-  /// couleurs bonus soumises à un palier de tuiles posées, voir
-  /// [kBiomeUnlockThresholds], ne peuvent pas être tirées) et l'exclut du
-  /// pool pour les [ActiveUpgradeEffects.hatedColorExclusionDuration]
+  /// Active "Couleur détestée" (Story B12x+) pour la couleur [biome],
+  /// choisie par le joueur dans la pop-up de sélection ouverte au tap du
+  /// slot (voir `active_upgrades_hud.dart`, `_HatedColorPickerSheet`) parmi
+  /// les couleurs disponibles dès le lancement de la partie (les couleurs
+  /// bonus soumises à un palier de tuiles posées, voir
+  /// [kBiomeUnlockThresholds], ne peuvent pas être exclues). Exclut [biome]
+  /// du pool pour les [ActiveUpgradeEffects.hatedColorExclusionDuration]
   /// prochaines tuiles à partir de maintenant.
   ///
   /// Amélioration à utilisations limitées par partie (1/2/3 selon niveau —
@@ -168,16 +170,12 @@ class TileStack extends _$TileStack {
   /// l'amélioration n'est pas possédée pour ce build, ou si une exclusion
   /// est déjà en cours (pas de superposition : il faut attendre la fin de
   /// l'exclusion active avant d'en déclencher une nouvelle).
-  void activateHatedColor() {
+  void activateHatedColor(BiomeType biome) {
     final effects = ref.read(activeUpgradeEffectsProvider);
     final duration = effects.hatedColorExclusionDuration;
     if (duration <= 0) return;
     final placedCount = ref.read(gridProvider).placedTiles.length;
     if (hatedColorTilesRemaining(state, placedCount) != null) return;
-
-    final rng = Random();
-    final launchBiomes = unlockedBiomesAt(1);
-    final biome = launchBiomes[rng.nextInt(launchBiomes.length)];
 
     // Régénère les prochaines tuiles de la file (pas encore posées) en
     // excluant [biome], pour que l'exclusion s'applique bien à partir de

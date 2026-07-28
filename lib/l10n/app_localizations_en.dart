@@ -237,15 +237,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get upgrade_desc_coins_plus =>
-      'Grants 1 bonus coin whenever you earn at least N coins on a placement (4/2/1 coins depending on level). Non-stacking.';
+      'Grants 1 bonus coin whenever you earn at least N coins on a placement. Non-stacking.';
 
   @override
   String get upgrade_desc_villages_plus =>
-      'Grants 1 bonus coin whenever you connect at least N red sides on a placement (4/2/1 depending on level). Non-stacking.';
+      'Grants 1 bonus coin whenever you connect at least N red sides on a placement. Non-stacking.';
 
   @override
   String get upgrade_desc_combo_plus =>
-      'Grants 1 bonus tile every N double connections made during the game (10/8/5 depending on level).';
+      'Grants 1 bonus tile every N double connections made during the game.';
 
   @override
   String get upgrade_desc_extended_preview =>
@@ -253,27 +253,27 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get upgrade_desc_hold_slot =>
-      'Lets you swap your active tile with a reserved one, a limited number of times per game.';
+      'Lets you store a tile and put it back into the tile stack later.';
 
   @override
   String get upgrade_desc_second_chance =>
-      'Lets you take back a tile you\'ve already placed, a limited number of times per game.';
+      'Lets you take back a tile you\'ve already placed.';
 
   @override
   String get upgrade_desc_forest_plus =>
-      'Grants 1 bonus coin whenever you connect at least N green sides on a placement (4/2/1 depending on level). Non-stacking.';
+      'Grants 1 bonus coin whenever you connect at least N green sides on a placement. Non-stacking.';
 
   @override
   String get upgrade_desc_water_plus =>
-      'Grants 1 bonus coin whenever you connect at least N blue sides on a placement (4/2/1 depending on level). Non-stacking.';
+      'Grants 1 bonus coin whenever you connect at least N blue sides on a placement. Non-stacking.';
 
   @override
   String get upgrade_desc_plain_plus =>
-      'Grants 1 bonus coin whenever you connect at least N yellow sides on a placement (4/2/1 depending on level). Non-stacking.';
+      'Grants 1 bonus coin whenever you connect at least N yellow sides on a placement. Non-stacking.';
 
   @override
   String get upgrade_desc_mountain_plus =>
-      'Grants 1 bonus coin whenever you connect at least N purple sides on a placement (4/2/1 depending on level). Non-stacking.';
+      'Grants 1 bonus coin whenever you connect at least N purple sides on a placement. Non-stacking.';
 
   @override
   String get upgrade_desc_closure_bonus =>
@@ -281,7 +281,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get upgrade_desc_hated_color =>
-      'Tap this upgrade during the game to temporarily exclude a random color (among the base colors) from the tile stack, a limited number of times per game. Wait for the current exclusion to end before you can trigger a new one.';
+      'Tap this upgrade during the game to choose a color to temporarily exclude from the tile stack, a limited number of times per game. Wait for the current exclusion to end before you can trigger a new one.';
+
+  @override
+  String get upgrade_hated_color_picker_title => 'Choose the color to exclude';
 
   @override
   String get upgrade_desc_millionaire =>

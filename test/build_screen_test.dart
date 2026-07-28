@@ -29,9 +29,9 @@ import 'package:hex_haven/ui/glass_container.dart';
 /// `millionaire` et `warehouse`, réservées au bouton "débloquer tout" de
 /// debug) et disposant chacune de plusieurs paliers de montée de niveau.
 const Map<String, String> _testUpgrades = {
-  'starting_tiles_plus': 'Tuiles de départ+',
-  'doubled_connections': 'Tuile bonus',
-  'coins_plus': 'Pièces+',
+  'starting_tiles_plus': 'Cargaison',
+  'doubled_connections': 'Marée généreuse',
+  'coins_plus': 'Butin',
 };
 
 /// Installe une base mémoire, seed les données, débloque les 3 améliorations

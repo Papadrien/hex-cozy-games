@@ -599,8 +599,14 @@ abstract class AppLocalizations {
   /// No description provided for @upgrade_desc_hated_color.
   ///
   /// In en, this message translates to:
-  /// **'Tap this upgrade during the game to temporarily exclude a random color (among the base colors) from the tile stack. One use per game.'**
+  /// **'Tap this upgrade during the game to choose a color to temporarily exclude from the tile stack, a limited number of times per game. Wait for the current exclusion to end before you can trigger a new one.'**
   String get upgrade_desc_hated_color;
+
+  /// No description provided for @upgrade_hated_color_picker_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose the color to exclude'**
+  String get upgrade_hated_color_picker_title;
 
   /// No description provided for @upgrade_desc_millionaire.
   ///

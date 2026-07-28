@@ -20,6 +20,11 @@ const Color kRewardGoldDark = Color(0xFFFFA000);
 /// Blanc pour les symboles pièces.
 const Color kRewardWhite = Color(0xFFFFFFFF);
 
+/// Orange du bouton « Regarder une publicité » pour des pièces
+/// (`home_screen.dart`, `_RewardedAdButton`) — distinct du doré des
+/// récompenses ([kRewardGold]) pour bien démarquer ce bouton spécifique.
+const Color kAdRewardOrange = Color(0xFFFF8F00);
+
 /// Bleu clair pour les icônes de tuiles bonus.
 const Color kBonusBlueLight = Color(0xFF29B6F6);
 

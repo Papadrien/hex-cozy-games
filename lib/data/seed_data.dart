@@ -472,28 +472,28 @@ final Map<String, DailyQuestDef> kDailyQuestDefMap = {
 final _upgrades = [
   UpgradesCompanion.insert(
     id: 'starting_tiles_plus',
-    name: 'Tuiles de départ+',
+    name: 'Cargaison',
     effectType: UpgradeEffectType.startingTilesBonus.dbValue,
     unlockConditionType: 'coins_2000',
     unlockConditionValue: 2000,
   ),
   UpgradesCompanion.insert(
     id: 'doubled_connections',
-    name: 'Tuile bonus',
+    name: 'Marée généreuse',
     effectType: UpgradeEffectType.connectionBonusMultiplier.dbValue,
     unlockConditionType: 'biomes_25',
     unlockConditionValue: 25,
   ),
   UpgradesCompanion.insert(
     id: 'coins_plus',
-    name: 'Pièces+',
+    name: 'Butin',
     effectType: UpgradeEffectType.coinsPercentBonus.dbValue,
     unlockConditionType: 'coins_3000',
     unlockConditionValue: 3000,
   ),
   UpgradesCompanion.insert(
     id: 'villages_plus',
-    name: 'Rouge+',
+    name: 'Rouge',
     effectType: UpgradeEffectType.villageCoinsPercentBonus.dbValue,
     unlockConditionType: 'village_10',
     unlockConditionValue: 10,
@@ -527,7 +527,7 @@ final _upgrades = [
 /// 20 connexions consécutives).
 final kComboPlusUpgrade = UpgradesCompanion.insert(
   id: 'combo_plus',
-  name: 'Combo+',
+  name: 'Alizés',
   effectType: UpgradeEffectType.comboBonusTiles.dbValue,
   unlockConditionType: 'best_streak_20',
   unlockConditionValue: 20,
@@ -538,21 +538,21 @@ final kComboPlusUpgrade = UpgradesCompanion.insert(
 final kExtendedActionsUpgrades = [
   UpgradesCompanion.insert(
     id: 'extended_preview',
-    name: 'Aperçu prolongé',
+    name: 'Longue-vue',
     effectType: UpgradeEffectType.extendedPreviewCount.dbValue,
     unlockConditionType: 'connections_triple_first',
     unlockConditionValue: 15,
   ),
   UpgradesCompanion.insert(
     id: 'hold_slot',
-    name: 'Emplacement Joker',
+    name: 'Sacoche',
     effectType: UpgradeEffectType.holdSlotUses.dbValue,
     unlockConditionType: 'connections_quad_first',
     unlockConditionValue: 8,
   ),
   UpgradesCompanion.insert(
     id: 'second_chance',
-    name: 'Deuxième chance',
+    name: 'Ressac',
     effectType: UpgradeEffectType.secondChanceUses.dbValue,
     unlockConditionType: 'connections_quint_first',
     unlockConditionValue: 5,
@@ -563,28 +563,28 @@ final kExtendedActionsUpgrades = [
 final kClusterColorUpgrades = [
   UpgradesCompanion.insert(
     id: 'forest_plus',
-    name: 'Vert+',
+    name: 'Vert',
     effectType: UpgradeEffectType.forestCoinsPercentBonus.dbValue,
     unlockConditionType: 'forest_15',
     unlockConditionValue: 15,
   ),
   UpgradesCompanion.insert(
     id: 'water_plus',
-    name: 'Bleu+',
+    name: 'Bleu',
     effectType: UpgradeEffectType.waterCoinsPercentBonus.dbValue,
     unlockConditionType: 'water_20',
     unlockConditionValue: 20,
   ),
   UpgradesCompanion.insert(
     id: 'plain_plus',
-    name: 'Jaune+',
+    name: 'Jaune',
     effectType: UpgradeEffectType.plainCoinsPercentBonus.dbValue,
     unlockConditionType: 'plain_25',
     unlockConditionValue: 25,
   ),
   UpgradesCompanion.insert(
     id: 'mountain_plus',
-    name: 'Violet+',
+    name: 'Violet',
     effectType: UpgradeEffectType.mountainCoinsPercentBonus.dbValue,
     unlockConditionType: 'mountain_30',
     unlockConditionValue: 30,
@@ -596,14 +596,14 @@ final kClusterColorUpgrades = [
 final kBiomesClosedExtensionUpgrades = [
   UpgradesCompanion.insert(
     id: 'closure_bonus',
-    name: 'Bonus de clôture',
+    name: 'Atoll',
     effectType: UpgradeEffectType.closureBonusTiles.dbValue,
     unlockConditionType: 'biomes_50',
     unlockConditionValue: 50,
   ),
   UpgradesCompanion.insert(
     id: 'hated_color',
-    name: 'Couleur détestée',
+    name: 'Exil',
     effectType: UpgradeEffectType.hatedColorExclusion.dbValue,
     unlockConditionType: 'biomes_100',
     unlockConditionValue: 100,
@@ -622,7 +622,7 @@ final kMillionaireUpgrade = UpgradesCompanion.insert(
 /// Entrepôt de tuiles (debug) : démarre une partie avec 500 tuiles.
 final kWarehouseUpgrade = UpgradesCompanion.insert(
   id: 'warehouse',
-  name: 'Entrepôt de tuiles',
+  name: 'Entrepôt',
   effectType: UpgradeEffectType.warehouseStartingTiles.dbValue,
   unlockConditionType: 'debug_only',
   unlockConditionValue: 0,

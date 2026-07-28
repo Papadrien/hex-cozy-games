@@ -143,6 +143,16 @@ class HexGridComponent extends PositionComponent {
   /// tant que l'overlay reste actif — voir [render].
   List<Set<HexCoords>> biomeSizeClusters = const [];
 
+  /// Enfant dédié au dessin des pastilles de taille de zone, ajouté dans
+  /// [onLoad] avec une priorité largement supérieure à celle de n'importe
+  /// quelle [TileComponent] (voir [kTileDepthPriorityPreview] dans
+  /// `tile_component.dart`) : en tant qu'enfant de ce composant, il fait
+  /// partie du même arbre de rendu que les tuiles posées et est donc
+  /// dessiné APRÈS elles (priorité la plus haute = dessiné en dernier),
+  /// donc au-dessus du plateau plutôt qu'en dessous.
+  late final _BiomeSizeLabelsLayer _biomeSizeLabelsLayer =
+      _BiomeSizeLabelsLayer(this);
+
   // ── Prévisualisation de placement (story 1.5a) ──────────────────────────
 
   /// Emplacements actuellement disponibles (surbrillance). Réassigner
@@ -445,6 +455,7 @@ class HexGridComponent extends PositionComponent {
   @override
   Future<void> onLoad() async {
     await super.onLoad();
+    await add(_biomeSizeLabelsLayer);
   }
 
   /// Origine de la grille en coordonnées écran (avant iso). Ancrée au
@@ -758,10 +769,6 @@ class HexGridComponent extends PositionComponent {
 
   @override
   void render(Canvas canvas) {
-    if (biomeSizeClusters.isNotEmpty) {
-      _renderBiomeSizeLabels(canvas);
-    }
-
     // Pendant la prévisualisation, on masque les emplacements libres.
     if (_previewCoords != null && _previewTile != null) return;
     if (availableHighlights.isEmpty) return;
@@ -937,5 +944,32 @@ class HexGridComponent extends PositionComponent {
       counts[b] = (counts[b] ?? 0) + 1;
     }
     return counts.entries.reduce((a, b) => a.value >= b.value ? a : b).key;
+  }
+}
+
+/// Calque dédié aux pastilles de taille de zone (mode "Bonus de clôture").
+///
+/// Ajouté comme enfant de [HexGridComponent] (voir `onLoad`) plutôt que
+/// dessiné dans le `render` du parent : dans l'arbre de rendu Flame, les
+/// enfants sont dessinés après le rendu propre du parent, dans l'ordre de
+/// leur [priority]. Avec [priority] fixée bien au-dessus de
+/// [kTileDepthPriorityPreview] (le plus élevé utilisé par les
+/// [TileComponent]), ce calque est donc systématiquement dessiné en
+/// dernier — au-dessus de toutes les tuiles posées — au lieu d'apparaître
+/// en dessous d'elles comme c'était le cas quand les pastilles étaient
+/// dessinées directement dans le `render` du parent.
+class _BiomeSizeLabelsLayer extends PositionComponent {
+  _BiomeSizeLabelsLayer(this._grid)
+      : super(
+          position: Vector2.zero(),
+          priority: kTileDepthPriorityPreview + 1000,
+        );
+
+  final HexGridComponent _grid;
+
+  @override
+  void render(Canvas canvas) {
+    if (_grid.biomeSizeClusters.isEmpty) return;
+    _grid._renderBiomeSizeLabels(canvas);
   }
 }

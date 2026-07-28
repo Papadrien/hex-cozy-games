@@ -20,6 +20,7 @@ import 'grid_state_provider.dart';
 import 'placement_provider.dart';
 import 'player_profile_provider.dart';
 import 'session_provider.dart';
+import 'hold_slot_provider.dart';
 import 'tile_stack_provider.dart';
 import 'player_stats_provider.dart';
 import 'quest_provider.dart';
@@ -194,6 +195,7 @@ Future<void> confirmPlacement(
           {int bonusCoins})
       onConfirm,
   void Function(int count, int coinCount)? onComboBonusTiles,
+  void Function(int count, int coinCount)? onClosureBonusTiles,
   void Function(int count, int coinCount)? onConnectionBonusExtra,
   void Function(Set<UpgradeEffectType> types)? onCoinBonusTypes,
 }) async {
@@ -224,7 +226,8 @@ Future<void> confirmPlacement(
   _placeTileOnGrid(ref, coords, tile);
   onConfirm(coords, tile, reward.connectedSides, baseConnectionBonus,
       bonusCoins: reward.bonusCoins);
-  final (appliedReward, totalBonusTilesAdded, comboBonusTilesCount, coinBonusTypes) =
+  final (appliedReward, totalBonusTilesAdded, comboBonusTilesCount,
+      closureBonusTilesCount, coinBonusTypes) =
       _applyReward(ref, coords, tile, reward);
   _recordPlacement(
       ref, coords, tile, appliedReward, totalBonusTilesAdded, previousSession);
@@ -243,6 +246,15 @@ Future<void> confirmPlacement(
     onComboBonusTiles?.call(
         comboBonusTilesCount, reward.connectedSides.length + coinBonusTypes.length);
   }
+  // Idem pour le Bonus de clôture : ses tuiles bonus dépendent de la
+  // fermeture de biome détectée, pas des côtés connectés par la tuile
+  // posée — même traitement que Combo+, particule depuis l'icône de
+  // l'amélioration (voir [HexBoardGame.spawnClosureBonusParticle]) plutôt
+  // que depuis la tuile.
+  if (closureBonusTilesCount > 0) {
+    onClosureBonusTiles?.call(closureBonusTilesCount,
+        reward.connectedSides.length + coinBonusTypes.length);
+  }
   // Idem pour la part "extra" de Tuile bonus ci-dessus (voir
   // [HexBoardGame.spawnConnectionBonusParticle]) — mêmes caractéristiques
   // (délai calé sur les sons de pièces de cette pose) que Combo+.
@@ -256,6 +268,7 @@ Future<void> confirmPlacement(
     onCoinBonusTypes?.call(coinBonusTypes);
   }
   _advanceStack(ref, reward.connectedSides.length);
+  _reclaimHeldTileIfStackEmpty(ref);
   await SessionSaver.save(ref);
   _checkGameOver(ref);
 }
@@ -331,12 +344,14 @@ void _recordPlacement(
 /// bonus générées spécifiquement par Combo+ sur cette pose (0 si non
 /// déclenché), pour piloter la particule dédiée qui part de l'icône de
 /// l'amélioration plutôt que de la tuile posée (voir
-/// [HexBoardGame.spawnComboBonusParticle]) — et enfin l'ensemble des types
-/// d'amélioration de gain de pièces (Pièces+/Rouge+/Vert+/Bleu+/Jaune+/
+/// [HexBoardGame.spawnComboBonusParticle]) — le nombre de tuiles bonus
+/// accordées par le Bonus de clôture sur cette pose, pour la même raison
+/// (voir [HexBoardGame.spawnClosureBonusParticle]) — et enfin l'ensemble
+/// des types d'amélioration de gain de pièces (Pièces+/Rouge+/Vert+/Bleu+/
 /// Jaune+/Violet+) ayant effectivement rapporté 1 pièce bonus sur cette
 /// pose, pour la même raison côté pièces (voir
 /// [HexBoardGame.spawnCoinBonusParticles]).
-(PlacementReward, int, int, Set<UpgradeEffectType>) _applyReward(
+(PlacementReward, int, int, int, Set<UpgradeEffectType>) _applyReward(
     ProviderContainer ref, HexCoords pos, HexTile tile, PlacementReward reward) {
   if (reward.connectedSides.isEmpty && reward.bonusTiles == 0) {
     ref.read(sessionProvider.notifier).addReward(reward);
@@ -344,7 +359,7 @@ void _recordPlacement(
     // déclenché) pour que l'encart des améliorations actives puisse malgré
     // tout réagir à l'évènement pose si besoin.
     ref.read(upgradeFeedbackProvider.notifier).reportTriggered(const {});
-    return (reward, 0, 0, const {});
+    return (reward, 0, 0, 0, const {});
   }
   // Story B12a — accumule au fil du calcul les UpgradeEffectType ayant
   // effectivement produit un bonus sur CETTE pose, pour piloter le feedback
@@ -452,6 +467,7 @@ void _recordPlacement(
   // une petite zone refermée sans avoir atteint 10 tuiles ne rapportait
   // rien, alors que la fermeture a bien eu lieu).
   final closureMult = effects.getClosureBonusTiles();
+  var closureBonusTilesCount = 0;
   if (closureMult > 0) {
     final grid = ref.read(gridProvider);
     final closures = grid.biomesJustClosed(pos, tile);
@@ -464,6 +480,7 @@ void _recordPlacement(
       ref.read(tileStackProvider.notifier).addBonusTiles(closureTiles);
       ref.read(sessionProvider.notifier).addExtraBonusTiles(closureTiles);
       totalBonusTilesAdded += closureTiles;
+      closureBonusTilesCount = closureTiles;
       triggeredTypes.add(UpgradeEffectType.closureBonusTiles);
     }
   }
@@ -485,7 +502,8 @@ void _recordPlacement(
   };
   final coinBonusTypes = triggeredTypes.intersection(kCoinBonusEffectTypes);
 
-  return (applied, totalBonusTilesAdded, comboBonusTilesCount, coinBonusTypes);
+  return (applied, totalBonusTilesAdded, comboBonusTilesCount,
+      closureBonusTilesCount, coinBonusTypes);
 }
 
 void _advanceStack(ProviderContainer ref, int connectedSidesCount) {
@@ -494,6 +512,26 @@ void _advanceStack(ProviderContainer ref, int connectedSidesCount) {
       .onTilePlaced(connectedSidesCount: connectedSidesCount);
   ref.read(adTilesPlacedProvider.notifier).increment();
   ref.read(placementProvider.notifier).clearSelection();
+}
+
+/// Récupère automatiquement la tuile en réserve dans l'Emplacement Joker
+/// (voir [holdSlotProvider], `hold_slot_swap.dart`) si la pile vient
+/// d'être vidée par la pose qui précède cet appel.
+///
+/// Sans ça, poser la toute dernière tuile de la pile alors qu'une tuile
+/// est mise de côté déclencherait la fin de partie (voir [_checkGameOver],
+/// appelé juste après [_advanceStack] dans [confirmPlacement]) en laissant
+/// cette tuile en réserve totalement perdue — le joueur n'aurait jamais eu
+/// l'occasion de la reprendre. On la replace donc en tête de pile
+/// ([TileStack.returnTile], même mécanique que la reprise manuelle dans
+/// [swapHoldSlot]) et on vide l'emplacement : elle redevient la tuile
+/// active, la pile n'est plus vide, et la partie continue normalement.
+void _reclaimHeldTileIfStackEmpty(ProviderContainer ref) {
+  if (ref.read(tileStackProvider).remaining > 0) return;
+  final heldTile = ref.read(holdSlotProvider).heldTile;
+  if (heldTile == null) return;
+  ref.read(tileStackProvider.notifier).returnTile(heldTile);
+  ref.read(holdSlotProvider.notifier).set(null);
 }
 
 void _checkGameOver(ProviderContainer ref) {

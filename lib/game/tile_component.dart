@@ -225,6 +225,23 @@ class TileComponent extends PositionComponent {
   /// de Deuxième chance.
   static const double _kSecondChanceOutlineWidth = 2.5;
 
+  /// Couleur de l'ombre portée derrière le contour de Deuxième chance — le
+  /// doré ([_kSecondChanceOutlineColor]) se distingue mal sur les tuiles de
+  /// couleur proche (biome plaine, jaune) sans ce liseré sombre en dessous.
+  static const Color _kSecondChanceOutlineShadowColor = Color(0xFF000000);
+
+  /// Épaisseur (en pixels écran, avant mise à l'échelle du zoom) de l'ombre
+  /// du contour de Deuxième chance — plus large que le contour doré
+  /// lui-même pour dépasser de part et d'autre et rester visible même sur
+  /// fond jaune.
+  static const double _kSecondChanceOutlineShadowWidth = 4.5;
+
+  /// Opacité de l'ombre du contour de Deuxième chance — volontairement
+  /// inférieure à l'opacité pleine de la tuile ([_alpha]) pour rester une
+  /// ombre discrète plutôt qu'un second contour tout aussi marqué que le
+  /// doré.
+  static const double _kSecondChanceOutlineShadowAlpha = 0.55;
+
   // ── Glow ─────────────────────────────────────────────────────────────────
   Set<int>? _glowSides;
   double _glowAlpha = 0.0;
@@ -399,6 +416,18 @@ class TileComponent extends PositionComponent {
         outline.lineTo(topCorners[i].dx, topCorners[i].dy);
       }
       outline.close();
+      // Ombre noire d'abord, plus large et dessinée en dessous : garde le
+      // contour doré visible même sur les tuiles de teinte proche (biome
+      // plaine, jaune) où il se fondrait sinon dans la couleur de la case.
+      canvas.drawPath(
+        outline,
+        Paint()
+          ..color = _kSecondChanceOutlineShadowColor.withValues(
+              alpha: _alpha * _kSecondChanceOutlineShadowAlpha)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth =
+              _kSecondChanceOutlineShadowWidth * (_hexSize / kHexSize),
+      );
       canvas.drawPath(
         outline,
         Paint()

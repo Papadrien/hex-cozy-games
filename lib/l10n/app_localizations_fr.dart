@@ -232,7 +232,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get upgrade_desc_starting_tiles_plus =>
-      'Augmente le nombre de tuiles en main au début de chaque partie.';
+      'Augmente le nombre de tuiles dans la pile de tuiles au début de chaque partie.';
 
   @override
   String get upgrade_desc_doubled_connections =>
@@ -240,15 +240,15 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get upgrade_desc_coins_plus =>
-      'Octroie une pièce bonus dès que tu gagnes au moins N pièces sur une pose (4/2/1 pièces selon le niveau). Non-cumulable.';
+      'Octroie une pièce bonus dès que tu gagnes au moins N pièces sur une pose. Non-cumulable.';
 
   @override
   String get upgrade_desc_villages_plus =>
-      'Octroie une pièce bonus dès que tu connectes au moins N côtés rouges sur une pose (4/2/1 selon le niveau). Non-cumulable.';
+      'Octroie une pièce bonus dès que tu connectes au moins N côtés rouges sur une pose. Non-cumulable.';
 
   @override
   String get upgrade_desc_combo_plus =>
-      'Ajoute une tuile bonus tous les N doubles connexions cumulées sur la partie (10/8/5 selon le niveau).';
+      'Ajoute une tuile bonus tous les N doubles connexions cumulées sur la partie.';
 
   @override
   String get upgrade_desc_extended_preview =>
@@ -256,27 +256,27 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get upgrade_desc_hold_slot =>
-      'Permet d\'échanger la tuile active avec une tuile en réserve, un nombre limité de fois par partie.';
+      'Permet de stocker une tuile et de la remettre plus tard dans la pile de tuiles.';
 
   @override
   String get upgrade_desc_second_chance =>
-      'Permet de retirer une tuile déjà posée, un nombre limité de fois par partie.';
+      'Permet de retirer une tuile déjà posée.';
 
   @override
   String get upgrade_desc_forest_plus =>
-      'Octroie une pièce bonus dès que tu connectes au moins N côtés verts sur une pose (4/2/1 selon le niveau). Non-cumulable.';
+      'Octroie une pièce bonus dès que tu connectes au moins N côtés verts sur une pose. Non-cumulable.';
 
   @override
   String get upgrade_desc_water_plus =>
-      'Octroie une pièce bonus dès que tu connectes au moins N côtés bleus sur une pose (4/2/1 selon le niveau). Non-cumulable.';
+      'Octroie une pièce bonus dès que tu connectes au moins N côtés bleus sur une pose. Non-cumulable.';
 
   @override
   String get upgrade_desc_plain_plus =>
-      'Octroie une pièce bonus dès que tu connectes au moins N côtés jaunes sur une pose (4/2/1 selon le niveau). Non-cumulable.';
+      'Octroie une pièce bonus dès que tu connectes au moins N côtés jaunes sur une pose. Non-cumulable.';
 
   @override
   String get upgrade_desc_mountain_plus =>
-      'Octroie une pièce bonus dès que tu connectes au moins N côtés violets sur une pose (4/2/1 selon le niveau). Non-cumulable.';
+      'Octroie une pièce bonus dès que tu connectes au moins N côtés violets sur une pose. Non-cumulable.';
 
   @override
   String get upgrade_desc_closure_bonus =>
@@ -284,7 +284,10 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get upgrade_desc_hated_color =>
-      'Tape sur cette amélioration en cours de partie pour exclure temporairement une couleur aléatoire (parmi les couleurs de base) de la pile de tuiles, un nombre limité de fois par partie.';
+      'Tape sur cette amélioration en cours de partie pour choisir une couleur à exclure temporairement de la pile de tuiles, un nombre limité de fois par partie.';
+
+  @override
+  String get upgrade_hated_color_picker_title => 'Choisis la couleur à exclure';
 
   @override
   String get upgrade_desc_millionaire =>

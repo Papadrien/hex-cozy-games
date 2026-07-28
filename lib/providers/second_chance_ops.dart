@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../game/hex_cell.dart' show BiomeType;
 import '../game/hex_coords.dart';
 import 'grid_state_provider.dart';
 import 'placement_provider.dart';
@@ -25,21 +26,23 @@ void toggleSecondChanceMode(WidgetRef ref) {
   notifier.activate();
 }
 
-/// Active "Couleur détestée" (Story B12x+) sur tap du slot dans l'encart des
-/// améliorations actives — voir [TileStack.activateHatedColor]. Amélioration
-/// à utilisations limitées par partie (Story B12x+, 1/2/3 selon niveau) :
-/// ne fait rien s'il ne reste plus d'utilisation, ou si une exclusion est
-/// déjà en cours (une seule exclusion active à la fois — voir
+/// Active "Couleur détestée" (Story B12x+) pour la couleur [biome] choisie
+/// par le joueur dans la pop-up ouverte au tap du slot dans l'encart des
+/// améliorations actives (voir `active_upgrades_hud.dart`,
+/// `_HatedColorPickerSheet`, et [TileStack.activateHatedColor]).
+/// Amélioration à utilisations limitées par partie (Story B12x+, 1/2/3
+/// selon niveau) : ne fait rien s'il ne reste plus d'utilisation, ou si une
+/// exclusion est déjà en cours (une seule exclusion active à la fois — voir
 /// [hatedColorTilesRemaining]). Consomme une utilisation dans
 /// [sessionProvider] uniquement en cas d'activation effective.
-void activateHatedColor(WidgetRef ref) {
+void activateHatedColor(WidgetRef ref, BiomeType biome) {
   final session = ref.read(sessionProvider);
   if (session.hatedColorRemainingUses <= 0) return;
   final stack = ref.read(tileStackProvider);
   final placedCount = ref.read(gridProvider).placedTiles.length;
   if (hatedColorTilesRemaining(stack, placedCount) != null) return;
 
-  ref.read(tileStackProvider.notifier).activateHatedColor();
+  ref.read(tileStackProvider.notifier).activateHatedColor(biome);
   ref.read(sessionProvider.notifier).consumeHatedColor();
 }
 

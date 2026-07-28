@@ -120,6 +120,15 @@ class _GameScreenState extends ConsumerState<GameScreen> {
           UpgradeEffectType.connectionBonusMultiplier);
       return center == null ? null : Vector2(center.dx, center.dy);
     };
+    // Point de départ de la particule dédiée Bonus de clôture (voir
+    // [HexBoardGame.spawnClosureBonusParticle]) — même principe que
+    // Combo+ ci-dessus, ses tuiles bonus n'étant liées à aucun côté de la
+    // tuile posée mais à la fermeture d'un biome détectée sur cette pose.
+    _game.getClosureBonusUpgradeOrigin = () {
+      final center = UpgradeHudAnchors.globalCenterFor(
+          UpgradeEffectType.closureBonusTiles);
+      return center == null ? null : Vector2(center.dx, center.dy);
+    };
     // Point de départ des particules "pièce" des améliorations de gain de
     // pièces (Pièces+/Rouge+/Vert+/Bleu+/Jaune+/Violet+) — même
     // principe que Combo+ ci-dessus : la position écran de l'icône de

@@ -61,11 +61,12 @@
 ///
 /// Pose de tuile ([playTilePlaced]) : également générée procéduralement
 /// ([_generateTileKnockWaveform]), mais avec son propre timbre dédié plutôt
-/// que le clic de bouton — un "toc" de tuile en bois posée sur le plateau :
-/// un "thud" d'impact (bruit passe-bas, plus sourd qu'un clic) superposé à
-/// un corps résonant à deux partiels non harmoniques (timbre bois plutôt que
-/// cloche) avec un bref glissando de hauteur descendant au tout début
-/// (l'effet "plop" du mallet qui frappe puis se stabilise). [playButtonClick]
+/// que le clic de bouton — un "clac" sec de tuile en plastique épais (style
+/// Mahjong) posée sur le plateau : un "clack" d'impact (bruit à peine
+/// filtré, net et clair) superposé à un corps résonant aigu à deux partiels
+/// non harmoniques (timbre plastique dur plutôt que cloche ou bois) avec un
+/// très bref glissando de hauteur descendant au tout début (l'effet de
+/// "pli" du matériau dur qui claque puis se stabilise). [playButtonClick]
 /// est pensé pour être déclenché par [buttonTapFeedback]
 /// (voir `haptics_service.dart`) sur tout bouton de l'application qui ne
 /// possède pas déjà son propre bruitage dédié.
@@ -195,49 +196,52 @@ const double _kButtonKnockFundamentalFreq = 1100;
 /// au corps résonant son timbre plastique plutôt qu'un simple ton pur.
 const double _kButtonKnockHarmonicFreq = 2600;
 
-/// Durée du son de pose de tuile généré, en millisecondes — un peu plus
-/// long que le clic de bouton ([_kButtonClickDurationMs]) pour laisser le
-/// corps résonant en bois ([_kTileWoodDecayTauSeconds]) sonner brièvement,
-/// tout en restant assez bref pour des poses rapprochées.
-const double _kTileKnockDurationMs = 55;
+/// Durée du son de pose de tuile généré, en millisecondes — bref et net,
+/// cohérent avec le "clack" sec d'une tuile en plastique épais (style
+/// Mahjong) plutôt qu'avec la résonance plus longue d'un impact bois.
+const double _kTileKnockDurationMs = 42;
 
-/// Constante de temps (secondes) de la décroissance du "thud" d'impact
-/// (bruit basse fréquence) du son de pose de tuile — très rapide, pour un
-/// impact ponctuel plutôt qu'un souffle qui traîne.
-const double _kTileThudDecayTauSeconds = 0.006;
+/// Constante de temps (secondes) de la décroissance du "clack" d'impact
+/// (bruit filtré) du son de pose de tuile — extrêmement rapide, pour un
+/// claquement sec et dur plutôt qu'un souffle qui traîne.
+const double _kTileThudDecayTauSeconds = 0.0035;
 
-/// Constante de temps (secondes) de la décroissance du corps résonant en
-/// bois du son de pose de tuile.
-const double _kTileWoodDecayTauSeconds = 0.02;
+/// Constante de temps (secondes) de la décroissance du corps résonant
+/// plastique du son de pose de tuile — court, le plastique épais sonne net
+/// et s'éteint vite, sans la traîne chaude du bois.
+const double _kTileWoodDecayTauSeconds = 0.011;
 
-/// Fréquence fondamentale (Hz) du corps résonant en bois du son de pose de
-/// tuile.
-const double _kTileWoodFundamentalFreq = 480;
+/// Fréquence fondamentale (Hz) du corps résonant plastique du son de pose
+/// de tuile — nettement plus aiguë que l'ancien timbre bois, pour évoquer
+/// le claquement clair d'une tuile de Mahjong plutôt qu'un impact sourd.
+const double _kTileWoodFundamentalFreq = 1250;
 
-/// Fréquence du second partiel (Hz) du corps résonant en bois — rapport
+/// Fréquence du second partiel (Hz) du corps résonant plastique — rapport
 /// volontairement non harmonique avec [_kTileWoodFundamentalFreq] pour un
-/// timbre "bois"/"pierre" plutôt qu'un timbre "cloche" (partiels
-/// harmoniques).
-const double _kTileWoodPartialFreq = 660;
+/// timbre "plastique dur" plutôt qu'un timbre "cloche" (partiels
+/// harmoniques), tout en restant dans le registre aigu et clair du
+/// plastique plutôt que dans le grave du bois/pierre.
+const double _kTileWoodPartialFreq = 2450;
 
 /// Amplitude du glissando de hauteur (Hz) au tout début de l'impact du son
 /// de pose de tuile, qui redescend rapidement vers la fréquence de repos —
-/// simule le "plop" d'un objet qui frappe une surface puis se stabilise,
-/// plutôt qu'une hauteur constante du premier au dernier échantillon.
-const double _kTileWoodPitchBendHz = 90;
+/// simule le très bref "pli" de hauteur d'un matériau dur qui claque avant
+/// de se stabiliser. Amplitude réduite par rapport à l'ancien timbre bois :
+/// le plastique dur a moins de "plop" et plus de "clac".
+const double _kTileWoodPitchBendHz = 45;
 
 /// Constante de temps (secondes) de la décroissance du glissando de
 /// hauteur ([_kTileWoodPitchBendHz]) — très rapide, quelques millisecondes,
 /// pour un effet perceptible seulement sur l'attaque du son.
-const double _kTileWoodPitchBendDecayTauSeconds = 0.006;
+const double _kTileWoodPitchBendDecayTauSeconds = 0.004;
 
-/// Poids relatif du "thud" d'impact dans le mixage final du son de pose de
+/// Poids relatif du "clack" d'impact dans le mixage final du son de pose de
 /// tuile.
-const double _kTileThudMix = 0.5;
+const double _kTileThudMix = 0.55;
 
-/// Poids relatif du corps résonant en bois dans le mixage final du son de
+/// Poids relatif du corps résonant plastique dans le mixage final du son de
 /// pose de tuile.
-const double _kTileWoodMix = 0.55;
+const double _kTileWoodMix = 0.5;
 
 /// Poids relatif du transitoire « tac » (bruit filtré) dans le mixage
 /// final du clic de bouton ([_generateClickWaveform]).
@@ -251,48 +255,54 @@ const double _kKnockMix = 0.35;
 /// ([OptionsState.sfxVolume]) pour le clic de bouton — plus discret que les
 /// autres bruitages (gain de pièces, pose de tuile) puisqu'il accompagne
 /// une simple interaction d'interface plutôt qu'un événement de jeu.
-const double _kClickVolumeScale = 0.5;
+const double _kClickVolumeScale = 0.45;
 
 /// Atténuation appliquée au son de pose de tuile ([AudioService.playTilePlaced])
 /// par rapport au réglage « Bruitages » — 10 % plus discret que le volume
 /// nominal.
 const double _kTilePlacedVolumeScale = 0.9;
 
-/// Durée du clic de rotation généré, en millisecondes — plus bref encore
-/// que le clic de bouton ([_kButtonClickDurationMs]) : jusqu'à 6 clics par
-/// tour complet lors d'une rotation rapide, un son qui traîne donnerait une
-/// impression de bouillie plutôt qu'une suite de crans nets et distincts.
-/// Relevé de 18 à 26ms (avec les décroissances ci-dessous) : à 18ms le son
-/// était en pratique inaudible, la quasi-totalité de l'énergie tenant dans
-/// la première milliseconde.
-const double _kRotationClickDurationMs = 26;
+/// Durée du clic de rotation généré, en millisecondes. Deuxième relevé :
+/// 18ms → 26ms était déjà un premier correctif, mais restait en pratique
+/// inaudible sur haut-parleur de téléphone — la fréquence élevée du corps
+/// résonant ([_kRotationKnockFundamentalFreq] ci-dessous, alors à 1800Hz)
+/// laissait très peu d'énergie perceptible dans une fenêtre aussi brève.
+/// Remonté à 32ms, proche de [_kButtonClickDurationMs] (35ms, dont
+/// l'audibilité est éprouvée) : assez pour que le corps résonant sonne
+/// réellement, tout en restant net pour un enchaînement rapide (jusqu'à 6
+/// clics par tour complet).
+const double _kRotationClickDurationMs = 32;
 
 /// Constante de temps (secondes) de la décroissance du transitoire « tac »
-/// du clic de rotation — encore plus courte que celle du clic de bouton
-/// ([_kButtonTickDecayTauSeconds]) pour un tic léger plutôt qu'un claquement.
-const double _kRotationTickDecayTauSeconds = 0.0018;
+/// du clic de rotation — un peu plus longue que le premier réglage (0.0018)
+/// pour laisser le tac exister au-delà de la toute première milliseconde.
+const double _kRotationTickDecayTauSeconds = 0.0028;
 
 /// Constante de temps (secondes) de la décroissance du corps résonant du
-/// clic de rotation — bref lui aussi, pour ne laisser qu'une pointe de
-/// hauteur perceptible sans corps qui traîne.
-const double _kRotationKnockDecayTauSeconds = 0.009;
+/// clic de rotation — allongée par rapport au premier réglage (0.009) pour
+/// laisser sonner la fondamentale plus abaissée ci-dessous.
+const double _kRotationKnockDecayTauSeconds = 0.014;
 
-/// Fréquence fondamentale (Hz) du corps résonant du clic de rotation — plus
-/// aiguë que celle du clic de bouton ([_kButtonKnockFundamentalFreq]) pour
-/// un timbre plus léger, cohérent avec un cran de 60° plutôt qu'un appui de
-/// bouton.
-const double _kRotationKnockFundamentalFreq = 1800;
+/// Fréquence fondamentale (Hz) du corps résonant du clic de rotation.
+/// Abaissée de 1800 à 1300Hz : à 1800/3400Hz (premier réglage), le son
+/// tombait dans une zone où les haut-parleurs de téléphone répondent mal à
+/// faible volume, le rendant quasi inaudible malgré un volume non nul.
+/// Reste plus aigu que le clic de bouton ([_kButtonKnockFundamentalFreq],
+/// 1100Hz) pour un timbre plus léger, cohérent avec un simple cran de 60°.
+const double _kRotationKnockFundamentalFreq = 1300;
 
-/// Fréquence de l'harmonique secondaire (Hz) du clic de rotation.
-const double _kRotationKnockHarmonicFreq = 3400;
+/// Fréquence de l'harmonique secondaire (Hz) du clic de rotation — abaissée
+/// de 3400 à 2300Hz pour la même raison que la fondamentale ci-dessus.
+const double _kRotationKnockHarmonicFreq = 2300;
 
 /// Facteur multiplicatif appliqué au réglage « Bruitages »
-/// ([OptionsState.sfxVolume]) pour le clic de rotation — plus discret que le
-/// clic de bouton ([_kClickVolumeScale]) pour rester un léger tic même en
-/// rafale (un clic par cran de 60°, jusqu'à 6 par tour complet), mais relevé
-/// de 0.3 à 0.5 : à 0.3, combiné à la brièveté d'origine ci-dessus, le son
-/// n'était en pratique pas perceptible.
-const double _kRotationClickVolumeScale = 0.5;
+/// ([OptionsState.sfxVolume]) pour le clic de rotation. Deuxième relevé :
+/// 0.3 → 0.5 restait insuffisant combiné à la brièveté/fréquence d'origine
+/// ci-dessus. Remonté à 0.7 — au-delà du clic de bouton ([_kClickVolumeScale],
+/// 0.5) car un cran de rotation isolé reste un événement plus furtif à
+/// l'oreille qu'un tap de bouton, et a donc besoin de plus de présence pour
+/// être perçu au même niveau.
+const double _kRotationClickVolumeScale = 0.7;
 
 /// Génère procéduralement un bref clic — sans aucun fichier audio associé —
 /// dans la tonalité d'une touche de clavier mécanique, en superposant deux
@@ -351,19 +361,22 @@ Uint8List _generateClickWaveform({
 }
 
 /// Génère procéduralement le son de pose de tuile — sans aucun fichier
-/// audio associé — un "toc" évoquant une tuile en bois/pierre posée sur le
-/// plateau plutôt qu'un clic d'interface, en superposant deux composantes :
-///  - un "thud" d'impact : bruit blanc filtré passe-bas (moyenne mobile
-///    simple, à l'inverse du passe-haut du clic de bouton) à décroissance
-///    exponentielle très rapide ([_kTileThudDecayTauSeconds]), pour un
-///    impact sourd plutôt qu'un claquement sec ;
-///  - un corps résonant "bois" : deux sinusoïdes à des fréquences non
-///    harmoniques ([_kTileWoodFundamentalFreq] / [_kTileWoodPartialFreq],
-///    timbre bois/pierre plutôt que cloche), affectées d'un bref glissando
-///    de hauteur descendant ([_kTileWoodPitchBendHz], calculé par
-///    accumulation de phase pour rester continu) qui simule le "plop" de
-///    l'impact avant que la hauteur ne se stabilise, avec une décroissance
-///    un peu plus longue que le thud ([_kTileWoodDecayTauSeconds]).
+/// audio associé — un "clac" sec évoquant une tuile en plastique épais
+/// (style Mahjong) posée sur le plateau plutôt qu'un clic d'interface ou
+/// un impact bois, en superposant deux composantes :
+///  - un "clack" d'impact : bruit blanc légèrement filtré (moyenne mobile
+///    à coefficient élevé, donc peu lissée, à l'inverse du "thud" sourd
+///    d'origine) à décroissance exponentielle extrêmement rapide
+///    ([_kTileThudDecayTauSeconds]), pour un claquement dur et net plutôt
+///    qu'un impact sourd ;
+///  - un corps résonant "plastique" : deux sinusoïdes aiguës à des
+///    fréquences non harmoniques ([_kTileWoodFundamentalFreq] /
+///    [_kTileWoodPartialFreq], timbre plastique dur plutôt que cloche ou
+///    bois), affectées d'un bref glissando de hauteur descendant
+///    ([_kTileWoodPitchBendHz], calculé par accumulation de phase pour
+///    rester continu) qui simule le très bref "pli" de hauteur du matériau
+///    dur avant que la hauteur ne se stabilise, avec une décroissance
+///    courte et nette ([_kTileWoodDecayTauSeconds]).
 /// Encodé en PCM 16 bits mono puis enveloppé dans un en-tête WAV minimal
 /// par [_pcm16MonoToWav]. Calculé une seule fois, à la construction du
 /// service (voir [AudioService._tilePlacedKnockWaveform]).
@@ -382,15 +395,16 @@ Uint8List _generateTileKnockWaveform() {
   for (var i = 0; i < sampleCount; i++) {
     final t = i / _kClickSampleRate;
 
-    // Thud d'impact : bruit blanc lissé par une moyenne mobile (passe-bas
-    // simple) pour un "boum" sourd plutôt qu'un claquement métallique.
+    // Clack d'impact : bruit blanc à peine lissé (coefficient élevé, donc
+    // peu de passe-bas) pour un claquement dur et clair plutôt que le
+    // "boum" sourd d'un impact bois.
     final rawNoise = noiseRandom.nextDouble() * 2 - 1;
-    lowPassState += (rawNoise - lowPassState) * 0.35;
+    lowPassState += (rawNoise - lowPassState) * 0.75;
     final thud = lowPassState * exp(-t / _kTileThudDecayTauSeconds);
 
-    // Corps résonant "bois" : glissando de hauteur descendant au tout
+    // Corps résonant "plastique" : glissando de hauteur descendant au tout
     // début (accumulation de phase pour éviter toute discontinuité),
-    // superposant fondamentale et partiel non harmonique.
+    // superposant fondamentale et partiel non harmonique, tous deux aigus.
     final bend =
         _kTileWoodPitchBendHz * exp(-t / _kTileWoodPitchBendDecayTauSeconds);
     phaseFundamental += 2 * pi * (_kTileWoodFundamentalFreq + bend) * dt;
@@ -405,8 +419,86 @@ Uint8List _generateTileKnockWaveform() {
   return _pcm16MonoToWav(samples, _kClickSampleRate);
 }
 
-/// Enveloppe un buffer PCM 16 bits mono dans un en-tête RIFF/WAV minimal,
-/// pour lecture directe en mémoire (aucune écriture sur disque nécessaire).
+/// Fréquences (Hz) des trois notes de la mélodie de succès jouée à la
+/// réclamation d'une récompense de quête ([playQuestRewardClaimed]) — un
+/// arpège ascendant en accord parfait majeur (do5, mi5, sol5), reconnu
+/// comme un motif de succès ("ta-da") plutôt qu'une simple gamme.
+const List<double> _kQuestRewardNoteFrequencies = [523.25, 659.25, 783.99];
+
+/// Écart de temps (secondes) entre le déclenchement de deux notes
+/// consécutives de la mélodie de succès — plus court que la décroissance
+/// d'une note ([_kQuestRewardNoteDecayTauSeconds]) pour un léger legato où
+/// chaque note chevauche la suivante, plutôt que des notes détachées.
+const double _kQuestRewardNoteGapSeconds = 0.1;
+
+/// Constante de temps (secondes) de la décroissance de chaque note de la
+/// mélodie de succès — assez longue pour un timbre "cloche"/chime qui
+/// sonne et s'éteint en douceur, sans traîner au point de brouiller la
+/// note suivante.
+const double _kQuestRewardNoteDecayTauSeconds = 0.16;
+
+/// Durée de la montée initiale (secondes) de chaque note — quelques
+/// millisecondes seulement, pour éviter le "clic" d'une transition brutale
+/// de silence à pleine amplitude tout en gardant une attaque nette.
+const double _kQuestRewardNoteAttackSeconds = 0.005;
+
+/// Poids relatif de l'harmonique d'octave dans le timbre de chaque note —
+/// donne un grain "cloche" plus riche qu'une sinusoïde pure, sans dominer
+/// la fondamentale.
+const double _kQuestRewardHarmonicMix = 0.35;
+
+/// Marge (secondes) ajoutée après le déclenchement de la dernière note pour
+/// laisser sa décroissance ([_kQuestRewardNoteDecayTauSeconds]) s'éteindre
+/// complètement avant la fin du buffer, plutôt que de la couper net.
+const double _kQuestRewardTailSeconds = 0.5;
+
+/// Génère procéduralement la mélodie de succès jouée à la réclamation
+/// d'une récompense de quête ([AudioService.playQuestRewardClaimed]) —
+/// trois notes ([_kQuestRewardNoteFrequencies]) déclenchées en léger
+/// legato ([_kQuestRewardNoteGapSeconds]), chacune une sinusoïde plus son
+/// harmonique d'octave ([_kQuestRewardHarmonicMix]) pour un timbre "cloche"
+/// clair, avec une attaque douce ([_kQuestRewardNoteAttackSeconds]) et une
+/// décroissance exponentielle ([_kQuestRewardNoteDecayTauSeconds]). Les
+/// notes se chevauchent légèrement (chaque nouvelle note démarre avant que
+/// la précédente ne soit éteinte) plutôt que d'être strictement
+/// séquentielles, pour un arpège fluide plutôt que trois bips séparés.
+/// Encodé en PCM 16 bits mono via [_pcm16MonoToWav]. Calculé une seule
+/// fois, à la construction du service (voir
+/// [AudioService._questRewardMelodyWaveform]).
+Uint8List _generateQuestRewardMelodyWaveform() {
+  final noteCount = _kQuestRewardNoteFrequencies.length;
+  final totalDurationSeconds =
+      _kQuestRewardNoteGapSeconds * (noteCount - 1) + _kQuestRewardTailSeconds;
+  final sampleCount = (_kClickSampleRate * totalDurationSeconds).round();
+  final samples = Int16List(sampleCount);
+  for (var i = 0; i < sampleCount; i++) {
+    final t = i / _kClickSampleRate;
+    var value = 0.0;
+    for (var n = 0; n < noteCount; n++) {
+      final noteStart = n * _kQuestRewardNoteGapSeconds;
+      final localT = t - noteStart;
+      if (localT < 0) continue;
+      final attack =
+          (localT / _kQuestRewardNoteAttackSeconds).clamp(0.0, 1.0);
+      final envelope =
+          attack * exp(-localT / _kQuestRewardNoteDecayTauSeconds);
+      final freq = _kQuestRewardNoteFrequencies[n];
+      final note = (sin(2 * pi * freq * localT) +
+              _kQuestRewardHarmonicMix * sin(2 * pi * freq * 2 * localT)) *
+          envelope;
+      value += note;
+    }
+    // Trois notes en léger chevauchement peuvent sommer au-delà de [-1, 1] :
+    // on divise par un facteur légèrement inférieur au nombre de notes
+    // (chevauchement partiel seulement) plutôt que par noteCount, pour ne
+    // pas assourdir inutilement les portions où une seule note sonne.
+    value /= 1.8;
+    samples[i] = (value * 32767).round().clamp(-32768, 32767);
+  }
+  return _pcm16MonoToWav(samples, _kClickSampleRate);
+}
+
+
 Uint8List _pcm16MonoToWav(Int16List samples, int sampleRate) {
   final dataBytes = samples.buffer.asUint8List(
     samples.offsetInBytes,
@@ -508,6 +600,14 @@ class AudioService {
   /// le même lecteur (voir [playEndGame]).
   final AudioPlayer _endGamePlayer = AudioPlayer();
 
+  /// Lecteur dédié pour la mélodie de succès de réclamation de récompense
+  /// de quête (voir [playQuestRewardClaimed]) — comme [_endGamePlayer], en
+  /// dehors du pool : une nouvelle réclamation doit couper net une
+  /// éventuelle mélodie encore en cours plutôt que la superposer, et un
+  /// lecteur dédié évite qu'un bruitage du pool (pose de tuile, pièce
+  /// gagnée) ne l'interrompe en réutilisant le même lecteur.
+  final AudioPlayer _questRewardPlayer = AudioPlayer();
+
   /// Forme d'onde du clic de bouton, générée une seule fois (voir
   /// [_generateClickWaveform]) puis rejouée à chaque appel de
   /// [playButtonClick] — évite de la recalculer à chaque tap.
@@ -539,10 +639,18 @@ class AudioService {
   /// Forme d'onde du son de pose de tuile, générée une seule fois (voir
   /// [_generateTileKnockWaveform]) puis rejouée à chaque appel de
   /// [playTilePlaced] — évite de la recalculer à chaque pose. Timbre dédié
-  /// ("toc" de tuile en bois/pierre) plutôt qu'une réutilisation du clic de
+  /// ("clac" de tuile en plastique épais) plutôt qu'une réutilisation du clic de
   /// bouton, pour rester distinct à l'oreille et cohérent avec l'action de
   /// jeu qu'il accompagne.
   final Uint8List _tilePlacedKnockWaveform = _generateTileKnockWaveform();
+
+  /// Forme d'onde de la mélodie de succès de réclamation de récompense de
+  /// quête, générée une seule fois (voir
+  /// [_generateQuestRewardMelodyWaveform]) puis rejouée à chaque appel de
+  /// [playQuestRewardClaimed] — évite de la recalculer à chaque
+  /// réclamation.
+  final Uint8List _questRewardMelodyWaveform =
+      _generateQuestRewardMelodyWaveform();
 
   bool get _musicEnabled => _ref.read(optionsProvider).musicEnabled;
   bool get _sfxEnabled => _ref.read(optionsProvider).sfxEnabled;
@@ -668,7 +776,7 @@ class AudioService {
   /// Arrivée d'une tuile posée à sa position finale (fin du rebond). Comme
   /// [playButtonClick], il s'agit d'un son généré procéduralement
   /// ([_tilePlacedKnockWaveform]) plutôt que d'un fichier audio, mais avec
-  /// son propre timbre dédié ("toc" de tuile en bois/pierre — voir
+  /// son propre timbre dédié ("clac" de tuile en plastique épais — voir
   /// [_generateTileKnockWaveform]) plutôt qu'une réutilisation du clic de
   /// bouton d'interface. Pioche dans le même pool tournant que [_playSfx]
   /// pour laisser plusieurs poses se chevaucher sans se couper, avec la
@@ -736,6 +844,22 @@ class AudioService {
     await _endGamePlayer.play(AssetSource(SfxTrack.endGame.assetPath));
   }
 
+  /// Joue la mélodie de succès générée procéduralement
+  /// ([_questRewardMelodyWaveform], voir
+  /// [_generateQuestRewardMelodyWaveform]) au moment où le joueur réclame la
+  /// récompense d'une quête terminée (voir `quests_screen.dart`,
+  /// `_QuestCard._handleClaim`, déclenché aux côtés du retour haptique
+  /// [HapticsService.questRewardClaimed]). Lecteur dédié
+  /// ([_questRewardPlayer]) plutôt que le pool tournant, pour couper net
+  /// une éventuelle mélodie encore en cours si le joueur réclame une autre
+  /// récompense très rapidement, plutôt que de superposer deux arpèges.
+  Future<void> playQuestRewardClaimed() async {
+    if (!_sfxEnabled) return;
+    await _questRewardPlayer.stop();
+    await _questRewardPlayer.setVolume(_sfxVolume);
+    await _questRewardPlayer.play(BytesSource(_questRewardMelodyWaveform));
+  }
+
   /// Estime le délai à partir duquel le dernier `coin.mp3` d'un gain de
   /// [coinCount] pièces aura fini de sonner : vol de la pièce jusqu'au
   /// compteur ([_kCoinFlyDuration]) puis lectures échelonnées
@@ -784,12 +908,15 @@ class AudioService {
   }
 
   /// Joue le clic de rotation généré procéduralement ([_rotationClickWaveform],
-  /// même générateur que [playButtonClick] mais timbre dédié plus bref/aigu —
+  /// même générateur que [playButtonClick] mais timbre dédié, plus aigu —
   /// voir [_generateClickWaveform]) — aucun fichier audio associé. Pioche
   /// dans le même pool tournant que [_playSfx]/[playButtonClick] (même
-  /// hauteur légèrement randomisée), avec un volume encore plus atténué
-  /// ([_kRotationClickVolumeScale]) pour rester discret même en rafale (un
-  /// clic par cran de 60°, jusqu'à 6 par tour complet).
+  /// hauteur légèrement randomisée), avec un volume ([_kRotationClickVolumeScale])
+  /// en réalité plus élevé que celui du clic de bouton : un cran de rotation
+  /// isolé est un événement plus furtif à l'oreille (durée/fréquence plus
+  /// discrètes) qu'un tap de bouton, il lui faut donc plus de présence pour
+  /// rester perceptible même en rafale (un clic par cran de 60°, jusqu'à 6
+  /// par tour complet).
   ///
   /// À appeler depuis [HexBoardGame._handleRotation] (`hex_board_game.dart`)
   /// à chaque cran de rotation franchi — même déclencheur que
@@ -812,6 +939,7 @@ class AudioService {
     }
     _tileGainPlayer.dispose();
     _endGamePlayer.dispose();
+    _questRewardPlayer.dispose();
   }
 }
 

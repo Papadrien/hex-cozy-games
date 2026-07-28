@@ -19,6 +19,7 @@ import '../core/strings.dart';
 import '../data/app_database.dart';
 import '../providers/quest_provider.dart';
 import '../providers/progression_provider.dart';
+import '../services/audio_service.dart';
 import '../services/haptics_service.dart';
 import 'glass_container.dart';
 import 'coin_icon.dart';
@@ -544,6 +545,7 @@ class _QuestCardState extends ConsumerState<_QuestCard>
     // passe à vrai en base, en pleine animation.
     ref.read(claimingQuestIdsProvider.notifier).start(questId);
     unawaited(ref.read(hapticsServiceProvider).questRewardClaimed());
+    unawaited(ref.read(audioServiceProvider).playQuestRewardClaimed());
     await Future.wait([
       _claimController.forward(from: 0),
       ref.read(questServiceProvider).claimReward(questId),
