@@ -533,19 +533,19 @@ abstract class AppLocalizations {
   /// No description provided for @upgrade_desc_coins_plus.
   ///
   /// In en, this message translates to:
-  /// **'Grants 1 bonus coin whenever you earn at least N coins on a placement (4/2/1 coins depending on level).'**
+  /// **'Grants 1 bonus coin whenever you earn at least N coins on a placement.'**
   String get upgrade_desc_coins_plus;
 
   /// No description provided for @upgrade_desc_villages_plus.
   ///
   /// In en, this message translates to:
-  /// **'Grants 1 bonus coin whenever you connect at least N red sides on a placement (4/2/1 depending on level).'**
+  /// **'Grants 1 bonus coin whenever you connect at least N red sides on a placement.'**
   String get upgrade_desc_villages_plus;
 
   /// No description provided for @upgrade_desc_combo_plus.
   ///
   /// In en, this message translates to:
-  /// **'Grants 1 bonus tile every N double connections made during the game (10/8/5 depending on level).'**
+  /// **'Grants 1 bonus tile every N double connections made during the game.'**
   String get upgrade_desc_combo_plus;
 
   /// No description provided for @upgrade_desc_extended_preview.
@@ -557,37 +557,37 @@ abstract class AppLocalizations {
   /// No description provided for @upgrade_desc_hold_slot.
   ///
   /// In en, this message translates to:
-  /// **'Lets you swap your active tile with a reserved one, a limited number of times per game.'**
+  /// **'Lets you store a tile and put it back into the tile stack later.'**
   String get upgrade_desc_hold_slot;
 
   /// No description provided for @upgrade_desc_second_chance.
   ///
   /// In en, this message translates to:
-  /// **'Lets you take back a tile you\'ve already placed, a limited number of times per game.'**
+  /// **'Lets you take back a tile you\'ve already placed.'**
   String get upgrade_desc_second_chance;
 
   /// No description provided for @upgrade_desc_forest_plus.
   ///
   /// In en, this message translates to:
-  /// **'Grants 1 bonus coin whenever you connect at least N green sides on a placement (4/2/1 depending on level).'**
+  /// **'Grants 1 bonus coin whenever you connect at least N green sides on a placement.'**
   String get upgrade_desc_forest_plus;
 
   /// No description provided for @upgrade_desc_water_plus.
   ///
   /// In en, this message translates to:
-  /// **'Grants 1 bonus coin whenever you connect at least N blue sides on a placement (4/2/1 depending on level).'**
+  /// **'Grants 1 bonus coin whenever you connect at least N blue sides on a placement.'**
   String get upgrade_desc_water_plus;
 
   /// No description provided for @upgrade_desc_plain_plus.
   ///
   /// In en, this message translates to:
-  /// **'Grants 1 bonus coin whenever you connect at least N yellow sides on a placement (4/2/1 depending on level).'**
+  /// **'Grants 1 bonus coin whenever you connect at least N yellow sides on a placement.'**
   String get upgrade_desc_plain_plus;
 
   /// No description provided for @upgrade_desc_mountain_plus.
   ///
   /// In en, this message translates to:
-  /// **'Grants 1 bonus coin whenever you connect at least N purple sides on a placement (4/2/1 depending on level).'**
+  /// **'Grants 1 bonus coin whenever you connect at least N purple sides on a placement.'**
   String get upgrade_desc_mountain_plus;
 
   /// No description provided for @upgrade_desc_closure_bonus.
@@ -665,7 +665,7 @@ abstract class AppLocalizations {
   /// No description provided for @shop_premiumDescription.
   ///
   /// In en, this message translates to:
-  /// **'Removes all ads + 50 coins/day automatically'**
+  /// **'Removes all ads + 100 coins/day automatically'**
   String get shop_premiumDescription;
 
   /// No description provided for @shop_buy.
@@ -755,7 +755,7 @@ abstract class AppLocalizations {
   /// No description provided for @ads_watchForCoins.
   ///
   /// In en, this message translates to:
-  /// **'Watch an ad (+50 coins)'**
+  /// **'Watch an ad (+100 coins)'**
   String get ads_watchForCoins;
 
   /// No description provided for @ads_comeBackTomorrow.

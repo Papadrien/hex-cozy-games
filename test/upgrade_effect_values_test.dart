@@ -250,7 +250,7 @@ void main() {
     test('se clamps si level dépasse le nombre de paliers', () {
       expect(
         upgradeEffectValue(UpgradeEffectType.coinsPercentBonus, 99),
-        1.00,
+        2.0,
       );
       expect(
         upgradeEffectValue(UpgradeEffectType.startingTilesBonus, 99),
@@ -261,7 +261,7 @@ void main() {
     test('se clamps si level négatif', () {
       expect(
         upgradeEffectValue(UpgradeEffectType.coinsPercentBonus, -1),
-        4.0,
+        8.0,
       );
       expect(
         upgradeEffectValue(UpgradeEffectType.startingTilesBonus, -5),
@@ -285,22 +285,22 @@ void main() {
       );
     });
 
-    test('coinsPercentBonus → +1 dès 8/4/2 pièces', () {
+    test('coinsPercentBonus → +1 par tranche de 8/4/2 pièces', () {
       expect(
         upgradeAllLevelEffects(UpgradeEffectType.coinsPercentBonus),
-        ['+1 dès 8 pièces', '+1 dès 4 pièces', '+1 dès 2 pièces'],
+        ['+1 par tranche de 8 pièces', '+1 par tranche de 4 pièces', '+1 par tranche de 2 pièces'],
       );
     });
 
-    test('villageCoinsPercentBonus → +1 dès 4/2/1 côtés', () {
+    test('villageCoinsPercentBonus → +1 par tranche de 4/2/1 côtés', () {
       expect(
         upgradeAllLevelEffects(UpgradeEffectType.villageCoinsPercentBonus),
-        ['+1 dès 4 côtés', '+1 dès 2 côtés', '+1 dès 1 côté'],
+        ['+1 par tranche de 4 côtés', '+1 par tranche de 2 côtés', '+1 par côté'],
       );
     });
 
-    test('forest/water/plain/mountain → +1 dès 4/2/1 côtés', () {
-      const expected = ['+1 dès 4 côtés', '+1 dès 2 côtés', '+1 dès 1 côté'];
+    test('forest/water/plain/mountain → +1 par tranche de 4/2/1 côtés', () {
+      const expected = ['+1 par tranche de 4 côtés', '+1 par tranche de 2 côtés', '+1 par côté'];
       expect(
         upgradeAllLevelEffects(UpgradeEffectType.forestCoinsPercentBonus),
         expected,
