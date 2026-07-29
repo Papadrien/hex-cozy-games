@@ -240,11 +240,11 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get upgrade_desc_coins_plus =>
-      'Octroie une pièce bonus dès que tu gagnes au moins N pièces sur une pose. Non-cumulable.';
+      'Octroie une pièce bonus dès que tu gagnes au moins N pièces sur une pose.';
 
   @override
   String get upgrade_desc_villages_plus =>
-      'Octroie une pièce bonus dès que tu connectes au moins N côtés rouges sur une pose. Non-cumulable.';
+      'Octroie une pièce bonus dès que tu connectes au moins N côtés rouges sur une pose.';
 
   @override
   String get upgrade_desc_combo_plus =>
@@ -264,19 +264,19 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get upgrade_desc_forest_plus =>
-      'Octroie une pièce bonus dès que tu connectes au moins N côtés verts sur une pose. Non-cumulable.';
+      'Octroie une pièce bonus dès que tu connectes au moins N côtés verts sur une pose.';
 
   @override
   String get upgrade_desc_water_plus =>
-      'Octroie une pièce bonus dès que tu connectes au moins N côtés bleus sur une pose. Non-cumulable.';
+      'Octroie une pièce bonus dès que tu connectes au moins N côtés bleus sur une pose.';
 
   @override
   String get upgrade_desc_plain_plus =>
-      'Octroie une pièce bonus dès que tu connectes au moins N côtés jaunes sur une pose. Non-cumulable.';
+      'Octroie une pièce bonus dès que tu connectes au moins N côtés jaunes sur une pose.';
 
   @override
   String get upgrade_desc_mountain_plus =>
-      'Octroie une pièce bonus dès que tu connectes au moins N côtés violets sur une pose. Non-cumulable.';
+      'Octroie une pièce bonus dès que tu connectes au moins N côtés violets sur une pose.';
 
   @override
   String get upgrade_desc_closure_bonus =>

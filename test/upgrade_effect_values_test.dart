@@ -47,18 +47,18 @@ void main() {
       );
     });
 
-    test('coinsPercentBonus → 4, 2, 1 (seuils)', () {
+    test('coinsPercentBonus → 8, 4, 2 (seuils)', () {
       expect(
         upgradeEffectValue(UpgradeEffectType.coinsPercentBonus, 0),
-        4.0,
+        8.0,
       );
       expect(
         upgradeEffectValue(UpgradeEffectType.coinsPercentBonus, 1),
-        2.0,
+        4.0,
       );
       expect(
         upgradeEffectValue(UpgradeEffectType.coinsPercentBonus, 2),
-        1.0,
+        2.0,
       );
     });
 
@@ -285,10 +285,10 @@ void main() {
       );
     });
 
-    test('coinsPercentBonus → +1 dès 4/2/1 pièces', () {
+    test('coinsPercentBonus → +1 dès 8/4/2 pièces', () {
       expect(
         upgradeAllLevelEffects(UpgradeEffectType.coinsPercentBonus),
-        ['+1 dès 4 pièces', '+1 dès 2 pièces', '+1 dès 1 pièce'],
+        ['+1 dès 8 pièces', '+1 dès 4 pièces', '+1 dès 2 pièces'],
       );
     });
 

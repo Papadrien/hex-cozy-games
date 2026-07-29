@@ -204,28 +204,51 @@ class GridState {
   /// Après avoir placé une tuile à [pos], retourne les fermetures de biomes
   /// (biome, taille du cluster) qui viennent de se produire en direct (B6).
   ///
-  /// Chaque cluster connexe impliquant [pos] est testé ; seuls ceux qui sont
-  /// complètement entourés (6 voisins présents) sont considérés comme fermés.
-  /// [BiomeType.village] est toujours exclu.
+  /// Chaque cluster connexe impliquant [pos] OU une tuile voisine directe
+  /// est testé ; seuls ceux qui sont complètement entourés (6 voisins
+  /// présents) sont considérés comme fermés. [BiomeType.village] est
+  /// toujours exclu.
+  ///
+  /// La fermeture d'un cluster ne dépend que du remplissage de ses bordures
+  /// ([_isClosed] ne regarde que la présence des voisins, pas leur biome) —
+  /// pas du biome de la tuile qui vient d'être posée. Une pose peut donc
+  /// refermer un cluster voisin (ex. violet) alors que la tuile posée
+  /// elle-même n'a aucune face violette : elle ne fait que combler le
+  /// dernier trou de sa bordure. Les biomes candidats incluent donc, en plus
+  /// de ceux de [tile], celui de chaque tuile voisine sur la face qui fait
+  /// face à [pos].
   List<MapEntry<BiomeType, int>> biomesJustClosed(
       HexCoords pos, HexTile tile) {
     // Early exit : si la cellule posée a un voisin vide, aucun cluster
-    // contenant [pos] ne peut être fermé — on évite le(s) BFS inutile(s).
+    // touchant [pos] ne peut être fermé par cette pose — on évite le(s) BFS
+    // inutile(s).
     for (var side = 0; side < 6; side++) {
       if (!placedTiles.containsKey(pos.neighbor(side))) return const [];
     }
 
     final closures = <MapEntry<BiomeType, int>>[];
-    final uniqueBiomes = tile.sides.toSet();
-    final alreadyChecked = <BiomeType>{};
-    for (final biome in uniqueBiomes) {
-      if (biome == BiomeType.village) continue;
-      if (!alreadyChecked.add(biome)) continue;
-      final cluster = clusterAt(pos, biome);
-      if (cluster.isEmpty) continue;
+    final visitedByBiome = <BiomeType, Set<HexCoords>>{};
+
+    void checkCluster(HexCoords anchor, BiomeType biome) {
+      if (biome == BiomeType.village) return;
+      final visited = visitedByBiome.putIfAbsent(biome, () => <HexCoords>{});
+      if (visited.contains(anchor)) return;
+      final cluster = clusterAt(anchor, biome);
+      if (cluster.isEmpty) return;
+      visited.addAll(cluster);
       if (_isClosed(cluster)) {
         closures.add(MapEntry(biome, cluster.length));
       }
+    }
+
+    for (final biome in tile.sides.toSet()) {
+      checkCluster(pos, biome);
+    }
+    for (var side = 0; side < 6; side++) {
+      final neighborPos = pos.neighbor(side);
+      final neighborTile = placedTiles[neighborPos]!;
+      final facingBiome = neighborTile.sides[(side + 3) % 6];
+      checkCluster(neighborPos, facingBiome);
     }
     return closures;
   }

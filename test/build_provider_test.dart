@@ -165,13 +165,13 @@ void main() {
       );
     }
 
-    test('coins_plus niveau 1 (index 0) → seuil 4 appliqué', () {
+    test('coins_plus niveau 1 (index 0) → seuil 8 appliqué', () {
       final container = containerWithUpgrades([
         row(id: 'coins_plus', effectType: 'coinsPercentBonus', currentLevel: 0),
       ]);
       addTearDown(container.dispose);
 
-      expect(container.read(activeUpgradeEffectsProvider).coinsThreshold, 4);
+      expect(container.read(activeUpgradeEffectsProvider).coinsThreshold, 8);
     });
 
     test('le niveau courant change bien la valeur de l\'effet (coins_plus niveau 2)',
@@ -181,7 +181,7 @@ void main() {
       ]);
       addTearDown(container.dispose);
 
-      expect(container.read(activeUpgradeEffectsProvider).coinsThreshold, 2);
+      expect(container.read(activeUpgradeEffectsProvider).coinsThreshold, 4);
     });
 
     test('cumule plusieurs améliorations sélectionnées simultanément', () {
@@ -201,7 +201,7 @@ void main() {
       addTearDown(container.dispose);
 
       final effects = container.read(activeUpgradeEffectsProvider);
-      expect(effects.coinsThreshold, 4);
+      expect(effects.coinsThreshold, 8);
       expect(effects.startingTilesBonus, 2);
       expect(effects.villageCoinsThreshold, 4);
     });

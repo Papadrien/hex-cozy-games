@@ -45,20 +45,22 @@ class GameEffectsService {
   }
 
   /// Calcule les pièces finales après application des bonus — Story 2.8b / B1
-  /// (revisité : modèle seuil « 1 pièce bonus si ≥ N » non-cumulable).
+  /// (revisité : modèle seuil « N pièces bonus pour N seuils atteints »,
+  /// cumulable).
   ///
   /// Pour chaque type d'amélioration active (Pièces+ global, et
-  /// Rouge+/Vert+/Bleu+/Jaune+/Violet+ par biome), accorde exactement 1 pièce
-  /// bonus si la condition de seuil est remplie :
-  ///   - bonus global : [baseCoins] ≥ [coinsThreshold]
-  ///   - bonus village : [villageSides] ≥ [villageCoinsThreshold]
-  ///   - bonus forêt   : [forestSides]  ≥ [forestCoinsThreshold]
-  ///   - bonus eau     : [waterSides]   ≥ [waterCoinsThreshold]
-  ///   - bonus plaine  : [plainSides]   ≥ [plainCoinsThreshold]
-  ///   - bonus montagne: [mountainSides]≥ [mountainCoinsThreshold]
+  /// Rouge+/Vert+/Bleu+/Jaune+/Violet+ par biome), accorde autant de pièces
+  /// bonus que le seuil est contenu dans la quantité mesurée :
+  ///   - bonus global : [baseCoins] ÷ [coinsThreshold]
+  ///   - bonus village : [villageSides] ÷ [villageCoinsThreshold]
+  ///   - bonus forêt   : [forestSides]  ÷ [forestCoinsThreshold]
+  ///   - bonus eau     : [waterSides]   ÷ [waterCoinsThreshold]
+  ///   - bonus plaine  : [plainSides]   ÷ [plainCoinsThreshold]
+  ///   - bonus montagne: [mountainSides]÷ [mountainCoinsThreshold]
   ///
-  /// Non-cumulable : un seul bonus par type est accordé par pose, même si la
-  /// quantité mesurée est très supérieure au seuil.
+  /// Cumulable : une pose qui dépasse largement le seuil accorde plusieurs
+  /// pièces bonus du même type (ex. seuil 2 côtés, 6 côtés connectés → 3
+  /// pièces bonus), plutôt qu'une seule quelle que soit la quantité mesurée.
   int applyCoinBonuses({
     required int baseCoins,
     required int villageSides,
@@ -69,28 +71,23 @@ class GameEffectsService {
   }) {
     final effects = _ref.read(activeUpgradeEffectsProvider);
     var total = baseCoins;
-    if (effects.coinsThreshold > 0 && baseCoins >= effects.coinsThreshold) {
-      total += 1;
+    if (effects.coinsThreshold > 0) {
+      total += baseCoins ~/ effects.coinsThreshold;
     }
-    if (effects.villageCoinsThreshold > 0 &&
-        villageSides >= effects.villageCoinsThreshold) {
-      total += 1;
+    if (effects.villageCoinsThreshold > 0) {
+      total += villageSides ~/ effects.villageCoinsThreshold;
     }
-    if (effects.forestCoinsThreshold > 0 &&
-        forestSides >= effects.forestCoinsThreshold) {
-      total += 1;
+    if (effects.forestCoinsThreshold > 0) {
+      total += forestSides ~/ effects.forestCoinsThreshold;
     }
-    if (effects.waterCoinsThreshold > 0 &&
-        waterSides >= effects.waterCoinsThreshold) {
-      total += 1;
+    if (effects.waterCoinsThreshold > 0) {
+      total += waterSides ~/ effects.waterCoinsThreshold;
     }
-    if (effects.plainCoinsThreshold > 0 &&
-        plainSides >= effects.plainCoinsThreshold) {
-      total += 1;
+    if (effects.plainCoinsThreshold > 0) {
+      total += plainSides ~/ effects.plainCoinsThreshold;
     }
-    if (effects.mountainCoinsThreshold > 0 &&
-        mountainSides >= effects.mountainCoinsThreshold) {
-      total += 1;
+    if (effects.mountainCoinsThreshold > 0) {
+      total += mountainSides ~/ effects.mountainCoinsThreshold;
     }
     return total;
   }

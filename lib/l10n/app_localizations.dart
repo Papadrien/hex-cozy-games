@@ -533,13 +533,13 @@ abstract class AppLocalizations {
   /// No description provided for @upgrade_desc_coins_plus.
   ///
   /// In en, this message translates to:
-  /// **'Grants 1 bonus coin whenever you earn at least N coins on a placement (4/2/1 coins depending on level). Non-stacking.'**
+  /// **'Grants 1 bonus coin whenever you earn at least N coins on a placement (4/2/1 coins depending on level).'**
   String get upgrade_desc_coins_plus;
 
   /// No description provided for @upgrade_desc_villages_plus.
   ///
   /// In en, this message translates to:
-  /// **'Grants 1 bonus coin whenever you connect at least N red sides on a placement (4/2/1 depending on level). Non-stacking.'**
+  /// **'Grants 1 bonus coin whenever you connect at least N red sides on a placement (4/2/1 depending on level).'**
   String get upgrade_desc_villages_plus;
 
   /// No description provided for @upgrade_desc_combo_plus.
@@ -569,25 +569,25 @@ abstract class AppLocalizations {
   /// No description provided for @upgrade_desc_forest_plus.
   ///
   /// In en, this message translates to:
-  /// **'Grants 1 bonus coin whenever you connect at least N green sides on a placement (4/2/1 depending on level). Non-stacking.'**
+  /// **'Grants 1 bonus coin whenever you connect at least N green sides on a placement (4/2/1 depending on level).'**
   String get upgrade_desc_forest_plus;
 
   /// No description provided for @upgrade_desc_water_plus.
   ///
   /// In en, this message translates to:
-  /// **'Grants 1 bonus coin whenever you connect at least N blue sides on a placement (4/2/1 depending on level). Non-stacking.'**
+  /// **'Grants 1 bonus coin whenever you connect at least N blue sides on a placement (4/2/1 depending on level).'**
   String get upgrade_desc_water_plus;
 
   /// No description provided for @upgrade_desc_plain_plus.
   ///
   /// In en, this message translates to:
-  /// **'Grants 1 bonus coin whenever you connect at least N yellow sides on a placement (4/2/1 depending on level). Non-stacking.'**
+  /// **'Grants 1 bonus coin whenever you connect at least N yellow sides on a placement (4/2/1 depending on level).'**
   String get upgrade_desc_plain_plus;
 
   /// No description provided for @upgrade_desc_mountain_plus.
   ///
   /// In en, this message translates to:
-  /// **'Grants 1 bonus coin whenever you connect at least N purple sides on a placement (4/2/1 depending on level). Non-stacking.'**
+  /// **'Grants 1 bonus coin whenever you connect at least N purple sides on a placement (4/2/1 depending on level).'**
   String get upgrade_desc_mountain_plus;
 
   /// No description provided for @upgrade_desc_closure_bonus.

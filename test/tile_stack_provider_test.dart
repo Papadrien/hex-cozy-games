@@ -133,7 +133,7 @@ void main() {
       final container = makeContainer(hatedColorExclusionDuration: 5);
       addTearDown(container.dispose);
 
-      container.read(tileStackProvider.notifier).activateHatedColor(BiomeType.forest);
+      container.read(tileStackProvider.notifier).activateHatedColor();
       final state = container.read(tileStackProvider);
 
       expect(state.hatedActivated, isTrue);
@@ -150,7 +150,7 @@ void main() {
       final container = makeContainer(hatedColorExclusionDuration: 5);
       addTearDown(container.dispose);
 
-      container.read(tileStackProvider.notifier).activateHatedColor(BiomeType.forest);
+      container.read(tileStackProvider.notifier).activateHatedColor();
       final excluded = container.read(tileStackProvider).excludeBiome!;
 
       for (var i = 0; i < 5; i++) {
@@ -165,11 +165,11 @@ void main() {
       addTearDown(container.dispose);
 
       final notifier = container.read(tileStackProvider.notifier);
-      notifier.activateHatedColor(BiomeType.forest);
+      notifier.activateHatedColor();
       final biomeAfterFirstCall = container.read(tileStackProvider).excludeBiome;
 
       // Un deuxième appel ne doit rien changer (exclusion déjà en cours).
-      notifier.activateHatedColor(BiomeType.forest);
+      notifier.activateHatedColor();
       final state = container.read(tileStackProvider);
       expect(state.excludeBiome, biomeAfterFirstCall);
       expect(state.hatedActivated, isTrue);
@@ -180,7 +180,7 @@ void main() {
       addTearDown(container.dispose);
 
       final notifier = container.read(tileStackProvider.notifier);
-      notifier.activateHatedColor(BiomeType.forest);
+      notifier.activateHatedColor();
       expect(hatedColorTilesRemaining(container.read(tileStackProvider), 0), 3);
 
       // Consomme les 3 tuiles de la fenêtre d'exclusion : elle se termine.
@@ -196,7 +196,7 @@ void main() {
 
       // Une nouvelle activation doit maintenant réussir (nouvelle couleur
       // possible, durée repart à zéro).
-      notifier.activateHatedColor(BiomeType.forest);
+      notifier.activateHatedColor();
       final state = container.read(tileStackProvider);
       expect(state.hatedStartCount, 3);
       expect(hatedColorTilesRemaining(state, 3), 3);
@@ -206,7 +206,7 @@ void main() {
       final container = makeContainer(); // hatedColorExclusionDuration = 0
       addTearDown(container.dispose);
 
-      container.read(tileStackProvider.notifier).activateHatedColor(BiomeType.forest);
+      container.read(tileStackProvider.notifier).activateHatedColor();
       final state = container.read(tileStackProvider);
 
       expect(state.excludeBiome, isNull);

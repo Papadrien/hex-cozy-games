@@ -270,18 +270,26 @@ List<String> upgradeAllLevelEffects(UpgradeEffectType effectType) {
     case UpgradeEffectType.connectionBonusMultiplier:
       return ['+1 tuile', '+2 tuiles', '+5 tuiles'];
     case UpgradeEffectType.coinsPercentBonus:
-      // Bonus global (Pièces+) : 1 pièce bonus si le joueur gagne
-      // au moins N pièces sur la pose (non-cumulable — une seule pièce bonus
-      // par pose, même si baseCoins >> seuil).
-      return ['+1 dès 4 pièces', '+1 dès 2 pièces', '+1 dès 1 pièce'];
+      // Bonus global (Butin) : 1 pièce bonus par tranche de N pièces
+      // gagnées sur la pose, cumulable (voir
+      // [GameEffectsService.applyCoinBonuses]).
+      return [
+        '+1 par tranche de 8 pièces',
+        '+1 par tranche de 4 pièces',
+        '+1 par tranche de 2 pièces',
+      ];
     case UpgradeEffectType.villageCoinsPercentBonus:
     case UpgradeEffectType.forestCoinsPercentBonus:
     case UpgradeEffectType.waterCoinsPercentBonus:
     case UpgradeEffectType.plainCoinsPercentBonus:
     case UpgradeEffectType.mountainCoinsPercentBonus:
-      // Bonus par biome (Rouge+/Vert+/Bleu+/Jaune+/Violet+) : 1 pièce bonus si
-      // au moins N côtés du biome sont connectés sur la pose (non-cumulable).
-      return ['+1 dès 4 côtés', '+1 dès 2 côtés', '+1 dès 1 côté'];
+      // Bonus par biome (Rouge/Vert/Bleu/Jaune/Violet) : 1 pièce bonus par
+      // tranche de N côtés du biome connectés sur la pose, cumulable.
+      return [
+        '+1 par tranche de 4 côtés',
+        '+1 par tranche de 2 côtés',
+        '+1 par côté',
+      ];
     case UpgradeEffectType.closureBonusTiles:
       return ['+1/10 tuiles', '+2/10 tuiles', '+3/10 tuiles'];
     case UpgradeEffectType.hatedColorExclusion:
@@ -323,16 +331,19 @@ double upgradeEffectValue(UpgradeEffectType effectType, int level) {
       // bonus supplémentaires (+1/+2/+5) par [GameEffectsService.applyBonusTileUpgrade].
       return [1.0, 2.0, 3.0][level.clamp(0, 2)];
     case UpgradeEffectType.coinsPercentBonus:
-      // Seuil (en pièces de base) à partir duquel 1 pièce bonus est accordée.
-      // Niveaux : 4 (≈ +25%) / 2 (≈ +50%) / 1 (≈ +100%, doublé quasi systématique).
-      return [4.0, 2.0, 1.0][level.clamp(0, 2)];
+      // Taille de chaque tranche (en pièces de base) accordant 1 pièce bonus
+      // — cumulable, voir [GameEffectsService.applyCoinBonuses]. Niveaux :
+      // 8 / 4 / 2 — effet divisé par deux par rapport aux seuils précédents
+      // (4/2/1).
+      return [8.0, 4.0, 2.0][level.clamp(0, 2)];
     case UpgradeEffectType.villageCoinsPercentBonus:
     case UpgradeEffectType.forestCoinsPercentBonus:
     case UpgradeEffectType.waterCoinsPercentBonus:
     case UpgradeEffectType.plainCoinsPercentBonus:
     case UpgradeEffectType.mountainCoinsPercentBonus:
-      // Seuil (en côtés du biome connectés sur la pose) à partir duquel 1
-      // pièce bonus est accordée. Mêmes équivalences que le bonus global.
+      // Taille de chaque tranche (en côtés du biome connectés sur la pose)
+      // accordant 1 pièce bonus — cumulable, mêmes valeurs que le bonus
+      // global.
       return [4.0, 2.0, 1.0][level.clamp(0, 2)];
     case UpgradeEffectType.closureBonusTiles:
       return [1.0, 2.0, 3.0][level.clamp(0, 2)];

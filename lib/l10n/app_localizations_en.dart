@@ -237,11 +237,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get upgrade_desc_coins_plus =>
-      'Grants 1 bonus coin whenever you earn at least N coins on a placement. Non-stacking.';
+      'Grants 1 bonus coin whenever you earn at least N coins on a placement.';
 
   @override
   String get upgrade_desc_villages_plus =>
-      'Grants 1 bonus coin whenever you connect at least N red sides on a placement. Non-stacking.';
+      'Grants 1 bonus coin whenever you connect at least N red sides on a placement.';
 
   @override
   String get upgrade_desc_combo_plus =>
@@ -261,19 +261,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get upgrade_desc_forest_plus =>
-      'Grants 1 bonus coin whenever you connect at least N green sides on a placement. Non-stacking.';
+      'Grants 1 bonus coin whenever you connect at least N green sides on a placement.';
 
   @override
   String get upgrade_desc_water_plus =>
-      'Grants 1 bonus coin whenever you connect at least N blue sides on a placement. Non-stacking.';
+      'Grants 1 bonus coin whenever you connect at least N blue sides on a placement.';
 
   @override
   String get upgrade_desc_plain_plus =>
-      'Grants 1 bonus coin whenever you connect at least N yellow sides on a placement. Non-stacking.';
+      'Grants 1 bonus coin whenever you connect at least N yellow sides on a placement.';
 
   @override
   String get upgrade_desc_mountain_plus =>
-      'Grants 1 bonus coin whenever you connect at least N purple sides on a placement. Non-stacking.';
+      'Grants 1 bonus coin whenever you connect at least N purple sides on a placement.';
 
   @override
   String get upgrade_desc_closure_bonus =>

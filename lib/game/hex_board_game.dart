@@ -353,29 +353,31 @@ class HexBoardGame extends FlameGame
 
   /// Déclenche une particule "pièce" par amélioration de gain de pièces
   /// (Pièces+ global, Rouge+/Vert+/Bleu+/Jaune+/Violet+ par biome)
-  /// ayant effectivement rapporté 1 pièce bonus sur cette pose. Ce bonus
-  /// n'étant jamais cumulable (au plus 1 pièce par type et par pose — voir
-  /// [GameEffectsService.applyCoinBonuses]), une seule particule par type
-  /// suffit à représenter le gain.
+  /// ayant effectivement rapporté au moins 1 pièce bonus sur cette pose.
+  /// Cumulable (voir [GameEffectsService.applyCoinBonuses]) : un type peut
+  /// rapporter plusieurs pièces bonus sur une même pose (ex. seuil 2 côtés,
+  /// 6 côtés connectés → 3 pièces), auquel cas autant de particules
+  /// distinctes partent de l'icône de l'amélioration, légèrement échelonnées.
   ///
   /// Comme pour Combo+ ([spawnComboBonusParticle]), ce gain n'est lié à
   /// aucun côté de la tuile posée : chaque particule part donc de l'icône
   /// de son amélioration dans l'encart HUD ([getCoinUpgradeOrigin]) plutôt
-  /// que de la tuile, vers le compteur de pièces. Si plusieurs types se
-  /// déclenchent sur la même pose, leurs particules sont légèrement
-  /// échelonnées plutôt que simultanées.
-  void spawnCoinBonusParticles(Set<UpgradeEffectType> types) {
+  /// que de la tuile, vers le compteur de pièces. Si plusieurs types (ou
+  /// plusieurs pièces d'un même type) se déclenchent sur la même pose,
+  /// leurs particules sont légèrement échelonnées plutôt que simultanées.
+  void spawnCoinBonusParticles(Map<UpgradeEffectType, int> amounts) {
     var i = 0;
-    for (final type in types) {
-      final origin = getCoinUpgradeOrigin?.call(type);
-      if (origin != null) {
+    for (final entry in amounts.entries) {
+      final origin = getCoinUpgradeOrigin?.call(entry.key);
+      if (origin == null) continue;
+      for (var c = 0; c < entry.value; c++) {
         _grid?.showCoinParticleFrom(
           origin,
           startDelay: i * kBonusIconStaggerInterval,
           onImpact: () => onCoinImpact?.call(1),
         );
+        i++;
       }
-      i++;
     }
   }
 

@@ -153,7 +153,7 @@ void main() {
       expect(coins, 5);
     });
 
-    test('coinsThreshold=4 + baseCoins=10 → +1 seul (non-cumulable)', () {
+    test('coinsThreshold=4 + baseCoins=10 → +2 (cumulable)', () {
       final container = _makeContainer(
         const ActiveUpgradeEffects(coinsThreshold: 4),
       );
@@ -162,9 +162,9 @@ void main() {
         baseCoins: 10,
         villageSides: 0,
       );
-      // 10 pièces dépassent largement le seuil de 4 mais une seule pièce
-      // bonus est accordée (règle « non-cumulable »).
-      expect(coins, 11);
+      // 10 pièces contiennent 2 fois le seuil de 4 (10 ~/ 4 = 2) → 2 pièces
+      // bonus accordées (règle « cumulable »).
+      expect(coins, 12);
     });
 
     test('coinsThreshold=2 + baseCoins=2 → +1 pièce bonus', () {
@@ -176,7 +176,8 @@ void main() {
       expect(coins, 3);
     });
 
-    test('coinsThreshold=1 → +1 dès la première pièce', () {
+    test('coinsThreshold=1 → 1 pièce bonus par pièce de base (cumulable)',
+        () {
       final container = _makeContainer(
         const ActiveUpgradeEffects(coinsThreshold: 1),
       );
@@ -187,7 +188,7 @@ void main() {
       );
       expect(
         service.applyCoinBonuses(baseCoins: 5, villageSides: 0),
-        6,
+        10,
       );
     });
 
@@ -217,11 +218,11 @@ void main() {
         ),
       );
       final service = container.read(gameEffectsServiceProvider);
-      // base 10 (≥4) → +1 (global)
-      // 3 côtés village (≥2) → +1 (village)
-      // total = 10 + 1 + 1 = 12
+      // base 10 (10 ~/ 4) → +2 (global, cumulable)
+      // 3 côtés village (3 ~/ 2) → +1 (village)
+      // total = 10 + 2 + 1 = 13
       final coins = service.applyCoinBonuses(baseCoins: 10, villageSides: 3);
-      expect(coins, 12);
+      expect(coins, 13);
     });
 
     test('tous les bonus biome cumulés', () {
@@ -274,7 +275,7 @@ void main() {
       expect(coins, 11);
     });
 
-    test('plainCoinsThreshold=1 + 2 côtés plaine → +1 (non-cumulable)', () {
+    test('plainCoinsThreshold=1 + 2 côtés plaine → +2 (cumulable)', () {
       final container = _makeContainer(
         const ActiveUpgradeEffects(plainCoinsThreshold: 1),
       );
@@ -282,7 +283,7 @@ void main() {
       final coins = service.applyCoinBonuses(
         baseCoins: 10, villageSides: 0, plainSides: 2,
       );
-      expect(coins, 11);
+      expect(coins, 12);
     });
 
     test('mountainCoinsThreshold=4 + 0 côté montagne → 0', () {

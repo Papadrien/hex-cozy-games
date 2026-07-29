@@ -197,7 +197,7 @@ Future<void> confirmPlacement(
   void Function(int count, int coinCount)? onComboBonusTiles,
   void Function(int count, int coinCount)? onClosureBonusTiles,
   void Function(int count, int coinCount)? onConnectionBonusExtra,
-  void Function(Set<UpgradeEffectType> types)? onCoinBonusTypes,
+  void Function(Map<UpgradeEffectType, int> amounts)? onCoinBonusTypes,
 }) async {
   final p = ref.read(placementProvider);
   final tile = ref.read(placementProvider.notifier).previewTile;
@@ -227,12 +227,12 @@ Future<void> confirmPlacement(
   onConfirm(coords, tile, reward.connectedSides, baseConnectionBonus,
       bonusCoins: reward.bonusCoins);
   final (appliedReward, totalBonusTilesAdded, comboBonusTilesCount,
-      closureBonusTilesCount, coinBonusTypes) =
+      closureBonusTilesCount, coinBonusAmounts) =
       _applyReward(ref, coords, tile, reward);
   _recordPlacement(
       ref, coords, tile, appliedReward, totalBonusTilesAdded, previousSession);
   _triggerPlacementHaptics(ref, appliedReward);
-  _triggerPlacementAudio(ref, appliedReward, coinBonusTypes);
+  _triggerPlacementAudio(ref, appliedReward, coinBonusAmounts);
   // Combo+ génère sa tuile bonus indépendamment des côtés connectés de la
   // tuile posée : sa particule part donc de l'icône de l'amélioration
   // (voir [HexBoardGame.spawnComboBonusParticle]) plutôt que de la tuile,
@@ -242,9 +242,11 @@ Future<void> confirmPlacement(
   // particule Combo+ n'entame son envol qu'une fois tous ces sons joués —
   // mêmes caractéristiques que la tuile bonus de connexion (voir
   // [BonusTileAnimComponent.coinCount]).
+  final coinBonusParticleCount =
+      coinBonusAmounts.values.fold(0, (sum, n) => sum + n);
   if (comboBonusTilesCount > 0) {
-    onComboBonusTiles?.call(
-        comboBonusTilesCount, reward.connectedSides.length + coinBonusTypes.length);
+    onComboBonusTiles?.call(comboBonusTilesCount,
+        reward.connectedSides.length + coinBonusParticleCount);
   }
   // Idem pour le Bonus de clôture : ses tuiles bonus dépendent de la
   // fermeture de biome détectée, pas des côtés connectés par la tuile
@@ -253,19 +255,19 @@ Future<void> confirmPlacement(
   // que depuis la tuile.
   if (closureBonusTilesCount > 0) {
     onClosureBonusTiles?.call(closureBonusTilesCount,
-        reward.connectedSides.length + coinBonusTypes.length);
+        reward.connectedSides.length + coinBonusParticleCount);
   }
   // Idem pour la part "extra" de Tuile bonus ci-dessus (voir
   // [HexBoardGame.spawnConnectionBonusParticle]) — mêmes caractéristiques
   // (délai calé sur les sons de pièces de cette pose) que Combo+.
   if (connectionBonusExtra > 0) {
-    onConnectionBonusExtra?.call(
-        connectionBonusExtra, reward.connectedSides.length + coinBonusTypes.length);
+    onConnectionBonusExtra?.call(connectionBonusExtra,
+        reward.connectedSides.length + coinBonusParticleCount);
   }
   // Idem pour les pièces bonus (Pièces+/Rouge+/Vert+/Bleu+/Jaune+/
   // Violet+) : voir [HexBoardGame.spawnCoinBonusParticles].
-  if (coinBonusTypes.isNotEmpty) {
-    onCoinBonusTypes?.call(coinBonusTypes);
+  if (coinBonusAmounts.isNotEmpty) {
+    onCoinBonusTypes?.call(coinBonusAmounts);
   }
   _advanceStack(ref, reward.connectedSides.length);
   _reclaimHeldTileIfStackEmpty(ref);
@@ -275,7 +277,7 @@ Future<void> confirmPlacement(
 
 /// Déclenche le bruitage de gain de pièces (`coin.mp3`) pour les pièces
 /// "bonus" (seuils Pièces+/biomes) qui n'ont pas de particule
-/// volante dédiée sur cette pose (voir [coinBonusTypes] /
+/// volante dédiée sur cette pose (voir [coinBonusAmounts] /
 /// [HexBoardGame.spawnCoinBonusParticles]). Les pièces bonus animées, elles,
 /// jouent leur son à l'arrivée de leur particule sur le compteur (voir
 /// [HexBoardGame.onCoinImpact] dans `game_screen.dart`), pour rester
@@ -284,9 +286,11 @@ Future<void> confirmPlacement(
 void _triggerPlacementAudio(
   ProviderContainer ref,
   PlacementReward reward,
-  Set<UpgradeEffectType> coinBonusTypes,
+  Map<UpgradeEffectType, int> coinBonusAmounts,
 ) {
-  final unanimatedBonusCoins = reward.bonusCoins - coinBonusTypes.length;
+  final animatedBonusCoins =
+      coinBonusAmounts.values.fold(0, (sum, n) => sum + n);
+  final unanimatedBonusCoins = reward.bonusCoins - animatedBonusCoins;
   if (unanimatedBonusCoins <= 0) return;
   ref.read(audioServiceProvider).playCoinsGained(unanimatedBonusCoins);
 }
@@ -346,12 +350,12 @@ void _recordPlacement(
 /// l'amélioration plutôt que de la tuile posée (voir
 /// [HexBoardGame.spawnComboBonusParticle]) — le nombre de tuiles bonus
 /// accordées par le Bonus de clôture sur cette pose, pour la même raison
-/// (voir [HexBoardGame.spawnClosureBonusParticle]) — et enfin l'ensemble
-/// des types d'amélioration de gain de pièces (Pièces+/Rouge+/Vert+/Bleu+/
-/// Jaune+/Violet+) ayant effectivement rapporté 1 pièce bonus sur cette
-/// pose, pour la même raison côté pièces (voir
+/// (voir [HexBoardGame.spawnClosureBonusParticle]) — et enfin, pour chaque
+/// type d'amélioration de gain de pièces (Pièces+/Rouge+/Vert+/Bleu+/
+/// Jaune+/Violet+) ayant rapporté au moins 1 pièce bonus sur cette pose,
+/// le nombre exact de pièces bonus rapportées (cumulable — voir
 /// [HexBoardGame.spawnCoinBonusParticles]).
-(PlacementReward, int, int, int, Set<UpgradeEffectType>) _applyReward(
+(PlacementReward, int, int, int, Map<UpgradeEffectType, int>) _applyReward(
     ProviderContainer ref, HexCoords pos, HexTile tile, PlacementReward reward) {
   if (reward.connectedSides.isEmpty && reward.bonusTiles == 0) {
     ref.read(sessionProvider.notifier).addReward(reward);
@@ -394,33 +398,32 @@ void _recordPlacement(
 
   // Seuils pièces (Pièces+ global + Rouge+/Vert+/Bleu+/Jaune+/
   // Violet+ par biome) — même logique que
-  // [GameEffectsService.applyCoinBonuses], dupliquée pour identifier QUEL
-  // seuil précis a été franchi sur cette pose.
+  // [GameEffectsService.applyCoinBonuses], dupliquée pour identifier COMBIEN
+  // de pièces bonus chaque type a précisément rapporté sur cette pose
+  // (cumulable : plusieurs pièces bonus du même type si la quantité mesurée
+  // dépasse plusieurs fois le seuil).
   final activeEffects = ref.read(activeUpgradeEffectsProvider);
-  if (activeEffects.coinsThreshold > 0 &&
-      baseCoins >= activeEffects.coinsThreshold) {
-    triggeredTypes.add(UpgradeEffectType.coinsPercentBonus);
+  final coinBonusAmounts = <UpgradeEffectType, int>{};
+  void addCoinBonus(UpgradeEffectType type, int threshold, int measured) {
+    if (threshold <= 0) return;
+    final amount = measured ~/ threshold;
+    if (amount <= 0) return;
+    coinBonusAmounts[type] = amount;
+    triggeredTypes.add(type);
   }
-  if (activeEffects.villageCoinsThreshold > 0 &&
-      villageSides >= activeEffects.villageCoinsThreshold) {
-    triggeredTypes.add(UpgradeEffectType.villageCoinsPercentBonus);
-  }
-  if (activeEffects.forestCoinsThreshold > 0 &&
-      forestSides >= activeEffects.forestCoinsThreshold) {
-    triggeredTypes.add(UpgradeEffectType.forestCoinsPercentBonus);
-  }
-  if (activeEffects.waterCoinsThreshold > 0 &&
-      waterSides >= activeEffects.waterCoinsThreshold) {
-    triggeredTypes.add(UpgradeEffectType.waterCoinsPercentBonus);
-  }
-  if (activeEffects.plainCoinsThreshold > 0 &&
-      plainSides >= activeEffects.plainCoinsThreshold) {
-    triggeredTypes.add(UpgradeEffectType.plainCoinsPercentBonus);
-  }
-  if (activeEffects.mountainCoinsThreshold > 0 &&
-      mountainSides >= activeEffects.mountainCoinsThreshold) {
-    triggeredTypes.add(UpgradeEffectType.mountainCoinsPercentBonus);
-  }
+
+  addCoinBonus(UpgradeEffectType.coinsPercentBonus,
+      activeEffects.coinsThreshold, baseCoins);
+  addCoinBonus(UpgradeEffectType.villageCoinsPercentBonus,
+      activeEffects.villageCoinsThreshold, villageSides);
+  addCoinBonus(UpgradeEffectType.forestCoinsPercentBonus,
+      activeEffects.forestCoinsThreshold, forestSides);
+  addCoinBonus(UpgradeEffectType.waterCoinsPercentBonus,
+      activeEffects.waterCoinsThreshold, waterSides);
+  addCoinBonus(UpgradeEffectType.plainCoinsPercentBonus,
+      activeEffects.plainCoinsThreshold, plainSides);
+  addCoinBonus(UpgradeEffectType.mountainCoinsPercentBonus,
+      activeEffects.mountainCoinsThreshold, mountainSides);
 
   var totalBonusTilesAdded = 0;
   if (reward.bonusTiles > 0) {
@@ -487,23 +490,8 @@ void _recordPlacement(
 
   ref.read(upgradeFeedbackProvider.notifier).reportTriggered(triggeredTypes);
 
-  // Sous-ensemble de triggeredTypes correspondant aux améliorations de gain
-  // de pièces (par opposition aux tuiles bonus : Combo+/Bonus de clôture/
-  // Tuile bonus) — chacune de ces 6 n'accorde jamais plus d'1 pièce
-  // non-cumulable par pose (voir [GameEffectsService.applyCoinBonuses]),
-  // donc une particule par type suffit à représenter le gain.
-  const kCoinBonusEffectTypes = {
-    UpgradeEffectType.coinsPercentBonus,
-    UpgradeEffectType.villageCoinsPercentBonus,
-    UpgradeEffectType.forestCoinsPercentBonus,
-    UpgradeEffectType.waterCoinsPercentBonus,
-    UpgradeEffectType.plainCoinsPercentBonus,
-    UpgradeEffectType.mountainCoinsPercentBonus,
-  };
-  final coinBonusTypes = triggeredTypes.intersection(kCoinBonusEffectTypes);
-
   return (applied, totalBonusTilesAdded, comboBonusTilesCount,
-      closureBonusTilesCount, coinBonusTypes);
+      closureBonusTilesCount, coinBonusAmounts);
 }
 
 void _advanceStack(ProviderContainer ref, int connectedSidesCount) {

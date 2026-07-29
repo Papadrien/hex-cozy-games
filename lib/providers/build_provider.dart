@@ -75,29 +75,34 @@ class ActiveUpgradeEffects {
   /// connexions quintuple/sextuple uniquement.
   final int connectionBonusLevel;
 
-  /// Seuil (en pièces de base gagnées sur une pose) au-delà duquel 1 pièce
-  /// bonus est accordée (Pièces+). 0 = inactif ; 4/2/1 selon niveau.
-  /// Non-cumulable : une seule pièce bonus par pose, même si baseCoins >> seuil.
+  /// Seuil (en pièces de base gagnées sur une pose) au-delà duquel des
+  /// pièces bonus sont accordées (Butin). 0 = inactif ; 8/4/2 selon niveau.
+  /// Cumulable : autant de pièces bonus que le seuil est contenu dans
+  /// baseCoins (voir [GameEffectsService.applyCoinBonuses]).
   final int coinsThreshold;
 
-  /// Seuil (en côtés village connectés sur une pose) au-delà duquel 1 pièce
-  /// bonus est accordée (Rouge+). 0 = inactif ; 4/2/1 selon niveau.
+  /// Seuil (en côtés village connectés sur une pose) au-delà duquel des
+  /// pièces bonus sont accordées (Rouge). 0 = inactif ; 4/2/1 selon niveau.
+  /// Cumulable, voir [coinsThreshold].
   final int villageCoinsThreshold;
 
-  /// Seuil (en côtés forêt connectés sur une pose) au-delà duquel 1 pièce
-  /// bonus est accordée (Vert+). 0 = inactif ; 4/2/1 selon niveau.
+  /// Seuil (en côtés forêt connectés sur une pose) au-delà duquel des
+  /// pièces bonus sont accordées (Vert). 0 = inactif ; 4/2/1 selon niveau.
+  /// Cumulable, voir [coinsThreshold].
   final int forestCoinsThreshold;
 
-  /// Seuil (en côtés eau connectés sur une pose) au-delà duquel 1 pièce
-  /// bonus est accordée (Bleu+). 0 = inactif ; 4/2/1 selon niveau.
+  /// Seuil (en côtés eau connectés sur une pose) au-delà duquel des pièces
+  /// bonus sont accordées (Bleu). 0 = inactif ; 4/2/1 selon niveau.
+  /// Cumulable, voir [coinsThreshold].
   final int waterCoinsThreshold;
 
-  /// Seuil (en côtés plaine connectés sur une pose) au-delà duquel 1 pièce
-  /// bonus est accordée (Jaune+). 0 = inactif ; 4/2/1 selon niveau.
+  /// Seuil (en côtés plaine connectés sur une pose) au-delà duquel des
+  /// pièces bonus sont accordées (Jaune). 0 = inactif ; 4/2/1 selon niveau.
+  /// Cumulable, voir [coinsThreshold].
   final int plainCoinsThreshold;
 
-  /// Seuil (en côtés montagne connectés sur une pose) au-delà duquel 1 pièce
-  /// bonus est accordée (Violet+). 0 = inactif ; 4/2/1 selon niveau.
+  /// Seuil (en côtés montagne connectés sur une pose) au-delà duquel des
+  /// pièces bonus sont accordées (Violet). 0 = inactif ; 4/2/1 selon niveau.
   final int mountainCoinsThreshold;
 
   /// Intervalle (en doubles connexions cumulées sur la partie, plus besoin

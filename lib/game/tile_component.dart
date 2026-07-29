@@ -242,6 +242,12 @@ class TileComponent extends PositionComponent {
   /// doré.
   static const double _kSecondChanceOutlineShadowAlpha = 0.55;
 
+  /// Facteur d'opacité appliqué au contour doré lui-même (par opposition à
+  /// son ombre, voir [_kSecondChanceOutlineShadowAlpha]) — translucide à
+  /// 80 % de l'opacité pleine de la tuile ([_alpha]), soit 20 % de moins
+  /// d'opacité, pour un contour plus discret pendant la sélection.
+  static const double _kSecondChanceOutlineOpacity = 0.8;
+
   // ── Glow ─────────────────────────────────────────────────────────────────
   Set<int>? _glowSides;
   double _glowAlpha = 0.0;
@@ -431,7 +437,8 @@ class TileComponent extends PositionComponent {
       canvas.drawPath(
         outline,
         Paint()
-          ..color = _kSecondChanceOutlineColor.withValues(alpha: _alpha)
+          ..color = _kSecondChanceOutlineColor.withValues(
+              alpha: _alpha * _kSecondChanceOutlineOpacity)
           ..style = PaintingStyle.stroke
           ..strokeWidth = _kSecondChanceOutlineWidth * (_hexSize / kHexSize),
       );
