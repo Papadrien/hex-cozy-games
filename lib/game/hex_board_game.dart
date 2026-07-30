@@ -150,7 +150,7 @@ class HexBoardGame extends FlameGame
     _syncPlacementPreview();
 
     // Gesture pour pan (1 doigt) + zoom (pinch 2 doigts).
-    gestureDetectors.add<ScaleGestureRecognizer>(
+    gestureDetectors.register<ScaleGestureRecognizer>(
       ScaleGestureRecognizer.new,
       (ScaleGestureRecognizer instance) {
         instance
