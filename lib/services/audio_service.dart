@@ -119,7 +119,10 @@ enum SfxTrack {
 
 /// Variation de hauteur appliquée à chaque bruitage : ± cette valeur autour
 /// de 1.0 (vitesse/hauteur normale), tirée aléatoirement à chaque lecture.
-const double _kPitchVariance = 0.08;
+/// Réduite de moitié (0.08 → 0.04) : l'amplitude précédente rendait la
+/// variation trop perceptible, en particulier sur des sons brefs et
+/// rapprochés comme le clic de rotation (jusqu'à 6 par tour complet).
+const double _kPitchVariance = 0.04;
 
 /// Nombre de lecteurs dans le pool de bruitages — permet à plusieurs sons de
 /// se superposer (ex. plusieurs `coin.mp3` d'affilée) sans s'interrompre
@@ -338,7 +341,7 @@ Uint8List _generateClickWaveform({
   required int noiseSeed,
 }) {
   final sampleCount = (_kClickSampleRate * durationMs / 1000).round();
-  final samples = Int16List(sampleCount);
+  final rawSamples = List<double>.filled(sampleCount, 0.0);
   // Seed fixe : la forme d'onde n'a besoin d'être calculée qu'une seule
   // fois (voir [AudioService._clickWaveform]), son contenu n'a donc pas
   // besoin d'être aléatoire d'un lancement de l'app à l'autre.
@@ -362,10 +365,11 @@ Uint8List _generateClickWaveform({
             0.4 * sin(2 * pi * knockHarmonicFreq * t)) *
         knockEnvelope;
 
-    final value = tick * _kTickMix + knock * _kKnockMix;
-    samples[i] = (value * 32767).round().clamp(-32768, 32767);
+    rawSamples[i] = tick * _kTickMix + knock * _kKnockMix;
   }
-  return _pcm16MonoToWav(samples, _kClickSampleRate);
+  // Normalisation anti-saturation — voir [_finalizeWaveform] et le
+  // commentaire équivalent dans [_generateRotationClickWaveform].
+  return _finalizeWaveform(rawSamples, _kClickSampleRate);
 }
 
 /// Génère procéduralement le clic de rotation — timbre dédié plutôt qu'une
@@ -381,7 +385,7 @@ Uint8List _generateClickWaveform({
 Uint8List _generateRotationClickWaveform() {
   final sampleCount =
       (_kClickSampleRate * _kRotationClickDurationMs / 1000).round();
-  final samples = Int16List(sampleCount);
+  final rawSamples = List<double>.filled(sampleCount, 0.0);
   // Seed fixe, comme les autres formes d'onde générées une seule fois à la
   // construction du service.
   final noiseRandom = Random(31);
@@ -409,10 +413,14 @@ Uint8List _generateRotationClickWaveform() {
     final knock =
         (sin(phaseFundamental) + 0.4 * sin(phaseHarmonic)) * knockEnvelope;
 
-    final value = tick * _kTickMix + knock * _kKnockMix;
-    samples[i] = (value * 32767).round().clamp(-32768, 32767);
+    rawSamples[i] = tick * _kTickMix + knock * _kKnockMix;
   }
-  return _pcm16MonoToWav(samples, _kClickSampleRate);
+  // Normalisation anti-saturation (voir [_finalizeWaveform]) : tick et knock
+  // peuvent, selon les échantillons de bruit tirés, sommer au-delà de
+  // [-1, 1] (pic théorique ≈ 1.32 pour ces coefficients de mixage) — sans
+  // ce garde-fou, certains échantillons de l'attaque étaient écrêtés, d'où
+  // la saturation perçue sur le clic de rotation.
+  return _finalizeWaveform(rawSamples, _kClickSampleRate);
 }
 
 /// Génère procéduralement le son de pose de tuile — sans aucun fichier
@@ -438,7 +446,7 @@ Uint8List _generateRotationClickWaveform() {
 Uint8List _generateTileKnockWaveform() {
   final sampleCount =
       (_kClickSampleRate * _kTileKnockDurationMs / 1000).round();
-  final samples = Int16List(sampleCount);
+  final rawSamples = List<double>.filled(sampleCount, 0.0);
   // Seed fixe : la forme d'onde n'a besoin d'être calculée qu'une seule
   // fois, son contenu n'a donc pas besoin d'être aléatoire d'un lancement
   // de l'app à l'autre.
@@ -468,10 +476,11 @@ Uint8List _generateTileKnockWaveform() {
     final wood =
         (sin(phaseFundamental) + 0.5 * sin(phasePartial)) * woodEnvelope;
 
-    final value = thud * _kTileThudMix + wood * _kTileWoodMix;
-    samples[i] = (value * 32767).round().clamp(-32768, 32767);
+    rawSamples[i] = thud * _kTileThudMix + wood * _kTileWoodMix;
   }
-  return _pcm16MonoToWav(samples, _kClickSampleRate);
+  // Normalisation anti-saturation — voir [_finalizeWaveform] et le
+  // commentaire équivalent dans [_generateRotationClickWaveform].
+  return _finalizeWaveform(rawSamples, _kClickSampleRate);
 }
 
 /// Fréquences (Hz) des trois notes de la mélodie de succès jouée à la
@@ -547,7 +556,7 @@ Uint8List _generateQuestRewardMelodyWaveform() {
   final totalDurationSeconds =
       _kQuestRewardNoteGapSeconds * (noteCount - 1) + _kQuestRewardTailSeconds;
   final sampleCount = (_kClickSampleRate * totalDurationSeconds).round();
-  final samples = Int16List(sampleCount);
+  final rawSamples = List<double>.filled(sampleCount, 0.0);
   // Seed fixe : la forme d'onde n'a besoin d'être calculée qu'une seule
   // fois, son contenu n'a donc pas besoin d'être aléatoire d'un lancement
   // de l'app à l'autre.
@@ -581,16 +590,47 @@ Uint8List _generateQuestRewardMelodyWaveform() {
           _kQuestRewardTingMix;
       value += body + ting;
     }
-    // Trois notes en léger chevauchement peuvent sommer au-delà de [-1, 1] :
-    // on divise par un facteur légèrement inférieur au nombre de notes
-    // (chevauchement partiel seulement) plutôt que par noteCount, pour ne
-    // pas assourdir inutilement les portions où une seule note sonne.
-    value /= 1.6;
-    samples[i] = (value * 32767).round().clamp(-32768, 32767);
+    rawSamples[i] = value;
   }
-  return _pcm16MonoToWav(samples, _kClickSampleRate);
+  // Normalisation anti-saturation — voir [_finalizeWaveform]. Remplace
+  // l'ancien correctif approximatif (division fixe par 1.6, qui devinait un
+  // facteur sûr dans le pire cas plutôt que de mesurer le pic réel) : trois
+  // notes en léger chevauchement peuvent sommer au-delà de [-1, 1], mais
+  // seulement sur une fraction du buffer — la normalisation par pic mesuré
+  // n'atténue que ce qui en a réellement besoin.
+  return _finalizeWaveform(rawSamples, _kClickSampleRate);
 }
 
+/// Sécurité anti-saturation partagée par tous les générateurs de sons
+/// procéduraux ci-dessus : les composantes superposées (bruit + sinusoïdes)
+/// peuvent, selon la graine ou le nombre de voix cumulées à un instant
+/// donné, dépasser l'intervalle [-1, 1] avant quantification — d'où un
+/// écrêtage (clipping) audible sur certains échantillons, perçu comme une
+/// saturation (cas du clic de rotation avant ce correctif).
+///
+/// Plutôt que de deviner un facteur de mixage sûr dans le pire cas
+/// théorique (ce qui assourdirait inutilement le son dans le cas courant,
+/// où ce pire cas n'est pas atteint), on mesure le pic réel du buffer
+/// [rawSamples] généré et on ne réduit le gain global que si ce pic dépasse
+/// [target] — jamais d'amplification, uniquement un plafond appliqué une
+/// seule fois, à la construction du service.
+Uint8List _finalizeWaveform(
+  List<double> rawSamples,
+  int sampleRate, {
+  double target = 0.97,
+}) {
+  var peak = 0.0;
+  for (final v in rawSamples) {
+    final abs = v.abs();
+    if (abs > peak) peak = abs;
+  }
+  final scale = peak > target ? target / peak : 1.0;
+  final samples = Int16List(rawSamples.length);
+  for (var i = 0; i < rawSamples.length; i++) {
+    samples[i] = (rawSamples[i] * scale * 32767).round().clamp(-32768, 32767);
+  }
+  return _pcm16MonoToWav(samples, sampleRate);
+}
 
 Uint8List _pcm16MonoToWav(Int16List samples, int sampleRate) {
   final dataBytes = samples.buffer.asUint8List(

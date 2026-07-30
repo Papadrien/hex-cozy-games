@@ -266,17 +266,21 @@ String upgradeEffectLabel(UpgradeRow upgrade) {
 List<String> upgradeAllLevelEffects(UpgradeEffectType effectType) {
   switch (effectType) {
     case UpgradeEffectType.startingTilesBonus:
-      return ['+2', '+5', '+10'];
+      return ['+2 tuiles de départ', '+5 tuiles de départ', '+10 tuiles de départ'];
     case UpgradeEffectType.connectionBonusMultiplier:
-      return ['+1 tuile', '+2 tuiles', '+5 tuiles'];
+      return [
+        '+1 tuile bonus (connexion 5-6)',
+        '+2 tuiles bonus (connexion 5-6)',
+        '+5 tuiles bonus (connexion 5-6)',
+      ];
     case UpgradeEffectType.coinsPercentBonus:
       // Bonus global (Butin) : 1 pièce bonus par tranche de N pièces
       // gagnées sur la pose, cumulable (voir
       // [GameEffectsService.applyCoinBonuses]).
       return [
-        '+1 par tranche de 8 pièces',
-        '+1 par tranche de 4 pièces',
-        '+1 par tranche de 2 pièces',
+        '+1 pièce par tranche de 8 pièces',
+        '+1 pièce par tranche de 4 pièces',
+        '+1 pièce par tranche de 2 pièces',
       ];
     case UpgradeEffectType.villageCoinsPercentBonus:
     case UpgradeEffectType.forestCoinsPercentBonus:
@@ -286,30 +290,46 @@ List<String> upgradeAllLevelEffects(UpgradeEffectType effectType) {
       // Bonus par biome (Rouge/Vert/Bleu/Jaune/Violet) : 1 pièce bonus par
       // tranche de N côtés du biome connectés sur la pose, cumulable.
       return [
-        '+1 par tranche de 4 côtés',
-        '+1 par tranche de 2 côtés',
-        '+1 par côté',
+        '+1 pièce par tranche de 4 côtés',
+        '+1 pièce par tranche de 2 côtés',
+        '+1 pièce par côté',
       ];
     case UpgradeEffectType.closureBonusTiles:
-      return ['+1/10 tuiles', '+2/10 tuiles', '+3/10 tuiles'];
+      return [
+        '+1 tuile bonus / 10 tuiles de la zone',
+        '+2 tuiles bonus / 10 tuiles de la zone',
+        '+3 tuiles bonus / 10 tuiles de la zone',
+      ];
     case UpgradeEffectType.hatedColorExclusion:
       return [
-        '5 tuiles, 1 usage/partie',
-        '8 tuiles, 2 usages/partie',
-        '10 tuiles, 3 usages/partie',
+        'Exclut une couleur (5 tuiles), 1 usage',
+        'Exclut une couleur (8 tuiles), 2 usages',
+        'Exclut une couleur (10 tuiles), 3 usages',
       ];
     case UpgradeEffectType.extendedPreviewCount:
-      return ['4 tuiles', '5 tuiles', '6 tuiles'];
+      return ['Voir 4 tuiles à venir', 'Voir 5 tuiles à venir', 'Voir 6 tuiles à venir'];
     case UpgradeEffectType.holdSlotUses:
-      return ['1 usage/partie', '2 usages/partie', '3 usages/partie'];
+      return [
+        'Stocke une tuile, 1 usage',
+        'Stocke une tuile, 2 usages',
+        'Stocke une tuile, 3 usages',
+      ];
     case UpgradeEffectType.secondChanceUses:
-      return ['1 usage/partie', '2 usages/partie', '3 usages/partie'];
+      return [
+        'Retire une tuile posée, 1 usage',
+        'Retire une tuile posée, 2 usages',
+        'Retire une tuile posée, 3 usages',
+      ];
     case UpgradeEffectType.comboBonusTiles:
-      return ['Toutes les 10 tuiles', 'Toutes les 8 tuiles', 'Toutes les 5 tuiles'];
+      return [
+        'Tuile bonus toutes les 10 doubles connexions',
+        'Tuile bonus toutes les 8 doubles connexions',
+        'Tuile bonus toutes les 5 doubles connexions',
+      ];
     case UpgradeEffectType.millionaireCoins:
-      return ['1 000 000'];
+      return ['+1 000 000 pièces'];
     case UpgradeEffectType.warehouseStartingTiles:
-      return ['500 tuiles'];
+      return ['+500 tuiles de départ'];
   }
 }
 

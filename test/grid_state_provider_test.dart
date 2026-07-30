@@ -220,6 +220,67 @@ void main() {
     });
   });
 
+  group('GridState.biomesJustClosed', () {
+    test('ferme le cluster de la tuile posée elle-même quand il est '
+        'entièrement entouré', () {
+      // (0,0) tout-montagne entourée de ses 6 voisins (n'importe quel
+      // biome : seule la présence compte pour _isClosed).
+      final grid = GridState(placedTiles: {
+        const HexCoords(1, -1): _mono(BiomeType.forest),
+        const HexCoords(1, 0): _mono(BiomeType.forest),
+        const HexCoords(0, 1): _mono(BiomeType.forest),
+        const HexCoords(-1, 1): _mono(BiomeType.forest),
+        const HexCoords(-1, 0): _mono(BiomeType.forest),
+        const HexCoords(0, -1): _mono(BiomeType.forest),
+        const HexCoords(0, 0): _mono(BiomeType.mountain),
+      });
+
+      final closures = grid.biomesJustClosed(
+          const HexCoords(0, 0), _mono(BiomeType.mountain));
+
+      expect(closures, [const MapEntry(BiomeType.mountain, 1)]);
+    });
+
+    test(
+        'régression Atoll : ferme le cluster d\'une tuile VOISINE même si '
+        'la tuile posée a elle-même un autre voisin encore vide (bord de '
+        'mer) sur un côté différent — la tuile posée n\'a ici aucune face '
+        'montagne', () {
+      // T = (1,-1), tout-montagne : ses 5 autres voisins (hors pos) sont
+      // déjà remplis, il ne lui manquait que pos pour être fermée.
+      final grid = GridState(placedTiles: {
+        const HexCoords(1, -1): _mono(BiomeType.mountain), // T
+        const HexCoords(2, -2): _mono(BiomeType.forest),
+        const HexCoords(2, -1): _mono(BiomeType.forest),
+        const HexCoords(1, 0): _mono(BiomeType.forest),
+        const HexCoords(0, -1): _mono(BiomeType.forest),
+        const HexCoords(1, -2): _mono(BiomeType.forest),
+        // pos = (0,0), posée tout-plaine. (0,1), (-1,1) et (-1,0) restent
+        // volontairement vides pour simuler un bord de mer sur 3 des
+        // autres côtés de pos, sans rapport avec la fermeture de T.
+        const HexCoords(0, 0): _mono(BiomeType.plain),
+      });
+
+      final closures = grid.biomesJustClosed(
+          const HexCoords(0, 0), _mono(BiomeType.plain));
+
+      expect(closures, [const MapEntry(BiomeType.mountain, 1)]);
+    });
+
+    test('aucune fermeture si aucun cluster touché n\'est entièrement '
+        'entouré', () {
+      final grid = GridState(placedTiles: {
+        const HexCoords(0, 0): _mono(BiomeType.mountain),
+        const HexCoords(1, -1): _mono(BiomeType.forest),
+      });
+
+      final closures = grid.biomesJustClosed(
+          const HexCoords(0, 0), _mono(BiomeType.mountain));
+
+      expect(closures, isEmpty);
+    });
+  });
+
   group('Grid notifier (gridProvider)', () {
     test('placeTile puis removeTile mettent à jour gridProvider', () {
       final container = ProviderContainer();

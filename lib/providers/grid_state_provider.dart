@@ -219,13 +219,6 @@ class GridState {
   /// face à [pos].
   List<MapEntry<BiomeType, int>> biomesJustClosed(
       HexCoords pos, HexTile tile) {
-    // Early exit : si la cellule posée a un voisin vide, aucun cluster
-    // touchant [pos] ne peut être fermé par cette pose — on évite le(s) BFS
-    // inutile(s).
-    for (var side = 0; side < 6; side++) {
-      if (!placedTiles.containsKey(pos.neighbor(side))) return const [];
-    }
-
     final closures = <MapEntry<BiomeType, int>>[];
     final visitedByBiome = <BiomeType, Set<HexCoords>>{};
 
@@ -246,7 +239,13 @@ class GridState {
     }
     for (var side = 0; side < 6; side++) {
       final neighborPos = pos.neighbor(side);
-      final neighborTile = placedTiles[neighborPos]!;
+      // [pos] peut très bien avoir un voisin encore vide sur un AUTRE côté
+      // (ex. bord de mer) sans que cela empêche la fermeture d'un cluster
+      // voisin sur ce côté-ci : on ne peut donc plus présumer que tous les
+      // voisins de [pos] sont posés (voir suppression du early-exit
+      // ci-dessus) et on ignore simplement les côtés encore vides.
+      final neighborTile = placedTiles[neighborPos];
+      if (neighborTile == null) continue;
       final facingBiome = neighborTile.sides[(side + 3) % 6];
       checkCluster(neighborPos, facingBiome);
     }

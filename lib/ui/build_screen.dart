@@ -420,16 +420,29 @@ class _BuildIconBadge extends StatelessWidget {
         ? (isSelected ? tintOverride : tintOverride.withValues(alpha: 0.55))
         : (isSelected ? Colors.white : Colors.white.withValues(alpha: 0.55));
 
-    return GlassContainer(
-      borderRadius: 12,
-      tintColor: isSelected ? kUpgradePurple : Colors.white,
-      tintAlpha: isSelected ? 0.28 : 0.08,
-      borderColor: isSelected
-          ? kUpgradePurple.withValues(alpha: 0.5)
-          : Colors.white.withValues(alpha: 0.14),
-      blurSigma: 10,
+    // Pas de GlassContainer ici volontairement : cette icône est imbriquée
+    // dans le GlassContainer de _BuildCard, déjà flouté. Un second
+    // BackdropFilter imbriqué double le coût de recomposition GPU de
+    // chaque carte visible à chaque frame de scroll (cause du scroll saccadé
+    // signalé sur l'écran des améliorations, absent de l'écran des quêtes
+    // dont l'icône de statut est un simple Container — voir _QuestCard).
+    // Un Container teinté suffit visuellement, la carte parente assure déjà
+    // l'effet vitreux.
+    return Container(
       width: 42,
       height: 42,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: (isSelected ? kUpgradePurple : Colors.white)
+            .withValues(alpha: isSelected ? 0.28 : 0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isSelected
+              ? kUpgradePurple.withValues(alpha: 0.5)
+              : Colors.white.withValues(alpha: 0.14),
+          width: 2,
+        ),
+      ),
       child: UpgradeEffectIcon(
         effectType: UpgradeEffectType.fromDb(upgrade.effectType),
         upgradeId: upgrade.id,
