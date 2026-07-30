@@ -238,7 +238,9 @@ void main() {
       final closures = grid.biomesJustClosed(
           const HexCoords(0, 0), _mono(BiomeType.mountain));
 
-      expect(closures, [const MapEntry(BiomeType.mountain, 1)]);
+      expect(closures, hasLength(1));
+      expect(closures[0].key, BiomeType.mountain);
+      expect(closures[0].value, 1);
     });
 
     test(
@@ -264,7 +266,9 @@ void main() {
       final closures = grid.biomesJustClosed(
           const HexCoords(0, 0), _mono(BiomeType.plain));
 
-      expect(closures, [const MapEntry(BiomeType.mountain, 1)]);
+      expect(closures, hasLength(1));
+      expect(closures[0].key, BiomeType.mountain);
+      expect(closures[0].value, 1);
     });
 
     test('aucune fermeture si aucun cluster touché n\'est entièrement '
