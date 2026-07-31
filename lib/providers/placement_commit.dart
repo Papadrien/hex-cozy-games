@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:drift/drift.dart' show InsertMode, Value;
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -486,6 +487,8 @@ void _recordPlacement(
     for (final entry in closures) {
       closureTiles += (entry.value ~/ 10) * closureMult;
     }
+    debugPrint('[Atoll] closureMult=$closureMult closures=$closures '
+        '=> closureTiles=$closureTiles');
     if (closureTiles > 0) {
       ref.read(tileStackProvider.notifier).addBonusTiles(closureTiles);
       ref.read(sessionProvider.notifier).addExtraBonusTiles(closureTiles);

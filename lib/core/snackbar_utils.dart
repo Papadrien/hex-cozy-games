@@ -32,7 +32,13 @@ final rootScaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
 ///    à appeler juste avant chaque navigation.
 void showAppSnackBar(SnackBar snackBar) {
   final messenger = rootScaffoldMessengerKey.currentState;
-  if (messenger == null) return;
+  // `currentState` peut renvoyer un State encore attaché à la GlobalKey mais
+  // momentanément désactivé (ex. rebuild qui déplace/replace le widget dans
+  // l'arbre au même frame que cet appel) — `showSnackBar` déclenche alors une
+  // recherche d'ancêtre sur un élément désactivé, qui lève une exception non
+  // rattrapable ("Looking up a deactivated widget's ancestor is unsafe").
+  // Le getter `mounted` (hérité de State) permet de s'en prémunir.
+  if (messenger == null || !messenger.mounted) return;
   messenger.clearSnackBars();
   messenger.showSnackBar(snackBar);
 }

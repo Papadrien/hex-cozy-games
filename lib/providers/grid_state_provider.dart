@@ -17,6 +17,7 @@ library;
 
 import 'dart:collection';
 
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../game/hex_cell.dart';
@@ -217,19 +218,33 @@ class GridState {
   /// dernier trou de sa bordure. Les biomes candidats incluent donc, en plus
   /// de ceux de [tile], celui de chaque tuile voisine sur la face qui fait
   /// face à [pos].
+  ///
+  /// Logs de diagnostic (préfixe `[Atoll]`) ajoutés temporairement pour
+  /// analyser en direct les fermetures manquées — à retirer une fois le
+  /// débogage terminé.
   List<MapEntry<BiomeType, int>> biomesJustClosed(
       HexCoords pos, HexTile tile) {
     final closures = <MapEntry<BiomeType, int>>[];
     final visitedByBiome = <BiomeType, Set<HexCoords>>{};
 
+    debugPrint('[Atoll] biomesJustClosed pos=$pos '
+        'tileBiomes=${tile.sides.toSet()}');
+
     void checkCluster(HexCoords anchor, BiomeType biome) {
       if (biome == BiomeType.village) return;
       final visited = visitedByBiome.putIfAbsent(biome, () => <HexCoords>{});
-      if (visited.contains(anchor)) return;
+      if (visited.contains(anchor)) {
+        debugPrint('[Atoll]   skip biome=$biome anchor=$anchor '
+            '(déjà visité pour ce biome sur cette pose)');
+        return;
+      }
       final cluster = clusterAt(anchor, biome);
       if (cluster.isEmpty) return;
       visited.addAll(cluster);
-      if (_isClosed(cluster)) {
+      final closed = _isClosed(cluster);
+      debugPrint('[Atoll]   cluster biome=$biome anchor=$anchor '
+          'size=${cluster.length} closed=$closed');
+      if (closed) {
         closures.add(MapEntry(biome, cluster.length));
       }
     }
@@ -249,6 +264,7 @@ class GridState {
       final facingBiome = neighborTile.sides[(side + 3) % 6];
       checkCluster(neighborPos, facingBiome);
     }
+    debugPrint('[Atoll] => closures=$closures');
     return closures;
   }
 
@@ -270,9 +286,15 @@ class GridState {
   /// biome que [closedBiomes] — une tuile porte jusqu'à 3 biomes différents,
   /// une position déjà visitée pour l'un doit rester explorable pour les
   /// autres.
-  List<Set<HexCoords>> get allBiomeClusters {
+  ///
+  /// Chaque entrée porte aussi [isClosed] (même définition que
+  /// [_isClosed] : les 6 voisins de CHAQUE tuile du cluster sont occupés,
+  /// quel que soit leur biome) — permet à l'overlay d'afficher un cadenas
+  /// sur les zones déjà scellées plutôt que de ne montrer qu'une taille
+  /// brute, ambiguë sur le fait qu'elle rapportera ou non un bonus.
+  List<({Set<HexCoords> cluster, bool isClosed})> get allBiomeClusters {
     final visitedByBiome = <BiomeType, Set<HexCoords>>{};
-    final clusters = <Set<HexCoords>>[];
+    final clusters = <({Set<HexCoords> cluster, bool isClosed})>[];
     for (final entry in placedTiles.entries) {
       final uniqueBiomes = entry.value.sides.toSet();
       for (final biome in uniqueBiomes) {
@@ -282,7 +304,7 @@ class GridState {
         final cluster = clusterAt(entry.key, biome);
         if (cluster.isEmpty) continue;
         visited.addAll(cluster);
-        clusters.add(cluster);
+        clusters.add((cluster: cluster, isClosed: _isClosed(cluster)));
       }
     }
     return clusters;

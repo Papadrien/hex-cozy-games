@@ -482,6 +482,8 @@ class _QuestCardState extends ConsumerState<_QuestCard>
   late final Animation<double> _bounceAnim;
   late final Animation<double> _glowAnim;
   late final Animation<double> _floatAnim;
+  late final Animation<double> _textRiseAnim;
+  late final Animation<double> _textFadeAnim;
   bool _isClaiming = false;
 
   @override
@@ -521,6 +523,19 @@ class _QuestCardState extends ConsumerState<_QuestCard>
     _floatAnim = CurvedAnimation(
       parent: _claimController,
       curve: const Interval(0.05, 0.9, curve: Curves.easeOut),
+    );
+    // Texte de récompense : montée puis disparition en fondu, l'une après
+    // l'autre plutôt qu'en parallèle (contrairement à [_floatAnim] qui
+    // pilote la burst de particules et reste inchangé). La montée occupe
+    // la première moitié de l'animation et se fige ensuite ; le fondu ne
+    // démarre qu'à partir de là.
+    _textRiseAnim = CurvedAnimation(
+      parent: _claimController,
+      curve: const Interval(0.05, 0.5, curve: Curves.easeOut),
+    );
+    _textFadeAnim = CurvedAnimation(
+      parent: _claimController,
+      curve: const Interval(0.5, 0.95, curve: Curves.easeIn),
     );
   }
 
@@ -589,9 +604,9 @@ class _QuestCardState extends ConsumerState<_QuestCard>
                   right: 0,
                   child: Center(
                     child: Opacity(
-                      opacity: (1 - _floatAnim.value).clamp(0.0, 1.0),
+                      opacity: (1 - _textFadeAnim.value).clamp(0.0, 1.0),
                       child: Transform.translate(
-                        offset: Offset(0, -28 * _floatAnim.value),
+                        offset: Offset(0, -28 * _textRiseAnim.value),
                         child: _ClaimedRewardText(
                           quest: quest,
                           upgradeName: upgradeName,

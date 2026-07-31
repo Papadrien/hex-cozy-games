@@ -349,7 +349,11 @@ class _BuildCardState extends ConsumerState<_BuildCard>
               GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 onTap: widget.onToggleSelect,
-                child: _SelectionCheck(isSelected: isSelected),
+                child: SizedBox(
+                  width: 44,
+                  height: 44,
+                  child: Center(child: _SelectionCheck(isSelected: isSelected)),
+                ),
               ),
             ],
           ),

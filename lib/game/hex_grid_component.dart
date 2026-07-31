@@ -140,8 +140,11 @@ class HexGridComponent extends PositionComponent {
   /// de clôture" de l'encart des améliorations actives (voir
   /// `active_upgrades_hud.dart`, [biomeSizeOverlayProvider]). Liste vide =
   /// aucun affichage. Recalculée par [HexBoardGame] à chaque pose/retrait
-  /// tant que l'overlay reste actif — voir [render].
-  List<Set<HexCoords>> biomeSizeClusters = const [];
+  /// tant que l'overlay reste actif — voir [render]. `isClosed` (voir
+  /// [GridState.allBiomeClusters]) affiche un cadenas sur les zones déjà
+  /// scellées, pour rendre visible sans ambiguïté lesquelles rapporteront
+  /// un bonus de clôture.
+  List<({Set<HexCoords> cluster, bool isClosed})> biomeSizeClusters = const [];
 
   /// Enfant dédié au dessin des pastilles de taille de zone, ajouté dans
   /// [onLoad] avec une priorité largement supérieure à celle de n'importe
@@ -787,7 +790,8 @@ class HexGridComponent extends PositionComponent {
   /// pour rester juste après un pan/zoom.
   void _renderBiomeSizeLabels(Canvas canvas) {
     final layout = _layout;
-    for (final cluster in biomeSizeClusters) {
+    for (final entry in biomeSizeClusters) {
+      final cluster = entry.cluster;
       if (cluster.isEmpty) continue;
       var sumX = 0.0;
       var sumY = 0.0;
@@ -797,14 +801,28 @@ class HexGridComponent extends PositionComponent {
         sumY += center.y;
       }
       final anchor = Offset(sumX / cluster.length, sumY / cluster.length);
-      _drawBiomeSizeBadge(canvas, anchor, cluster.length);
+      _drawBiomeSizeBadge(canvas, anchor, cluster.length, entry.isClosed);
     }
   }
 
   static final TextPainter _biomeSizeTextPainter =
       TextPainter(textDirection: TextDirection.ltr);
+  static final TextPainter _biomeLockIconPainter =
+      TextPainter(textDirection: TextDirection.ltr);
 
-  void _drawBiomeSizeBadge(Canvas canvas, Offset center, int size) {
+  /// Glyphe cadenas (police MaterialIcons, même code point que
+  /// `Icons.lock`) — recopié directement plutôt qu'importé depuis
+  /// `package:flutter/material.dart` pour ne pas alourdir les imports
+  /// ciblés de ce fichier (voir imports en tête de fichier).
+  static final String _kLockGlyph = String.fromCharCode(0xe897);
+
+  /// Couleur dorée utilisée ailleurs dans le jeu pour signaler un état
+  /// "actif/scellé" (contour Ressac, Emplacement Joker) — reprise ici pour
+  /// le cadenas des zones déjà fermées.
+  static const Color _kClosedGoldAccent = Color(0xFFFFD54F);
+
+  void _drawBiomeSizeBadge(
+      Canvas canvas, Offset center, int size, bool isClosed) {
     _biomeSizeTextPainter.text = TextSpan(
       text: '$size',
       style: const TextStyle(
@@ -817,19 +835,51 @@ class HexGridComponent extends PositionComponent {
 
     const paddingH = 7.0;
     const paddingV = 3.0;
+    const lockGap = 3.0;
+
+    var lockWidth = 0.0;
+    if (isClosed) {
+      _biomeLockIconPainter.text = TextSpan(
+        text: _kLockGlyph,
+        style: const TextStyle(
+          fontSize: 12,
+          fontFamily: 'MaterialIcons',
+          color: _kClosedGoldAccent,
+        ),
+      );
+      _biomeLockIconPainter.layout();
+      lockWidth = _biomeLockIconPainter.width + lockGap;
+    }
+
+    final contentWidth = _biomeSizeTextPainter.width + lockWidth;
     final rect = Rect.fromCenter(
       center: center,
-      width: _biomeSizeTextPainter.width + paddingH * 2,
+      width: contentWidth + paddingH * 2,
       height: _biomeSizeTextPainter.height + paddingV * 2,
     );
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(rect, const Radius.circular(8)),
-      Paint()..color = const Color(0xCC000000),
-    );
+    final rrect = RRect.fromRectAndRadius(rect, const Radius.circular(8));
+    canvas.drawRRect(rrect, Paint()..color = const Color(0xCC000000));
+    if (isClosed) {
+      canvas.drawRRect(
+        rrect,
+        Paint()
+          ..color = _kClosedGoldAccent
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.4,
+      );
+    }
+
+    final contentLeft = center.dx - contentWidth / 2;
+    if (isClosed) {
+      _biomeLockIconPainter.paint(
+        canvas,
+        Offset(contentLeft, center.dy - _biomeLockIconPainter.height / 2),
+      );
+    }
     _biomeSizeTextPainter.paint(
       canvas,
       Offset(
-        center.dx - _biomeSizeTextPainter.width / 2,
+        contentLeft + lockWidth,
         center.dy - _biomeSizeTextPainter.height / 2,
       ),
     );
