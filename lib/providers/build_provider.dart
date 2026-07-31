@@ -30,6 +30,12 @@ class SelectedUpgradeIdsNotifier extends Notifier<List<String>> {
       state = [...state, id];
     }
   }
+
+  /// Restaure la sélection depuis une session persistée (Story 1.7b —
+  /// correctif kill forcé). Contrairement à [toggle], remplace intégralement
+  /// l'état sans passer par la limite [kMaxSelectedUpgrades] (une sélection
+  /// déjà validée avant sauvegarde est par définition valide).
+  void restore(List<String> ids) => state = ids;
 }
 
 /// Les améliorations sélectionnées (objets complets).

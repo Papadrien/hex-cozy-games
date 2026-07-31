@@ -110,6 +110,14 @@ Future<void> restoreSession(WidgetRef ref) async {
     final bestStreak = stackJson['bestStreak'] as int? ?? 0;
     final currentDoubleStreak = stackJson['currentDoubleStreak'] as int? ?? 0;
 
+    // Restaurer les améliorations sélectionnées pour la partie (Story 2.7b —
+    // correctif kill forcé). `?? []` : rétro-compatibilité avec les sessions
+    // sauvegardées avant ce correctif, qui n'ont pas cette clé — retombe
+    // alors sur aucune sélection plutôt que de planter, comme avant.
+    final selectedUpgradeIds =
+        (stackJson['selectedUpgradeIds'] as List?)?.cast<String>() ?? [];
+    ref.read(selectedUpgradeIdsProvider.notifier).restore(selectedUpgradeIds);
+
     // Restaurer la session (pièces, tuiles bonus, connexions).
     final grid = ref.read(gridProvider);
     int c3 = 0, c4 = 0, c5 = 0, c6 = 0;

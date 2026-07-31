@@ -176,7 +176,9 @@ class GridState {
   }
 
   /// Nombre de biomes fermés (groupes connexes dont chaque tuile a ses 6
-  /// voisins occupés). [BiomeType.village] est exclu.
+  /// voisins occupés). Toutes les couleurs sont éligibles, y compris
+  /// [BiomeType.village] (harmonisé avec [biomesJustClosed] et
+  /// [allBiomeClusters] : plus aucune couleur n'a de traitement à part).
   ///
   /// Le suivi des positions visitées est fait PAR biome (une `Map<BiomeType,
   /// Set&lt;HexCoords&gt;`), pas dans un set global partagé : une tuile porte
@@ -190,7 +192,6 @@ class GridState {
     for (final entry in placedTiles.entries) {
       final uniqueBiomes = entry.value.sides.toSet();
       for (final biome in uniqueBiomes) {
-        if (biome == BiomeType.village) continue;
         final visited = visitedByBiome.putIfAbsent(biome, () => <HexCoords>{});
         if (visited.contains(entry.key)) continue;
         final cluster = clusterAt(entry.key, biome);
@@ -207,8 +208,10 @@ class GridState {
   ///
   /// Chaque cluster connexe impliquant [pos] OU une tuile voisine directe
   /// est testé ; seuls ceux qui sont complètement entourés (6 voisins
-  /// présents) sont considérés comme fermés. [BiomeType.village] est
-  /// toujours exclu.
+  /// présents) sont considérés comme fermés. Toutes les couleurs sont
+  /// éligibles (aucune exclusion : les couleurs n'ont plus de sémantique de
+  /// "biome" propre, ce ne sont que des identités visuelles au même titre
+  /// les unes que les autres — voir Atoll).
   ///
   /// La fermeture d'un cluster ne dépend que du remplissage de ses bordures
   /// ([_isClosed] ne regarde que la présence des voisins, pas leur biome) —
@@ -231,7 +234,6 @@ class GridState {
         'tileBiomes=${tile.sides.toSet()}');
 
     void checkCluster(HexCoords anchor, BiomeType biome) {
-      if (biome == BiomeType.village) return;
       final visited = visitedByBiome.putIfAbsent(biome, () => <HexCoords>{});
       if (visited.contains(anchor)) {
         debugPrint('[Atoll]   skip biome=$biome anchor=$anchor '
@@ -277,7 +279,7 @@ class GridState {
     return true;
   }
 
-  /// Énumère TOUS les clusters connexes de biome (hors village) présents
+  /// Énumère TOUS les clusters connexes de biome présents
   /// sur le plateau, fermés ou non — contrairement à [closedBiomes] (qui ne
   /// fait que les compter) ou [biomesJustClosed] (qui ne regarde que les
   /// fermetures d'une pose précise), utilisé pour l'affichage à la demande
@@ -292,13 +294,14 @@ class GridState {
   /// quel que soit leur biome) — permet à l'overlay d'afficher un cadenas
   /// sur les zones déjà scellées plutôt que de ne montrer qu'une taille
   /// brute, ambiguë sur le fait qu'elle rapportera ou non un bonus.
+  /// Toutes les couleurs sont éligibles, y compris [BiomeType.village]
+  /// (voir Atoll : plus aucune couleur n'a de traitement à part).
   List<({Set<HexCoords> cluster, bool isClosed})> get allBiomeClusters {
     final visitedByBiome = <BiomeType, Set<HexCoords>>{};
     final clusters = <({Set<HexCoords> cluster, bool isClosed})>[];
     for (final entry in placedTiles.entries) {
       final uniqueBiomes = entry.value.sides.toSet();
       for (final biome in uniqueBiomes) {
-        if (biome == BiomeType.village) continue;
         final visited = visitedByBiome.putIfAbsent(biome, () => <HexCoords>{});
         if (visited.contains(entry.key)) continue;
         final cluster = clusterAt(entry.key, biome);

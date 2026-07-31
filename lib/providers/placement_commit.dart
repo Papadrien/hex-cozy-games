@@ -137,6 +137,12 @@ class SessionSaver {
         'currentStreak': session.currentStreak,
         'bestStreak': session.bestStreak,
         'currentDoubleStreak': session.currentDoubleStreak,
+        // Améliorations sélectionnées pour la partie (Story 2.7b) : sans
+        // elles, un kill forcé de l'appli (contrairement à "Sauvegarder et
+        // quitter", qui laisse le process — et donc selectedUpgradeIdsProvider
+        // en mémoire — tourner) perdait la sélection à la reprise, la
+        // ramenant silencieusement à 0 amélioration active.
+        'selectedUpgradeIds': ref.read(selectedUpgradeIdsProvider),
       });
 
       String? lastTileJson;
