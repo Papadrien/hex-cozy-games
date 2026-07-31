@@ -64,26 +64,28 @@ class BuildScreen extends ConsumerWidget {
                             ),
                           ),
                         )
-                      : ListView(
+                      : ListView.builder(
                           padding: const EdgeInsets.fromLTRB(20, 4, 20, 40),
-                          children: [
-                            ...unlocked.map((u) => Padding(
-                                  key: ValueKey(u.id),
-                                  padding: const EdgeInsets.only(bottom: 12),
-                                  child: _BuildCard(
-                                    upgrade: u,
-                                    isSelected: selected.contains(u.id),
-                                    totalCoins: totalCoins,
-                                    onToggleSelect: () {
-                                      buttonTapFeedback(context);
-                                      ref
-                                          .read(selectedUpgradeIdsProvider
-                                              .notifier)
-                                          .toggle(u.id);
-                                    },
-                                  ),
-                                )),
-                          ],
+                          itemCount: unlocked.length,
+                          itemBuilder: (context, index) {
+                            final u = unlocked[index];
+                            return Padding(
+                              key: ValueKey(u.id),
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: _BuildCard(
+                                upgrade: u,
+                                isSelected: selected.contains(u.id),
+                                totalCoins: totalCoins,
+                                onToggleSelect: () {
+                                  buttonTapFeedback(context);
+                                  ref
+                                      .read(selectedUpgradeIdsProvider
+                                          .notifier)
+                                      .toggle(u.id);
+                                },
+                              ),
+                            );
+                          },
                         ),
                 ),
               ],
@@ -669,6 +671,61 @@ class _LevelComparison extends StatelessWidget {
 // BOUTON AMÉLIORER — confirmation en deux temps
 // ─────────────────────────────────────────────────────────────────────────────
 
+/// Surface teintée + bordure, sans flou — pour un élément déjà imbriqué
+/// dans un [GlassContainer] parent (ex. [_UpgradeButton] à l'intérieur de
+/// [_BuildCard], elle-même floutée). Un second [BackdropFilter] imbriqué ici
+/// doublerait le coût GPU de recomposition à chaque frame de scroll sans
+/// gain visuel perceptible, puisque le fond est déjà vitreux — même
+/// principe que [_BuildIconBadge] et que `_RewardBadge` dans l'écran des
+/// quêtes (qui n'a jamais eu ce flou imbriqué).
+class _FlatButtonSurface extends StatelessWidget {
+  const _FlatButtonSurface({
+    required this.tintColor,
+    required this.tintAlpha,
+    required this.borderColor,
+    required this.child,
+    this.onTap,
+  });
+
+  final Color tintColor;
+  final double tintAlpha;
+  final Color borderColor;
+  final Widget child;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final content = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: borderColor, width: 1),
+      ),
+      child: child,
+    );
+
+    if (onTap == null) {
+      return Container(
+        decoration: BoxDecoration(
+          color: tintColor.withValues(alpha: tintAlpha),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: content,
+      );
+    }
+
+    return Material(
+      color: tintColor.withValues(alpha: tintAlpha),
+      borderRadius: BorderRadius.circular(10),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(10),
+        onTap: onTap,
+        child: content,
+      ),
+    );
+  }
+}
+
 /// Bouton Améliorer avec coût affiché, désactivé si pièces insuffisantes.
 ///
 /// Confirmation en deux temps : un premier tap fait passer le bouton en
@@ -722,13 +779,10 @@ class _UpgradeButtonState extends ConsumerState<_UpgradeButton> {
         upgrade.currentLevel + 1 >= levels.length;
 
     if (isMaxLevel) {
-      return GlassContainer(
-        borderRadius: 10,
+      return _FlatButtonSurface(
         tintColor: Colors.white,
         tintAlpha: 0.06,
         borderColor: Colors.white.withValues(alpha: 0.12),
-        blurSigma: 10,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
         child: Text(
           context.tr.upgrades_max,
           style: TextStyle(
@@ -744,13 +798,10 @@ class _UpgradeButtonState extends ConsumerState<_UpgradeButton> {
     final canAfford = totalCoins >= cost;
 
     if (_confirming) {
-      return GlassContainer(
-        borderRadius: 10,
+      return _FlatButtonSurface(
         tintColor: Colors.orange,
         tintAlpha: 0.28,
         borderColor: Colors.orange.withValues(alpha: 0.7),
-        blurSigma: 10,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
         onTap: _confirmAndUpgrade,
         child: Text(
           context.tr.upgrades_confirmButton,
@@ -763,15 +814,12 @@ class _UpgradeButtonState extends ConsumerState<_UpgradeButton> {
       );
     }
 
-    return GlassContainer(
-      borderRadius: 10,
+    return _FlatButtonSurface(
       tintColor: canAfford ? kGlassBlue : Colors.white,
       tintAlpha: canAfford ? 0.32 : 0.06,
       borderColor: canAfford
           ? kGlassBlueBorder
           : Colors.white.withValues(alpha: 0.12),
-      blurSigma: 10,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
       onTap: canAfford ? _startConfirm : null,
       child: Text(
         '${context.tr.upgrades_cost} : ${formatThousands(cost)}  ${context.tr.upgrades_upgradeButton}',

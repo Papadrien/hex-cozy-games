@@ -102,8 +102,9 @@ class GameEffectsService {
 
   /// Multiplicateur du Bonus de clôture (Story B7) : à chaque fermeture de
   /// biome, [closureBonusTiles] tuiles bonus sont ajoutées par tranche de 10
-  /// tuiles du cluster fermé, avec un minimum garanti de [closureBonusTiles]
-  /// tuiles même si le cluster fait moins de 10 tuiles.
+  /// tuiles du cluster fermé — aucune tuile bonus en dessous de 10 tuiles,
+  /// pas de plancher garanti (voir le correctif régression Atoll dans
+  /// `placement_commit.dart`, [_applyReward]).
   int getClosureBonusTiles() {
     return _ref.read(activeUpgradeEffectsProvider).closureBonusTiles;
   }

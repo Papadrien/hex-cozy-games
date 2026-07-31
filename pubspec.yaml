@@ -114,6 +114,10 @@ flutter:
     - assets/audio/tile_gain.mp3
     - assets/audio/end_game.mp3
     - assets/audio/undo.mp3
+    - assets/audio/tile_placed.mp3
+    - assets/audio/tile_rotate.mp3
+    - assets/audio/button_click.mp3
+    - assets/audio/quest_reward.mp3
 
   fonts:
     - family: Pacifico

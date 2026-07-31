@@ -465,10 +465,18 @@ void _recordPlacement(
     triggeredTypes.add(UpgradeEffectType.comboBonusTiles);
   }
   // Story B7 — Bonus de clôture : détecte les biomes qui viennent de se
-  // fermer après cette pose et ajoute (taille ÷ 10) × niveau tuiles bonus,
-  // avec un minimum garanti de [closureMult] tuiles par fermeture (sinon
-  // une petite zone refermée sans avoir atteint 10 tuiles ne rapportait
-  // rien, alors que la fermeture a bien eu lieu).
+  // fermer après cette pose et ajoute (taille ÷ 10) × niveau tuiles bonus.
+  //
+  // Correctif régression Atoll : PAS de plancher garanti en dessous de 10
+  // tuiles. [GridState._isClosed] ne vérifie que la présence d'une tuile
+  // voisine, pas son biome — un cluster peut donc se retrouver "fermé" en
+  // ne faisant qu'1 seule tuile, dès qu'il est encerclé par des tuiles de
+  // n'importe quelle couleur (fréquent une fois le plateau bien rempli).
+  // Avant ce correctif, `ratioBonus == 0` retombait quand même sur
+  // [closureMult] tuiles garanties, ce qui récompensait ces micro-clusters
+  // accidentels exactement comme une vraie zone de 6 à 9 tuiles. Désormais
+  // seules les zones ayant atteint 10 tuiles au moment de leur fermeture
+  // rapportent quoi que ce soit.
   final closureMult = effects.getClosureBonusTiles();
   var closureBonusTilesCount = 0;
   if (closureMult > 0) {
@@ -476,8 +484,7 @@ void _recordPlacement(
     final closures = grid.biomesJustClosed(pos, tile);
     var closureTiles = 0;
     for (final entry in closures) {
-      final ratioBonus = (entry.value ~/ 10) * closureMult;
-      closureTiles += ratioBonus > 0 ? ratioBonus : closureMult;
+      closureTiles += (entry.value ~/ 10) * closureMult;
     }
     if (closureTiles > 0) {
       ref.read(tileStackProvider.notifier).addBonusTiles(closureTiles);
