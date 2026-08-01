@@ -243,11 +243,17 @@ class GridState {
       final cluster = clusterAt(anchor, biome);
       if (cluster.isEmpty) return;
       visited.addAll(cluster);
-      final missing = _missingNeighbors(cluster);
-      final closed = missing.isEmpty;
+      // Auparavant calculé via _missingNeighbors (une fonction séparée,
+      // dédupliquée par position) — remplacé par _openEdges (même fonction
+      // que celle utilisée par l'overlay de rendu des arêtes ouvertes,
+      // hex_grid_component.dart) pour qu'il soit IMPOSSIBLE que le log et
+      // ce qui est tracé à l'écran divergent : une seule source de vérité.
+      final openEdges = _openEdges(cluster);
+      final closed = openEdges.isEmpty;
       debugPrint('[Atoll]   cluster biome=$biome anchor=$anchor '
           'size=${cluster.length} closed=$closed'
-          '${closed ? '' : ' missing=$missing'}');
+          '${closed ? '' : ' openEdges=${openEdges.map((e) => '${e.coords}'
+              '/${e.side}').toList()}'}');
       if (closed) {
         closures.add(MapEntry(biome, cluster.length));
       }
@@ -272,31 +278,15 @@ class GridState {
     return closures;
   }
 
-  bool _isClosed(Set<HexCoords> cluster) => _missingNeighbors(cluster).isEmpty;
+  bool _isClosed(Set<HexCoords> cluster) => _openEdges(cluster).isEmpty;
 
-  /// Retourne les positions voisines manquantes (aucune tuile posée) pour
-  /// TOUTE tuile du [cluster] — liste vide ⇔ cluster fermé. Utilisé pour le
-  /// diagnostic [Atoll] : `closed=false` seul ne dit pas QUEL côté bloque la
-  /// fermeture, ce qui rendait le débogage des zones en anneau (atolls)
-  /// difficile à distinguer d'un vrai bug de parcours.
-  List<HexCoords> _missingNeighbors(Set<HexCoords> cluster) {
-    final missing = <HexCoords>[];
-    for (final coords in cluster) {
-      for (var side = 0; side < 6; side++) {
-        final neighbor = coords.neighbor(side);
-        if (!placedTiles.containsKey(neighbor) && !missing.contains(neighbor)) {
-          missing.add(neighbor);
-        }
-      }
-    }
-    return missing;
-  }
-
-  /// Version "par arête" de [_missingNeighbors] : au lieu de la position
-  /// voisine vide, renvoie la tuile et le côté (0-5) précis de CETTE tuile
-  /// qui n'a pas de voisin posé. Overlay debug [Atoll] : un côté surligné
-  /// qui borde en réalité une tuile bien posée à l'écran révèle un vrai bug
-  /// (désync coordonnées/état) plutôt qu'un trou légitime.
+  /// Retourne, pour TOUTE tuile du [cluster], chaque côté (0-5) sans voisin
+  /// posé — liste vide ⇔ cluster fermé ([_isClosed]). Seule et unique
+  /// implémentation de ce calcul (auparavant dupliquée avec
+  /// `_missingNeighbors`, qui donnait la position voisine plutôt que
+  /// l'arête précise — supprimée pour qu'il n'y ait plus qu'une source de
+  /// vérité, utilisée à la fois par les logs [Atoll] et par l'overlay de
+  /// rendu des arêtes ouvertes, `hex_grid_component.dart`).
   List<({HexCoords coords, int side})> _openEdges(Set<HexCoords> cluster) {
     final edges = <({HexCoords coords, int side})>[];
     for (final coords in cluster) {
