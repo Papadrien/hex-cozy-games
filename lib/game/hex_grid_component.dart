@@ -24,7 +24,6 @@ import 'dart:ui'
         Paint,
         PaintingStyle,
         Path,
-        StrokeCap,
         RRect,
         Radius,
         Rect,
@@ -800,6 +799,10 @@ class HexGridComponent extends PositionComponent {
   /// pour rester juste après un pan/zoom.
   void _renderBiomeSizeLabels(Canvas canvas) {
     final layout = _layout;
+    for (final coords in placedTiles.keys) {
+      final center = layout.hexToPixel(coords, isoScaleY: kIsoScaleY);
+      _renderDebugCoords(canvas, Offset(center.x, center.y), coords);
+    }
     for (final entry in biomeSizeClusters) {
       for (final edge in entry.openEdges) {
         final center = layout.hexToPixel(edge.coords, isoScaleY: kIsoScaleY);
@@ -819,6 +822,33 @@ class HexGridComponent extends PositionComponent {
       final anchor = Offset(sumX / cluster.length, sumY / cluster.length);
       _drawBiomeSizeBadge(canvas, anchor, cluster.length, entry.isClosed);
     }
+  }
+
+  /// Affiche les coordonnées axiales `(q, r)` de la tuile posée en [coords],
+  /// en haut de sa cellule — diagnostic [Atoll] : permet de retrouver
+  /// visuellement, sans ambiguïté, la tuile exacte correspondant à une
+  /// coordonnée du log (`openEdges=[HexCoords(q, r)/side, ...]`), pour
+  /// vérifier si une arête signalée ouverte borde vraiment du vide ou une
+  /// tuile bien présente à l'écran.
+  void _renderDebugCoords(Canvas canvas, Offset center, HexCoords coords) {
+    _debugCoordsTextPainter.text = TextSpan(
+      text: '${coords.q},${coords.r}',
+      style: const TextStyle(
+        color: Color(0xFFFFFFFF),
+        fontSize: 9,
+        fontWeight: FontWeight.w600,
+        shadows: [Shadow(color: Color(0xFF000000), blurRadius: 2)],
+      ),
+    );
+    _debugCoordsTextPainter.layout();
+    final hexSize = kHexSize * zoom;
+    _debugCoordsTextPainter.paint(
+      canvas,
+      Offset(
+        center.dx - _debugCoordsTextPainter.width / 2,
+        center.dy - hexSize * kIsoScaleY * 0.55,
+      ),
+    );
   }
 
   /// Trace un trait rouge sur l'arête [side] (0-5, même convention que
@@ -856,6 +886,8 @@ class HexGridComponent extends PositionComponent {
   static final TextPainter _biomeSizeTextPainter =
       TextPainter(textDirection: TextDirection.ltr);
   static final TextPainter _biomeLockIconPainter =
+      TextPainter(textDirection: TextDirection.ltr);
+  static final TextPainter _debugCoordsTextPainter =
       TextPainter(textDirection: TextDirection.ltr);
 
   /// Glyphe cadenas (police MaterialIcons, même code point que

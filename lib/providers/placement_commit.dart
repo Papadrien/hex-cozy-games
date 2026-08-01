@@ -29,6 +29,12 @@ import 'reward_model.dart';
 import 'upgrade_feedback_provider.dart';
 import '../core/game_enums.dart';
 
+// TODO(debug Atoll) : seuil normal = 10 tuiles par palier de Bonus de
+// clôture. Abaissé temporairement à 3 pour multiplier les tests de
+// fermeture sans reconstruire un plateau de 10+ tuiles à chaque essai —
+// REMETTRE À 10 avant toute release.
+const int kDebugAtollClosureThreshold = 3;
+
 class LastPlacement {
   LastPlacement(this.coords, this.tile,
       {this.bonusTiles = 0,
@@ -484,6 +490,9 @@ void _recordPlacement(
   // accidentels exactement comme une vraie zone de 6 à 9 tuiles. Désormais
   // seules les zones ayant atteint 10 tuiles au moment de leur fermeture
   // rapportent quoi que ce soit.
+  // TODO(debug Atoll) : seuil temporairement abaissé de 10 à 3 pour
+  // multiplier les tests de fermeture — remettre à 10 une fois le
+  // diagnostic terminé (voir kDebugAtollClosureThreshold ci-dessous).
   final closureMult = effects.getClosureBonusTiles();
   var closureBonusTilesCount = 0;
   if (closureMult > 0) {
@@ -491,7 +500,8 @@ void _recordPlacement(
     final closures = grid.biomesJustClosed(pos, tile);
     var closureTiles = 0;
     for (final entry in closures) {
-      closureTiles += (entry.value ~/ 10) * closureMult;
+      closureTiles +=
+          (entry.value ~/ kDebugAtollClosureThreshold) * closureMult;
     }
     debugPrint('[Atoll] closureMult=$closureMult closures=$closures '
         '=> closureTiles=$closureTiles');
