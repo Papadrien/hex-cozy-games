@@ -27,6 +27,8 @@ import 'dart:ui'
         RRect,
         Radius,
         Rect,
+        Shadow,
+        StrokeCap,
         TextDirection;
 
 import 'package:flutter/animation.dart' show Curves;
