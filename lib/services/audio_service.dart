@@ -174,7 +174,7 @@ const int _kMusicFadeSteps = 12;
 /// ([OptionsState.sfxVolume]) pour le clic de bouton — plus discret que les
 /// autres bruitages (gain de pièces, pose de tuile) puisqu'il accompagne
 /// une simple interaction d'interface plutôt qu'un événement de jeu.
-const double _kButtonClickVolumeScale = 0.45;
+const double _kButtonClickVolumeScale = 0.36;
 
 /// Atténuation appliquée au son de pose de tuile ([AudioService.playTilePlaced])
 /// par rapport au réglage « Bruitages » — 10 % plus discret que le volume

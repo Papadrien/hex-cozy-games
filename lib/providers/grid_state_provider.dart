@@ -243,9 +243,11 @@ class GridState {
       final cluster = clusterAt(anchor, biome);
       if (cluster.isEmpty) return;
       visited.addAll(cluster);
-      final closed = _isClosed(cluster);
+      final missing = _missingNeighbors(cluster);
+      final closed = missing.isEmpty;
       debugPrint('[Atoll]   cluster biome=$biome anchor=$anchor '
-          'size=${cluster.length} closed=$closed');
+          'size=${cluster.length} closed=$closed'
+          '${closed ? '' : ' missing=$missing'}');
       if (closed) {
         closures.add(MapEntry(biome, cluster.length));
       }
@@ -270,13 +272,24 @@ class GridState {
     return closures;
   }
 
-  bool _isClosed(Set<HexCoords> cluster) {
+  bool _isClosed(Set<HexCoords> cluster) => _missingNeighbors(cluster).isEmpty;
+
+  /// Retourne les positions voisines manquantes (aucune tuile posée) pour
+  /// TOUTE tuile du [cluster] — liste vide ⇔ cluster fermé. Utilisé pour le
+  /// diagnostic [Atoll] : `closed=false` seul ne dit pas QUEL côté bloque la
+  /// fermeture, ce qui rendait le débogage des zones en anneau (atolls)
+  /// difficile à distinguer d'un vrai bug de parcours.
+  List<HexCoords> _missingNeighbors(Set<HexCoords> cluster) {
+    final missing = <HexCoords>[];
     for (final coords in cluster) {
       for (var side = 0; side < 6; side++) {
-        if (!placedTiles.containsKey(coords.neighbor(side))) return false;
+        final neighbor = coords.neighbor(side);
+        if (!placedTiles.containsKey(neighbor) && !missing.contains(neighbor)) {
+          missing.add(neighbor);
+        }
       }
     }
-    return true;
+    return missing;
   }
 
   /// Énumère TOUS les clusters connexes de biome présents
