@@ -292,6 +292,23 @@ class GridState {
     return missing;
   }
 
+  /// Version "par arête" de [_missingNeighbors] : au lieu de la position
+  /// voisine vide, renvoie la tuile et le côté (0-5) précis de CETTE tuile
+  /// qui n'a pas de voisin posé. Overlay debug [Atoll] : un côté surligné
+  /// qui borde en réalité une tuile bien posée à l'écran révèle un vrai bug
+  /// (désync coordonnées/état) plutôt qu'un trou légitime.
+  List<({HexCoords coords, int side})> _openEdges(Set<HexCoords> cluster) {
+    final edges = <({HexCoords coords, int side})>[];
+    for (final coords in cluster) {
+      for (var side = 0; side < 6; side++) {
+        if (!placedTiles.containsKey(coords.neighbor(side))) {
+          edges.add((coords: coords, side: side));
+        }
+      }
+    }
+    return edges;
+  }
+
   /// Énumère TOUS les clusters connexes de biome présents
   /// sur le plateau, fermés ou non — contrairement à [closedBiomes] (qui ne
   /// fait que les compter) ou [biomesJustClosed] (qui ne regarde que les
@@ -307,16 +324,25 @@ class GridState {
   /// quel que soit leur biome) — permet à l'overlay d'afficher un cadenas
   /// sur les zones déjà scellées plutôt que de ne montrer qu'une taille
   /// brute, ambiguë sur le fait qu'elle rapportera ou non un bonus. Et
-  /// [missing] : les positions voisines encore vides qui empêchent la
-  /// fermeture (vide si [isClosed]) — overlay debug [Atoll] pour repérer
-  /// visuellement les trous responsables d'une non-fermeture inattendue.
+  /// [openEdges] : les arêtes (tuile + côté) sans voisin posé, qui
+  /// empêchent la fermeture (vide si [isClosed]) — overlay debug [Atoll]
+  /// pour repérer visuellement, arête par arête, quel côté précis bloque
+  /// une fermeture inattendue.
   /// Toutes les couleurs sont éligibles, y compris [BiomeType.village]
   /// (voir Atoll : plus aucune couleur n'a de traitement à part).
-  List<({Set<HexCoords> cluster, bool isClosed, List<HexCoords> missing})>
-      get allBiomeClusters {
+  List<
+      ({
+        Set<HexCoords> cluster,
+        bool isClosed,
+        List<({HexCoords coords, int side})> openEdges
+      })> get allBiomeClusters {
     final visitedByBiome = <BiomeType, Set<HexCoords>>{};
-    final clusters =
-        <({Set<HexCoords> cluster, bool isClosed, List<HexCoords> missing})>[];
+    final clusters = <
+        ({
+          Set<HexCoords> cluster,
+          bool isClosed,
+          List<({HexCoords coords, int side})> openEdges
+        })>[];
     for (final entry in placedTiles.entries) {
       final uniqueBiomes = entry.value.sides.toSet();
       for (final biome in uniqueBiomes) {
@@ -325,9 +351,12 @@ class GridState {
         final cluster = clusterAt(entry.key, biome);
         if (cluster.isEmpty) continue;
         visited.addAll(cluster);
-        final missing = _missingNeighbors(cluster);
-        clusters.add(
-            (cluster: cluster, isClosed: missing.isEmpty, missing: missing));
+        final openEdges = _openEdges(cluster);
+        clusters.add((
+          cluster: cluster,
+          isClosed: openEdges.isEmpty,
+          openEdges: openEdges
+        ));
       }
     }
     return clusters;

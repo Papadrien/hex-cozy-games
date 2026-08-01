@@ -143,12 +143,17 @@ class HexGridComponent extends PositionComponent {
   /// tant que l'overlay reste actif — voir [render]. `isClosed` (voir
   /// [GridState.allBiomeClusters]) affiche un cadenas sur les zones déjà
   /// scellées, pour rendre visible sans ambiguïté lesquelles rapporteront
-  /// un bonus de clôture. `missing` (vide si `isClosed`) est utilisé pour
-  /// surligner en rouge, sur le plateau, les emplacements vides qui
-  /// empêchent la fermeture — diagnostic [Atoll] pour distinguer un vrai
-  /// trou d'un bug de parcours.
-  List<({Set<HexCoords> cluster, bool isClosed, List<HexCoords> missing})>
-      biomeSizeClusters = const [];
+  /// un bonus de clôture. `openEdges` (vide si `isClosed`) est utilisé pour
+  /// tracer un trait rouge sur l'arête précise (tuile + côté) qui n'a pas
+  /// de voisin posé — diagnostic [Atoll] pour distinguer un vrai trou d'un
+  /// bug de parcours : si le trait tombe sur une arête qui touche en
+  /// réalité une tuile bien visible à l'écran, c'est le signe d'un bug.
+  List<
+      ({
+        Set<HexCoords> cluster,
+        bool isClosed,
+        List<({HexCoords coords, int side})> openEdges
+      })> biomeSizeClusters = const [];
 
   /// Enfant dédié au dessin des pastilles de taille de zone, ajouté dans
   /// [onLoad] avec une priorité largement supérieure à celle de n'importe
@@ -794,13 +799,11 @@ class HexGridComponent extends PositionComponent {
   /// pour rester juste après un pan/zoom.
   void _renderBiomeSizeLabels(Canvas canvas) {
     final layout = _layout;
-    final missingCoords = <HexCoords>{};
     for (final entry in biomeSizeClusters) {
-      missingCoords.addAll(entry.missing);
-    }
-    for (final coords in missingCoords) {
-      final center = layout.hexToPixel(coords, isoScaleY: kIsoScaleY);
-      _renderMissingNeighborMarker(canvas, Offset(center.x, center.y));
+      for (final edge in entry.openEdges) {
+        final center = layout.hexToPixel(edge.coords, isoScaleY: kIsoScaleY);
+        _renderOpenEdge(canvas, Offset(center.x, center.y), edge.side);
+      }
     }
     for (final entry in biomeSizeClusters) {
       final cluster = entry.cluster;
@@ -817,33 +820,35 @@ class HexGridComponent extends PositionComponent {
     }
   }
 
-  /// Surligne en rouge translucide un emplacement voisin manquant
-  /// ([GridState.allBiomeClusters].missing) — diagnostic [Atoll] : rend
-  /// visible sur le plateau, sans ambiguïté, quelles cases vides bloquent
-  /// la fermeture d'une zone, pour trancher entre un vrai trou et un bug
-  /// de parcours/coordonnées.
-  static const Color _kMissingNeighborColor = Color(0xFFE53935);
+  /// Trace un trait rouge sur l'arête [side] (0-5, même convention que
+  /// [HexCoords.neighbor] et [HexTile.sides]) de la tuile centrée en
+  /// [center] — diagnostic [Atoll] pour une arête sans voisin posé (voir
+  /// [GridState.allBiomeClusters].openEdges). Mêmes formules d'angle que
+  /// [_sideEdgeMidpoint] pour rester cohérent avec l'indexation des côtés
+  /// utilisée ailleurs (aperçu des pièces bonus par côté connecté, etc.).
+  static const Color _kOpenEdgeColor = Color(0xFFE53935);
 
-  void _renderMissingNeighborMarker(Canvas canvas, Offset center) {
-    final corners = _isoHighlightCorners(center, scale: 0.9);
-    final path = Path()..moveTo(corners[0].dx, corners[0].dy);
-    for (var i = 1; i < 6; i++) {
-      path.lineTo(corners[i].dx, corners[i].dy);
-    }
-    path.close();
+  void _renderOpenEdge(Canvas canvas, Offset center, int side) {
+    final hexSize = kHexSize * zoom;
+    final angle0 = (60.0 * side - 90.0) * pi / 180.0;
+    final angle1 = (60.0 * (side + 1) - 90.0) * pi / 180.0;
 
-    canvas.drawPath(
-      path,
-      Paint()
-        ..color = _kMissingNeighborColor.withValues(alpha: 0.35)
-        ..style = PaintingStyle.fill,
+    final p0 = Offset(
+      center.dx + hexSize * cos(angle0),
+      center.dy + hexSize * sin(angle0) * kIsoScaleY,
     );
-    canvas.drawPath(
-      path,
+    final p1 = Offset(
+      center.dx + hexSize * cos(angle1),
+      center.dy + hexSize * sin(angle1) * kIsoScaleY,
+    );
+
+    canvas.drawLine(
+      p0,
+      p1,
       Paint()
-        ..color = _kMissingNeighborColor
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 2.0,
+        ..color = _kOpenEdgeColor
+        ..strokeWidth = 4.0
+        ..strokeCap = StrokeCap.round,
     );
   }
 
