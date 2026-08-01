@@ -306,6 +306,42 @@ void main() {
       expect(closures[0].value, 1);
     });
 
+    test(
+        'régression Atoll : ferme le cluster (utile pour le Bonus de '
+        'clôture) en le refermant avec une tuile d\'une couleur DIFFÉRENTE, '
+        'alors même que le cluster contient une tuile mixte avec un côté '
+        'd\'une autre couleur encore ouvert ailleurs (sans rapport avec la '
+        'fermeture)', () {
+      // T = (1,-1), tout-montagne, refermé par pos = (0,0) posée en
+      // "plaine" (aucune face montagne : fermeture avec une couleur
+      // différente de la zone).
+      // T2 = (2,-2), tuile MIXTE (montagne côté 3 seulement, face à T ;
+      // eau ailleurs) : son côté eau (0, NE) reste sans voisin — ne doit
+      // pas empêcher la fermeture du cluster montagne, qui ne dépend que
+      // du côté montagne de T2 (déjà comblé par T).
+      final grid = GridState(placedTiles: {
+        const HexCoords(1, -1): _mono(BiomeType.mountain), // T
+        const HexCoords(2, -2): HexTile(sides: [
+          BiomeType.water, BiomeType.water, BiomeType.water,
+          BiomeType.mountain, BiomeType.water, BiomeType.water,
+        ]), // T2, côté 3 (SW, face à T) = montagne
+        const HexCoords(2, -1): _mono(BiomeType.forest),
+        const HexCoords(1, 0): _mono(BiomeType.forest),
+        const HexCoords(0, -1): _mono(BiomeType.forest),
+        const HexCoords(1, -2): _mono(BiomeType.forest),
+        // pos = (0,0), posée tout-plaine — aucune face montagne.
+        const HexCoords(0, 0): _mono(BiomeType.plain),
+      });
+
+      final closures = grid.biomesJustClosed(
+          const HexCoords(0, 0), _mono(BiomeType.plain));
+
+      final mountainClosure =
+          closures.where((e) => e.key == BiomeType.mountain);
+      expect(mountainClosure, hasLength(1));
+      expect(mountainClosure.first.value, 2); // T + T2
+    });
+
     test('aucune fermeture si aucun cluster touché n\'est entièrement '
         'entouré', () {
       final grid = GridState(placedTiles: {
