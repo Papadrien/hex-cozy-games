@@ -24,6 +24,7 @@ import 'dart:ui'
         Paint,
         PaintingStyle,
         Path,
+        StrokeCap,
         RRect,
         Radius,
         Rect,
