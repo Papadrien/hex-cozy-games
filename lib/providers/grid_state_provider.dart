@@ -175,8 +175,10 @@ class GridState {
     return maxSize;
   }
 
-  /// Nombre de biomes fermés (groupes connexes dont chaque tuile a ses 6
-  /// voisins occupés). Toutes les couleurs sont éligibles, y compris
+  /// Nombre de biomes fermés (groupes connexes dont chaque côté appartenant
+  /// au biome du cluster a un voisin occupé — les côtés d'une autre couleur
+  /// portée par la même tuile ne comptent pas). Toutes les couleurs sont
+  /// éligibles, y compris
   /// [BiomeType.village] (harmonisé avec [biomesJustClosed] et
   /// [allBiomeClusters] : plus aucune couleur n'a de traitement à part).
   ///
@@ -197,7 +199,7 @@ class GridState {
         final cluster = clusterAt(entry.key, biome);
         if (cluster.isEmpty) continue;
         visited.addAll(cluster);
-        if (_isClosed(cluster)) closedCount++;
+        if (_isClosed(cluster, biome)) closedCount++;
       }
     }
     return closedCount;
@@ -213,8 +215,9 @@ class GridState {
   /// "biome" propre, ce ne sont que des identités visuelles au même titre
   /// les unes que les autres — voir Atoll).
   ///
-  /// La fermeture d'un cluster ne dépend que du remplissage de ses bordures
-  /// ([_isClosed] ne regarde que la présence des voisins, pas leur biome) —
+  /// La fermeture d'un cluster ne dépend que du remplissage des côtés qui
+  /// appartiennent à SON biome ([_isClosed]/[_openEdges] ignorent les côtés
+  /// d'une autre couleur portée par la même tuile — bug Atoll corrigé) —
   /// pas du biome de la tuile qui vient d'être posée. Une pose peut donc
   /// refermer un cluster voisin (ex. violet) alors que la tuile posée
   /// elle-même n'a aucune face violette : elle ne fait que combler le
@@ -248,7 +251,7 @@ class GridState {
       // que celle utilisée par l'overlay de rendu des arêtes ouvertes,
       // hex_grid_component.dart) pour qu'il soit IMPOSSIBLE que le log et
       // ce qui est tracé à l'écran divergent : une seule source de vérité.
-      final openEdges = _openEdges(cluster);
+      final openEdges = _openEdges(cluster, biome);
       final closed = openEdges.isEmpty;
       debugPrint('[Atoll]   cluster biome=$biome anchor=$anchor '
           'size=${cluster.length} closed=$closed'
@@ -278,19 +281,33 @@ class GridState {
     return closures;
   }
 
-  bool _isClosed(Set<HexCoords> cluster) => _openEdges(cluster).isEmpty;
+  bool _isClosed(Set<HexCoords> cluster, BiomeType biome) =>
+      _openEdges(cluster, biome).isEmpty;
 
-  /// Retourne, pour TOUTE tuile du [cluster], chaque côté (0-5) sans voisin
-  /// posé — liste vide ⇔ cluster fermé ([_isClosed]). Seule et unique
-  /// implémentation de ce calcul (auparavant dupliquée avec
-  /// `_missingNeighbors`, qui donnait la position voisine plutôt que
-  /// l'arête précise — supprimée pour qu'il n'y ait plus qu'une source de
-  /// vérité, utilisée à la fois par les logs [Atoll] et par l'overlay de
-  /// rendu des arêtes ouvertes, `hex_grid_component.dart`).
-  List<({HexCoords coords, int side})> _openEdges(Set<HexCoords> cluster) {
+  /// Retourne, pour TOUTE tuile du [cluster], chaque côté (0-5) qui
+  /// appartient bien au [biome] du cluster ET n'a pas de voisin posé — liste
+  /// vide ⇔ cluster fermé ([_isClosed]). Seule et unique implémentation de
+  /// ce calcul (auparavant dupliquée avec `_missingNeighbors`, qui donnait
+  /// la position voisine plutôt que l'arête précise — supprimée pour qu'il
+  /// n'y ait plus qu'une source de vérité, utilisée à la fois par les logs
+  /// [Atoll] et par l'overlay de rendu des arêtes ouvertes,
+  /// `hex_grid_component.dart`).
+  ///
+  /// [biome] est indispensable : une tuile peut porter jusqu'à 3 biomes
+  /// différents (Story 1.3), répartis en arcs de côtés. Un côté vide ne
+  /// bloque la fermeture QUE s'il fait partie du contour du [biome] suivi —
+  /// un côté vide en face d'une autre couleur de la même tuile ne fait pas
+  /// partie de la frontière de ce cluster et ne doit pas être compté (bug
+  /// Atoll signalé : tuile mixte rouge/bleu comptée comme ouverte côté
+  /// rouge à cause d'un côté bleu encore vide ailleurs sur la même tuile).
+  List<({HexCoords coords, int side})> _openEdges(
+      Set<HexCoords> cluster, BiomeType biome) {
     final edges = <({HexCoords coords, int side})>[];
     for (final coords in cluster) {
+      final tile = placedTiles[coords];
+      if (tile == null) continue;
       for (var side = 0; side < 6; side++) {
+        if (tile.sides[side] != biome) continue;
         if (!placedTiles.containsKey(coords.neighbor(side))) {
           edges.add((coords: coords, side: side));
         }
@@ -310,8 +327,9 @@ class GridState {
   /// autres.
   ///
   /// Chaque entrée porte aussi [isClosed] (même définition que
-  /// [_isClosed] : les 6 voisins de CHAQUE tuile du cluster sont occupés,
-  /// quel que soit leur biome) — permet à l'overlay d'afficher un cadenas
+  /// [_isClosed] : chaque côté du cluster appartenant à SON biome a un
+  /// voisin occupé — les côtés d'une autre couleur sur une tuile mixte ne
+  /// comptent pas) — permet à l'overlay d'afficher un cadenas
   /// sur les zones déjà scellées plutôt que de ne montrer qu'une taille
   /// brute, ambiguë sur le fait qu'elle rapportera ou non un bonus. Et
   /// [openEdges] : les arêtes (tuile + côté) sans voisin posé, qui
@@ -341,7 +359,7 @@ class GridState {
         final cluster = clusterAt(entry.key, biome);
         if (cluster.isEmpty) continue;
         visited.addAll(cluster);
-        final openEdges = _openEdges(cluster);
+        final openEdges = _openEdges(cluster, biome);
         clusters.add((
           cluster: cluster,
           isClosed: openEdges.isEmpty,

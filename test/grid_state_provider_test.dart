@@ -271,6 +271,41 @@ void main() {
       expect(closures[0].value, 1);
     });
 
+    test(
+        'régression Atoll : ferme le cluster malgré un côté encore vide '
+        'sur la même tuile, tant que ce côté appartient à une AUTRE '
+        'couleur de la tuile mixte (bug signalé : côté eau ouvert compté '
+        'à tort comme bloquant la fermeture du côté montagne)', () {
+      // (0,0) est une tuile mixte : côtés 0-3 (NE/E/SE/SW) montagne,
+      // côtés 4-5 (W/NW) eau. Les 4 côtés montagne ont tous un voisin
+      // posé ; les 2 côtés eau restent vides (pas de voisin en (-1,0) ni
+      // (0,-1)) — sans rapport avec la frontière du cluster montagne.
+      final grid = GridState(placedTiles: {
+        const HexCoords(1, -1): _mono(BiomeType.forest), // NE, side 0
+        const HexCoords(1, 0): _mono(BiomeType.forest), // E, side 1
+        const HexCoords(0, 1): _mono(BiomeType.forest), // SE, side 2
+        const HexCoords(-1, 1): _mono(BiomeType.forest), // SW, side 3
+        // (-1, 0) W (side 4) et (0, -1) NW (side 5) volontairement vides.
+        const HexCoords(0, 0): HexTile(sides: [
+          BiomeType.mountain,
+          BiomeType.mountain,
+          BiomeType.mountain,
+          BiomeType.mountain,
+          BiomeType.water,
+          BiomeType.water,
+        ]),
+      });
+
+      final closures = grid.biomesJustClosed(
+        const HexCoords(0, 0),
+        grid.tileAt(const HexCoords(0, 0))!,
+      );
+
+      expect(closures, hasLength(1));
+      expect(closures[0].key, BiomeType.mountain);
+      expect(closures[0].value, 1);
+    });
+
     test('aucune fermeture si aucun cluster touché n\'est entièrement '
         'entouré', () {
       final grid = GridState(placedTiles: {

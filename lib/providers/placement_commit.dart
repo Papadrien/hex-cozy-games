@@ -481,15 +481,16 @@ void _recordPlacement(
   // fermer après cette pose et ajoute (taille ÷ 10) × niveau tuiles bonus.
   //
   // Correctif régression Atoll : PAS de plancher garanti en dessous de 10
-  // tuiles. [GridState._isClosed] ne vérifie que la présence d'une tuile
-  // voisine, pas son biome — un cluster peut donc se retrouver "fermé" en
-  // ne faisant qu'1 seule tuile, dès qu'il est encerclé par des tuiles de
-  // n'importe quelle couleur (fréquent une fois le plateau bien rempli).
-  // Avant ce correctif, `ratioBonus == 0` retombait quand même sur
-  // [closureMult] tuiles garanties, ce qui récompensait ces micro-clusters
-  // accidentels exactement comme une vraie zone de 6 à 9 tuiles. Désormais
-  // seules les zones ayant atteint 10 tuiles au moment de leur fermeture
-  // rapportent quoi que ce soit.
+  // tuiles. Avant correctif, `ratioBonus == 0` retombait quand même sur
+  // [closureMult] tuiles garanties, ce qui récompensait tout micro-cluster
+  // "fermé" (au sens large) exactement comme une vraie zone de 6 à 9
+  // tuiles. Désormais seules les zones ayant atteint 10 tuiles au moment de
+  // leur fermeture rapportent quoi que ce soit.
+  // (Note : depuis le correctif [GridState._openEdges] qui filtre par
+  // biome, un cluster n'est plus jamais compté "fermé" à cause d'un côté
+  // d'une autre couleur encore vide sur la même tuile — mais ce plancher à
+  // zéro reste utile comme filet de sécurité pour les vrais micro-clusters
+  // légitimes.)
   // TODO(debug Atoll) : seuil temporairement abaissé de 10 à 3 pour
   // multiplier les tests de fermeture — remettre à 10 une fois le
   // diagnostic terminé (voir kDebugAtollClosureThreshold ci-dessous).
