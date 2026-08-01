@@ -143,8 +143,12 @@ class HexGridComponent extends PositionComponent {
   /// tant que l'overlay reste actif — voir [render]. `isClosed` (voir
   /// [GridState.allBiomeClusters]) affiche un cadenas sur les zones déjà
   /// scellées, pour rendre visible sans ambiguïté lesquelles rapporteront
-  /// un bonus de clôture.
-  List<({Set<HexCoords> cluster, bool isClosed})> biomeSizeClusters = const [];
+  /// un bonus de clôture. `missing` (vide si `isClosed`) est utilisé pour
+  /// surligner en rouge, sur le plateau, les emplacements vides qui
+  /// empêchent la fermeture — diagnostic [Atoll] pour distinguer un vrai
+  /// trou d'un bug de parcours.
+  List<({Set<HexCoords> cluster, bool isClosed, List<HexCoords> missing})>
+      biomeSizeClusters = const [];
 
   /// Enfant dédié au dessin des pastilles de taille de zone, ajouté dans
   /// [onLoad] avec une priorité largement supérieure à celle de n'importe
@@ -790,6 +794,14 @@ class HexGridComponent extends PositionComponent {
   /// pour rester juste après un pan/zoom.
   void _renderBiomeSizeLabels(Canvas canvas) {
     final layout = _layout;
+    final missingCoords = <HexCoords>{};
+    for (final entry in biomeSizeClusters) {
+      missingCoords.addAll(entry.missing);
+    }
+    for (final coords in missingCoords) {
+      final center = layout.hexToPixel(coords, isoScaleY: kIsoScaleY);
+      _renderMissingNeighborMarker(canvas, Offset(center.x, center.y));
+    }
     for (final entry in biomeSizeClusters) {
       final cluster = entry.cluster;
       if (cluster.isEmpty) continue;
@@ -803,6 +815,36 @@ class HexGridComponent extends PositionComponent {
       final anchor = Offset(sumX / cluster.length, sumY / cluster.length);
       _drawBiomeSizeBadge(canvas, anchor, cluster.length, entry.isClosed);
     }
+  }
+
+  /// Surligne en rouge translucide un emplacement voisin manquant
+  /// ([GridState.allBiomeClusters].missing) — diagnostic [Atoll] : rend
+  /// visible sur le plateau, sans ambiguïté, quelles cases vides bloquent
+  /// la fermeture d'une zone, pour trancher entre un vrai trou et un bug
+  /// de parcours/coordonnées.
+  static const Color _kMissingNeighborColor = Color(0xFFE53935);
+
+  void _renderMissingNeighborMarker(Canvas canvas, Offset center) {
+    final corners = _isoHighlightCorners(center, scale: 0.9);
+    final path = Path()..moveTo(corners[0].dx, corners[0].dy);
+    for (var i = 1; i < 6; i++) {
+      path.lineTo(corners[i].dx, corners[i].dy);
+    }
+    path.close();
+
+    canvas.drawPath(
+      path,
+      Paint()
+        ..color = _kMissingNeighborColor.withValues(alpha: 0.35)
+        ..style = PaintingStyle.fill,
+    );
+    canvas.drawPath(
+      path,
+      Paint()
+        ..color = _kMissingNeighborColor
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.0,
+    );
   }
 
   static final TextPainter _biomeSizeTextPainter =

@@ -306,12 +306,17 @@ class GridState {
   /// [_isClosed] : les 6 voisins de CHAQUE tuile du cluster sont occupés,
   /// quel que soit leur biome) — permet à l'overlay d'afficher un cadenas
   /// sur les zones déjà scellées plutôt que de ne montrer qu'une taille
-  /// brute, ambiguë sur le fait qu'elle rapportera ou non un bonus.
+  /// brute, ambiguë sur le fait qu'elle rapportera ou non un bonus. Et
+  /// [missing] : les positions voisines encore vides qui empêchent la
+  /// fermeture (vide si [isClosed]) — overlay debug [Atoll] pour repérer
+  /// visuellement les trous responsables d'une non-fermeture inattendue.
   /// Toutes les couleurs sont éligibles, y compris [BiomeType.village]
   /// (voir Atoll : plus aucune couleur n'a de traitement à part).
-  List<({Set<HexCoords> cluster, bool isClosed})> get allBiomeClusters {
+  List<({Set<HexCoords> cluster, bool isClosed, List<HexCoords> missing})>
+      get allBiomeClusters {
     final visitedByBiome = <BiomeType, Set<HexCoords>>{};
-    final clusters = <({Set<HexCoords> cluster, bool isClosed})>[];
+    final clusters =
+        <({Set<HexCoords> cluster, bool isClosed, List<HexCoords> missing})>[];
     for (final entry in placedTiles.entries) {
       final uniqueBiomes = entry.value.sides.toSet();
       for (final biome in uniqueBiomes) {
@@ -320,7 +325,9 @@ class GridState {
         final cluster = clusterAt(entry.key, biome);
         if (cluster.isEmpty) continue;
         visited.addAll(cluster);
-        clusters.add((cluster: cluster, isClosed: _isClosed(cluster)));
+        final missing = _missingNeighbors(cluster);
+        clusters.add(
+            (cluster: cluster, isClosed: missing.isEmpty, missing: missing));
       }
     }
     return clusters;
