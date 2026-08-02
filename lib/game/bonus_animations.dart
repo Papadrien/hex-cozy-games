@@ -203,7 +203,7 @@ class CoinComponent extends PositionComponent {
   /// Délai avant que la pièce n'apparaisse et ne s'envole — permet
   /// d'échelonner plusieurs pièces issues d'améliorations différentes
   /// déclenchées sur la même pose (voir
-  /// [HexGridComponent.showCoinParticleFrom]), plutôt qu'un envol
+  /// [UpgradeFxOverlayGame.spawnCoin]), plutôt qu'un envol
   /// simultané qui les rendrait indiscernables.
   final double _startDelay;
   double _delayElapsed = 0.0;

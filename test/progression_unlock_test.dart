@@ -62,18 +62,18 @@ void main() {
       addTearDown(container.dispose);
       final db = container.read(appDatabaseProvider);
 
-      // Amélioration verrouillée dont la condition est la quête 'coins_2000'
+      // Amélioration verrouillée dont la condition est la quête 'coins_1000'
       // (voir seed_data.dart) — non complétée par défaut.
       expect(await _isUnlocked(db, 'starting_tiles_plus'), isFalse);
 
       // Marquer la quête existante comme complétée
       await (db.update(db.permanentQuests)
-            ..where((q) => q.id.equals('coins_2000')))
+            ..where((q) => q.id.equals('coins_1000')))
           .write(const PermanentQuestsCompanion(isCompleted: Value(true)));
 
       await container
           .read(progressionServiceProvider)
-          .checkUnlockForQuest('coins_2000');
+          .checkUnlockForQuest('coins_1000');
 
       expect(await _isUnlocked(db, 'starting_tiles_plus'), isTrue);
     });
@@ -84,7 +84,7 @@ void main() {
       addTearDown(container.dispose);
       final db = container.read(appDatabaseProvider);
 
-      // 'coins_2000' existe déjà dans les seed data, non complétée par défaut
+      // 'coins_1000' existe déjà dans les seed data, non complétée par défaut
       await container.read(progressionServiceProvider).checkUnlocks();
 
       expect(await _isUnlocked(db, 'starting_tiles_plus'), isFalse);

@@ -28,6 +28,7 @@ import '../core/strings.dart';
 import '../game/hex_board_game.dart';
 import '../game/hex_coords.dart';
 import '../game/hex_tile.dart';
+import '../game/upgrade_fx_overlay_game.dart';
 import '../providers/end_game_provider.dart';
 import '../providers/grid_state_provider.dart';
 import '../providers/pause_provider.dart';
@@ -65,6 +66,13 @@ class GameScreen extends ConsumerStatefulWidget {
 
 class _GameScreenState extends ConsumerState<GameScreen> {
   late final HexBoardGame _game;
+
+  /// Canevas Flame superposé au HUD (voir `upgrade_fx_overlay_game.dart`) —
+  /// reçoit les particules déclenchées par une amélioration (Combo+, Bonus
+  /// de clôture, Pièces+...) pour qu'elles restent visibles par-dessus
+  /// l'encart des améliorations actives et la pile de tuiles, plutôt que
+  /// sous eux comme si elles étaient ajoutées au plateau ([_game]).
+  final UpgradeFxOverlayGame _overlayFx = UpgradeFxOverlayGame();
   Timer? _clearRewardTimer;
   double _rewardOpacity = 0.0;
 
@@ -101,6 +109,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
         });
       },
     );
+    _game.overlayFx = _overlayFx;
     _game.getBonusFlyTarget = () => _stackHudFlyTarget();
     // Point de départ de la particule dédiée Combo+ (voir
     // [HexBoardGame.spawnComboBonusParticle]) : la position écran de
@@ -145,9 +154,9 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     // fixe. C'est désormais le seul déclencheur du pulse doré de la pile :
     // on ne réagit plus à la pose elle-même (via [lastReward]) pour éviter
     // une double réaction (pose + arrivée de la particule).
-    _game.onBonusImpact = () {
+    _game.onBonusImpact = (index) {
       _tileStackImpactKey.currentState?.pulse(0.5);
-      unawaited(ref.read(hapticsServiceProvider).bonusTileArrived());
+      unawaited(ref.read(hapticsServiceProvider).bonusTileArrived(index));
       unawaited(ref.read(audioServiceProvider).playTileGained());
     };
     // Une seule pièce sur N déclenche ce callback (voir
@@ -510,6 +519,17 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                 _RewardTag(opacity: _rewardOpacity, isCoin: false),
               ],
             ),
+          ),
+
+          // ── Canevas superposé au HUD — particules d'amélioration ────────
+          // Doit rester APRÈS l'encart des améliorations actives et la pile
+          // de tuiles ci-dessus (peint par-dessus, donc visible au-dessus)
+          // mais avant les modales Pause/Résultats ci-dessous (qui doivent
+          // rester au sommet de tout). `IgnorePointer` : ce canevas ne sert
+          // qu'à peindre des particules, il ne doit jamais intercepter de
+          // geste destiné aux widgets qu'il recouvre.
+          IgnorePointer(
+            child: GameWidget(game: _overlayFx),
           ),
 
           // ── Modale Pause ──────────────────────────────────────────────────

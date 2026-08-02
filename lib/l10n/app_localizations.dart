@@ -398,6 +398,12 @@ abstract class AppLocalizations {
   /// **'Connection streak'**
   String get quests_category_streak;
 
+  /// No description provided for @quests_category_daily.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily quests'**
+  String get quests_category_daily;
+
   /// No description provided for @quests_status_active.
   ///
   /// In en, this message translates to:

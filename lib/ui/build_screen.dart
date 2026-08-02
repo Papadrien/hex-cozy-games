@@ -620,7 +620,7 @@ class _LevelComparison extends StatelessWidget {
     final levels = upgradeAllLevelEffects(UpgradeEffectType.fromDb(upgrade.effectType));
     final level = upgrade.currentLevel;
     final currentLabel = levels[level.clamp(0, levels.length - 1)];
-    final isMax = level >= kUpgradeCosts.length || level + 1 >= levels.length;
+    final isMax = level >= upgradeCostsFor(upgrade).length || level + 1 >= levels.length;
 
     if (isMax) {
       return Row(
@@ -779,7 +779,7 @@ class _UpgradeButtonState extends ConsumerState<_UpgradeButton> {
     final upgrade = widget.upgrade;
     final totalCoins = widget.totalCoins;
     final levels = upgradeAllLevelEffects(UpgradeEffectType.fromDb(upgrade.effectType));
-    final isMaxLevel = upgrade.currentLevel >= kUpgradeCosts.length ||
+    final isMaxLevel = upgrade.currentLevel >= upgradeCostsFor(upgrade).length ||
         upgrade.currentLevel + 1 >= levels.length;
 
     if (isMaxLevel) {
@@ -798,7 +798,7 @@ class _UpgradeButtonState extends ConsumerState<_UpgradeButton> {
       );
     }
 
-    final cost = kUpgradeCosts[upgrade.currentLevel];
+    final cost = upgradeCostsFor(upgrade)[upgrade.currentLevel];
     final canAfford = totalCoins >= cost;
 
     if (_confirming) {

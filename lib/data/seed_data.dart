@@ -133,8 +133,8 @@ final _permanentQuests = [
     category: QuestCategory.coinsEarned.dbValue,
     description: 'Gagner 1000 pièces au total',
     targetValue: 1000,
-    rewardType: RewardType.coins.dbValue,
-    rewardValue: 100,
+    rewardType: RewardType.upgradeUnlock.dbValue,
+    rewardValue: 0,
     nextQuestId: const Value('coins_2000'),
   ),
   PermanentQuestsCompanion.insert(
@@ -151,8 +151,8 @@ final _permanentQuests = [
     category: QuestCategory.coinsEarned.dbValue,
     description: 'Gagner 3000 pièces au total',
     targetValue: 3000,
-    rewardType: RewardType.upgradeUnlock.dbValue,
-    rewardValue: 0,
+    rewardType: RewardType.coins.dbValue,
+    rewardValue: 500,
     nextQuestId: const Value('coins_5000'),
   ),
   PermanentQuestsCompanion.insert(
@@ -160,8 +160,8 @@ final _permanentQuests = [
     category: QuestCategory.coinsEarned.dbValue,
     description: 'Gagner 5000 pièces au total',
     targetValue: 5000,
-    rewardType: RewardType.upgradeUnlock.dbValue,
-    rewardValue: 0,
+    rewardType: RewardType.coins.dbValue,
+    rewardValue: 1000,
   ),
 
   // "best_game_coins" — record du nombre de pièces gagnées en une seule
@@ -474,8 +474,8 @@ final _upgrades = [
     id: 'starting_tiles_plus',
     name: 'Cargaison',
     effectType: UpgradeEffectType.startingTilesBonus.dbValue,
-    unlockConditionType: 'coins_2000',
-    unlockConditionValue: 2000,
+    unlockConditionType: 'coins_1000',
+    unlockConditionValue: 1000,
   ),
   UpgradesCompanion.insert(
     id: 'doubled_connections',
@@ -488,8 +488,8 @@ final _upgrades = [
     id: 'coins_plus',
     name: 'Butin',
     effectType: UpgradeEffectType.coinsPercentBonus.dbValue,
-    unlockConditionType: 'coins_3000',
-    unlockConditionValue: 3000,
+    unlockConditionType: 'coins_2000',
+    unlockConditionValue: 2000,
   ),
   UpgradesCompanion.insert(
     id: 'villages_plus',

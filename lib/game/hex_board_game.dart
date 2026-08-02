@@ -49,12 +49,14 @@ import '../providers/placement_provider.dart';
 import '../providers/placement_commit.dart';
 import '../providers/second_chance_ops.dart';
 import '../providers/second_chance_provider.dart';
+import '../core/constants.dart' show kHexSize;
 import '../services/audio_service.dart';
 import '../services/haptics_service.dart';
 import 'bonus_animations.dart' show kBonusIconStaggerInterval;
 import 'hex_coords.dart';
 import 'hex_grid_component.dart';
 import 'hex_tile.dart';
+import 'upgrade_fx_overlay_game.dart';
 
 class HexBoardGame extends FlameGame
     with MultiTouchTapDetector {
@@ -64,6 +66,15 @@ class HexBoardGame extends FlameGame
   final void Function(double dx, double dy)? onCameraMove;
 
   final ProviderContainer _container;
+
+  /// Canevas Flame superposé au HUD (voir `upgrade_fx_overlay_game.dart`),
+  /// branché depuis `game_screen.dart` juste après sa création. Reçoit les
+  /// particules dont l'origine ou la destination est une icône du HUD
+  /// (améliorations actives, compteur de pièces, pile de tuiles) — voir
+  /// [spawnComboBonusParticle], [spawnConnectionBonusParticle],
+  /// [spawnClosureBonusParticle] et [spawnCoinBonusParticles] — pour
+  /// qu'elles restent visibles par-dessus ces widgets plutôt que sous eux.
+  UpgradeFxOverlayGame? overlayFx;
 
   /// Retourne la position (coordonnées jeu) vers laquelle les tuiles bonus
   /// doivent voler après placement. Null = animation stationnaire par défaut.
@@ -100,7 +111,27 @@ class HexBoardGame extends FlameGame
   /// Appelé à chaque fois qu'une icône de tuile bonus arrive sur la pile
   /// HUD — permet au widget Flutter du HUD de faire "pop" le compteur en
   /// rythme avec l'échelonnement des icônes plutôt qu'un seul pop global.
-  void Function()? onBonusImpact;
+  /// [index] est le rang (1-based) de cette particule dans la série de
+  /// gains de LA POSE en cours, toutes sources confondues (bonus de
+  /// connexion, Combo+, Bonus de clôture, Tuile bonus) — voir
+  /// [_bonusImpactCounter] — pour permettre une vibration dont
+  /// l'intensité croît avec le nombre de tuiles déjà arrivées (voir
+  /// [HapticsService.bonusTileArrived]).
+  void Function(int index)? onBonusImpact;
+
+  /// Nombre de particules de tuile bonus déjà arrivées sur CETTE pose,
+  /// toutes sources confondues — remis à zéro à chaque nouvelle pose (voir
+  /// [placeTileOnFlame]) et incrémenté par [_handleBonusImpact], le seul
+  /// point de passage de toutes les particules de tuile bonus (voir ses
+  /// usages ci-dessous) afin que l'ordre d'arrivée reste cohérent même si
+  /// plusieurs sources (connexion + Combo+ + Bonus de clôture...) se
+  /// déclenchent sur la même pose.
+  int _bonusImpactCounter = 0;
+
+  void _handleBonusImpact() {
+    _bonusImpactCounter++;
+    onBonusImpact?.call(_bonusImpactCounter);
+  }
 
   /// Appelé à chaque fois qu'une pièce (côté connecté) termine son vol vers
   /// le compteur de pièces — c'est ce callback, et non la pose de la tuile,
@@ -290,13 +321,19 @@ class HexBoardGame extends FlameGame
     int bonusTiles, {
     int bonusCoins = 0,
   }) {
+    // Remis à zéro AVANT tout envol de particule de cette pose (voir
+    // [_bonusImpactCounter]) : Combo+/Bonus de clôture/Tuile bonus
+    // (spawn...Particle ci-dessous) sont déclenchés juste après, dans le
+    // même appel synchrone à confirmPlacement — voir
+    // `placement_commit.dart`.
+    _bonusImpactCounter = 0;
     _grid?.placeTile(coords, tile,
         connectedSides: connectedSides);
     if (connectedSides.isNotEmpty || bonusTiles > 0) {
       _grid?.showRewardIndicators(coords, connectedSides,
           bonusTiles: bonusTiles,
           bonusFlyTarget: getBonusFlyTarget?.call(),
-          onBonusImpact: onBonusImpact,
+          onBonusImpact: _handleBonusImpact,
           onCoinImpact: onCoinImpact);
     }
   }
@@ -306,15 +343,17 @@ class HexBoardGame extends FlameGame
   /// Combo+ n'est liée à aucun côté de la tuile posée — sa particule part
   /// donc de l'icône de l'amélioration dans l'encart HUD ([getComboUpgradeOrigin])
   /// plutôt que de la tuile, avec la même animation d'envol vers la pile
-  /// (voir [HexGridComponent.showBonusParticleFrom]), y compris le délai
+  /// (voir [UpgradeFxOverlayGame.spawnBonusTiles]), y compris le délai
   /// d'attente de [coinCount] sons `coin.mp3` avant l'envol proprement dit
   /// — mêmes caractéristiques que la tuile bonus posée lors d'un placement.
   void spawnComboBonusParticle(int count, {int coinCount = 0}) {
     final origin = getComboUpgradeOrigin?.call();
     if (origin == null) return;
-    _grid?.showBonusParticleFrom(origin, count,
+    overlayFx?.spawnBonusTiles(origin, count,
+        hexSize: kHexSize * (_grid?.zoom ?? 1.0),
+        staggerInterval: kBonusIconStaggerInterval,
         flyTarget: getBonusFlyTarget?.call(),
-        onImpact: onBonusImpact,
+        onImpact: _handleBonusImpact,
         coinCount: coinCount);
   }
 
@@ -329,9 +368,11 @@ class HexBoardGame extends FlameGame
   void spawnConnectionBonusParticle(int count, {int coinCount = 0}) {
     final origin = getConnectionBonusUpgradeOrigin?.call();
     if (origin == null) return;
-    _grid?.showBonusParticleFrom(origin, count,
+    overlayFx?.spawnBonusTiles(origin, count,
+        hexSize: kHexSize * (_grid?.zoom ?? 1.0),
+        staggerInterval: kBonusIconStaggerInterval,
         flyTarget: getBonusFlyTarget?.call(),
-        onImpact: onBonusImpact,
+        onImpact: _handleBonusImpact,
         coinCount: coinCount);
   }
 
@@ -345,9 +386,11 @@ class HexBoardGame extends FlameGame
   void spawnClosureBonusParticle(int count, {int coinCount = 0}) {
     final origin = getClosureBonusUpgradeOrigin?.call();
     if (origin == null) return;
-    _grid?.showBonusParticleFrom(origin, count,
+    overlayFx?.spawnBonusTiles(origin, count,
+        hexSize: kHexSize * (_grid?.zoom ?? 1.0),
+        staggerInterval: kBonusIconStaggerInterval,
         flyTarget: getBonusFlyTarget?.call(),
-        onImpact: onBonusImpact,
+        onImpact: _handleBonusImpact,
         coinCount: coinCount);
   }
 
@@ -371,8 +414,10 @@ class HexBoardGame extends FlameGame
       final origin = getCoinUpgradeOrigin?.call(entry.key);
       if (origin == null) continue;
       for (var c = 0; c < entry.value; c++) {
-        _grid?.showCoinParticleFrom(
+        overlayFx?.spawnCoin(
           origin,
+          flyTarget: HexGridComponent.coinCounterTarget,
+          hexSize: kHexSize * (_grid?.zoom ?? 1.0),
           startDelay: i * kBonusIconStaggerInterval,
           onImpact: () => onCoinImpact?.call(1),
         );

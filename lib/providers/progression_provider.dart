@@ -77,6 +77,29 @@ enum UpgradeResult {
 /// des packs de la boutique dans [kCoinPacks]).
 const kUpgradeCosts = [5000, 10000];
 
+/// Coûts de montée en niveau des améliorations de gain de pièces par
+/// couleur de biome (Vert/Bleu/Jaune/Violet) — [kUpgradeCosts] divisé par
+/// 10, mêmes paliers (niveau 1→2, niveau 2→3).
+const kClusterColorUpgradeCosts = [500, 1000];
+
+/// Types d'effet concernés par [kClusterColorUpgradeCosts].
+const _kClusterColorEffectTypes = {
+  UpgradeEffectType.forestCoinsPercentBonus,
+  UpgradeEffectType.waterCoinsPercentBonus,
+  UpgradeEffectType.plainCoinsPercentBonus,
+  UpgradeEffectType.mountainCoinsPercentBonus,
+};
+
+/// Coûts de montée en niveau applicables à [upgrade] — [kClusterColorUpgradeCosts]
+/// pour les améliorations de gain de pièces par couleur, [kUpgradeCosts]
+/// pour toutes les autres.
+List<int> upgradeCostsFor(UpgradeRow upgrade) {
+  final effectType = UpgradeEffectType.fromDb(upgrade.effectType);
+  return _kClusterColorEffectTypes.contains(effectType)
+      ? kClusterColorUpgradeCosts
+      : kUpgradeCosts;
+}
+
 // ── Service ──────────────────────────────────────────────────────────────
 
 /// Vérifie et applique les déblocages d'améliorations selon les conditions
@@ -175,11 +198,11 @@ class ProgressionService {
     if (upgrade == null || !upgrade.isUnlocked) {
       return UpgradeResult.maxLevelReached;
     }
-    if (upgrade.currentLevel >= kUpgradeCosts.length) {
+    if (upgrade.currentLevel >= upgradeCostsFor(upgrade).length) {
       return UpgradeResult.maxLevelReached;
     }
 
-    final cost = kUpgradeCosts[upgrade.currentLevel];
+    final cost = upgradeCostsFor(upgrade)[upgrade.currentLevel];
 
     return db.transaction<UpgradeResult>(() async {
       final enough = await spendCoins(db, cost);

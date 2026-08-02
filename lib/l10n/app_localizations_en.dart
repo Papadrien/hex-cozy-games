@@ -168,6 +168,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get quests_category_streak => 'Connection streak';
 
   @override
+  String get quests_category_daily => 'Daily quests';
+
+  @override
   String get quests_status_active => 'Active';
 
   @override

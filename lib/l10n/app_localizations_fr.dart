@@ -170,6 +170,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get quests_category_streak => 'Série de connexions';
 
   @override
+  String get quests_category_daily => 'Quêtes quotidiennes';
+
+  @override
   String get quests_status_active => 'En cours';
 
   @override

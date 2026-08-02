@@ -89,6 +89,8 @@ class _QuestsList extends StatelessWidget {
       children: [
         _QuestsSummaryBar(completed: completedCount, total: quests.length),
         const SizedBox(height: 20),
+        const _DailyQuestsSection(),
+        const SizedBox(height: 24),
         if (grouped.containsKey(QuestCategory.coinsEarned.dbValue))
           _CategorySection(
             iconWidget: const CoinIcon(size: 18),
@@ -438,6 +440,169 @@ class _CategorySection extends StatelessWidget {
               ),
             )),
       ],
+    );
+  }
+}
+
+/// Section des quêtes quotidiennes (Story 2.4a/2.4b) — jusqu'ici calculées
+/// et suivies en base mais jamais affichées : ni la progression ni les
+/// récompenses accordées n'étaient visibles pour le joueur. Contrairement
+/// aux quêtes permanentes, la récompense est accordée automatiquement dès
+/// que l'objectif est atteint ([QuestService._grantDailyReward]) — pas de
+/// claim manuel ni de point rouge ici.
+class _DailyQuestsSection extends ConsumerWidget {
+  const _DailyQuestsSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final dailyQuests = ref.watch(todayDailyQuestsProvider);
+    if (dailyQuests.isEmpty) return const SizedBox.shrink();
+
+    final completedCount = dailyQuests.where((q) => q.isCompleted).length;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: kQuestBlue.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.today, color: kQuestBlue, size: 18),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  context.tr.quests_category_daily,
+                  style: const TextStyle(
+                    color: kQuestBlue,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.2,
+                  ),
+                ),
+              ),
+              Text(
+                '$completedCount/${dailyQuests.length}',
+                style: TextStyle(
+                  color: kQuestBlue.withValues(alpha: 0.85),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 10),
+        ...dailyQuests.map((q) => Padding(
+              key: ValueKey(q.def.id),
+              padding: const EdgeInsets.only(bottom: 8),
+              child: _DailyQuestCard(quest: q, color: kQuestBlue),
+            )),
+      ],
+    );
+  }
+}
+
+/// Carte d'une quête quotidienne — pas de tap/claim : la récompense est
+/// déjà accordée automatiquement dès que `isCompleted` passe à vrai.
+class _DailyQuestCard extends StatelessWidget {
+  const _DailyQuestCard({required this.quest, required this.color});
+
+  final DailyQuestWithProgress quest;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final progress = quest.def.targetValue > 0
+        ? (quest.currentValue / quest.def.targetValue).clamp(0.0, 1.0)
+        : 0.0;
+
+    return GlassContainer(
+      borderRadius: 14,
+      tintColor: kGlassBlue,
+      tintAlpha: 0.22,
+      borderColor: quest.isCompleted
+          ? color.withValues(alpha: 0.5)
+          : kGlassBlueBorder,
+      padding: const EdgeInsets.all(14),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(
+              quest.isCompleted ? Icons.check_circle : Icons.flag,
+              color: quest.isCompleted ? color : Colors.white,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  quest.def.description,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                if (!quest.isCompleted)
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: LinearProgressIndicator(
+                      value: progress,
+                      backgroundColor: Colors.white.withValues(alpha: 0.1),
+                      valueColor: AlwaysStoppedAnimation<Color>(color),
+                      minHeight: 6,
+                    ),
+                  ),
+                if (!quest.isCompleted) const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Expanded(
+                      child: quest.isCompleted
+                          ? Text(
+                              context.tr.quests_status_completed,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: color,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            )
+                          : Text(
+                              '${quest.currentValue}/${quest.def.targetValue}',
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.7),
+                                fontSize: 12,
+                              ),
+                            ),
+                    ),
+                    const SizedBox(width: 8),
+                    _RewardBadge(
+                      rewardType: quest.def.rewardType,
+                      rewardValue: quest.def.rewardValue,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

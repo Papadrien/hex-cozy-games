@@ -94,27 +94,49 @@ class HapticsService {
     }
   }
 
-  /// Retour spécifique lors d'une connexion réussie, avec une intensité qui
-  /// grandit avec le nombre de côtés connectés pour souligner que le bonus
-  /// associé est de plus en plus important :
-  ///  - 3 côtés : un clic léger.
-  ///  - 4 côtés : un clic moyen.
-  ///  - 5 côtés : un clic fort.
-  ///  - 6 côtés : double clic fort ("jackpot"), nettement plus marqué.
-  ///
-  /// Aucun effet en dehors de 3-6 (pas de bonus associé à moins de 3 côtés).
+  /// Unité de référence pour la durée des vibrations de connexion 5/6
+  /// côtés (voir [connectionSucceeded]) — l'API haptique ne renvoie aucune
+  /// durée réelle d'impulsion, donc cette constante ne mesure rien : elle
+  /// sert uniquement de base documentée pour respecter les ratios demandés
+  /// (quintuple = 1,5× cette unité, sextuple = 2× cette unité), matérialisés
+  /// par l'espacement entre impulsions répétées de même intensité
+  /// ([HapticFeedback.heavyImpact]) — seul moyen, avec cette API, de faire
+  /// "durer" perceptiblement plus longtemps une vibration au-delà d'un
+  /// simple clic.
+  static const Duration _kConnectionDurationUnit = Duration(milliseconds: 100);
+
+  /// Retour spécifique à chaque pose de tuile, avec une intensité qui
+  /// grandit avec le nombre de côtés connectés :
+  ///  - 0/1/2 côté(s) (aucune / simple / double connexion) : vibration
+  ///    faible (léger).
+  ///  - 3 côtés : plus intense que ce qui précède (moyen).
+  ///  - 4 côtés : encore un cran au-dessus (fort).
+  ///  - 5 côtés : intensité augmentée par rapport à 4 côtés (double
+  ///    impulsion forte plutôt qu'une seule) ET durée 1,5× celle de 4
+  ///    côtés (espacement = 1,5 × [_kConnectionDurationUnit]).
+  ///  - 6 côtés ("jackpot") : intensité maximum (triple impulsion forte,
+  ///    la plus marquée de toutes) ET durée 2× celle de 4 côtés
+  ///    (espacement total = 2 × [_kConnectionDurationUnit]).
   Future<void> connectionSucceeded(int connectedSides) async {
     if (!_enabled) return;
     switch (connectedSides) {
-      case 3:
+      case 0:
+      case 1:
+      case 2:
         await HapticFeedback.lightImpact();
-      case 4:
+      case 3:
         await HapticFeedback.mediumImpact();
+      case 4:
+        await HapticFeedback.heavyImpact();
       case 5:
+        await HapticFeedback.heavyImpact();
+        await Future<void>.delayed(_kConnectionDurationUnit * 1.5);
         await HapticFeedback.heavyImpact();
       case 6:
         await HapticFeedback.heavyImpact();
-        await Future<void>.delayed(const Duration(milliseconds: 120));
+        await Future<void>.delayed(_kConnectionDurationUnit);
+        await HapticFeedback.heavyImpact();
+        await Future<void>.delayed(_kConnectionDurationUnit);
         await HapticFeedback.heavyImpact();
     }
   }
@@ -129,16 +151,33 @@ class HapticsService {
     await HapticFeedback.heavyImpact();
   }
 
-  /// Retour haptique joué lorsqu'une tuile bonus gagnée (Combo+, récompense
-  /// de placement) devient visible dans la pile de tuiles — distinct du
-  /// retour immédiat de [playReward] joué au moment du gain : celui-ci
-  /// souligne plutôt l'arrivée concrète de la tuile, potentiellement
-  /// plusieurs poses plus tard une fois qu'elle atteint le sommet visible
-  /// de la pile. Un simple impact moyen, pour rester perceptible sans se
-  /// confondre avec les autres motifs (rotation, sélection, récompense).
-  Future<void> bonusTileArrived() async {
+  /// Retour haptique joué lorsqu'une tuile bonus gagnée (Combo+, Bonus de
+  /// clôture, Tuile bonus, récompense de connexion) devient visible dans la
+  /// pile de tuiles — distinct du retour immédiat de [playReward]/
+  /// [connectionSucceeded] joué au moment du gain : celui-ci souligne
+  /// plutôt l'arrivée concrète de chaque tuile, une par une (voir
+  /// [HexGridComponent.showRewardIndicators]/[UpgradeFxOverlayGame.spawnBonusTiles], qui
+  /// envoient désormais systématiquement une icône "+1" par tuile plutôt
+  /// que de fusionner plusieurs tuiles dans une seule icône "+N").
+  ///
+  /// [index] est le rang (1-based) de cette particule dans la série de
+  /// gains de LA POSE en cours, toutes sources confondues (voir
+  /// [HexBoardGame._bonusImpactCounter]) — l'intensité augmente par
+  /// paliers avec [index], jusqu'à atteindre le maximum au 10e impact ;
+  /// au-delà, le maximum est simplement maintenu.
+  Future<void> bonusTileArrived(int index) async {
     if (!_enabled) return;
-    await HapticFeedback.mediumImpact();
+    if (index <= 3) {
+      await HapticFeedback.lightImpact();
+    } else if (index <= 6) {
+      await HapticFeedback.mediumImpact();
+    } else if (index <= 9) {
+      await HapticFeedback.heavyImpact();
+    } else {
+      await HapticFeedback.heavyImpact();
+      await Future<void>.delayed(const Duration(milliseconds: 80));
+      await HapticFeedback.heavyImpact();
+    }
   }
 }
 

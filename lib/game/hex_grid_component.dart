@@ -64,12 +64,6 @@ const double kPreviewCoinOffsetPx = 20.0;
 /// se détache mieux au-dessus de la tuile plutôt que de sembler posée dessus.
 const double kPreviewBonusExtraLiftPx = 8.0;
 
-/// Nombre maximum d'icônes de tuile bonus envoyées individuellement (effet
-/// "machine à sous" échelonné) sur une même pose. Au-delà, le surplus est
-/// regroupé dans la dernière icône affichée pour éviter de surcharger
-/// l'écran de tuiles très rentables (grosses chaînes d'améliorations).
-const int kMaxStaggeredBonusIcons = 4;
-
 // ── Animation de pose (descente + léger rebond "flottant") ─────────────────
 
 /// Hauteur de départ de la descente : la tuile posée part de la même
@@ -106,10 +100,15 @@ class HexGridComponent extends PositionComponent {
   Vector2 screenSize;
 
   /// Position du compteur de pièces en haut à gauche (coordonnées jeu) —
-  /// cible de vol partagée par [showRewardIndicators] (pièces de connexion)
-  /// et [showCoinParticleFrom] (pièces bonus des améliorations Pièces+/
-  /// Rouge+/Vert+/Bleu+/Jaune+/Violet+).
+  /// cible de vol de [showRewardIndicators] (pièces de connexion), et
+  /// exposée via [coinCounterTarget] pour [UpgradeFxOverlayGame] (canevas
+  /// superposé au HUD, voir `upgrade_fx_overlay_game.dart`), qui y fait
+  /// voler les pièces bonus des améliorations (Pièces+ global,
+  /// Rouge+/Vert+/Bleu+/Jaune+/Violet+ par biome).
   static final Vector2 _coinCounterTarget = Vector2(26, 85);
+
+  /// Exposition publique de [_coinCounterTarget] — voir ci-dessus.
+  static Vector2 get coinCounterTarget => _coinCounterTarget;
 
   /// Appelé lorsqu'une tuile posée en animé atteint sa position finale (fin
   /// du rebond). Permet au [FlameGame] parent de déclencher un bruitage
@@ -665,22 +664,18 @@ class HexGridComponent extends PositionComponent {
       ));
     }
 
-    // Icône(s) de tuile bonus qui volent vers la pile HUD. Au-delà d'une
-    // seule tuile bonus, on envoie plusieurs icônes individuelles avec un
-    // léger décalage temporel (effet "machine à sous") plutôt qu'un seul
-    // "+N" — chaque arrivée fait "pop" le compteur HUD via [onBonusImpact].
-    // Au-delà de [kMaxStaggeredBonusIcons], le surplus est regroupé dans
-    // une dernière icône "+N" pour ne pas surcharger l'écran.
+    // Icône(s) de tuile bonus qui volent vers la pile HUD : une icône
+    // individuelle "+1" par tuile bonus gagnée, avec un léger décalage
+    // temporel (effet "machine à sous") — plus de fusion en une seule
+    // icône "+N" au-delà d'un certain nombre : chaque tuile doit se
+    // ressentir individuellement (vibration croissante à chaque arrivée,
+    // voir [HapticsService.bonusTileArrived]).
     if (bonusTiles > 0) {
-      final individualCount = min(bonusTiles, kMaxStaggeredBonusIcons);
-      for (var i = 0; i < individualCount; i++) {
-        final isLast = i == individualCount - 1;
-        final remainder = bonusTiles - kMaxStaggeredBonusIcons;
-        final count = (isLast && remainder > 0) ? 1 + remainder : 1;
+      for (var i = 0; i < bonusTiles; i++) {
         add(BonusTileAnimComponent(
           position: centerVec.clone(),
           hexSize: hexSize,
-          bonusCount: count,
+          bonusCount: 1,
           flyTarget: bonusFlyTarget,
           startDelay: i * kBonusIconStaggerInterval,
           onImpact: onBonusImpact,
@@ -693,58 +688,6 @@ class HexGridComponent extends PositionComponent {
         ));
       }
     }
-  }
-
-  /// Fait s'envoler une icône de tuile bonus depuis [origin] (coordonnées
-  /// jeu, hors plateau) vers [flyTarget] — même animation
-  /// ([BonusTileAnimComponent]) que celle jouée depuis la tuile posée dans
-  /// [showRewardIndicators]. Utilisée par Combo+ (voir
-  /// [HexBoardGame.spawnComboBonusParticle]) : contrairement au bonus de
-  /// connexion, sa tuile bonus n'est pas liée à un côté de la tuile posée,
-  /// donc sa particule part de l'icône de l'amélioration dans l'encart HUD
-  /// plutôt que de la tuile.
-  ///
-  /// [coinCount] : nombre de `coin.mp3` attendus sur cette même pose
-  /// (pièces de connexion + pièces bonus) — comme pour la tuile bonus de
-  /// connexion dans [showRewardIndicators], la phase de soulèvement est
-  /// étendue dynamiquement pour que l'envol ne démarre qu'une fois le
-  /// dernier son de pièce terminé (voir [BonusTileAnimComponent.coinCount]).
-  void showBonusParticleFrom(Vector2 origin, int count,
-      {Vector2? flyTarget, VoidCallback? onImpact, int coinCount = 0}) {
-    final hexSize = kHexSize * zoom;
-    add(BonusTileAnimComponent(
-      position: origin.clone(),
-      hexSize: hexSize,
-      bonusCount: count,
-      flyTarget: flyTarget,
-      onImpact: onImpact,
-      totalBonusTiles: count,
-      coinCount: coinCount,
-    ));
-  }
-
-  /// Fait s'envoler une pièce depuis [origin] (coordonnées jeu, hors
-  /// plateau) vers le compteur de pièces — même animation ([CoinComponent])
-  /// que celles jouées depuis les côtés connectés dans
-  /// [showRewardIndicators]. Utilisée par les améliorations de gain de
-  /// pièces (Pièces+ global, Rouge+/Vert+/Bleu+/Jaune+/Violet+ par
-  /// biome) : comme pour la particule dédiée de Combo+
-  /// ([showBonusParticleFrom]), ce gain n'est lié à aucun côté de la tuile
-  /// posée, donc la pièce part de l'icône de l'amélioration dans l'encart
-  /// HUD plutôt que de la tuile. [startDelay] permet d'échelonner plusieurs
-  /// particules si plusieurs améliorations se déclenchent sur la même pose.
-  void showCoinParticleFrom(Vector2 origin,
-      {VoidCallback? onImpact, double startDelay = 0.0}) {
-    final hexSize = kHexSize * zoom;
-    add(CoinComponent(
-      position: origin.clone(),
-      hexSize: hexSize,
-      animated: true,
-      flyTarget: _coinCounterTarget,
-      onImpact: onImpact,
-      startDelay: startDelay,
-      priority: kTileDepthPriorityPreview + 1,
-    ));
   }
 
   /// Calcule le décalage (dx, dy) du point milieu du côté [side] (0-5) par
