@@ -410,7 +410,7 @@ class _UpgradeSlotState extends ConsumerState<_UpgradeSlot>
   /// [biomeSizeOverlayProvider] et `hex_grid_component.dart`,
   /// `biomeSizeClusters`) : un chiffre blanc sur fond noir translucide
   /// au-dessus de chaque zone, pour visualiser la progression vers le seuil
-  /// de 10 tuiles du bonus. Un second tap masque l'affichage. Contour et
+  /// de 8 tuiles du bonus. Un second tap masque l'affichage. Contour et
   /// fond illuminés en doré tant que l'affichage reste actif (mêmes teintes
   /// que le slot Deuxième chance actif), pour signaler l'état en un coup
   /// d'œil.

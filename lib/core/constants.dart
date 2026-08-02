@@ -103,6 +103,12 @@ const int kAdRewardedCoins = 100;
 /// ID produit IAP non-consommable pour le premium (Story 3.5a).
 const String kPremiumProductId = 'premium';
 
+/// Prix de repli affiché tant que le prix localisé du store (device,
+/// région, devise) n'est pas encore chargé via [IapService] — voir
+/// [premiumProductProvider] dans `iap_service.dart`. Les packs de pièces
+/// ont leur propre repli par pack (voir [CoinPack.price] ci-dessous).
+const String kPremiumPrice = '\$9.99';
+
 /// Packs de pièces (pièces, prix, ID produit IAP).
 ///
 /// Équilibrage (voir aussi [kUpgradeCosts] dans progression_provider.dart —
@@ -126,6 +132,12 @@ const List<CoinPack> kCoinPacks = [
 
 class CoinPack {
   final int coins;
+
+  /// Prix de repli (devise USD), affiché uniquement tant que le prix
+  /// localisé du store (device, région, devise de l'utilisateur) n'est pas
+  /// encore chargé — voir [coinPackProductsProvider] dans
+  /// `iap_service.dart`, dont le `ProductDetails.price` est prioritaire
+  /// dans l'UI (`shop_screen.dart`).
   final String price;
   final String productId;
 

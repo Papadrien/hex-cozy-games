@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:in_app_purchase/in_app_purchase.dart';
 import '../core/colors.dart';
 import '../core/constants.dart';
 import '../core/snackbar_utils.dart';
@@ -212,6 +213,17 @@ class _CoinPackCardState extends ConsumerState<_CoinPackCard> {
   Widget build(BuildContext context) {
     final isBestValue = widget.index == kCoinPacks.length - 1;
     final iapAvailable = ref.watch(iapAvailableProvider);
+    // Prix localisé (devise/région de l'appareil) remonté par le store via
+    // le plugin in_app_purchase — voir [coinPackProductsProvider]
+    // (iap_service.dart). Tant qu'il n'est pas chargé (ou si le service IAP
+    // est indisponible, ex. web/desktop), on retombe sur le prix statique
+    // [CoinPack.price] défini dans kCoinPacks (constants.dart).
+    final storeProducts = ref.watch(coinPackProductsProvider);
+    final storeProduct = storeProducts.cast<ProductDetails?>().firstWhere(
+          (p) => p?.id == widget.pack.productId,
+          orElse: () => null,
+        );
+    final displayPrice = storeProduct?.price ?? widget.pack.price;
 
     return GlassContainer(
       margin: const EdgeInsets.only(bottom: 12),
@@ -262,7 +274,7 @@ class _CoinPackCardState extends ConsumerState<_CoinPackCard> {
             ),
           ),
           _PriceButton(
-            price: widget.pack.price,
+            price: displayPrice,
             loading: _loading,
             available: iapAvailable,
             onTap: (_loading || !iapAvailable)
@@ -421,6 +433,10 @@ class _PremiumCardState extends ConsumerState<_PremiumCard> {
   @override
   Widget build(BuildContext context) {
     final iapAvailable = ref.watch(iapAvailableProvider);
+    // Même logique que les packs de pièces : prix localisé remonté par le
+    // store si disponible, sinon repli sur [kPremiumPrice].
+    final premiumProduct = ref.watch(premiumProductProvider);
+    final displayPrice = premiumProduct?.price ?? kPremiumPrice;
 
     final buttonTint = _loading || (!widget.isPremium && iapAvailable)
         ? kUpgradePurple
@@ -532,7 +548,7 @@ class _PremiumCardState extends ConsumerState<_PremiumCard> {
                   : Text(
                       widget.isPremium
                           ? context.tr.shop_alreadyPremium
-                          : context.tr.shop_buy,
+                          : context.tr.shop_buyForPrice(displayPrice),
                       style: TextStyle(
                         fontFamily: 'Nunito',
                         color: widget.isPremium

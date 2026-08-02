@@ -717,86 +717,113 @@ class _RewardedAdButton extends ConsumerWidget {
     final adAvailable = ref.watch(isDailyRewardAvailableProvider);
     final isLoading = ref.watch(isWatchingRewardedAdProvider);
 
-    return SizedBox(
-      width: double.infinity,
-      child: GlassContainer(
-        borderRadius: 16,
-        tintColor: adAvailable ? kAdRewardOrange : kGlassBlue,
-        tintAlpha: adAvailable ? 0.10 : 0.18,
-        borderColor: adAvailable
-            ? kAdRewardOrange.withValues(alpha: 0.45)
-            : kGlassBlueBorder,
-        borderWidth: adAvailable ? 1.5 : 1,
-        blurSigma: 10,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
-        // Désactivé pendant le chargement pour éviter un double tap, en plus
-        // du blocage plein écran posé par HomeScreen via
-        // isWatchingRewardedAdProvider.
-        onTap: adAvailable && !isLoading
-            ? () async {
-                buttonTapFeedback(context);
-                ref.read(isWatchingRewardedAdProvider.notifier).state = true;
-                try {
-                  final rewarded = await claimDailyReward(ref);
-                  if (rewarded && context.mounted) {
-                    showAppSnackBar(
-                      SnackBar(
-                        content: Text(
-                            '+$kAdRewardedCoins ${context.tr.reward_coins}'),
-                        backgroundColor: Colors.green.withValues(alpha: 0.3),
-                        behavior: SnackBarBehavior.floating,
-                      ),
-                    );
-                  }
-                } finally {
-                  if (context.mounted) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        SizedBox(
+          width: double.infinity,
+          child: GlassContainer(
+            borderRadius: 16,
+            tintColor: adAvailable ? kAdRewardOrange : kGlassBlue,
+            tintAlpha: adAvailable ? 0.10 : 0.18,
+            borderColor: adAvailable
+                ? kAdRewardOrange.withValues(alpha: 0.45)
+                : kGlassBlueBorder,
+            borderWidth: adAvailable ? 1.5 : 1,
+            blurSigma: 10,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+            // Désactivé pendant le chargement pour éviter un double tap, en
+            // plus du blocage plein écran posé par HomeScreen via
+            // isWatchingRewardedAdProvider.
+            onTap: adAvailable && !isLoading
+                ? () async {
+                    buttonTapFeedback(context);
                     ref.read(isWatchingRewardedAdProvider.notifier).state =
-                        false;
+                        true;
+                    try {
+                      final rewarded = await claimDailyReward(ref);
+                      if (rewarded && context.mounted) {
+                        showAppSnackBar(
+                          SnackBar(
+                            content: Text(
+                                '+$kAdRewardedCoins ${context.tr.reward_coins}'),
+                            backgroundColor:
+                                Colors.green.withValues(alpha: 0.3),
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                      }
+                    } finally {
+                      if (context.mounted) {
+                        ref.read(isWatchingRewardedAdProvider.notifier)
+                            .state = false;
+                      }
+                    }
                   }
-                }
-              }
-            : null,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if (isLoading)
-              const SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: kAdRewardOrange,
+                : null,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (isLoading)
+                  const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: kAdRewardOrange,
+                    ),
+                  )
+                else
+                  Icon(
+                    adAvailable
+                        ? Icons.play_circle_outline
+                        : Icons.check_circle_outline,
+                    size: 20,
+                    color: adAvailable
+                        ? kAdRewardOrange
+                        : Colors.white.withValues(alpha: 0.4),
+                  ),
+                const SizedBox(width: 8),
+                Text(
+                  isLoading
+                      ? context.tr.ads_loading
+                      : adAvailable
+                          ? context.tr.ads_watchForCoins
+                          : context.tr.ads_comeBackTomorrow,
+                  style: TextStyle(
+                    fontFamily: 'Nunito',
+                    color: adAvailable
+                        ? Colors.white
+                        : Colors.white.withValues(alpha: 0.5),
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
-              )
-            else
-              Icon(
-                adAvailable
-                    ? Icons.play_circle_outline
-                    : Icons.check_circle_outline,
-                size: 20,
-                color: adAvailable
-                    ? kAdRewardOrange
-                    : Colors.white.withValues(alpha: 0.4),
-              ),
-            const SizedBox(width: 8),
-            Text(
-              isLoading
-                  ? context.tr.ads_loading
-                  : adAvailable
-                      ? context.tr.ads_watchForCoins
-                      : context.tr.ads_comeBackTomorrow,
-              style: TextStyle(
-                fontFamily: 'Nunito',
-                color: adAvailable
-                    ? Colors.white
-                    : Colors.white.withValues(alpha: 0.5),
-                fontSize: 14,
-                fontWeight: FontWeight.w800,
+              ],
+            ),
+          ),
+        ),
+        // Même point rouge que le bouton "Quêtes" (_NavButton) lorsqu'une
+        // récompense est disponible — signale la pub comme les quêtes en
+        // attente de réclamation.
+        if (adAvailable && !isLoading)
+          Positioned(
+            top: -4,
+            right: -4,
+            child: Container(
+              width: 14,
+              height: 14,
+              decoration: BoxDecoration(
+                color: Colors.redAccent,
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: Colors.black.withValues(alpha: 0.35),
+                  width: 1.5,
+                ),
               ),
             ),
-          ],
-        ),
-      ),
+          ),
+      ],
     );
   }
 }

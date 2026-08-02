@@ -328,6 +328,11 @@ class AppLocalizationsFr extends AppLocalizations {
   String get shop_buy => 'Acheter';
 
   @override
+  String shop_buyForPrice(Object price) {
+    return 'Acheter — $price';
+  }
+
+  @override
   String get shop_alreadyPremium => 'Déjà Premium';
 
   @override

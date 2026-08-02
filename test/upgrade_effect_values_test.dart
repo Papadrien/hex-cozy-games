@@ -331,13 +331,13 @@ void main() {
       );
     });
 
-    test('closureBonusTiles → +1/2/3 tuiles bonus / 10 tuiles de la zone', () {
+    test('closureBonusTiles → +1/2/3 tuiles bonus / 8 tuiles de la zone', () {
       expect(
         upgradeAllLevelEffects(UpgradeEffectType.closureBonusTiles),
         [
-          '+1 tuile bonus / 10 tuiles de la zone',
-          '+2 tuiles bonus / 10 tuiles de la zone',
-          '+3 tuiles bonus / 10 tuiles de la zone',
+          '+1 tuile bonus / 8 tuiles de la zone',
+          '+2 tuiles bonus / 8 tuiles de la zone',
+          '+3 tuiles bonus / 8 tuiles de la zone',
         ],
       );
     });

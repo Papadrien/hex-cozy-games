@@ -674,6 +674,12 @@ abstract class AppLocalizations {
   /// **'Buy'**
   String get shop_buy;
 
+  /// No description provided for @shop_buyForPrice.
+  ///
+  /// In en, this message translates to:
+  /// **'Buy — {price}'**
+  String shop_buyForPrice(Object price);
+
   /// No description provided for @shop_alreadyPremium.
   ///
   /// In en, this message translates to:

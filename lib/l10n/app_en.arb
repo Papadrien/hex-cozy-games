@@ -201,6 +201,12 @@
   "@shop_premiumDescription": {},
   "shop_buy": "Buy",
   "@shop_buy": {},
+  "shop_buyForPrice": "Buy \u2014 {price}",
+  "@shop_buyForPrice": {
+    "placeholders": {
+      "price": {}
+    }
+  },
   "shop_alreadyPremium": "Already Premium",
   "@shop_alreadyPremium": {},
   "shop_purchasePending": "Purchase pending...",

@@ -296,9 +296,9 @@ List<String> upgradeAllLevelEffects(UpgradeEffectType effectType) {
       ];
     case UpgradeEffectType.closureBonusTiles:
       return [
-        '+1 tuile bonus / 10 tuiles de la zone',
-        '+2 tuiles bonus / 10 tuiles de la zone',
-        '+3 tuiles bonus / 10 tuiles de la zone',
+        '+1 tuile bonus / 8 tuiles de la zone',
+        '+2 tuiles bonus / 8 tuiles de la zone',
+        '+3 tuiles bonus / 8 tuiles de la zone',
       ];
     case UpgradeEffectType.hatedColorExclusion:
       return [

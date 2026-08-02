@@ -34,8 +34,10 @@ import '../core/game_enums.dart';
 // Anciennement `kDebugAtollClosureThreshold`, abaissé temporairement à 3
 // pendant le débogage Atoll pour multiplier les tests de fermeture sans
 // reconstruire un plateau de 10+ tuiles à chaque essai — remis à 10
-// (valeur normale) une fois le diagnostic terminé.
-const int kAtollClosureThreshold = 10;
+// (valeur normale) une fois le diagnostic terminé, puis abaissé
+// définitivement à 8 pour rendre le bonus accessible sur des groupes
+// plus modestes.
+const int kAtollClosureThreshold = 8;
 
 class LastPlacement {
   LastPlacement(this.coords, this.tile,
@@ -480,13 +482,13 @@ void _recordPlacement(
     triggeredTypes.add(UpgradeEffectType.comboBonusTiles);
   }
   // Story B7 — Bonus de clôture : détecte les biomes qui viennent de se
-  // fermer après cette pose et ajoute (taille ÷ 10) × niveau tuiles bonus.
+  // fermer après cette pose et ajoute (taille ÷ 8) × niveau tuiles bonus.
   //
-  // Correctif régression Atoll : PAS de plancher garanti en dessous de 10
+  // Correctif régression Atoll : PAS de plancher garanti en dessous de 8
   // tuiles. Avant correctif, `ratioBonus == 0` retombait quand même sur
   // [closureMult] tuiles garanties, ce qui récompensait tout micro-cluster
-  // "fermé" (au sens large) exactement comme une vraie zone de 6 à 9
-  // tuiles. Désormais seules les zones ayant atteint 10 tuiles au moment de
+  // "fermé" (au sens large) exactement comme une vraie zone de 4 à 7
+  // tuiles. Désormais seules les zones ayant atteint 8 tuiles au moment de
   // leur fermeture rapportent quoi que ce soit.
   // (Note : depuis le correctif [GridState._openEdges] qui filtre par
   // biome, un cluster n'est plus jamais compté "fermé" à cause d'un côté
@@ -495,7 +497,7 @@ void _recordPlacement(
   // légitimes.)
   // TODO(debug Atoll) : logs [Atoll] et seuil de test préservés le temps de
   // valider en jeu le correctif des fermetures multicolores — à retirer une
-  // fois confirmé (voir kAtollClosureThreshold ci-dessous, déjà remis à 10).
+  // fois confirmé (voir kAtollClosureThreshold ci-dessous, désormais fixé à 8).
   final closureMult = effects.getClosureBonusTiles();
   var closureBonusTilesCount = 0;
   if (closureMult > 0) {

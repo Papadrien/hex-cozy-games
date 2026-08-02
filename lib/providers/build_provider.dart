@@ -134,7 +134,7 @@ class ActiveUpgradeEffects {
   final int hatedColorExclusionUses;
 
   /// Multiplicateur du Bonus de clôture (Story B7) : tuiles bonus = (taille du
-  /// biome ÷ 10) × [closureBonusTiles] pour chaque fermeture détectée.
+  /// biome ÷ 8) × [closureBonusTiles] pour chaque fermeture détectée.
   /// Valeurs : 1/2/3 selon niveau ; 0 = inactif.
   final int closureBonusTiles;
 
