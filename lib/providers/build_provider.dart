@@ -5,11 +5,14 @@
 /// entre les runs (durée de vie de l'app).
 library;
 
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/game_enums.dart';
 import '../core/constants.dart';
 import '../data/app_database.dart';
+import '../services/analytics_service.dart';
 import 'progression_provider.dart';
 
 /// IDs des améliorations actuellement sélectionnées pour le build (0–3).
@@ -28,6 +31,9 @@ class SelectedUpgradeIdsNotifier extends Notifier<List<String>> {
       state = [...state.where((s) => s != id)];
     } else if (state.length < kMaxSelectedUpgrades) {
       state = [...state, id];
+      unawaited(AnalyticsService.logEvent(
+        'upgrade_select_${AnalyticsService.colorEventId(id)}',
+      ));
     }
   }
 

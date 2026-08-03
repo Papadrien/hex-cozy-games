@@ -60,4 +60,34 @@ class AnalyticsService {
       parameters: parameters,
     );
   }
+
+  /// Mappe le préfixe "biome" d'un id (amélioration ou quête) vers son nom
+  /// de couleur, pour que les événements Analytics parlent de couleur
+  /// plutôt que de biome — cohérent avec l'UI, qui n'affiche plus jamais
+  /// les noms de biomes, seulement des ronds colorés (voir [BiomeColor]
+  /// dans `tile_component.dart` pour la correspondance biome → couleur
+  /// d'affichage). Ex. `forest_plus` → `green_plus`, `village_10` →
+  /// `red_10`. Les ids dont le premier segment ne correspond à aucune
+  /// couleur connue (ex. `coins_plus`, `biomes_10`) sont retournés tels
+  /// quels.
+  static String colorEventId(String id) {
+    final underscoreIndex = id.indexOf('_');
+    if (underscoreIndex == -1) return id;
+    final prefix = id.substring(0, underscoreIndex);
+    final color = _kBiomeToColorPrefix[prefix];
+    if (color == null) return id;
+    return '$color${id.substring(underscoreIndex)}';
+  }
 }
+
+/// Correspondance biome → couleur utilisée par [AnalyticsService.colorEventId].
+/// `village`/`villages` (singulier dans les ids de quête, pluriel dans
+/// `villages_plus`) pointent tous deux vers `red`.
+const Map<String, String> _kBiomeToColorPrefix = {
+  'village': 'red',
+  'villages': 'red',
+  'forest': 'green',
+  'water': 'blue',
+  'plain': 'yellow',
+  'mountain': 'purple',
+};

@@ -15,8 +15,9 @@
 ///     - [HapticsService.tileRotated]   : un clic par cran de rotation.
 ///     - [HapticsService.tilePreviewed] : un clic léger à la sélection d'un
 ///       emplacement pour la prévisualisation.
-///     - [HapticsService.playReward]    : motif de vibrations pour les gains
-///       d'un placement (pièces / pièces bonus / tuiles bonus), voir sa doc.
+///     - [HapticsService.playReward]    : vibration pour les tuiles bonus
+///       gagnées lors d'un placement (plus aucune vibration pour les pièces,
+///       base ou bonus), voir sa doc.
 library;
 
 import 'dart:async';
@@ -62,22 +63,18 @@ class HapticsService {
   }
 
   /// Joue le motif de vibrations correspondant aux gains d'un placement :
-  ///  - une vibration LÉGÈRE par pièce gagnée (gain "de base", lié aux côtés
-  ///    connectés) ;
-  ///  - une vibration MOYENNE par pièce gagnée en bonus ;
   ///  - une vibration FORTE par tuile gagnée en bonus.
   ///
-  /// Ordre de priorité : toutes les vibrations légères d'abord, puis les
-  /// moyennes, puis les fortes — pour que l'intensité perçue monte crescendo
-  /// plutôt que d'alterner de façon désordonnée.
+  /// Les pièces (gain "de base" comme bonus) ne déclenchent plus aucune
+  /// vibration : elles arrivent dans le stock de façon trop fréquente/rapide
+  /// pour que la crépitation haptique reste agréable, et leur gain est déjà
+  /// signalé par `coin.mp3` (voir [AudioService.playCoinsGained]).
   Future<void> playReward({
     required int coins,
     required int bonusCoins,
     required int bonusTiles,
   }) async {
     if (!_enabled) return;
-    await _pulseN(HapticFeedback.lightImpact, coins);
-    await _pulseN(HapticFeedback.mediumImpact, bonusCoins);
     await _pulseN(HapticFeedback.heavyImpact, bonusTiles);
   }
 

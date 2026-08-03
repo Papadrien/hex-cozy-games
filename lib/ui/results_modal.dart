@@ -5,6 +5,7 @@
 /// et un bouton Rejouer.
 library;
 
+import 'dart:async';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
@@ -16,6 +17,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/colors.dart';
 import '../core/snackbar_utils.dart';
 import '../core/strings.dart';
+import '../providers/build_provider.dart';
 import '../providers/end_game_provider.dart';
 import '../providers/grid_state_provider.dart';
 import '../providers/placement_commit.dart';
@@ -23,6 +25,7 @@ import '../providers/session_provider.dart';
 import '../providers/session_restore.dart';
 import '../providers/tile_stack_provider.dart';
 import '../services/ad_service.dart';
+import '../services/analytics_service.dart';
 import '../services/audio_service.dart';
 import '../services/haptics_service.dart';
 
@@ -42,6 +45,17 @@ class ResultsModal extends ConsumerWidget {
     ref.listen<bool>(isGameOverProvider, (previous, next) {
       if (next && previous != true) {
         ref.read(audioServiceProvider).playEndGame();
+
+        final endStats = ref.read(endGameStatsProvider);
+        final usedUpgradeIds = ref.read(selectedUpgradeIdsProvider);
+        final params = <String, Object>{
+          'coins_hundred': (endStats?.coins ?? 0) ~/ 100,
+        };
+        for (var i = 0; i < usedUpgradeIds.length && i < 3; i++) {
+          params['upgrade_${i + 1}'] =
+              AnalyticsService.colorEventId(usedUpgradeIds[i]);
+        }
+        unawaited(AnalyticsService.logEvent('game_end', parameters: params));
       }
     });
 

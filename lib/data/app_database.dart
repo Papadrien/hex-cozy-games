@@ -82,6 +82,8 @@ class DailyQuests extends Table {
   TextColumn get questPoolIds => text()();        // JSON List<String>
   TextColumn get completedIds => text()();         // JSON List<String>
   TextColumn get progressByQuestId => text()();    // JSON Map<String, int>
+  TextColumn get rewardClaimedIds =>
+      text().withDefault(const Constant('[]'))();   // JSON List<String>
 }
 
 /// Statistiques cumulées du joueur — Story 2.1a.
@@ -111,7 +113,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration {
@@ -135,6 +137,16 @@ class AppDatabase extends _$AppDatabase {
           // rouge ni permettre un double octroi.
           await customStatement(
             'UPDATE permanent_quests SET reward_claimed = 1 WHERE is_completed = 1',
+          );
+        }
+        if (from < 4) {
+          await m.addColumn(dailyQuests, dailyQuests.rewardClaimedIds);
+          // Les quêtes quotidiennes déjà marquées complétées avant cette
+          // version ont déjà reçu leur récompense (ancien comportement
+          // automatique) : on les marque comme réclamées pour ne pas
+          // réafficher un point rouge ni permettre un double octroi.
+          await customStatement(
+            'UPDATE daily_quests SET reward_claimed_ids = completed_ids',
           );
         }
         // MetaRunHistory table was removed — safe to ignore since

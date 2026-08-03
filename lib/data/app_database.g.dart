@@ -2312,6 +2312,19 @@ class $DailyQuestsTable extends DailyQuests
         type: DriftSqlType.string,
         requiredDuringInsert: true,
       );
+  static const VerificationMeta _rewardClaimedIdsMeta = const VerificationMeta(
+    'rewardClaimedIds',
+  );
+  @override
+  late final GeneratedColumn<String> rewardClaimedIds =
+      GeneratedColumn<String>(
+        'reward_claimed_ids',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        defaultValue: const Constant('[]'),
+      );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -2319,6 +2332,7 @@ class $DailyQuestsTable extends DailyQuests
     questPoolIds,
     completedIds,
     progressByQuestId,
+    rewardClaimedIds,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -2376,6 +2390,15 @@ class $DailyQuestsTable extends DailyQuests
     } else if (isInserting) {
       context.missing(_progressByQuestIdMeta);
     }
+    if (data.containsKey('reward_claimed_ids')) {
+      context.handle(
+        _rewardClaimedIdsMeta,
+        rewardClaimedIds.isAcceptableOrUnknown(
+          data['reward_claimed_ids']!,
+          _rewardClaimedIdsMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -2405,6 +2428,10 @@ class $DailyQuestsTable extends DailyQuests
         DriftSqlType.string,
         data['${effectivePrefix}progress_by_quest_id'],
       )!,
+      rewardClaimedIds: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}reward_claimed_ids'],
+      )!,
     );
   }
 
@@ -2420,12 +2447,14 @@ class DailyQuestRow extends DataClass implements Insertable<DailyQuestRow> {
   final String questPoolIds;
   final String completedIds;
   final String progressByQuestId;
+  final String rewardClaimedIds;
   const DailyQuestRow({
     required this.id,
     required this.date,
     required this.questPoolIds,
     required this.completedIds,
     required this.progressByQuestId,
+    required this.rewardClaimedIds,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -2435,6 +2464,7 @@ class DailyQuestRow extends DataClass implements Insertable<DailyQuestRow> {
     map['quest_pool_ids'] = Variable<String>(questPoolIds);
     map['completed_ids'] = Variable<String>(completedIds);
     map['progress_by_quest_id'] = Variable<String>(progressByQuestId);
+    map['reward_claimed_ids'] = Variable<String>(rewardClaimedIds);
     return map;
   }
 
@@ -2445,6 +2475,7 @@ class DailyQuestRow extends DataClass implements Insertable<DailyQuestRow> {
       questPoolIds: Value(questPoolIds),
       completedIds: Value(completedIds),
       progressByQuestId: Value(progressByQuestId),
+      rewardClaimedIds: Value(rewardClaimedIds),
     );
   }
 
@@ -2459,6 +2490,7 @@ class DailyQuestRow extends DataClass implements Insertable<DailyQuestRow> {
       questPoolIds: serializer.fromJson<String>(json['questPoolIds']),
       completedIds: serializer.fromJson<String>(json['completedIds']),
       progressByQuestId: serializer.fromJson<String>(json['progressByQuestId']),
+      rewardClaimedIds: serializer.fromJson<String>(json['rewardClaimedIds']),
     );
   }
   @override
@@ -2470,6 +2502,7 @@ class DailyQuestRow extends DataClass implements Insertable<DailyQuestRow> {
       'questPoolIds': serializer.toJson<String>(questPoolIds),
       'completedIds': serializer.toJson<String>(completedIds),
       'progressByQuestId': serializer.toJson<String>(progressByQuestId),
+      'rewardClaimedIds': serializer.toJson<String>(rewardClaimedIds),
     };
   }
 
@@ -2479,12 +2512,14 @@ class DailyQuestRow extends DataClass implements Insertable<DailyQuestRow> {
     String? questPoolIds,
     String? completedIds,
     String? progressByQuestId,
+    String? rewardClaimedIds,
   }) => DailyQuestRow(
     id: id ?? this.id,
     date: date ?? this.date,
     questPoolIds: questPoolIds ?? this.questPoolIds,
     completedIds: completedIds ?? this.completedIds,
     progressByQuestId: progressByQuestId ?? this.progressByQuestId,
+    rewardClaimedIds: rewardClaimedIds ?? this.rewardClaimedIds,
   );
   DailyQuestRow copyWithCompanion(DailyQuestsCompanion data) {
     return DailyQuestRow(
@@ -2499,6 +2534,9 @@ class DailyQuestRow extends DataClass implements Insertable<DailyQuestRow> {
       progressByQuestId: data.progressByQuestId.present
           ? data.progressByQuestId.value
           : this.progressByQuestId,
+      rewardClaimedIds: data.rewardClaimedIds.present
+          ? data.rewardClaimedIds.value
+          : this.rewardClaimedIds,
     );
   }
 
@@ -2509,14 +2547,21 @@ class DailyQuestRow extends DataClass implements Insertable<DailyQuestRow> {
           ..write('date: $date, ')
           ..write('questPoolIds: $questPoolIds, ')
           ..write('completedIds: $completedIds, ')
-          ..write('progressByQuestId: $progressByQuestId')
+          ..write('progressByQuestId: $progressByQuestId, ')
+          ..write('rewardClaimedIds: $rewardClaimedIds')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, date, questPoolIds, completedIds, progressByQuestId);
+  int get hashCode => Object.hash(
+    id,
+    date,
+    questPoolIds,
+    completedIds,
+    progressByQuestId,
+    rewardClaimedIds,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -2525,7 +2570,8 @@ class DailyQuestRow extends DataClass implements Insertable<DailyQuestRow> {
           other.date == this.date &&
           other.questPoolIds == this.questPoolIds &&
           other.completedIds == this.completedIds &&
-          other.progressByQuestId == this.progressByQuestId);
+          other.progressByQuestId == this.progressByQuestId &&
+          other.rewardClaimedIds == this.rewardClaimedIds);
 }
 
 class DailyQuestsCompanion extends UpdateCompanion<DailyQuestRow> {
@@ -2534,12 +2580,14 @@ class DailyQuestsCompanion extends UpdateCompanion<DailyQuestRow> {
   final Value<String> questPoolIds;
   final Value<String> completedIds;
   final Value<String> progressByQuestId;
+  final Value<String> rewardClaimedIds;
   const DailyQuestsCompanion({
     this.id = const Value.absent(),
     this.date = const Value.absent(),
     this.questPoolIds = const Value.absent(),
     this.completedIds = const Value.absent(),
     this.progressByQuestId = const Value.absent(),
+    this.rewardClaimedIds = const Value.absent(),
   });
   DailyQuestsCompanion.insert({
     this.id = const Value.absent(),
@@ -2547,6 +2595,7 @@ class DailyQuestsCompanion extends UpdateCompanion<DailyQuestRow> {
     required String questPoolIds,
     required String completedIds,
     required String progressByQuestId,
+    this.rewardClaimedIds = const Value.absent(),
   }) : date = Value(date),
        questPoolIds = Value(questPoolIds),
        completedIds = Value(completedIds),
@@ -2557,6 +2606,7 @@ class DailyQuestsCompanion extends UpdateCompanion<DailyQuestRow> {
     Expression<String>? questPoolIds,
     Expression<String>? completedIds,
     Expression<String>? progressByQuestId,
+    Expression<String>? rewardClaimedIds,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -2564,6 +2614,7 @@ class DailyQuestsCompanion extends UpdateCompanion<DailyQuestRow> {
       if (questPoolIds != null) 'quest_pool_ids': questPoolIds,
       if (completedIds != null) 'completed_ids': completedIds,
       if (progressByQuestId != null) 'progress_by_quest_id': progressByQuestId,
+      if (rewardClaimedIds != null) 'reward_claimed_ids': rewardClaimedIds,
     });
   }
 
@@ -2573,6 +2624,7 @@ class DailyQuestsCompanion extends UpdateCompanion<DailyQuestRow> {
     Value<String>? questPoolIds,
     Value<String>? completedIds,
     Value<String>? progressByQuestId,
+    Value<String>? rewardClaimedIds,
   }) {
     return DailyQuestsCompanion(
       id: id ?? this.id,
@@ -2580,6 +2632,7 @@ class DailyQuestsCompanion extends UpdateCompanion<DailyQuestRow> {
       questPoolIds: questPoolIds ?? this.questPoolIds,
       completedIds: completedIds ?? this.completedIds,
       progressByQuestId: progressByQuestId ?? this.progressByQuestId,
+      rewardClaimedIds: rewardClaimedIds ?? this.rewardClaimedIds,
     );
   }
 
@@ -2601,6 +2654,9 @@ class DailyQuestsCompanion extends UpdateCompanion<DailyQuestRow> {
     if (progressByQuestId.present) {
       map['progress_by_quest_id'] = Variable<String>(progressByQuestId.value);
     }
+    if (rewardClaimedIds.present) {
+      map['reward_claimed_ids'] = Variable<String>(rewardClaimedIds.value);
+    }
     return map;
   }
 
@@ -2611,7 +2667,8 @@ class DailyQuestsCompanion extends UpdateCompanion<DailyQuestRow> {
           ..write('date: $date, ')
           ..write('questPoolIds: $questPoolIds, ')
           ..write('completedIds: $completedIds, ')
-          ..write('progressByQuestId: $progressByQuestId')
+          ..write('progressByQuestId: $progressByQuestId, ')
+          ..write('rewardClaimedIds: $rewardClaimedIds')
           ..write(')'))
         .toString();
   }
@@ -4184,6 +4241,7 @@ typedef $$DailyQuestsTableCreateCompanionBuilder =
       required String questPoolIds,
       required String completedIds,
       required String progressByQuestId,
+      Value<String> rewardClaimedIds,
     });
 typedef $$DailyQuestsTableUpdateCompanionBuilder =
     DailyQuestsCompanion Function({
@@ -4192,6 +4250,7 @@ typedef $$DailyQuestsTableUpdateCompanionBuilder =
       Value<String> questPoolIds,
       Value<String> completedIds,
       Value<String> progressByQuestId,
+      Value<String> rewardClaimedIds,
     });
 
 class $$DailyQuestsTableFilterComposer
@@ -4225,6 +4284,11 @@ class $$DailyQuestsTableFilterComposer
 
   ColumnFilters<String> get progressByQuestId => $composableBuilder(
     column: $table.progressByQuestId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get rewardClaimedIds => $composableBuilder(
+    column: $table.rewardClaimedIds,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -4262,6 +4326,11 @@ class $$DailyQuestsTableOrderingComposer
     column: $table.progressByQuestId,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get rewardClaimedIds => $composableBuilder(
+    column: $table.rewardClaimedIds,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$DailyQuestsTableAnnotationComposer
@@ -4291,6 +4360,11 @@ class $$DailyQuestsTableAnnotationComposer
 
   GeneratedColumn<String> get progressByQuestId => $composableBuilder(
     column: $table.progressByQuestId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get rewardClaimedIds => $composableBuilder(
+    column: $table.rewardClaimedIds,
     builder: (column) => column,
   );
 }
@@ -4331,12 +4405,14 @@ class $$DailyQuestsTableTableManager
                 Value<String> questPoolIds = const Value.absent(),
                 Value<String> completedIds = const Value.absent(),
                 Value<String> progressByQuestId = const Value.absent(),
+                Value<String> rewardClaimedIds = const Value.absent(),
               }) => DailyQuestsCompanion(
                 id: id,
                 date: date,
                 questPoolIds: questPoolIds,
                 completedIds: completedIds,
                 progressByQuestId: progressByQuestId,
+                rewardClaimedIds: rewardClaimedIds,
               ),
           createCompanionCallback:
               ({
@@ -4345,12 +4421,14 @@ class $$DailyQuestsTableTableManager
                 required String questPoolIds,
                 required String completedIds,
                 required String progressByQuestId,
+                Value<String> rewardClaimedIds = const Value.absent(),
               }) => DailyQuestsCompanion.insert(
                 id: id,
                 date: date,
                 questPoolIds: questPoolIds,
                 completedIds: completedIds,
                 progressByQuestId: progressByQuestId,
+                rewardClaimedIds: rewardClaimedIds,
               ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))

@@ -218,6 +218,20 @@ class AudioService {
       ),
     ));
     unawaited(_musicPlayer.setReleaseMode(ReleaseMode.loop));
+    // Lecteurs dédiés (tileGain, endGame, questReward) : ReleaseMode.stop
+    // plutôt que le défaut ReleaseMode.release. En mode `release`, le
+    // lecteur libère ses ressources natives dès que le son se termine tout
+    // seul (sans stop() explicite) ; un stop()+play() ultérieur sur ce même
+    // lecteur peut alors échouer silencieusement sur Android (ré-préparation
+    // native ratée), ce qui reproduisait un bug où le son ne rejouait plus
+    // après une première lecture menée jusqu'à sa fin naturelle — typiquement
+    // `quest_reward.mp3` en réclamant une récompense après avoir laissé la
+    // précédente se terminer. `stop` garde les ressources allouées et se
+    // contente de réinitialiser la position, ce qui rend stop()+play()
+    // fiable dans tous les cas.
+    unawaited(_tileGainPlayer.setReleaseMode(ReleaseMode.stop));
+    unawaited(_endGamePlayer.setReleaseMode(ReleaseMode.stop));
+    unawaited(_questRewardPlayer.setReleaseMode(ReleaseMode.stop));
   }
 
   final Ref _ref;
@@ -454,7 +468,13 @@ class AudioService {
   /// récompense très rapidement, plutôt que de superposer deux lectures.
   Future<void> playQuestRewardClaimed() async {
     if (!_sfxEnabled) return;
-    await _questRewardPlayer.stop();
+    // stop() défensif : ne doit jamais empêcher le play() qui suit, même si
+    // l'état natif du lecteur est inattendu (ex. déjà relâché après une
+    // complétion naturelle sur un appareil où ReleaseMode.stop ne serait pas
+    // encore effectif — voir le commentaire dans le constructeur).
+    try {
+      await _questRewardPlayer.stop();
+    } catch (_) {}
     await _questRewardPlayer.setVolume(_sfxVolume);
     await _questRewardPlayer.play(AssetSource(SfxTrack.questReward.assetPath));
   }

@@ -9,12 +9,15 @@
 /// et met à jour le niveau courant.
 library;
 
+import 'dart:async';
+
 import 'package:drift/drift.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/game_enums.dart';
 import '../data/app_database.dart';
+import '../services/analytics_service.dart';
 import 'player_profile_provider.dart';
 
 // ── Providers ────────────────────────────────────────────────────────────
@@ -208,9 +211,14 @@ class ProgressionService {
       final enough = await spendCoins(db, cost);
       if (!enough) return UpgradeResult.insufficientCoins;
 
+      final newLevel = upgrade.currentLevel + 1;
       await (db.update(db.upgrades)..where((u) => u.id.equals(upgradeId)))
           .write(UpgradesCompanion(
-        currentLevel: Value(upgrade.currentLevel + 1),
+        currentLevel: Value(newLevel),
+      ));
+      unawaited(AnalyticsService.logEvent(
+        'upgrade_levelup_${AnalyticsService.colorEventId(upgradeId)}',
+        parameters: {'level': newLevel},
       ));
 
       return UpgradeResult.success;

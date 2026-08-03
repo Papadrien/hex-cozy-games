@@ -396,7 +396,7 @@ final kDailyQuestPool = [
     description: 'Gagner 15 pièces',
     targetValue: 15,
     rewardType: RewardType.coins,
-    rewardValue: 10,
+    rewardValue: 50,
   ),
   const DailyQuestDef(
     id: 'daily_coins_30',
@@ -404,7 +404,7 @@ final kDailyQuestPool = [
     description: 'Gagner 30 pièces',
     targetValue: 30,
     rewardType: RewardType.coins,
-    rewardValue: 12,
+    rewardValue: 50,
   ),
   const DailyQuestDef(
     id: 'daily_coins_50',
@@ -412,7 +412,7 @@ final kDailyQuestPool = [
     description: 'Gagner 50 pièces',
     targetValue: 50,
     rewardType: RewardType.coins,
-    rewardValue: 15,
+    rewardValue: 50,
   ),
   const DailyQuestDef(
     id: 'daily_village_3',
@@ -420,7 +420,7 @@ final kDailyQuestPool = [
     description: 'Faire un groupe rouge de 3 tuiles',
     targetValue: 3,
     rewardType: RewardType.coins,
-    rewardValue: 8,
+    rewardValue: 50,
   ),
   const DailyQuestDef(
     id: 'daily_village_5',
@@ -428,7 +428,7 @@ final kDailyQuestPool = [
     description: 'Faire un groupe rouge de 5 tuiles',
     targetValue: 5,
     rewardType: RewardType.coins,
-    rewardValue: 10,
+    rewardValue: 50,
   ),
   const DailyQuestDef(
     id: 'daily_village_8',
@@ -436,7 +436,7 @@ final kDailyQuestPool = [
     description: 'Faire un groupe rouge de 8 tuiles',
     targetValue: 8,
     rewardType: RewardType.coins,
-    rewardValue: 12,
+    rewardValue: 50,
   ),
   const DailyQuestDef(
     id: 'daily_biomes_2',
@@ -444,7 +444,7 @@ final kDailyQuestPool = [
     description: 'Fermer 2 zones de couleur',
     targetValue: 2,
     rewardType: RewardType.coins,
-    rewardValue: 6,
+    rewardValue: 50,
   ),
   const DailyQuestDef(
     id: 'daily_biomes_3',
@@ -452,7 +452,7 @@ final kDailyQuestPool = [
     description: 'Fermer 3 zones de couleur',
     targetValue: 3,
     rewardType: RewardType.coins,
-    rewardValue: 8,
+    rewardValue: 50,
   ),
   const DailyQuestDef(
     id: 'daily_biomes_5',
@@ -460,7 +460,7 @@ final kDailyQuestPool = [
     description: 'Fermer 5 zones de couleur',
     targetValue: 5,
     rewardType: RewardType.coins,
-    rewardValue: 10,
+    rewardValue: 50,
   ),
 ];
 
