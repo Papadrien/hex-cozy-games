@@ -50,15 +50,34 @@ class AnalyticsService {
   }
 
   /// Envoie un événement Analytics si Firebase est disponible, no-op sinon.
+  ///
+  /// En mode debug, chaque appel est loggé via `debugPrint` — qu'il soit
+  /// réellement envoyé à Firebase ou ignoré (Firebase indisponible) —
+  /// pour permettre de vérifier les events sans accès à `adb logcat`
+  /// (ex. filtrage `FA` ou `Firebase`).
   static Future<void> logEvent(
     String name, {
     Map<String, Object>? parameters,
   }) async {
-    if (!_isAvailable) return;
+    if (!_isAvailable) {
+      if (kDebugMode) {
+        debugPrint(
+          '🔥 [Analytics] SKIPPED "$name" (Firebase indisponible) '
+          'params=$parameters',
+        );
+      }
+      return;
+    }
+    if (kDebugMode) {
+      debugPrint('🔥 [Analytics] logEvent "$name" params=$parameters');
+    }
     await FirebaseAnalytics.instance.logEvent(
       name: name,
       parameters: parameters,
     );
+    if (kDebugMode) {
+      debugPrint('🔥 [Analytics] "$name" envoyé avec succès');
+    }
   }
 
   /// Mappe le préfixe "biome" d'un id (amélioration ou quête) vers son nom
