@@ -9,6 +9,8 @@ import 'package:flame/components.dart';
 import 'package:flame/effects.dart';
 
 import '../core/colors.dart';
+import '../services/audio_service.dart'
+    show kCoinSfxClipDuration, kCoinSfxGap, kMaxCoinSfxRepeats;
 import 'tile_component.dart'; // kIsoScaleY, kTileDepthPriorityPreview
 
 // ── Animation constants ─────────────────────────────────────────────────────
@@ -32,36 +34,23 @@ const int kBonusWaterParticleMin = 3;
 const int kBonusWaterParticleMax = 10;
 const double kBonusIconStaggerInterval = 0.12;
 
-/// Durée de vol d'une pièce vers son compteur avant l'impact (dupliquée
-/// depuis [CoinComponent], qui ne l'expose pas sous forme de constante
-/// nommée) — point de départ du calcul de [_coinSoundsFinishDelaySec].
+/// Durée de vol d'une pièce vers son compteur avant l'impact — utilisée par
+/// [CoinComponent] ([MoveEffect]) et comme point de départ du calcul de
+/// [_coinSoundsFinishDelaySec].
 const double kCoinFlyDurationSec = 0.6;
-
-/// Délai entre deux lectures de `coin.mp3` d'un même gain — dupliqué depuis
-/// [AudioService.playCoinsGained] (constante privée à ce fichier côté
-/// service) pour pouvoir estimer ici la fin du bruitage.
-const double kCoinSfxGapSec = 0.25;
-
-/// Durée de lecture d'un `coin.mp3` (mesurée ~0.696s, arrondie à 0.7s par
-/// prudence) — sert à estimer quand la dernière pièce d'un gain a fini de
-/// sonner.
-const double kCoinSfxClipDurationSec = 0.7;
-
-/// Nombre max de `coin.mp3` joués pour un même gain — dupliqué depuis
-/// [AudioService.playCoinsGained] (`_kMaxCoinSfxRepeats`).
-const int kMaxCoinSfxRepeats = 6;
 
 /// Estime le délai, à partir de la pose de la tuile, auquel le dernier
 /// `coin.mp3` d'un gain de [coinCount] pièces aura fini de sonner :
 /// vol de la pièce jusqu'au compteur ([kCoinFlyDurationSec]) puis lectures
-/// échelonnées ([kCoinSfxGapSec] entre chacune, plafonnées à
-/// [kMaxCoinSfxRepeats]) jusqu'à la fin de la dernière ([kCoinSfxClipDurationSec]).
-/// Retourne 0 si [coinCount] est nul (aucune pièce, donc aucun bruitage à
-/// attendre).
+/// échelonnées ([kCoinSfxGap] entre chacune, plafonnées à
+/// [kMaxCoinSfxRepeats]) jusqu'à la fin de la dernière
+/// ([kCoinSfxClipDuration]). Retourne 0 si [coinCount] est nul (aucune
+/// pièce, donc aucun bruitage à attendre).
 double _coinSoundsFinishDelaySec(int coinCount) {
   if (coinCount <= 0) return 0.0;
   final n = coinCount.clamp(0, kMaxCoinSfxRepeats);
-  return kCoinFlyDurationSec + (n - 1) * kCoinSfxGapSec + kCoinSfxClipDurationSec;
+  return kCoinFlyDurationSec +
+      (kCoinSfxGap * (n - 1) + kCoinSfxClipDuration).inMilliseconds / 1000.0;
 }
 
 // ── Helper ──────────────────────────────────────────────────────────────────
@@ -229,7 +218,9 @@ class CoinComponent extends PositionComponent {
       add(MoveEffect.to(
         flyTarget!,
         EffectController(
-            duration: 0.6, startDelay: _startDelay, curve: Curves.easeInOut),
+            duration: kCoinFlyDurationSec,
+            startDelay: _startDelay,
+            curve: Curves.easeInOut),
       )..onComplete = () => onImpact?.call());
     }
   }

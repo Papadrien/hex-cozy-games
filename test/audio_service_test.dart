@@ -8,7 +8,7 @@
 ///  - le gate `sfxEnabled` : bruitages désactivés → aucun appel bloquant,
 ///    quel que soit le nombre de pièces demandé ;
 ///  - le plafond de répétitions de [AudioService.playCoinsGained]
-///    ([_kMaxCoinSfxRepeats] en interne) : un très grand nombre de pièces
+///    ([kMaxCoinSfxRepeats]) : un très grand nombre de pièces
 ///    ne doit jamais faire attendre indéfiniment (sinon le test expire) ;
 ///  - [AudioService.playCoinsGained] avec `count: 0` ne joue rien ;
 ///  - [AudioService.playTilePlaced] / [AudioService.playTileGained] /

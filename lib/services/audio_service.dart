@@ -135,11 +135,13 @@ const int _kSfxPoolSize = 6;
 /// un très gros gain (améliorations cumulées) déclencherait une rafale
 /// sonore de plusieurs secondes. Même plafond que
 /// [HapticsService.playReward] pour rester cohérent avec le retour haptique.
-const int _kMaxCoinSfxRepeats = 6;
+/// Partagé avec `bonus_animations.dart` (estimation de la fin du bruitage).
+const int kMaxCoinSfxRepeats = 6;
 
 /// Délai entre deux `coin.mp3` d'un même gain, pour qu'ils restent
 /// perceptibles comme des impulsions distinctes plutôt qu'un unique son.
-const Duration _kCoinSfxGap = Duration(milliseconds: 250);
+/// Partagé avec `bonus_animations.dart` (estimation de la fin du bruitage).
+const Duration kCoinSfxGap = Duration(milliseconds: 250);
 
 /// Délai minimal entre deux lectures de `tile_gain.mp3` (voir
 /// [AudioService.playTileGained]) — un gain multi-tuiles peut déclencher
@@ -148,17 +150,17 @@ const Duration _kCoinSfxGap = Duration(milliseconds: 250);
 /// attente plutôt que de couper net le son précédent trop tôt.
 const Duration _kTileGainSfxGap = Duration(milliseconds: 250);
 
-/// Durée de vol d'une pièce vers son compteur avant l'impact (dupliquée
-/// depuis [CoinComponent]/`bonus_animations.dart`, qui ne l'exposent pas
-/// sous forme de constante partagée ici) — point de départ du calcul de
+/// Durée de vol d'une pièce vers son compteur avant l'impact — valeur
+/// alignée sur [kCoinFlyDurationSec] (`bonus_animations.dart`, source
+/// canonique utilisée par [CoinComponent]) — point de départ du calcul de
 /// [_coinSoundsFinishDelay].
 const Duration _kCoinFlyDuration = Duration(milliseconds: 600);
 
 /// Durée de lecture d'un `coin.mp3` (mesurée ~0.696s, arrondie à 0.7s par
 /// prudence) — sert à estimer quand la dernière pièce d'un gain a fini de
-/// sonner. Dupliquée depuis `bonus_animations.dart`
-/// ([kCoinSfxClipDurationSec]).
-const Duration _kCoinSfxClipDuration = Duration(milliseconds: 700);
+/// sonner. Partagé avec `bonus_animations.dart` (estimation de la fin du
+/// bruitage).
+const Duration kCoinSfxClipDuration = Duration(milliseconds: 700);
 
 /// Durée par défaut du fondu de sortie appliqué par [AudioService.playMusicWithFadeOut]
 /// avant de basculer sur la nouvelle piste — assez bref pour rester discret
@@ -382,17 +384,17 @@ class AudioService {
   }
 
   /// Joue `coin.mp3` une fois par pièce gagnée (plafonné à
-  /// [_kMaxCoinSfxRepeats]), légèrement échelonnées pour rester perceptibles
+  /// [kMaxCoinSfxRepeats]), légèrement échelonnées pour rester perceptibles
   /// individuellement — chaque occurrence a sa propre variation de hauteur.
   /// N'attend la fin d'aucune lecture précédente : les sons peuvent se
   /// chevaucher.
   Future<void> playCoinsGained(int count) async {
     if (!_sfxEnabled) return;
-    final n = count.clamp(0, _kMaxCoinSfxRepeats);
+    final n = count.clamp(0, kMaxCoinSfxRepeats);
     for (var i = 0; i < n; i++) {
       unawaited(_playSfx(SfxTrack.coin));
       if (i < n - 1) {
-        await Future<void>.delayed(_kCoinSfxGap);
+        await Future<void>.delayed(kCoinSfxGap);
       }
     }
   }
@@ -503,8 +505,8 @@ class AudioService {
   /// Estime le délai à partir duquel le dernier `coin.mp3` d'un gain de
   /// [coinCount] pièces aura fini de sonner : vol de la pièce jusqu'au
   /// compteur ([_kCoinFlyDuration]) puis lectures échelonnées
-  /// ([_kCoinSfxGap] entre chacune, plafonnées à [_kMaxCoinSfxRepeats])
-  /// jusqu'à la fin de la dernière ([_kCoinSfxClipDuration]). Retourne
+  /// ([kCoinSfxGap] entre chacune, plafonnées à [kMaxCoinSfxRepeats])
+  /// jusqu'à la fin de la dernière ([kCoinSfxClipDuration]). Retourne
   /// [Duration.zero] si [coinCount] est nul (aucune pièce, donc aucun
   /// bruitage à attendre).
   ///
@@ -514,8 +516,8 @@ class AudioService {
   /// écoulé, pour apparaître exactement en même temps que [playEndGame].
   static Duration coinSoundsFinishDelay(int coinCount) {
     if (coinCount <= 0) return Duration.zero;
-    final n = coinCount.clamp(0, _kMaxCoinSfxRepeats);
-    return _kCoinFlyDuration + _kCoinSfxGap * (n - 1) + _kCoinSfxClipDuration;
+    final n = coinCount.clamp(0, kMaxCoinSfxRepeats);
+    return _kCoinFlyDuration + kCoinSfxGap * (n - 1) + kCoinSfxClipDuration;
   }
 
   /// Joue `undo.mp3` à chaque annulation du dernier placement (voir
