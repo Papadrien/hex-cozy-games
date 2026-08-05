@@ -65,6 +65,10 @@ const Color kGlassBorder = Color(0x4DFFFFFF);
 /// texte blanc améliorée par rapport à l'ancien bleu glacier clair).
 const Color kGlassBlue = Color(0xFF2E3B52);
 
+/// Bleu nuit des surfaces de dialogue (AlertDialog…) — plus sombre que
+/// [kGlassBlue] pour bien détacher les modales du fond des écrans.
+const Color kDialogNavy = Color(0xFF1A2F45);
+
 /// Bordure glassmorphism commune — blanc translucide à 20% d'opacité,
 /// utilisée comme contour par défaut de tous les composants vitrés (écran
 /// d'accueil, sous-pages, HUD de jeu).
