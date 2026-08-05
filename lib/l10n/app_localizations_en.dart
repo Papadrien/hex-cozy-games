@@ -444,16 +444,13 @@ class AppLocalizationsEn extends AppLocalizations {
       '+5 bonus tiles (5-6 connection)';
 
   @override
-  String get upgrade_effect_coinsPercentBonus_0 =>
-      '+1 coin per 8 coins earned';
+  String get upgrade_effect_coinsPercentBonus_0 => '+1 coin per 8 coins earned';
 
   @override
-  String get upgrade_effect_coinsPercentBonus_1 =>
-      '+1 coin per 4 coins earned';
+  String get upgrade_effect_coinsPercentBonus_1 => '+1 coin per 4 coins earned';
 
   @override
-  String get upgrade_effect_coinsPercentBonus_2 =>
-      '+1 coin per 2 coins earned';
+  String get upgrade_effect_coinsPercentBonus_2 => '+1 coin per 2 coins earned';
 
   @override
   String get upgrade_effect_biomeCoinsBonus_0 => '+1 coin per 4 sides';

@@ -304,8 +304,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get upgrades_max => 'MAX';
 
   @override
-  String get upgrades_noneUnlocked =>
-      'Aucun power-up débloqué pour l\'instant';
+  String get upgrades_noneUnlocked => 'Aucun power-up débloqué pour l\'instant';
 
   @override
   String get upgrades_confirmButton => 'Confirmer ?';
@@ -536,7 +535,7 @@ class AppLocalizationsFr extends AppLocalizations {
       'Tuile bonus toutes les 5 doubles connexions';
 
   @override
-  String get upgrade_effect_millionaireCoins_0 => '+1 000 000 pièces';
+  String get upgrade_effect_millionaireCoins_0 => '+1 000 000 pièces';
 
   @override
   String get upgrade_effect_warehouseStartingTiles_0 => '+500 tuiles de départ';
