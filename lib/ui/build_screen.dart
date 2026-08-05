@@ -29,8 +29,9 @@ import '../providers/build_provider.dart';
 import '../providers/player_profile_provider.dart';
 import '../providers/progression_provider.dart';
 import '../services/haptics_service.dart';
-import 'glass_container.dart';
 import 'coin_icon.dart';
+import 'glass_container.dart';
+import 'screen_app_bar.dart';
 import 'tropical_background.dart';
 
 class BuildScreen extends ConsumerWidget {
@@ -112,60 +113,14 @@ class _BuildAppBar extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              _BuildGlassIconButton(
-                icon: Icons.close,
-                onPressed: () {
-                  buttonTapFeedback(context);
-                  Navigator.of(context).pop();
-                },
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Text(
-                  context.tr.home_buildSelection,
-                  style: TextStyle(
-                    fontFamily: 'Nunito',
-                    color: Colors.white,
-                    fontSize: 22,
-                    fontWeight: FontWeight.w800,
-                    shadows: [
-                      Shadow(
-                        color: Colors.black.withValues(alpha: 0.3),
-                        blurRadius: 6,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              _SelectionCountBadge(count: selectedCount),
-            ],
+          ScreenAppBar(
+            title: context.tr.home_buildSelection,
+            trailing: _SelectionCountBadge(count: selectedCount),
           ),
           const SizedBox(height: 10),
           _CoinBalanceBadge(totalCoins: totalCoins),
         ],
       ),
-    );
-  }
-}
-
-class _BuildGlassIconButton extends StatelessWidget {
-  const _BuildGlassIconButton({required this.icon, required this.onPressed});
-  final IconData icon;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return GlassContainer(
-      borderRadius: 14,
-      tintColor: kGlassBlue,
-      tintAlpha: 0.22,
-      borderColor: kGlassBlueBorder,
-      padding: const EdgeInsets.all(10),
-      onTap: onPressed,
-      child: Icon(icon, color: Colors.white, size: 20),
     );
   }
 }

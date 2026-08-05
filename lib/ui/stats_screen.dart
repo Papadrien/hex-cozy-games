@@ -9,12 +9,12 @@ import 'package:flutter/material.dart';
 
 import 'glass_container.dart';
 import 'coin_icon.dart';
+import 'screen_app_bar.dart';
 import 'tropical_background.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/colors.dart';
 import '../core/strings.dart';
 import '../providers/player_stats_provider.dart';
-import '../services/haptics_service.dart';
 
 class StatsScreen extends ConsumerWidget {
   const StatsScreen({super.key});
@@ -30,7 +30,7 @@ class StatsScreen extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _StatsAppBar(),
+                ScreenAppBar(title: context.tr.stats_title),
                 Expanded(
                   child: statsAsync.when(
                     loading: () => const Center(
@@ -154,63 +154,6 @@ class StatsScreen extends ConsumerWidget {
       default:
         return kBrandBlue;
     }
-  }
-}
-
-class _StatsAppBar extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Row(
-        children: [
-          _StatsGlassIconButton(
-            icon: Icons.close,
-            onPressed: () {
-              buttonTapFeedback(context);
-              Navigator.of(context).pop();
-            },
-          ),
-          const SizedBox(width: 14),
-          Text(
-            context.tr.stats_title,
-            style: TextStyle(
-              fontFamily: 'Nunito',
-              color: Colors.white,
-              fontSize: 22,
-              fontWeight: FontWeight.w800,
-              shadows: [
-                Shadow(
-                  color: Colors.black.withValues(alpha: 0.3),
-                  blurRadius: 6,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _StatsGlassIconButton extends StatelessWidget {
-  const _StatsGlassIconButton({required this.icon, required this.onPressed});
-  final IconData icon;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return GlassContainer(
-      borderRadius: 14,
-      blurSigma: 10,
-      tintColor: kGlassBlue,
-      tintAlpha: 0.22,
-      borderColor: kGlassBlueBorder,
-      padding: const EdgeInsets.all(10),
-      onTap: onPressed,
-      child: Icon(icon, color: Colors.white, size: 20),
-    );
   }
 }
 

@@ -17,13 +17,12 @@ import '../core/game_enums.dart';
 import '../core/strings.dart';
 import '../data/app_database.dart';
 import '../providers/quest_provider.dart';
-import '../services/haptics_service.dart';
 import 'coin_icon.dart';
 import 'daily_quest_section.dart';
-import 'glass_container.dart';
 import 'quest_card.dart';
 import 'quest_category_section.dart';
 import 'quest_summary_bar.dart';
+import 'screen_app_bar.dart';
 import 'tropical_background.dart';
 
 class QuestsScreen extends ConsumerWidget {
@@ -41,7 +40,7 @@ class QuestsScreen extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _QuestsAppBar(),
+                ScreenAppBar(title: context.tr.quests_title),
                 Expanded(
                   child: questsAsync.when(
                     loading: () => const Center(
@@ -266,58 +265,4 @@ class _QuestsList extends StatelessWidget {
   }
 }
 
-class _QuestsAppBar extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Row(
-        children: [
-          _QuestsGlassIconButton(
-            icon: Icons.close,
-            onPressed: () {
-              buttonTapFeedback(context);
-              Navigator.of(context).pop();
-            },
-          ),
-          const SizedBox(width: 14),
-          Text(
-            context.tr.quests_title,
-            style: TextStyle(
-              fontFamily: 'Nunito',
-              color: Colors.white,
-              fontSize: 22,
-              fontWeight: FontWeight.w800,
-              shadows: [
-                Shadow(
-                  color: Colors.black.withValues(alpha: 0.3),
-                  blurRadius: 6,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
 
-class _QuestsGlassIconButton extends StatelessWidget {
-  const _QuestsGlassIconButton({required this.icon, required this.onPressed});
-  final IconData icon;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return GlassContainer(
-      borderRadius: 14,
-      tintColor: kGlassBlue,
-      tintAlpha: 0.22,
-      borderColor: kGlassBlueBorder,
-      padding: const EdgeInsets.all(10),
-      onTap: onPressed,
-      child: Icon(icon, color: Colors.white, size: 20),
-    );
-  }
-}

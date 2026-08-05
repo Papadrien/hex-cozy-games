@@ -15,6 +15,7 @@ import '../services/audio_service.dart';
 import '../services/haptics_service.dart';
 import '../services/review_service.dart';
 import 'glass_container.dart';
+import 'screen_app_bar.dart';
 import 'tropical_background.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -31,7 +32,7 @@ class SettingsScreen extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _SettingsAppBar(),
+                ScreenAppBar(title: context.tr.settings_title),
                 Expanded(
                   child: ListView(
                     padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
@@ -109,63 +110,6 @@ class SettingsScreen extends ConsumerWidget {
             ),
           ),
         ),
-    );
-  }
-}
-
-class _SettingsAppBar extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Row(
-        children: [
-          _SettingsGlassIconButton(
-            icon: Icons.close,
-            onPressed: () {
-              buttonTapFeedback(context);
-              Navigator.of(context).pop();
-            },
-          ),
-          const SizedBox(width: 14),
-          Text(
-            context.tr.settings_title,
-            style: TextStyle(
-              fontFamily: 'Nunito',
-              color: Colors.white,
-              fontSize: 22,
-              fontWeight: FontWeight.w800,
-              shadows: [
-                Shadow(
-                  color: Colors.black.withValues(alpha: 0.3),
-                  blurRadius: 6,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SettingsGlassIconButton extends StatelessWidget {
-  const _SettingsGlassIconButton({required this.icon, required this.onPressed});
-  final IconData icon;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return GlassContainer(
-      borderRadius: 14,
-      blurSigma: 10,
-      tintColor: kGlassBlue,
-      tintAlpha: 0.22,
-      borderColor: kGlassBlueBorder,
-      padding: const EdgeInsets.all(10),
-      onTap: onPressed,
-      child: Icon(icon, color: Colors.white, size: 20),
     );
   }
 }
