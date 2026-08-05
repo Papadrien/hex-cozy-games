@@ -146,6 +146,18 @@ abstract class AppLocalizations {
   /// **'Vibration'**
   String get options_vibrations;
 
+  /// No description provided for @options_immersiveMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Immersive mode'**
+  String get options_immersiveMode;
+
+  /// No description provided for @settings_sectionGeneral.
+  ///
+  /// In en, this message translates to:
+  /// **'General'**
+  String get settings_sectionGeneral;
+
   /// No description provided for @pause_saveAndQuit.
   ///
   /// In en, this message translates to:

@@ -14,6 +14,7 @@ import '../providers/options_provider.dart';
 import '../services/audio_service.dart';
 import '../services/haptics_service.dart';
 import '../services/review_service.dart';
+import '../services/system_ui_service.dart';
 import 'glass_container.dart';
 import 'screen_app_bar.dart';
 import 'tropical_background.dart';
@@ -88,6 +89,22 @@ class SettingsScreen extends ConsumerWidget {
                         onToggle: () {
                           buttonTapFeedback(context);
                           ref.read(optionsProvider.notifier).toggleVibration();
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      _SectionLabel(context.tr.settings_sectionGeneral),
+                      const SizedBox(height: 8),
+                      _ToggleTile(
+                        icon: Icons.fullscreen,
+                        label: context.tr.options_immersiveMode,
+                        value: options.immersiveEnabled,
+                        onToggle: () {
+                          buttonTapFeedback(context);
+                          ref.read(optionsProvider.notifier).toggleImmersive();
+                          // Applique immédiatement le nouveau mode : le
+                          // joueur voit les barres système réapparaître
+                          // (ou se masquer) sans redémarrer l'app.
+                          applySystemUiMode(!options.immersiveEnabled);
                         },
                       ),
                       const SizedBox(height: 16),

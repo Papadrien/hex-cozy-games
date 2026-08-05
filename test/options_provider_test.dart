@@ -1,12 +1,13 @@
-/// Tests pour OptionsStateNotifier (réglages son et vibrations).
+/// Tests pour OptionsStateNotifier (réglages son, vibrations et affichage).
 ///
 /// Couvre :
 ///  - les valeurs par défaut (musique/bruitages activés, volumes à 1.0,
-///    vibrations activées) ;
+///    vibrations activées, mode immersif activé) ;
 ///  - toggleMusic / toggleSfx, indépendants l'un de l'autre ;
 ///  - setMusicVolume / setSfxVolume, bornés entre 0.0 et 1.0 et
 ///    indépendants l'un de l'autre ;
 ///  - toggleVibration ;
+///  - toggleImmersive ;
 ///  - la persistance via SharedPreferences entre deux instances du
 ///    notifier ;
 ///  - la migration one-shot depuis les anciennes clés uniques
@@ -36,6 +37,7 @@ void main() {
     expect(state.musicVolume, 1.0);
     expect(state.sfxVolume, 1.0);
     expect(state.vibrationEnabled, isTrue);
+    expect(state.immersiveEnabled, isTrue);
   });
 
   test('toggleMusic ne modifie pas sfxEnabled', () async {
@@ -114,6 +116,33 @@ void main() {
     expect(container.read(optionsProvider).vibrationEnabled, isFalse);
     notifier.toggleVibration();
     expect(container.read(optionsProvider).vibrationEnabled, isTrue);
+  });
+
+  test('toggleImmersive n\'affecte pas les autres réglages', () async {
+    await initOptionsPrefs();
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    final notifier = container.read(optionsProvider.notifier);
+
+    expect(container.read(optionsProvider).immersiveEnabled, isTrue);
+
+    notifier.toggleImmersive();
+    expect(container.read(optionsProvider).immersiveEnabled, isFalse);
+    expect(container.read(optionsProvider).musicEnabled, isTrue);
+    expect(container.read(optionsProvider).sfxEnabled, isTrue);
+    expect(container.read(optionsProvider).vibrationEnabled, isTrue);
+
+    notifier.toggleImmersive();
+    expect(container.read(optionsProvider).immersiveEnabled, isTrue);
+  });
+
+  test('initialImmersiveEnabled lit la préférence persistée', () async {
+    SharedPreferences.setMockInitialValues({
+      'options_immersive_enabled': false,
+    });
+    await initOptionsPrefs();
+
+    expect(initialImmersiveEnabled(), isFalse);
   });
 
   test('les réglages persistent via SharedPreferences entre deux notifiers',

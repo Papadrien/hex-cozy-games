@@ -6,7 +6,9 @@
 ///  - le toggle Bruitages (tap sur l'icône graphic_eq → sfxEnabled flip) ;
 ///  - les sliders Volume musique / Volume bruitages (drag → volume mis à
 ///    jour indépendamment pour chaque catégorie) ;
-///  - le toggle Vibration (tap sur l'icône vibration → vibrationEnabled flip).
+///  - le toggle Vibration (tap sur l'icône vibration → vibrationEnabled flip) ;
+///  - le toggle Mode immersif (tap sur l'icône fullscreen → immersiveEnabled
+///    flip).
 library;
 
 import 'package:flutter/material.dart';
@@ -41,6 +43,7 @@ void main() {
     expect(find.text(tr.options_musicVolume), findsOneWidget);
     expect(find.text(tr.options_sfxVolume), findsOneWidget);
     expect(find.text(tr.options_vibrations), findsOneWidget);
+    expect(find.text(tr.options_immersiveMode), findsOneWidget);
     expect(find.byIcon(Icons.close), findsOneWidget);
     expect(find.byType(Slider), findsNWidgets(2));
   });
@@ -190,5 +193,38 @@ void main() {
     await tester.tap(find.byIcon(Icons.vibration));
     await tester.pumpAndSettle();
     expect(container.read(optionsProvider).vibrationEnabled, isTrue);
+  });
+
+  testWidgets('toggle mode immersif via l\'icône fullscreen', (tester) async {
+    await tester.pumpWidget(
+      const ProviderScope(
+        overrides: [],
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: SettingsScreen(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(SettingsScreen)),
+    );
+
+    expect(container.read(optionsProvider).immersiveEnabled, isTrue);
+
+    // Le toggle est en bas de l'écran de test (800×600) : scrolle pour
+    // qu'il soit tappable.
+    await tester.ensureVisible(find.byIcon(Icons.fullscreen));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.fullscreen));
+    await tester.pumpAndSettle();
+    expect(container.read(optionsProvider).immersiveEnabled, isFalse);
+
+    await tester.tap(find.byIcon(Icons.fullscreen));
+    await tester.pumpAndSettle();
+    expect(container.read(optionsProvider).immersiveEnabled, isTrue);
   });
 }

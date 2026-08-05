@@ -33,6 +33,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get options_vibrations => 'Vibration';
 
   @override
+  String get options_immersiveMode => 'Immersive mode';
+
+  @override
+  String get settings_sectionGeneral => 'General';
+
+  @override
   String get pause_saveAndQuit => 'Save and quit';
 
   @override

@@ -1,9 +1,9 @@
-/// Réglages son et vibrations — Story 1.5bis-a.
+/// Réglages son, vibrations et affichage — Story 1.5bis-a.
 ///
 /// Provider persisté via `shared_preferences` pour que les choix du joueur
 /// survivent aux redémarrages de l'app. Les valeurs par défaut sont
-/// `true` (musique activée, bruitages activés, vibrations activées) et
-/// `1.0` (volumes maximum).
+/// `true` (musique activée, bruitages activés, vibrations activées, mode
+/// immersif activé) et `1.0` (volumes maximum).
 ///
 /// L'ancien réglage unique « Son » ([_kLegacySoundKey]) a été scindé en deux
 /// réglages indépendants — [OptionsState.musicEnabled] (musique de fond) et
@@ -27,6 +27,7 @@ class OptionsState {
     this.musicVolume = 1.0,
     this.sfxVolume = 1.0,
     this.vibrationEnabled = true,
+    this.immersiveEnabled = true,
   });
 
   final bool musicEnabled;
@@ -40,6 +41,16 @@ class OptionsState {
   /// Indépendant de [sfxEnabled]... et de [musicEnabled]/[musicVolume].
   final double sfxVolume;
   final bool vibrationEnabled;
+
+  /// Mode immersif activé : barres système (statut/navigation) masquées
+  /// pendant le jeu (`SystemUiMode.immersiveSticky`). Quand il est
+  /// désactivé, on revient à un affichage classique avec barres visibles
+  /// pour que le joueur puisse voir l'heure ou le niveau de batterie.
+  ///
+  /// L'application effective au système est faite par les appelants
+  /// (démarrage, retour au premier plan, écran Réglages) via
+  /// `applySystemUiMode` de `services/system_ui_service.dart`.
+  final bool immersiveEnabled;
 }
 
 /// Instance SharedPreferences pré-chargée au démarrage de l'app (voir
@@ -51,6 +62,13 @@ SharedPreferences? _prefs;
 Future<void> initOptionsPrefs() async {
   _prefs = await SharedPreferences.getInstance();
 }
+
+/// Préférence de mode immersif lue avant l'initialisation du notifier —
+/// utilisée par [main] pour appliquer le mode d'affichage système avant
+/// `runApp`. `true` par défaut : le mode immersif est l'expérience par
+/// défaut du jeu.
+bool initialImmersiveEnabled() =>
+    _prefs?.getBool(OptionsStateNotifier.immersiveKey) ?? true;
 
 class OptionsStateNotifier extends Notifier<OptionsState> {
   /// Ancienne clé unique « Son » (avant la scission musique/bruitages) —
@@ -64,11 +82,17 @@ class OptionsStateNotifier extends Notifier<OptionsState> {
   static const _kMusicVolumeKey = 'options_music_volume';
   static const _kSfxVolumeKey = 'options_sfx_volume';
   static const _kVibrationKey = 'options_vibration_enabled';
+  static const _kImmersiveKey = 'options_immersive_enabled';
+
+  /// Clé de préférence du mode immersif — exposée pour la lecture initiale
+  /// avant l'initialisation du notifier (voir [initialImmersiveEnabled]).
+  static const immersiveKey = _kImmersiveKey;
 
   @override
   OptionsState build() {
     final p = _prefs;
     final vibration = p?.getBool(_kVibrationKey) ?? true;
+    final immersive = p?.getBool(_kImmersiveKey) ?? true;
 
     final legacyVolume = p?.getDouble(_kLegacyVolumeKey);
     double musicVolume;
@@ -99,6 +123,7 @@ class OptionsStateNotifier extends Notifier<OptionsState> {
         musicVolume: musicVolume,
         sfxVolume: sfxVolume,
         vibrationEnabled: vibration,
+        immersiveEnabled: immersive,
       );
     }
 
@@ -110,6 +135,7 @@ class OptionsStateNotifier extends Notifier<OptionsState> {
       musicVolume: musicVolume,
       sfxVolume: sfxVolume,
       vibrationEnabled: vibration,
+      immersiveEnabled: immersive,
     );
   }
 
@@ -120,6 +146,7 @@ class OptionsStateNotifier extends Notifier<OptionsState> {
       musicVolume: state.musicVolume,
       sfxVolume: state.sfxVolume,
       vibrationEnabled: state.vibrationEnabled,
+      immersiveEnabled: state.immersiveEnabled,
     );
     _prefs?.setBool(_kMusicKey, state.musicEnabled);
   }
@@ -131,6 +158,7 @@ class OptionsStateNotifier extends Notifier<OptionsState> {
       musicVolume: state.musicVolume,
       sfxVolume: state.sfxVolume,
       vibrationEnabled: state.vibrationEnabled,
+      immersiveEnabled: state.immersiveEnabled,
     );
     _prefs?.setBool(_kSfxKey, state.sfxEnabled);
   }
@@ -145,6 +173,7 @@ class OptionsStateNotifier extends Notifier<OptionsState> {
       musicVolume: clamped,
       sfxVolume: state.sfxVolume,
       vibrationEnabled: state.vibrationEnabled,
+      immersiveEnabled: state.immersiveEnabled,
     );
     _prefs?.setDouble(_kMusicVolumeKey, clamped);
   }
@@ -159,6 +188,7 @@ class OptionsStateNotifier extends Notifier<OptionsState> {
       musicVolume: state.musicVolume,
       sfxVolume: clamped,
       vibrationEnabled: state.vibrationEnabled,
+      immersiveEnabled: state.immersiveEnabled,
     );
     _prefs?.setDouble(_kSfxVolumeKey, clamped);
   }
@@ -170,8 +200,25 @@ class OptionsStateNotifier extends Notifier<OptionsState> {
       musicVolume: state.musicVolume,
       sfxVolume: state.sfxVolume,
       vibrationEnabled: !state.vibrationEnabled,
+      immersiveEnabled: state.immersiveEnabled,
     );
     _prefs?.setBool(_kVibrationKey, state.vibrationEnabled);
+  }
+
+  /// Active/désactive le mode immersif (barres système masquées pendant le
+  /// jeu — voir [OptionsState.immersiveEnabled]). L'application effective au
+  /// système est faite par les appelants (démarrage, retour au premier plan,
+  /// écran Réglages) via `applySystemUiMode`.
+  void toggleImmersive() {
+    state = OptionsState(
+      musicEnabled: state.musicEnabled,
+      sfxEnabled: state.sfxEnabled,
+      musicVolume: state.musicVolume,
+      sfxVolume: state.sfxVolume,
+      vibrationEnabled: state.vibrationEnabled,
+      immersiveEnabled: !state.immersiveEnabled,
+    );
+    _prefs?.setBool(_kImmersiveKey, state.immersiveEnabled);
   }
 }
 

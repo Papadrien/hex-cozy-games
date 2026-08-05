@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
@@ -12,6 +11,7 @@ import 'l10n/app_localizations.dart';
 import 'providers/options_provider.dart';
 import 'services/analytics_service.dart';
 import 'services/audio_service.dart';
+import 'services/system_ui_service.dart';
 import 'ui/game_screen.dart';
 import 'ui/home_screen.dart';
 import 'ui/splash_screen.dart';
@@ -27,8 +27,9 @@ Future<void> main() async {
   // navigation système. En mode "immersiveSticky", un balayage depuis le
   // bord les fait réapparaître brièvement avant qu'elles ne se masquent à
   // nouveau — adapté à une app de jeu où l'on veut éviter tout appui
-  // accidentel sur les boutons système.
-  await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+  // accidentel sur les boutons système. Le joueur peut désactiver ce
+  // comportement dans les Réglages (toggle "Mode immersif").
+  await applySystemUiMode(initialImmersiveEnabled());
 
   runApp(const ProviderScope(child: HexCozyGamesApp()));
 }
@@ -57,9 +58,12 @@ class _HexCozyGamesAppState extends ConsumerState<HexCozyGamesApp>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     // Le système restaure parfois les barres système (statut/navigation)
-    // au retour au premier plan — on réapplique alors le plein écran.
+    // au retour au premier plan — on réapplique alors le mode d'affichage
+    // choisi dans les Réglages (immersif ou non).
     if (state == AppLifecycleState.resumed) {
-      SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+      unawaited(
+        applySystemUiMode(ref.read(optionsProvider).immersiveEnabled),
+      );
     }
     // Musique de fond (accueil ou partie en cours) : coupée dès que l'app
     // quitte le premier plan, reprise à son retour — quel que soit l'écran
