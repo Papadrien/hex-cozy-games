@@ -66,6 +66,11 @@ Widget _wrap(ProviderContainer container) {
   return UncontrolledProviderScope(
     container: container,
     child: const MaterialApp(
+      // Les noms des améliorations sont localisés (upgrade_name_*) : force
+      // le français pour que les attentes du test (Cargaison, Marée
+      // généreuse, Butin) correspondent au rendu, quelle que soit la locale
+      // de l'environnement de test (en_US par défaut).
+      locale: Locale('fr'),
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       home: BuildScreen(),

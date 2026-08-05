@@ -71,7 +71,14 @@ class _FakeAudioplayersPlatform extends AudioplayersPlatformInterface {
   Future<void> resume(String playerId) async {}
 
   @override
-  Future<void> seek(String playerId, Duration position) async {}
+  Future<void> seek(String playerId, Duration position) async {
+    // AudioPlayer.seek attend l'événement onSeekComplete avant de rendre la
+    // main (audioplayers 6.x) : sans cette émission, le futur n'aboutit
+    // jamais et le test expire.
+    _controllerFor(playerId).add(
+      const AudioEvent(eventType: AudioEventType.seekComplete),
+    );
+  }
 
   @override
   Future<void> setAudioContext(String playerId, AudioContext ctx) async {}
