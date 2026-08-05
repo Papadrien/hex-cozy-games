@@ -170,6 +170,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get quests_category_streak => 'Série de connexions';
 
   @override
+  String get quests_category_daily => 'Quêtes quotidiennes';
+
+  @override
   String get quests_status_active => 'En cours';
 
   @override
@@ -185,7 +188,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get quests_reward_coins => 'Récompense';
 
   @override
-  String get quests_reward_upgrade => 'Débloque amélioration';
+  String get quests_reward_upgrade => 'Débloque power-up';
 
   @override
   String get quests_progress => 'Progression';
@@ -200,7 +203,84 @@ class AppLocalizationsFr extends AppLocalizations {
   String get quests_next_reward => 'Prochaine récompense';
 
   @override
-  String get upgrades_title => 'Améliorations';
+  String quest_desc_best_game_coins(Object value) {
+    return 'Gagner $value pièces en une seule partie';
+  }
+
+  @override
+  String quest_desc_cluster_forest(Object value) {
+    return 'Faire un groupe vert de $value tuiles';
+  }
+
+  @override
+  String quest_desc_cluster_water(Object value) {
+    return 'Faire un groupe bleu de $value tuiles';
+  }
+
+  @override
+  String quest_desc_cluster_plain(Object value) {
+    return 'Faire un groupe jaune de $value tuiles';
+  }
+
+  @override
+  String quest_desc_cluster_mountain(Object value) {
+    return 'Faire un groupe violet de $value tuiles';
+  }
+
+  @override
+  String quest_desc_cluster_village(Object value) {
+    return 'Faire un groupe rouge de $value tuiles';
+  }
+
+  @override
+  String quest_desc_biomes_closed(Object value) {
+    return 'Fermer $value zones de couleur';
+  }
+
+  @override
+  String quest_desc_coins_total(Object value) {
+    return 'Gagner $value pièces au total';
+  }
+
+  @override
+  String quest_desc_coins_simple(Object value) {
+    return 'Gagner $value pièces';
+  }
+
+  @override
+  String quest_desc_streak(Object value) {
+    return 'Réaliser une série de $value connexions consécutives';
+  }
+
+  @override
+  String get quest_desc_triple_connection => 'Triple connexion réalisée';
+
+  @override
+  String get quest_desc_quad_connection => 'Quadruple connexion réalisée';
+
+  @override
+  String get quest_desc_quint_connection => 'Quintuple connexion réalisée';
+
+  @override
+  String get quest_desc_sext_connection => 'Sextuple connexion réalisée';
+
+  @override
+  String quest_desc_triple_connections_count(Object value) {
+    return 'Réaliser $value triples connexions';
+  }
+
+  @override
+  String quest_desc_quad_connections_count(Object value) {
+    return 'Réaliser $value quadruples connexions';
+  }
+
+  @override
+  String quest_desc_quint_connections_count(Object value) {
+    return 'Réaliser $value quintuples connexions';
+  }
+
+  @override
+  String get upgrades_title => 'Power-ups';
 
   @override
   String get upgrades_locked => 'Verrouillée';
@@ -225,7 +305,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get upgrades_noneUnlocked =>
-      'Aucune amélioration débloquée pour l\'instant';
+      'Aucun power-up débloqué pour l\'instant';
 
   @override
   String get upgrades_confirmButton => 'Confirmer ?';
@@ -284,7 +364,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get upgrade_desc_hated_color =>
-      'Tape sur cette amélioration en cours de partie pour choisir une couleur à exclure temporairement de la pile de tuiles, un nombre limité de fois par partie.';
+      'Tape sur ce power-up en cours de partie pour choisir une couleur à exclure temporairement de la pile de tuiles, un nombre limité de fois par partie.';
 
   @override
   String get upgrade_hated_color_picker_title => 'Choisis la couleur à exclure';
@@ -296,6 +376,170 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get upgrade_desc_warehouse =>
       'Démarre une partie avec 500 tuiles en réserve (outil de développement).';
+
+  @override
+  String get upgrade_name_starting_tiles_plus => 'Cargaison';
+
+  @override
+  String get upgrade_name_doubled_connections => 'Marée généreuse';
+
+  @override
+  String get upgrade_name_coins_plus => 'Butin';
+
+  @override
+  String get upgrade_name_villages_plus => 'Rouge';
+
+  @override
+  String get upgrade_name_combo_plus => 'Alizés';
+
+  @override
+  String get upgrade_name_extended_preview => 'Longue-vue';
+
+  @override
+  String get upgrade_name_hold_slot => 'Sacoche';
+
+  @override
+  String get upgrade_name_second_chance => 'Ressac';
+
+  @override
+  String get upgrade_name_forest_plus => 'Vert';
+
+  @override
+  String get upgrade_name_water_plus => 'Bleu';
+
+  @override
+  String get upgrade_name_plain_plus => 'Jaune';
+
+  @override
+  String get upgrade_name_mountain_plus => 'Violet';
+
+  @override
+  String get upgrade_name_closure_bonus => 'Atoll';
+
+  @override
+  String get upgrade_name_hated_color => 'Exil';
+
+  @override
+  String get upgrade_name_millionaire => 'Millionnaire';
+
+  @override
+  String get upgrade_name_warehouse => 'Entrepôt';
+
+  @override
+  String get upgrade_effect_startingTilesBonus_0 => '+2 tuiles de départ';
+
+  @override
+  String get upgrade_effect_startingTilesBonus_1 => '+5 tuiles de départ';
+
+  @override
+  String get upgrade_effect_startingTilesBonus_2 => '+10 tuiles de départ';
+
+  @override
+  String get upgrade_effect_connectionBonusMultiplier_0 =>
+      '+1 tuile bonus (connexion 5-6)';
+
+  @override
+  String get upgrade_effect_connectionBonusMultiplier_1 =>
+      '+2 tuiles bonus (connexion 5-6)';
+
+  @override
+  String get upgrade_effect_connectionBonusMultiplier_2 =>
+      '+5 tuiles bonus (connexion 5-6)';
+
+  @override
+  String get upgrade_effect_coinsPercentBonus_0 =>
+      '+1 pièce par tranche de 8 pièces';
+
+  @override
+  String get upgrade_effect_coinsPercentBonus_1 =>
+      '+1 pièce par tranche de 4 pièces';
+
+  @override
+  String get upgrade_effect_coinsPercentBonus_2 =>
+      '+1 pièce par tranche de 2 pièces';
+
+  @override
+  String get upgrade_effect_biomeCoinsBonus_0 =>
+      '+1 pièce par tranche de 4 côtés';
+
+  @override
+  String get upgrade_effect_biomeCoinsBonus_1 =>
+      '+1 pièce par tranche de 2 côtés';
+
+  @override
+  String get upgrade_effect_biomeCoinsBonus_2 => '+1 pièce par côté';
+
+  @override
+  String get upgrade_effect_closureBonusTiles_0 =>
+      '+1 tuile bonus / 8 tuiles de la zone';
+
+  @override
+  String get upgrade_effect_closureBonusTiles_1 =>
+      '+2 tuiles bonus / 8 tuiles de la zone';
+
+  @override
+  String get upgrade_effect_closureBonusTiles_2 =>
+      '+3 tuiles bonus / 8 tuiles de la zone';
+
+  @override
+  String get upgrade_effect_hatedColorExclusion_0 =>
+      'Exclut une couleur (5 tuiles), 1 usage';
+
+  @override
+  String get upgrade_effect_hatedColorExclusion_1 =>
+      'Exclut une couleur (8 tuiles), 2 usages';
+
+  @override
+  String get upgrade_effect_hatedColorExclusion_2 =>
+      'Exclut une couleur (10 tuiles), 3 usages';
+
+  @override
+  String get upgrade_effect_extendedPreviewCount_0 => 'Voir 4 tuiles à venir';
+
+  @override
+  String get upgrade_effect_extendedPreviewCount_1 => 'Voir 5 tuiles à venir';
+
+  @override
+  String get upgrade_effect_extendedPreviewCount_2 => 'Voir 6 tuiles à venir';
+
+  @override
+  String get upgrade_effect_holdSlotUses_0 => 'Stocke une tuile, 1 usage';
+
+  @override
+  String get upgrade_effect_holdSlotUses_1 => 'Stocke une tuile, 2 usages';
+
+  @override
+  String get upgrade_effect_holdSlotUses_2 => 'Stocke une tuile, 3 usages';
+
+  @override
+  String get upgrade_effect_secondChanceUses_0 =>
+      'Retire une tuile posée, 1 usage';
+
+  @override
+  String get upgrade_effect_secondChanceUses_1 =>
+      'Retire une tuile posée, 2 usages';
+
+  @override
+  String get upgrade_effect_secondChanceUses_2 =>
+      'Retire une tuile posée, 3 usages';
+
+  @override
+  String get upgrade_effect_comboBonusTiles_0 =>
+      'Tuile bonus toutes les 10 doubles connexions';
+
+  @override
+  String get upgrade_effect_comboBonusTiles_1 =>
+      'Tuile bonus toutes les 8 doubles connexions';
+
+  @override
+  String get upgrade_effect_comboBonusTiles_2 =>
+      'Tuile bonus toutes les 5 doubles connexions';
+
+  @override
+  String get upgrade_effect_millionaireCoins_0 => '+1 000 000 pièces';
+
+  @override
+  String get upgrade_effect_warehouseStartingTiles_0 => '+500 tuiles de départ';
 
   @override
   String get shop_title => 'Boutique';
@@ -315,7 +559,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get shop_bestValueBadge => 'Meilleur rapport';
 
   @override
-  String get shop_adRemovalIncludedBadge => 'Sans pubs incluses';
+  String get shop_adRemovalIncludedBadge => 'Premium inclus';
 
   @override
   String get shop_premium => 'Premium';
@@ -326,6 +570,11 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get shop_buy => 'Acheter';
+
+  @override
+  String shop_buyForPrice(Object price) {
+    return 'Acheter — $price';
+  }
 
   @override
   String get shop_alreadyPremium => 'Déjà Premium';
@@ -355,11 +604,11 @@ class AppLocalizationsFr extends AppLocalizations {
   String get home_shop => 'Boutique';
 
   @override
-  String get home_buildSelection => 'Améliorations';
+  String get home_buildSelection => 'Power-ups';
 
   @override
   String get home_buildSelectionLockedResume =>
-      'Termine ou abandonne ta partie en cours avant de choisir de nouvelles améliorations.';
+      'Termine ou abandonne ta partie en cours avant de choisir de nouveaux power-ups.';
 
   @override
   String get home_quests => 'Quêtes';
@@ -393,6 +642,15 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get stats_totalCoins => 'Pièces totales gagnées';
+
+  @override
+  String get stats_colorGroups => 'GROUPES DE COULEUR';
+
+  @override
+  String get stats_error => 'Erreur';
+
+  @override
+  String get stats_noData => 'Aucune donnée';
 
   @override
   String stats_biomeMax(Object value) {

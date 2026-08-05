@@ -218,6 +218,20 @@ class AudioService {
       ),
     ));
     unawaited(_musicPlayer.setReleaseMode(ReleaseMode.loop));
+    // Lecteurs dédiés (tileGain, endGame, questReward) : ReleaseMode.stop
+    // plutôt que le défaut ReleaseMode.release. En mode `release`, le
+    // lecteur libère ses ressources natives dès que le son se termine tout
+    // seul (sans stop() explicite) ; un stop()+play() ultérieur sur ce même
+    // lecteur peut alors échouer silencieusement sur Android (ré-préparation
+    // native ratée), ce qui reproduisait un bug où le son ne rejouait plus
+    // après une première lecture menée jusqu'à sa fin naturelle — typiquement
+    // `quest_reward.mp3` en réclamant une récompense après avoir laissé la
+    // précédente se terminer. `stop` garde les ressources allouées et se
+    // contente de réinitialiser la position, ce qui rend stop()+play()
+    // fiable dans tous les cas.
+    unawaited(_tileGainPlayer.setReleaseMode(ReleaseMode.stop));
+    unawaited(_endGamePlayer.setReleaseMode(ReleaseMode.stop));
+    unawaited(_questRewardPlayer.setReleaseMode(ReleaseMode.stop));
   }
 
   final Ref _ref;
@@ -421,6 +435,12 @@ class AudioService {
     }
     if (!_sfxEnabled) return;
     await _tileGainPlayer.stop();
+    // seek(0) explicite : sur Android, stop() ne réinitialise pas toujours
+    // la position native du lecteur (bug connu du plugin audioplayers avec
+    // ReleaseMode.stop) — sans ce seek, chaque nouvelle lecture repart de la
+    // position où la précédente s'est arrêtée plutôt que du début, d'où des
+    // lectures de plus en plus courtes à chaque déclenchement rapproché.
+    await _tileGainPlayer.seek(Duration.zero);
     await _tileGainPlayer.setVolume(_sfxVolume);
     await _tileGainPlayer.play(AssetSource(SfxTrack.tileGain.assetPath));
   }
@@ -441,6 +461,11 @@ class AudioService {
   Future<void> playEndGame() async {
     if (!_sfxEnabled) return;
     await _endGamePlayer.stop();
+    // seek(0) explicite — voir le commentaire équivalent dans
+    // [playTileGained] : sans ça, une lecture répétée sur le même lecteur
+    // dédié peut repartir de la position de l'arrêt précédent au lieu du
+    // début du fichier.
+    await _endGamePlayer.seek(Duration.zero);
     await _endGamePlayer.setVolume(_sfxVolume);
     await _endGamePlayer.play(AssetSource(SfxTrack.endGame.assetPath));
   }
@@ -454,7 +479,23 @@ class AudioService {
   /// récompense très rapidement, plutôt que de superposer deux lectures.
   Future<void> playQuestRewardClaimed() async {
     if (!_sfxEnabled) return;
-    await _questRewardPlayer.stop();
+    // stop() défensif : ne doit jamais empêcher le play() qui suit, même si
+    // l'état natif du lecteur est inattendu (ex. déjà relâché après une
+    // complétion naturelle sur un appareil où ReleaseMode.stop ne serait pas
+    // encore effectif — voir le commentaire dans le constructeur).
+    try {
+      await _questRewardPlayer.stop();
+    } catch (_) {}
+    // seek(0) explicite, dans le même try/catch défensif que le stop()
+    // ci-dessus : sur Android, stop() seul ne réinitialise pas toujours la
+    // position native du lecteur (bug connu du plugin audioplayers avec
+    // ReleaseMode.stop). Sans ce seek, réclamer plusieurs récompenses de
+    // suite fait repartir chaque lecture de la position où la précédente
+    // s'est arrêtée plutôt que du début — d'où un son qui se joue de moins
+    // en moins longtemps à chaque réclamation.
+    try {
+      await _questRewardPlayer.seek(Duration.zero);
+    } catch (_) {}
     await _questRewardPlayer.setVolume(_sfxVolume);
     await _questRewardPlayer.play(AssetSource(SfxTrack.questReward.assetPath));
   }

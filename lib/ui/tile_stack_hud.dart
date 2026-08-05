@@ -184,7 +184,13 @@ class _AnimatedTilePileState extends ConsumerState<_AnimatedTilePile> {
 
     final bonusNewcomers = newcomers.where((t) => t.isBonus).toList();
     if (bonusNewcomers.isNotEmpty) {
-      unawaited(ref.read(hapticsServiceProvider).bonusTileArrived());
+      // Contexte indépendant de la rampe de particules de placement (voir
+      // [HexBoardGame._bonusImpactCounter]/[HapticsService.bonusTileArrived])
+      // : ici, une tuile bonus déjà gagnée devient simplement visible dans
+      // la pile en défilant, potentiellement bien après la pose d'origine.
+      // Index 5 fixe reproduit l'ancien comportement (impact moyen unique)
+      // plutôt que de s'insérer dans une séquence qui n'a pas de sens ici.
+      unawaited(ref.read(hapticsServiceProvider).bonusTileArrived(5));
     }
 
     setState(() {

@@ -398,6 +398,12 @@ abstract class AppLocalizations {
   /// **'Connection streak'**
   String get quests_category_streak;
 
+  /// No description provided for @quests_category_daily.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily quests'**
+  String get quests_category_daily;
+
   /// No description provided for @quests_status_active.
   ///
   /// In en, this message translates to:
@@ -431,7 +437,7 @@ abstract class AppLocalizations {
   /// No description provided for @quests_reward_upgrade.
   ///
   /// In en, this message translates to:
-  /// **'Unlocks upgrade'**
+  /// **'Unlocks power-up'**
   String get quests_reward_upgrade;
 
   /// No description provided for @quests_progress.
@@ -458,10 +464,112 @@ abstract class AppLocalizations {
   /// **'Next reward'**
   String get quests_next_reward;
 
+  /// No description provided for @quest_desc_best_game_coins.
+  ///
+  /// In en, this message translates to:
+  /// **'Earn {value} coins in a single game'**
+  String quest_desc_best_game_coins(Object value);
+
+  /// No description provided for @quest_desc_cluster_forest.
+  ///
+  /// In en, this message translates to:
+  /// **'Make a green group of {value} tiles'**
+  String quest_desc_cluster_forest(Object value);
+
+  /// No description provided for @quest_desc_cluster_water.
+  ///
+  /// In en, this message translates to:
+  /// **'Make a blue group of {value} tiles'**
+  String quest_desc_cluster_water(Object value);
+
+  /// No description provided for @quest_desc_cluster_plain.
+  ///
+  /// In en, this message translates to:
+  /// **'Make a yellow group of {value} tiles'**
+  String quest_desc_cluster_plain(Object value);
+
+  /// No description provided for @quest_desc_cluster_mountain.
+  ///
+  /// In en, this message translates to:
+  /// **'Make a purple group of {value} tiles'**
+  String quest_desc_cluster_mountain(Object value);
+
+  /// No description provided for @quest_desc_cluster_village.
+  ///
+  /// In en, this message translates to:
+  /// **'Make a red group of {value} tiles'**
+  String quest_desc_cluster_village(Object value);
+
+  /// No description provided for @quest_desc_biomes_closed.
+  ///
+  /// In en, this message translates to:
+  /// **'Close {value} color zones'**
+  String quest_desc_biomes_closed(Object value);
+
+  /// No description provided for @quest_desc_coins_total.
+  ///
+  /// In en, this message translates to:
+  /// **'Earn {value} coins total'**
+  String quest_desc_coins_total(Object value);
+
+  /// No description provided for @quest_desc_coins_simple.
+  ///
+  /// In en, this message translates to:
+  /// **'Earn {value} coins'**
+  String quest_desc_coins_simple(Object value);
+
+  /// No description provided for @quest_desc_streak.
+  ///
+  /// In en, this message translates to:
+  /// **'Reach a streak of {value} consecutive connections'**
+  String quest_desc_streak(Object value);
+
+  /// No description provided for @quest_desc_triple_connection.
+  ///
+  /// In en, this message translates to:
+  /// **'Triple connection made'**
+  String get quest_desc_triple_connection;
+
+  /// No description provided for @quest_desc_quad_connection.
+  ///
+  /// In en, this message translates to:
+  /// **'Quadruple connection made'**
+  String get quest_desc_quad_connection;
+
+  /// No description provided for @quest_desc_quint_connection.
+  ///
+  /// In en, this message translates to:
+  /// **'Quintuple connection made'**
+  String get quest_desc_quint_connection;
+
+  /// No description provided for @quest_desc_sext_connection.
+  ///
+  /// In en, this message translates to:
+  /// **'Sextuple connection made'**
+  String get quest_desc_sext_connection;
+
+  /// No description provided for @quest_desc_triple_connections_count.
+  ///
+  /// In en, this message translates to:
+  /// **'Make {value} triple connections'**
+  String quest_desc_triple_connections_count(Object value);
+
+  /// No description provided for @quest_desc_quad_connections_count.
+  ///
+  /// In en, this message translates to:
+  /// **'Make {value} quadruple connections'**
+  String quest_desc_quad_connections_count(Object value);
+
+  /// No description provided for @quest_desc_quint_connections_count.
+  ///
+  /// In en, this message translates to:
+  /// **'Make {value} quintuple connections'**
+  String quest_desc_quint_connections_count(Object value);
+
   /// No description provided for @upgrades_title.
   ///
   /// In en, this message translates to:
-  /// **'Upgrades'**
+  /// **'Power-ups'**
   String get upgrades_title;
 
   /// No description provided for @upgrades_locked.
@@ -509,7 +617,7 @@ abstract class AppLocalizations {
   /// No description provided for @upgrades_noneUnlocked.
   ///
   /// In en, this message translates to:
-  /// **'No upgrades unlocked yet'**
+  /// **'No power-ups unlocked yet'**
   String get upgrades_noneUnlocked;
 
   /// No description provided for @upgrades_confirmButton.
@@ -599,7 +707,7 @@ abstract class AppLocalizations {
   /// No description provided for @upgrade_desc_hated_color.
   ///
   /// In en, this message translates to:
-  /// **'Tap this upgrade during the game to choose a color to temporarily exclude from the tile stack, a limited number of times per game. Wait for the current exclusion to end before you can trigger a new one.'**
+  /// **'Tap this power-up during the game to choose a color to temporarily exclude from the tile stack, a limited number of times per game. Wait for the current exclusion to end before you can trigger a new one.'**
   String get upgrade_desc_hated_color;
 
   /// No description provided for @upgrade_hated_color_picker_title.
@@ -619,6 +727,294 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Starts a game with 500 tiles in reserve (developer tool).'**
   String get upgrade_desc_warehouse;
+
+  /// No description provided for @upgrade_name_starting_tiles_plus.
+  ///
+  /// In en, this message translates to:
+  /// **'Cargo'**
+  String get upgrade_name_starting_tiles_plus;
+
+  /// No description provided for @upgrade_name_doubled_connections.
+  ///
+  /// In en, this message translates to:
+  /// **'Generous Tide'**
+  String get upgrade_name_doubled_connections;
+
+  /// No description provided for @upgrade_name_coins_plus.
+  ///
+  /// In en, this message translates to:
+  /// **'Loot'**
+  String get upgrade_name_coins_plus;
+
+  /// No description provided for @upgrade_name_villages_plus.
+  ///
+  /// In en, this message translates to:
+  /// **'Red'**
+  String get upgrade_name_villages_plus;
+
+  /// No description provided for @upgrade_name_combo_plus.
+  ///
+  /// In en, this message translates to:
+  /// **'Trade Winds'**
+  String get upgrade_name_combo_plus;
+
+  /// No description provided for @upgrade_name_extended_preview.
+  ///
+  /// In en, this message translates to:
+  /// **'Spyglass'**
+  String get upgrade_name_extended_preview;
+
+  /// No description provided for @upgrade_name_hold_slot.
+  ///
+  /// In en, this message translates to:
+  /// **'Pouch'**
+  String get upgrade_name_hold_slot;
+
+  /// No description provided for @upgrade_name_second_chance.
+  ///
+  /// In en, this message translates to:
+  /// **'Undertow'**
+  String get upgrade_name_second_chance;
+
+  /// No description provided for @upgrade_name_forest_plus.
+  ///
+  /// In en, this message translates to:
+  /// **'Green'**
+  String get upgrade_name_forest_plus;
+
+  /// No description provided for @upgrade_name_water_plus.
+  ///
+  /// In en, this message translates to:
+  /// **'Blue'**
+  String get upgrade_name_water_plus;
+
+  /// No description provided for @upgrade_name_plain_plus.
+  ///
+  /// In en, this message translates to:
+  /// **'Yellow'**
+  String get upgrade_name_plain_plus;
+
+  /// No description provided for @upgrade_name_mountain_plus.
+  ///
+  /// In en, this message translates to:
+  /// **'Purple'**
+  String get upgrade_name_mountain_plus;
+
+  /// No description provided for @upgrade_name_closure_bonus.
+  ///
+  /// In en, this message translates to:
+  /// **'Atoll'**
+  String get upgrade_name_closure_bonus;
+
+  /// No description provided for @upgrade_name_hated_color.
+  ///
+  /// In en, this message translates to:
+  /// **'Exile'**
+  String get upgrade_name_hated_color;
+
+  /// No description provided for @upgrade_name_millionaire.
+  ///
+  /// In en, this message translates to:
+  /// **'Millionaire'**
+  String get upgrade_name_millionaire;
+
+  /// No description provided for @upgrade_name_warehouse.
+  ///
+  /// In en, this message translates to:
+  /// **'Warehouse'**
+  String get upgrade_name_warehouse;
+
+  /// No description provided for @upgrade_effect_startingTilesBonus_0.
+  ///
+  /// In en, this message translates to:
+  /// **'+2 starting tiles'**
+  String get upgrade_effect_startingTilesBonus_0;
+
+  /// No description provided for @upgrade_effect_startingTilesBonus_1.
+  ///
+  /// In en, this message translates to:
+  /// **'+5 starting tiles'**
+  String get upgrade_effect_startingTilesBonus_1;
+
+  /// No description provided for @upgrade_effect_startingTilesBonus_2.
+  ///
+  /// In en, this message translates to:
+  /// **'+10 starting tiles'**
+  String get upgrade_effect_startingTilesBonus_2;
+
+  /// No description provided for @upgrade_effect_connectionBonusMultiplier_0.
+  ///
+  /// In en, this message translates to:
+  /// **'+1 bonus tile (5-6 connection)'**
+  String get upgrade_effect_connectionBonusMultiplier_0;
+
+  /// No description provided for @upgrade_effect_connectionBonusMultiplier_1.
+  ///
+  /// In en, this message translates to:
+  /// **'+2 bonus tiles (5-6 connection)'**
+  String get upgrade_effect_connectionBonusMultiplier_1;
+
+  /// No description provided for @upgrade_effect_connectionBonusMultiplier_2.
+  ///
+  /// In en, this message translates to:
+  /// **'+5 bonus tiles (5-6 connection)'**
+  String get upgrade_effect_connectionBonusMultiplier_2;
+
+  /// No description provided for @upgrade_effect_coinsPercentBonus_0.
+  ///
+  /// In en, this message translates to:
+  /// **'+1 coin per 8 coins earned'**
+  String get upgrade_effect_coinsPercentBonus_0;
+
+  /// No description provided for @upgrade_effect_coinsPercentBonus_1.
+  ///
+  /// In en, this message translates to:
+  /// **'+1 coin per 4 coins earned'**
+  String get upgrade_effect_coinsPercentBonus_1;
+
+  /// No description provided for @upgrade_effect_coinsPercentBonus_2.
+  ///
+  /// In en, this message translates to:
+  /// **'+1 coin per 2 coins earned'**
+  String get upgrade_effect_coinsPercentBonus_2;
+
+  /// No description provided for @upgrade_effect_biomeCoinsBonus_0.
+  ///
+  /// In en, this message translates to:
+  /// **'+1 coin per 4 sides'**
+  String get upgrade_effect_biomeCoinsBonus_0;
+
+  /// No description provided for @upgrade_effect_biomeCoinsBonus_1.
+  ///
+  /// In en, this message translates to:
+  /// **'+1 coin per 2 sides'**
+  String get upgrade_effect_biomeCoinsBonus_1;
+
+  /// No description provided for @upgrade_effect_biomeCoinsBonus_2.
+  ///
+  /// In en, this message translates to:
+  /// **'+1 coin per side'**
+  String get upgrade_effect_biomeCoinsBonus_2;
+
+  /// No description provided for @upgrade_effect_closureBonusTiles_0.
+  ///
+  /// In en, this message translates to:
+  /// **'+1 bonus tile / 8 zone tiles'**
+  String get upgrade_effect_closureBonusTiles_0;
+
+  /// No description provided for @upgrade_effect_closureBonusTiles_1.
+  ///
+  /// In en, this message translates to:
+  /// **'+2 bonus tiles / 8 zone tiles'**
+  String get upgrade_effect_closureBonusTiles_1;
+
+  /// No description provided for @upgrade_effect_closureBonusTiles_2.
+  ///
+  /// In en, this message translates to:
+  /// **'+3 bonus tiles / 8 zone tiles'**
+  String get upgrade_effect_closureBonusTiles_2;
+
+  /// No description provided for @upgrade_effect_hatedColorExclusion_0.
+  ///
+  /// In en, this message translates to:
+  /// **'Excludes a color (5 tiles), 1 use'**
+  String get upgrade_effect_hatedColorExclusion_0;
+
+  /// No description provided for @upgrade_effect_hatedColorExclusion_1.
+  ///
+  /// In en, this message translates to:
+  /// **'Excludes a color (8 tiles), 2 uses'**
+  String get upgrade_effect_hatedColorExclusion_1;
+
+  /// No description provided for @upgrade_effect_hatedColorExclusion_2.
+  ///
+  /// In en, this message translates to:
+  /// **'Excludes a color (10 tiles), 3 uses'**
+  String get upgrade_effect_hatedColorExclusion_2;
+
+  /// No description provided for @upgrade_effect_extendedPreviewCount_0.
+  ///
+  /// In en, this message translates to:
+  /// **'See 4 upcoming tiles'**
+  String get upgrade_effect_extendedPreviewCount_0;
+
+  /// No description provided for @upgrade_effect_extendedPreviewCount_1.
+  ///
+  /// In en, this message translates to:
+  /// **'See 5 upcoming tiles'**
+  String get upgrade_effect_extendedPreviewCount_1;
+
+  /// No description provided for @upgrade_effect_extendedPreviewCount_2.
+  ///
+  /// In en, this message translates to:
+  /// **'See 6 upcoming tiles'**
+  String get upgrade_effect_extendedPreviewCount_2;
+
+  /// No description provided for @upgrade_effect_holdSlotUses_0.
+  ///
+  /// In en, this message translates to:
+  /// **'Stores a tile, 1 use'**
+  String get upgrade_effect_holdSlotUses_0;
+
+  /// No description provided for @upgrade_effect_holdSlotUses_1.
+  ///
+  /// In en, this message translates to:
+  /// **'Stores a tile, 2 uses'**
+  String get upgrade_effect_holdSlotUses_1;
+
+  /// No description provided for @upgrade_effect_holdSlotUses_2.
+  ///
+  /// In en, this message translates to:
+  /// **'Stores a tile, 3 uses'**
+  String get upgrade_effect_holdSlotUses_2;
+
+  /// No description provided for @upgrade_effect_secondChanceUses_0.
+  ///
+  /// In en, this message translates to:
+  /// **'Removes a placed tile, 1 use'**
+  String get upgrade_effect_secondChanceUses_0;
+
+  /// No description provided for @upgrade_effect_secondChanceUses_1.
+  ///
+  /// In en, this message translates to:
+  /// **'Removes a placed tile, 2 uses'**
+  String get upgrade_effect_secondChanceUses_1;
+
+  /// No description provided for @upgrade_effect_secondChanceUses_2.
+  ///
+  /// In en, this message translates to:
+  /// **'Removes a placed tile, 3 uses'**
+  String get upgrade_effect_secondChanceUses_2;
+
+  /// No description provided for @upgrade_effect_comboBonusTiles_0.
+  ///
+  /// In en, this message translates to:
+  /// **'Bonus tile every 10 double connections'**
+  String get upgrade_effect_comboBonusTiles_0;
+
+  /// No description provided for @upgrade_effect_comboBonusTiles_1.
+  ///
+  /// In en, this message translates to:
+  /// **'Bonus tile every 8 double connections'**
+  String get upgrade_effect_comboBonusTiles_1;
+
+  /// No description provided for @upgrade_effect_comboBonusTiles_2.
+  ///
+  /// In en, this message translates to:
+  /// **'Bonus tile every 5 double connections'**
+  String get upgrade_effect_comboBonusTiles_2;
+
+  /// No description provided for @upgrade_effect_millionaireCoins_0.
+  ///
+  /// In en, this message translates to:
+  /// **'+1,000,000 coins'**
+  String get upgrade_effect_millionaireCoins_0;
+
+  /// No description provided for @upgrade_effect_warehouseStartingTiles_0.
+  ///
+  /// In en, this message translates to:
+  /// **'+500 starting tiles'**
+  String get upgrade_effect_warehouseStartingTiles_0;
 
   /// No description provided for @shop_title.
   ///
@@ -653,7 +1049,7 @@ abstract class AppLocalizations {
   /// No description provided for @shop_adRemovalIncludedBadge.
   ///
   /// In en, this message translates to:
-  /// **'No ads included'**
+  /// **'Premium included'**
   String get shop_adRemovalIncludedBadge;
 
   /// No description provided for @shop_premium.
@@ -673,6 +1069,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Buy'**
   String get shop_buy;
+
+  /// No description provided for @shop_buyForPrice.
+  ///
+  /// In en, this message translates to:
+  /// **'Buy — {price}'**
+  String shop_buyForPrice(Object price);
 
   /// No description provided for @shop_alreadyPremium.
   ///
@@ -731,13 +1133,13 @@ abstract class AppLocalizations {
   /// No description provided for @home_buildSelection.
   ///
   /// In en, this message translates to:
-  /// **'Upgrade selection'**
+  /// **'Power-up selection'**
   String get home_buildSelection;
 
   /// No description provided for @home_buildSelectionLockedResume.
   ///
   /// In en, this message translates to:
-  /// **'Finish or abandon your current run before picking new upgrades.'**
+  /// **'Finish or abandon your current run before picking new power-ups.'**
   String get home_buildSelectionLockedResume;
 
   /// No description provided for @home_quests.
@@ -805,6 +1207,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Total coins earned'**
   String get stats_totalCoins;
+
+  /// No description provided for @stats_colorGroups.
+  ///
+  /// In en, this message translates to:
+  /// **'COLOR GROUPS'**
+  String get stats_colorGroups;
+
+  /// No description provided for @stats_error.
+  ///
+  /// In en, this message translates to:
+  /// **'Error'**
+  String get stats_error;
+
+  /// No description provided for @stats_noData.
+  ///
+  /// In en, this message translates to:
+  /// **'No data'**
+  String get stats_noData;
 
   /// No description provided for @stats_biomeMax.
   ///

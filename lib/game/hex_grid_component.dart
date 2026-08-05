@@ -27,18 +27,18 @@ import 'dart:ui'
         RRect,
         Radius,
         Rect,
-        Shadow,
-        StrokeCap,
         TextDirection;
 
 import 'package:flutter/animation.dart' show Curves;
 import 'package:flutter/foundation.dart' show VoidCallback;
+import 'package:flutter/material.dart' show Icons;
 import 'package:flutter/painting.dart' show TextPainter, TextSpan, TextStyle;
 
 import 'package:flame/components.dart';
 import 'package:flame/effects.dart';
 
 import '../core/constants.dart';
+import '../providers/placement_commit.dart' show kAtollClosureThreshold;
 import 'bonus_animations.dart';
 import 'hex_coords.dart';
 import 'hex_cell.dart';
@@ -63,12 +63,6 @@ const double kPreviewCoinOffsetPx = 20.0;
 /// de l'icône de tuile bonus centrée sur la prévisualisation — pour qu'elle
 /// se détache mieux au-dessus de la tuile plutôt que de sembler posée dessus.
 const double kPreviewBonusExtraLiftPx = 8.0;
-
-/// Nombre maximum d'icônes de tuile bonus envoyées individuellement (effet
-/// "machine à sous" échelonné) sur une même pose. Au-delà, le surplus est
-/// regroupé dans la dernière icône affichée pour éviter de surcharger
-/// l'écran de tuiles très rentables (grosses chaînes d'améliorations).
-const int kMaxStaggeredBonusIcons = 4;
 
 // ── Animation de pose (descente + léger rebond "flottant") ─────────────────
 
@@ -106,10 +100,15 @@ class HexGridComponent extends PositionComponent {
   Vector2 screenSize;
 
   /// Position du compteur de pièces en haut à gauche (coordonnées jeu) —
-  /// cible de vol partagée par [showRewardIndicators] (pièces de connexion)
-  /// et [showCoinParticleFrom] (pièces bonus des améliorations Pièces+/
-  /// Rouge+/Vert+/Bleu+/Jaune+/Violet+).
+  /// cible de vol de [showRewardIndicators] (pièces de connexion), et
+  /// exposée via [coinCounterTarget] pour [UpgradeFxOverlayGame] (canevas
+  /// superposé au HUD, voir `upgrade_fx_overlay_game.dart`), qui y fait
+  /// voler les pièces bonus des améliorations (Pièces+ global,
+  /// Rouge+/Vert+/Bleu+/Jaune+/Violet+ par biome).
   static final Vector2 _coinCounterTarget = Vector2(26, 85);
+
+  /// Exposition publique de [_coinCounterTarget] — voir ci-dessus.
+  static Vector2 get coinCounterTarget => _coinCounterTarget;
 
   /// Appelé lorsqu'une tuile posée en animé atteint sa position finale (fin
   /// du rebond). Permet au [FlameGame] parent de déclencher un bruitage
@@ -143,13 +142,12 @@ class HexGridComponent extends PositionComponent {
   /// `active_upgrades_hud.dart`, [biomeSizeOverlayProvider]). Liste vide =
   /// aucun affichage. Recalculée par [HexBoardGame] à chaque pose/retrait
   /// tant que l'overlay reste actif — voir [render]. `isClosed` (voir
-  /// [GridState.allBiomeClusters]) affiche un cadenas sur les zones déjà
-  /// scellées, pour rendre visible sans ambiguïté lesquelles rapporteront
-  /// un bonus de clôture. `openEdges` (vide si `isClosed`) est utilisé pour
-  /// tracer un trait rouge sur l'arête précise (tuile + côté) qui n'a pas
-  /// de voisin posé — diagnostic [Atoll] pour distinguer un vrai trou d'un
-  /// bug de parcours : si le trait tombe sur une arête qui touche en
-  /// réalité une tuile bien visible à l'écran, c'est le signe d'un bug.
+  /// [GridState.allBiomeClusters]) affiche un cadenas doré sur les zones
+  /// déjà scellées, avec un contour gris clair. Les zones non fermées ayant
+  /// atteint [kAtollClosureThreshold] affichent un contour doré (récompense
+  /// acquise si la zone se ferme) ; en dessous du seuil, le contour reste
+  /// blanc. `openEdges` n'est plus utilisé pour le rendu (ancien diagnostic
+  /// [Atoll], retiré) mais reste renseigné par [GridState.allBiomeClusters].
   List<
       ({
         Set<HexCoords> cluster,
@@ -666,22 +664,18 @@ class HexGridComponent extends PositionComponent {
       ));
     }
 
-    // Icône(s) de tuile bonus qui volent vers la pile HUD. Au-delà d'une
-    // seule tuile bonus, on envoie plusieurs icônes individuelles avec un
-    // léger décalage temporel (effet "machine à sous") plutôt qu'un seul
-    // "+N" — chaque arrivée fait "pop" le compteur HUD via [onBonusImpact].
-    // Au-delà de [kMaxStaggeredBonusIcons], le surplus est regroupé dans
-    // une dernière icône "+N" pour ne pas surcharger l'écran.
+    // Icône(s) de tuile bonus qui volent vers la pile HUD : une icône
+    // individuelle "+1" par tuile bonus gagnée, avec un léger décalage
+    // temporel (effet "machine à sous") — plus de fusion en une seule
+    // icône "+N" au-delà d'un certain nombre : chaque tuile doit se
+    // ressentir individuellement (vibration croissante à chaque arrivée,
+    // voir [HapticsService.bonusTileArrived]).
     if (bonusTiles > 0) {
-      final individualCount = min(bonusTiles, kMaxStaggeredBonusIcons);
-      for (var i = 0; i < individualCount; i++) {
-        final isLast = i == individualCount - 1;
-        final remainder = bonusTiles - kMaxStaggeredBonusIcons;
-        final count = (isLast && remainder > 0) ? 1 + remainder : 1;
+      for (var i = 0; i < bonusTiles; i++) {
         add(BonusTileAnimComponent(
           position: centerVec.clone(),
           hexSize: hexSize,
-          bonusCount: count,
+          bonusCount: 1,
           flyTarget: bonusFlyTarget,
           startDelay: i * kBonusIconStaggerInterval,
           onImpact: onBonusImpact,
@@ -694,58 +688,6 @@ class HexGridComponent extends PositionComponent {
         ));
       }
     }
-  }
-
-  /// Fait s'envoler une icône de tuile bonus depuis [origin] (coordonnées
-  /// jeu, hors plateau) vers [flyTarget] — même animation
-  /// ([BonusTileAnimComponent]) que celle jouée depuis la tuile posée dans
-  /// [showRewardIndicators]. Utilisée par Combo+ (voir
-  /// [HexBoardGame.spawnComboBonusParticle]) : contrairement au bonus de
-  /// connexion, sa tuile bonus n'est pas liée à un côté de la tuile posée,
-  /// donc sa particule part de l'icône de l'amélioration dans l'encart HUD
-  /// plutôt que de la tuile.
-  ///
-  /// [coinCount] : nombre de `coin.mp3` attendus sur cette même pose
-  /// (pièces de connexion + pièces bonus) — comme pour la tuile bonus de
-  /// connexion dans [showRewardIndicators], la phase de soulèvement est
-  /// étendue dynamiquement pour que l'envol ne démarre qu'une fois le
-  /// dernier son de pièce terminé (voir [BonusTileAnimComponent.coinCount]).
-  void showBonusParticleFrom(Vector2 origin, int count,
-      {Vector2? flyTarget, VoidCallback? onImpact, int coinCount = 0}) {
-    final hexSize = kHexSize * zoom;
-    add(BonusTileAnimComponent(
-      position: origin.clone(),
-      hexSize: hexSize,
-      bonusCount: count,
-      flyTarget: flyTarget,
-      onImpact: onImpact,
-      totalBonusTiles: count,
-      coinCount: coinCount,
-    ));
-  }
-
-  /// Fait s'envoler une pièce depuis [origin] (coordonnées jeu, hors
-  /// plateau) vers le compteur de pièces — même animation ([CoinComponent])
-  /// que celles jouées depuis les côtés connectés dans
-  /// [showRewardIndicators]. Utilisée par les améliorations de gain de
-  /// pièces (Pièces+ global, Rouge+/Vert+/Bleu+/Jaune+/Violet+ par
-  /// biome) : comme pour la particule dédiée de Combo+
-  /// ([showBonusParticleFrom]), ce gain n'est lié à aucun côté de la tuile
-  /// posée, donc la pièce part de l'icône de l'amélioration dans l'encart
-  /// HUD plutôt que de la tuile. [startDelay] permet d'échelonner plusieurs
-  /// particules si plusieurs améliorations se déclenchent sur la même pose.
-  void showCoinParticleFrom(Vector2 origin,
-      {VoidCallback? onImpact, double startDelay = 0.0}) {
-    final hexSize = kHexSize * zoom;
-    add(CoinComponent(
-      position: origin.clone(),
-      hexSize: hexSize,
-      animated: true,
-      flyTarget: _coinCounterTarget,
-      onImpact: onImpact,
-      startDelay: startDelay,
-      priority: kTileDepthPriorityPreview + 1,
-    ));
   }
 
   /// Calcule le décalage (dx, dy) du point milieu du côté [side] (0-5) par
@@ -801,16 +743,7 @@ class HexGridComponent extends PositionComponent {
   /// pour rester juste après un pan/zoom.
   void _renderBiomeSizeLabels(Canvas canvas) {
     final layout = _layout;
-    for (final coords in placedTiles.keys) {
-      final center = layout.hexToPixel(coords, isoScaleY: kIsoScaleY);
-      _renderDebugCoords(canvas, Offset(center.x, center.y), coords);
-    }
-    for (final entry in biomeSizeClusters) {
-      for (final edge in entry.openEdges) {
-        final center = layout.hexToPixel(edge.coords, isoScaleY: kIsoScaleY);
-        _renderOpenEdge(canvas, Offset(center.x, center.y), edge.side);
-      }
-    }
+    final placedAnchors = <Offset>[];
     for (final entry in biomeSizeClusters) {
       final cluster = entry.cluster;
       if (cluster.isEmpty) continue;
@@ -821,87 +754,57 @@ class HexGridComponent extends PositionComponent {
         sumX += center.x;
         sumY += center.y;
       }
-      final anchor = Offset(sumX / cluster.length, sumY / cluster.length);
+      final rawAnchor = Offset(sumX / cluster.length, sumY / cluster.length);
+      final anchor = _dedupeBadgeAnchor(rawAnchor, placedAnchors);
+      placedAnchors.add(anchor);
       _drawBiomeSizeBadge(canvas, anchor, cluster.length, entry.isClosed);
     }
   }
 
-  /// Affiche les coordonnées axiales `(q, r)` de la tuile posée en [coords],
-  /// en haut de sa cellule — diagnostic [Atoll] : permet de retrouver
-  /// visuellement, sans ambiguïté, la tuile exacte correspondant à une
-  /// coordonnée du log (`openEdges=[HexCoords(q, r)/side, ...]`), pour
-  /// vérifier si une arête signalée ouverte borde vraiment du vide ou une
-  /// tuile bien présente à l'écran.
-  void _renderDebugCoords(Canvas canvas, Offset center, HexCoords coords) {
-    _debugCoordsTextPainter.text = TextSpan(
-      text: '${coords.q},${coords.r}',
-      style: const TextStyle(
-        color: Color(0xFFFFFFFF),
-        fontSize: 9,
-        fontWeight: FontWeight.w600,
-        shadows: [Shadow(color: Color(0xFF000000), blurRadius: 2)],
-      ),
-    );
-    _debugCoordsTextPainter.layout();
-    final hexSize = kHexSize * zoom;
-    _debugCoordsTextPainter.paint(
-      canvas,
-      Offset(
-        center.dx - _debugCoordsTextPainter.width / 2,
-        center.dy - hexSize * kIsoScaleY * 0.55,
-      ),
-    );
-  }
+  /// Écarte [anchor] verticalement s'il chevauche une pastille déjà placée
+  /// dans [placed] (deux zones de couleur proches peuvent avoir des
+  /// centroïdes très rapprochés) — décale par pas de [_kBadgeOverlapGap]
+  /// jusqu'à trouver une position libre, en alternant au-dessus/au-dessous
+  /// de la position d'origine pour rester proche du cluster concerné.
+  static const double _kBadgeOverlapGap = 22.0;
 
-  /// Trace un trait rouge sur l'arête [side] (0-5, même convention que
-  /// [HexCoords.neighbor] et [HexTile.sides]) de la tuile centrée en
-  /// [center] — diagnostic [Atoll] pour une arête sans voisin posé (voir
-  /// [GridState.allBiomeClusters].openEdges). Mêmes formules d'angle que
-  /// [_sideEdgeMidpoint] pour rester cohérent avec l'indexation des côtés
-  /// utilisée ailleurs (aperçu des pièces bonus par côté connecté, etc.).
-  static const Color _kOpenEdgeColor = Color(0xFFE53935);
-
-  void _renderOpenEdge(Canvas canvas, Offset center, int side) {
-    final hexSize = kHexSize * zoom;
-    final angle0 = (60.0 * side - 90.0) * pi / 180.0;
-    final angle1 = (60.0 * (side + 1) - 90.0) * pi / 180.0;
-
-    final p0 = Offset(
-      center.dx + hexSize * cos(angle0),
-      center.dy + hexSize * sin(angle0) * kIsoScaleY,
-    );
-    final p1 = Offset(
-      center.dx + hexSize * cos(angle1),
-      center.dy + hexSize * sin(angle1) * kIsoScaleY,
-    );
-
-    canvas.drawLine(
-      p0,
-      p1,
-      Paint()
-        ..color = _kOpenEdgeColor
-        ..strokeWidth = 4.0
-        ..strokeCap = StrokeCap.round,
-    );
+  Offset _dedupeBadgeAnchor(Offset anchor, List<Offset> placed) {
+    var candidate = anchor;
+    var step = 1;
+    while (placed.any((p) => (p - candidate).distance < _kBadgeOverlapGap)) {
+      final direction = step.isOdd ? 1 : -1;
+      final magnitude = (step / 2).ceil();
+      candidate = Offset(
+        anchor.dx,
+        anchor.dy + direction * magnitude * _kBadgeOverlapGap,
+      );
+      step++;
+    }
+    return candidate;
   }
 
   static final TextPainter _biomeSizeTextPainter =
       TextPainter(textDirection: TextDirection.ltr);
   static final TextPainter _biomeLockIconPainter =
       TextPainter(textDirection: TextDirection.ltr);
-  static final TextPainter _debugCoordsTextPainter =
-      TextPainter(textDirection: TextDirection.ltr);
 
-  /// Glyphe cadenas (police MaterialIcons, même code point que
-  /// `Icons.lock`) — recopié directement plutôt qu'importé depuis
-  /// `package:flutter/material.dart` pour ne pas alourdir les imports
-  /// ciblés de ce fichier (voir imports en tête de fichier).
-  static final String _kLockGlyph = String.fromCharCode(0xe897);
+  /// Glyphe cadenas — code point officiel de `Icons.lock` (police
+  /// MaterialIcons), lu directement sur la constante `Icons.lock` plutôt que
+  /// recopié en dur pour éviter tout risque de glyphe erroné.
+  static final String _kLockGlyph = String.fromCharCode(Icons.lock.codePoint);
 
   /// Couleur dorée utilisée ailleurs dans le jeu pour signaler un état
   /// "actif/scellé" (contour Ressac, Emplacement Joker) — reprise ici pour
-  /// le cadenas des zones déjà fermées.
-  static const Color _kClosedGoldAccent = Color(0xFFFFD54F);
+  /// le contour des zones ayant atteint le seuil de fermeture (Atoll).
+  static const Color _kThresholdGoldAccent = Color(0xFFFFD54F);
+
+  /// Contour par défaut (zone en dessous du seuil de fermeture).
+  static const Color _kDefaultOutline = Color(0xFFFFFFFF);
+
+  /// Contour des zones déjà fermées — gris clair plutôt que doré pour ne
+  /// pas entrer en concurrence visuelle avec le cadenas doré à l'intérieur
+  /// du badge.
+  static const Color _kClosedOutline = Color(0xFFE0E0E0);
 
   void _drawBiomeSizeBadge(
       Canvas canvas, Offset center, int size, bool isClosed) {
@@ -926,7 +829,7 @@ class HexGridComponent extends PositionComponent {
         style: const TextStyle(
           fontSize: 12,
           fontFamily: 'MaterialIcons',
-          color: _kClosedGoldAccent,
+          color: _kThresholdGoldAccent,
         ),
       );
       _biomeLockIconPainter.layout();
@@ -941,15 +844,18 @@ class HexGridComponent extends PositionComponent {
     );
     final rrect = RRect.fromRectAndRadius(rect, const Radius.circular(8));
     canvas.drawRRect(rrect, Paint()..color = const Color(0xCC000000));
-    if (isClosed) {
-      canvas.drawRRect(
-        rrect,
-        Paint()
-          ..color = _kClosedGoldAccent
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 1.4,
-      );
-    }
+
+    final atThreshold = size >= kAtollClosureThreshold;
+    final outlineColor = isClosed
+        ? _kClosedOutline
+        : (atThreshold ? _kThresholdGoldAccent : _kDefaultOutline);
+    canvas.drawRRect(
+      rrect,
+      Paint()
+        ..color = outlineColor
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.4,
+    );
 
     final contentLeft = center.dx - contentWidth / 2;
     if (isClosed) {

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
@@ -10,6 +11,7 @@ import '../game/hex_cell.dart';
 import '../game/hex_coords.dart';
 import '../game/hex_tile.dart';
 import '../services/ad_service.dart';
+import '../services/analytics_service.dart';
 import 'build_provider.dart';
 import 'end_game_provider.dart';
 import 'game_effects_service.dart';
@@ -184,6 +186,8 @@ Future<void> restoreSession(WidgetRef ref) async {
 /// deux flux oublie de vider le dernier placement (bug du bouton Annuler
 /// permettant de regagner une tuile gratuite après une nouvelle partie).
 void startNewGame(WidgetRef ref) {
+  unawaited(AnalyticsService.logEvent('game_start'));
+
   // Appels directs à reset() (et non invalidate + mutation sur notifier
   // stale) : les providers @Riverpod(keepAlive: true) ne se reconstruisent
   // pas immédiatement sur simple invalidate — sans ça, drawInitialTile()

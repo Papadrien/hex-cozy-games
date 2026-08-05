@@ -1,0 +1,355 @@
+Voici mon rapport complet de relecture de code pour le projet **Hex Cozy Games** (hex_haven).
+
+---
+
+# Rapport de Relecture de Code — Hex Cozy Games v1.0.0
+
+## 1. Vue d'ensemble du projet
+
+| Métrique | Valeur |
+|---|---|
+| **Nom interne** | `hex_haven` |
+| **Version** | 1.0.0+1 |
+| **Fichiers source (hors générés)** | 76 |
+| **Lignes de code source** | ~24 192 |
+| **Fichiers de test** | 26 |
+| **Fonctions de test** | ~243 |
+| **Lignes de test** | ~5 152 |
+| **Stack** | Flutter 3.44 / Dart 3.12 / Flame / Riverpod 3 / Drift / SQLite |
+| **Plateformes** | Android + iOS (build Android uniquement en CI) |
+| **i18n** | FR + EN |
+
+---
+
+## 2. Base de données et migrations
+
+### Version du schéma
+
+La version courante est **`schemaVersion = 4`** dans `app_database.dart`. La stratégie de migration (`MigrationStrategy`) contient des blocs conditionnels pour les versions 1→2, 2→3, et 3→4 :
+
+- **v1→v2** : ajout de `lastPremiumDailyCoinsDate` sur `PlayerProfile`
+- **v2→v3** : ajout de `rewardClaimed` sur `PermanentQuests` + backfill SQL
+- **v3→v4** : ajout de `rewardClaimedIds` sur `DailyQuests` + backfill SQL
+- Un commentaire indique qu'une table `MetaRunHistory` a été supprimée
+
+### Analyse pour une première release
+
+Puisqu'il s'agit d'une **première release sans utilisateurs à migrer**, tout utilisateur nouveau démarre à la version 4 via `onCreate` (qui crée toutes les tables à jour et seed les données). **Tout le code de migration `onUpgrade` est donc du code mort** pour cette release — il ne sera jamais exécuté.
+
+**Recommandation** : Pour une première release, vous pouvez simplifier en supprimant les blocs `onUpgrade` et en gardant uniquement `onCreate`. Si vous prévoyez des mises à jour futures, conservez-les mais ajoutez un commentaire indiquant qu'ils sont inactifs pour la v1. Le commentaire sur `MetaRunHistory` peut être nettoyé.
+
+---
+
+## 3. Qualité du code
+
+### 3.1 Points forts
+
+- **Architecture bien structurée** : séparation claire `core/` (constants, colors, theme), `data/` (Drift DB, seed), `game/` (Flame components), `providers/` (Riverpod + logique métier), `ui/` (widgets Flutter), `services/` (audio, ads, IAP, analytics, etc.)
+- **Types enums fortement typés** : `UpgradeEffectType`, `QuestCategory`, `RewardType`, `BiomeType` remplacent efficacement les chaînes magiques
+- **Localisation complète** : FR + EN via ARB, avec helpers (`biomeName`, `upgradeDescription`, `questDescription`) qui mappent les IDs techniques vers les clés de traduction
+- **Gestion d'erreurs défensive** : Firebase Crashlytics avec fallback gracieux, services qui catchent silencieusement les erreurs non critiques
+- **Tests bien organisés** : tests unitaires purs (GridState, placement, tile stack), tests de providers avec DB en mémoire, tests de widgets pour les écrans clés
+
+### 3.2 Fichiers trop gros
+
+Plusieurs fichiers dépassent largement les 500-600 lignes recommandés :
+
+| Fichier | Lignes | Remarque |
+|---|---|---|
+| `l10n/app_localizations.dart` | 1322 | Généré — OK |
+| `ui/quests_screen.dart` | 1314 | Trop gros — mixer logique de grouping, cartes, claim, animations |
+| `ui/home_screen.dart` | 1066 | Trop gros — contient le debug button, rewarded ad, top bar, center content |
+| `game/hex_grid_component.dart` | 1013 | Trop gros — rendering, preview, animations, biome labels |
+| `ui/active_upgrades_hud.dart` | 934 | Trop gros — slots, pickers, spark bursts, anchors registry |
+| `ui/game_screen.dart` | 890 | Gros mais justifé (point d'orchestration) |
+| `ui/build_screen.dart` | 877 | Gros — cartes d'amélioration + sélection + level up |
+| `game/bonus_animations.dart` | 695 | Plusieurs classes d'animation |
+| `ui/shop_screen.dart` | 671 | Moyennement gros |
+| `ui/upgrades_screen.dart` | 670 | **Code mort** — voir section 4 |
+| `providers/quest_provider.dart` | 655 | Gros mais logique métier complexe |
+| `ui/tile_stack_hud.dart` | 641 | Animations 3D complexes |
+| `game/hex_board_game.dart` | 638 | Gros — entry point Flame |
+| `providers/placement_commit.dart` | 633 | Gros — logique de reward + save + game over |
+
+**Recommandations prioritaires** :
+- `quests_screen.dart` (1314 lignes) : Extraire `_QuestCard`, `_CategorySection`, `_DailyQuestsSection`, `_QuestsSummaryBar` dans des fichiers séparés
+- `home_screen.dart` (1066 lignes) : Extraire `_DebugButton`, `_RewardedAdButton`, `_TopBar` dans des fichiers dédiés
+- `hex_grid_component.dart` (1013 lignes) : Extraire `_BiomeSizeLabelsLayer` et les méthodes de preview dans des composants dédiés
+
+### 3.3 Fonctions trop longues
+
+- `restoreSession()` dans `session_restore.dart` (~100 lignes) : effectue des dizaines d'opérations de désérialisation et de restauration de providers en séquence. Devrait être découpée en sous-fonctions (`_restoreGrid()`, `_restoreStack()`, `_restoreSession()`, `_restoreLastPlacement()`)
+- `build()` de `_GameScreenState` dans `game_screen.dart` : method build très longue avec de nombreux callbacks inline
+- `SessionSaver.save()` dans `placement_commit.dart` : ~80 lignes de sérialisation
+
+### 3.4 Commentaires
+
+Le projet est **très abondamment commenté**, presque excessivement. La très grande majorité des commentaires sont en français, très détaillés, expliquant non seulement le "quoi" mais aussi le "pourquoi" et l'historique des corrections de bugs (références aux Story IDs, contexte de débogage, etc.).
+
+**Exemples de commentaires excessifs ou obsolètes** :
+- Dans `placement_commit.dart`, le commentaire sur `kAtollClosureThreshold` raconte l'historique de débogage complet ("Anciennement kDebugAtollClosureThreshold, abaissé temporairement à 3 pendant le débogage Atoll..."). Cet historique n'a plus sa place dans le code de release.
+- De nombreux commentaires expliquent des bugs corrigés ("sans ça, le compteur retombait à 0...") — utile pendant le développement mais devient du bruit en production
+- `theme.dart` contient un commentaire "Placeholder MVP — sera enrichi lors de la Phase 4" qui indique un thème incomplet
+
+**Recommandation** : Conserver les commentaires qui expliquent le "pourquoi" des décisions architecturales, mais nettoyer ceux qui racontent l'historique de débogage et les références aux Story IDs de développement.
+
+---
+
+## 4. Code mort
+
+### 4.1 `upgrades_screen.dart` (670 lignes) — Code mort confirmé
+
+Le fichier `lib/ui/upgrades_screen.dart` est **complètement mort** :
+- Il n'est **importé par aucun autre fichier**
+- Le commentaire dans `build_screen.dart` indique explicitement : "L'ancien `UpgradesScreen` (jamais relié à une navigation) est supprimé"
+- Il utilise `google_fonts` qui n'est **pas dans pubspec.yaml** — ce qui causerait une erreur de compilation s'il était importé
+- Il utilise une approche de fond tropical différente (Stack avec Image.asset) plutôt que le `TropicalBackground` partagé
+
+**Recommandation** : Supprimer ce fichier immédiatement.
+
+### 4.2 Code de migration DB
+
+Comme mentionné en section 2, tout le code `onUpgrade` dans `app_database.dart` (versions 1→2, 2→3, 3→4) est inactif pour une première release.
+
+### 4.3 Référence `MetaRunHistory`
+
+Un commentaire dans `app_database.dart` mentionne : "MetaRunHistory table was removed — safe to ignore since no users in production". Aucune référence de code n'existe — juste ce commentaire qui devrait être nettoyé.
+
+### 4.4 `kAdMobBannerProdIdIOS` et autres IDs iOS vides
+
+```dart
+const String kAdMobBannerProdIdIOS = '';
+const String kAdMobInterstitialProdIdIOS = '';
+const String kAdMobRewardedProdIdIOS = '';
+```
+
+Ces constantes sont des chaînes vides avec un TODO. Le code dans `ad_service.dart` les utilise mais retomberait sur l'ID Android si iOS n'est pas configuré. Acceptable pour une première release Android-only, mais les TODO doivent être traqués.
+
+### 4.5 `kIOSAppStoreId` dans `review_service.dart`
+
+```dart
+const String? kIOSAppStoreId = null;
+```
+
+Avec un TODO. Même remarque.
+
+---
+
+## 5. Assets inutilisés
+
+### 5.1 Fichiers audio non déclarés (won't be bundled)
+
+Les fichiers suivants sont présents sur disque dans `assets/audio/` mais **ne sont pas déclarés dans `pubspec.yaml`** — ils ne seront donc pas inclus dans l'APK :
+
+- `boat_ambient.mp3` (810 KB)
+- `boat_horn.mp3` (31 KB)
+- `pygmy_ambient.mp3` (1.7 MB)
+- `seagull_1.mp3` (51 KB)
+- `seagull_2.mp3` (281 KB)
+- `seagull_3.mp3` (292 KB)
+
+**Recommandation** : Soit les supprimer du projet (assets morts), soit les déclarer dans `pubspec.yaml` s'ils sont prévus pour une utilisation future. Ils occupent inutilement ~3.2 MB dans le repo.
+
+### 5.2 Shader `ocean.frag` inutilisé
+
+Le fichier `assets/shaders/ocean.frag` (10.7 KB) existe mais n'est pas référencé nulle part dans le code. Le commentaire dans `game_screen.dart` indique : "L'ancien shader `ocean.frag` n'avait plus d'animation réelle". Le fond océan est maintenant peint procéduralement via `_OceanPainter` (CustomPainter).
+
+**Recommandation** : Supprimer ce fichier.
+
+### 5.3 Images dupliquées dans les ressources Android
+
+Les images `splash_icon.png`, `splash_icon_square.png` et `splash_logo.png` sont **identiques** (53 255 bytes) et présentes en double dans `drawable/` et `drawable-v21/`. C'est un pattern standard Android mais qui pourrait être optimisé.
+
+### 5.4 Images utilisées correctement
+
+Toutes les images déclarées dans `pubspec.yaml` sont effectivement utilisées dans le code :
+- `home_background.png` → `home_screen.dart`, `tropical_background.dart`, `splash_screen.dart`, `upgrades_screen.dart` (code mort)
+- `hibiscus.png` → `home_screen.dart`, `splash_screen.dart`
+- `splash_logo.png` → `splash_screen.dart`
+- `coin.png` → `coin_icon.dart`, `bonus_animations.dart`
+
+---
+
+## 6. Duplications de code
+
+### 6.1 App bar pattern dupliqué
+
+Chaque écran secondaire (`ShopScreen`, `BuildScreen`, `SettingsScreen`, `StatsScreen`, `QuestsScreen`) réimplémente son propre `_XxxAppBar` avec un bouton glass close + titre. Bien que le style soit cohérent, c'est de la duplication :
+
+```dart
+class _ShopGlassIconButton extends StatelessWidget { ... }
+class _BuildGlassIconButton extends StatelessWidget { ... }
+class _SettingsGlassIconButton extends StatelessWidget { ... }
+class _StatsGlassIconButton extends StatelessWidget { ... }
+```
+
+**Recommandation** : Créer un widget réutilisable `ScreenAppBar(title, onClose)` partagé.
+
+### 6.2 Mapping couleur biome dupliqué
+
+La correspondance `BiomeType` → `Color` est définie dans `tile_component.dart` (`BiomeColor` extension) mais aussi re-définie manuellement dans `stats_screen.dart` (`_biomeColor()`). La version de `stats_screen.dart` devrait utiliser `BiomeColor` directement.
+
+### 6.3 Pattern `_sentinel` pour copyWith
+
+Le pattern `_sentinel` pour distinguer "paramètre non fourni" de "paramètre null" est réimplémenté dans `HexCell`, `PlacementState`, et `SessionState`. C'est un pattern idiomatique Dart mais répétitif.
+
+### 6.4 Constantes dupliquées
+
+Dans `bonus_animations.dart`, plusieurs constantes sont dupliquées depuis d'autres fichiers avec des commentaires explicites :
+- `kCoinFlyDurationSec` = "dupliquée depuis CoinComponent"
+- `kCoinSfxGapSec` = "dupliqué depuis AudioService.playCoinsGained"
+- `kCoinSfxClipDurationSec` = constante mesurée
+- `kMaxCoinSfxRepeats` = "dupliqué depuis AudioService"
+
+**Recommandation** : Exposer ces constantes publiquement depuis leurs fichiers sources plutôt que de les dupliquer.
+
+---
+
+## 7. UI / UX
+
+### 7.1 Design system
+
+- **Esthétique cohérente** : glassmorphism (flou + transparence) avec un thème tropical (bleu nuit, teal, accents dorés). Tous les écrans secondaires partagent `TropicalBackground` + `GlassContainer`.
+- **Design tokens centralisés** dans `core/colors.dart` (24 constantes de couleur nommées) — bonne pratique
+- **Thème Material 3** défini dans `theme.dart` mais reste basique (placeholder). Le `themeMode` est forcé à `ThemeMode.dark` même si un thème light est défini.
+- **Polices** : Pacifico (titres décoratifs) + Nunito (corps de texte), chargées depuis les assets locaux — bon choix pour la cohérence offline
+
+### 7.2 Navigation
+
+- Navigation par routes nommées (`/`, `/home`, `/game`) avec transitions personnalisées (`BlurFadePageRoute` et `HexWipePageRoute`) — excellent touch thématique
+- Les écrans secondaires (Shop, Build, Settings, Stats, Quests) sont poussés en modal via `Navigator.push` depuis `HomeScreen`
+
+### 7.3 Accessibilité et ergonomie
+
+- **Plein écran immersif** (`SystemUiMode.immersiveSticky`) avec réapplication au retour au premier plan — approprié pour un jeu
+- **Tailles de cibles tactiles** : le bouton pause a une zone de tap plus grande que le rendu visuel (48px vs 36px) — bonne pratique
+- **Feedback haptique** systématique sur les boutons via `buttonTapFeedback()` — bon UX pour un jeu mobile
+- **Tutoriel first-launch** avec highlight suivant les vraies positions des widgets (GlobalKey) plutôt que des pourcentages arbitraires — solide
+- **Absence d'accessibilité** : pas de `Semantics`, pas de support `TalkBack`/`VoiceOver` visible, pas de tests d'accessibilité. Pour un jeu cozy ce n'est pas bloquant mais c'est une lacune.
+
+### 7.4 Points d'attention UX
+
+- **Mode immersif permanent** : peut frustrer certains utilisateurs qui veulent voir l'heure ou le niveau de batterie. Envisager un toggle dans les réglages.
+- **Animations de transition** : le blur à 18 sigma en release peut être coûteux sur des appareils bas de gamme. La valeur est réduite à 8 en debug (`kDebugMode ? 8 : 18`) — c'est l'inverse de ce qu'on attendrait (debug devrait être plus léger).
+- **Sound design** : Pitch variance aléatoire sur les bruitages pour éviter la lassitude — excellent détail
+- **Onboarding** : le tutoriel suit une séquence linéaire avec possibilité de passer — bien adapté
+
+---
+
+## 8. Couverture de tests
+
+### 8.1 Vue d'ensemble
+
+| Domaine | Fichiers de test | Tests | Qualité |
+|---|---|---|---|
+| **Logique de jeu pure** | `grid_state_provider_test`, `placement_provider_test`, `tile_stack_provider_test`, `hex_grid_camera_clamp_test` | ~45 | Excellente — tests unitaires purs |
+| **Effets d'améliorations** | `game_effects_test`, `upgrade_effect_values_test`, `build_provider_test` | ~93 | Excellente — couvre tous les types d'effets |
+| **Persistance/DB** | `progression_unlock_test`, `upgrade_level_up_test`, `quest_claim_test`, `daily_quest_claim_test`, `player_stats_test`, `cloud_save_service_test` | ~44 | Bonne — DB en mémoire |
+| **Providers de session** | `session_per_game_uses_test`, `hold_slot_provider_test`, `second_chance_provider_test`, `save_and_quit_per_game_uses_test` | ~20 | Bonne |
+| **UI/Widgets** | `build_screen_test`, `settings_screen_test`, `pause_modal_test`, `results_modal_test`, `coin_icon_test`, `widget_test` | ~15 | Moyenne — superficielle |
+| **Services** | `audio_service_test`, `review_service_test` | ~13 | Bonne pour audio, basique pour review |
+
+### 8.2 Analyse qualitative
+
+**Tests utiles et bien ciblés** :
+- `grid_state_provider_test` : teste exhaustivement les connexions, clusters BFS, biomes fermés — c'est le cœur du gameplay
+- `game_effects_test` (36 tests, 7 groupes) : couvre tous les types d'effets d'améliorations avec des overrides de providers — très bien structuré
+- `save_and_quit_per_game_uses_test` : test de non-régression sur un bug réel (perte des compteurs d'utilisations) — excellent
+- `upgrade_effect_values_test` : vérifie toutes les valeurs numériques d'équilibrage — protège contre les régressions
+
+**Manques notables** :
+- **`placement_commit.dart` (633 lignes)** : la fonction `confirmPlacement` et toute la logique de récompense (bonus de connexion, Combo+, Bonus de clôture) n'a pas de test direct. C'est la logique la plus complexe du jeu.
+- **`session_restore.dart`** : `restoreSession` (~100 lignes) n'est testée qu'indirectement via `save_and_quit_per_game_uses_test`
+- **`quest_provider.dart` (655 lignes)** : `QuestService.onGameEnd` et `_updateConnectionQuests` ne sont pas testés directement
+- **Services AdMob/IAP** : `ad_service.dart` et `iap_service.dart` n'ont aucun test — compréhensible (nécessite mocking des plugins natifs) mais à risque
+- **Tests UI** : les tests de widgets sont superficiels — `widget_test.dart` teste juste que l'app démarre et que "Play" mène au jeu
+- **Aucun test d'intégration** : pas de test end-to-end d'une partie complète (placer de
+Bien sûr, voici la suite du rapport à partir de la section 8.2 :
+
+---
+
+### 8.2 Analyse qualitative (suite)
+
+**Tests utiles et bien ciblés** :
+- `grid_state_provider_test` : teste exhaustivement les connexions, clusters BFS, biomes fermés — c'est le cœur du gameplay [1]
+- `game_effects_test` (36 tests, 7 groupes) : couvre tous les types d'effets d'améliorations avec des overrides de providers — très bien structuré [1]
+- `save_and_quit_per_game_uses_test` : test de non-régression sur un bug réel (perte des compteurs d'utilisations) — excellent [1]
+- `upgrade_effect_values_test` : vérifie toutes les valeurs numériques d'équilibrage — protège contre les régressions [1]
+
+**Manques notables** :
+- **`placement_commit.dart` (633 lignes)** : la fonction `confirmPlacement` et toute la logique de récompense (bonus de connexion, Combo+, Bonus de clôture) n'a pas de test direct. C'est la logique la plus complexe du jeu [1].
+- **`session_restore.dart`** : `restoreSession` (~100 lignes) n'est testée qu'indirectement via `save_and_quit_per_game_uses_test` [1]
+- **`quest_provider.dart` (655 lignes)** : `QuestService.onGameEnd` et `_updateConnectionQuests` ne sont pas testés directement [1]
+- **Services AdMob/IAP** : `ad_service.dart` et `iap_service.dart` n'ont aucun test — compréhensible (nécessite mocking des plugins natifs) mais à risque [1]
+- **Tests UI** : les tests de widgets sont superficiels — `widget_test.dart` teste juste que l'app démarre et que "Play" mène au jeu [1]
+- **Aucun test d'intégration** : pas de test end-to-end d'une partie complète (placer des tuiles → fin de partie → résultats → rejouer) [1]
+
+### 8.3 Tests potentiellement redondants
+
+- `build_provider_test.dart` et `game_effects_test.dart` se chevauchent partiellement (test de `activeUpgradeEffectsProvider`). Le commentaire dans `build_provider_test.dart` l'explique : les tests d'effets surchargent directement `ActiveUpgradeEffects` tandis que `build_provider_test` teste l'agrégation réelle. Ce n'est pas de la redondance, c'est une complémentarité justifiée [1].
+
+---
+
+## 9. Analyse supplémentaire
+
+### 9.1 Sécurité
+
+- **IDs AdMob de production en clair** dans `constants.dart` — c'est standard pour AdMob (les IDs ne sont pas secrets) [1]
+- **Aucun secret codé en dur** — les clés Firebase sont injectées via CI secrets [1]
+- **Firebase Crashlytics** capture les erreurs mais `AnalyticsService.initialize()` catche silencieusement les échecs — bon pour la résilience [1]
+
+### 9.2 Performance
+
+- **Optimisation Flame** : le flag dirty `_previewDirty` évite de relire les providers à chaque frame — bonne pratique [1]
+- **Ondulation du bord bas** désactivée au-delà de 150 tuiles (`kEdgeWaveTileCountThreshold`) pour préserver les FPS — pragmatique [1]
+- **RepaintBoundary + Opacity(0.999)** dans `GlassContainer` pour contourner un bug Flutter de BackdropFilter — workaround documenté et justifié [1]
+- **Sprite coin partagé** (static `_sprite`) chargé une seule fois — bon pour la mémoire [1]
+
+### 9.3 CI/CD
+
+Le pipeline CI est bien configuré [1] :
+- `flutter analyze --no-fatal-infos` + `flutter test --coverage` sur chaque PR
+- Build debug sur `develop`, build release + AAB sur `master`/tags
+- Injection de `google-services.json` via secrets
+- Gestion du keystore de signing (avec fallback debug)
+- Création automatique de GitHub Releases avec artifacts APK + AAB
+- Versioning par timestamp CI pour le build number
+
+### 9.4 Configuration du linter
+
+`analysis_options.yaml` active `strict-casts`, `strict-inference`, `strict-raw-types` — excellent pour la qualité du code. Règles supplémentaires pertinentes : `prefer_const_constructors`, `require_trailing_commas`, `sort_child_properties_last` [1].
+
+### 9.5 `google_fonts` non déclaré
+
+Le fichier mort `upgrades_screen.dart` importe `package:google_fonts/google_fonts.dart` qui n'est pas dans `pubspec.yaml`. Si ce fichier est supprimé (recommandé), le problème disparaît. Sinon, `flutter analyze` échouerait si le fichier était jamais importé [1].
+
+### 9.6 Gestion d'état
+
+Le projet utilise un **mix de Riverpod annotation-based** (`@riverpod`, `@Riverpod(keepAlive: true)`) et de **Riverpod manuel** (`NotifierProvider`, `Provider`, `StreamProvider`). Ce n'est pas un problème en soi mais l'uniformité serait préférable. Les providers générés nécessitent `build_runner` — le `pubspec.lock` verrouille correctement les versions [1].
+
+---
+
+## 10. Résumé des recommandations prioritaires
+
+| Priorité | Action | Impact |
+|---|---|---|
+| **🔴 Haute** | Supprimer `upgrades_screen.dart` (code mort + dépendance manquante) | Nettoyage + évite confusion |
+| **🔴 Haute** | Supprimer `assets/shaders/ocean.frag` (inutilisé) | Nettoyage |
+| **🟡 Moyenne** | Supprimer ou archiver les fichiers audio non déclarés (`boat_*`, `pygmy_*`, `seagull_*`) | -3.2 MB dans le repo |
+| **🟡 Moyenne** | Simplifier le code de migration DB (onUpgrade) pour la v1 | Lisibilité |
+| **🟡 Moyenne** | Découper `quests_screen.dart` (1314 lignes) en sous-fichiers | Maintenabilité |
+| **🟡 Moyenne** | Découper `home_screen.dart` (1066 lignes) | Maintenabilité |
+| **🟡 Moyenne** | Découper `hex_grid_component.dart` (1013 lignes) | Maintenabilité |
+| **🟡 Moyenne** | Extraire un widget `ScreenAppBar` partagé | Réduction des duplications |
+| **🟡 Moyenne** | Nettoyer les commentaires d'historique de débogage | Lisibilité |
+| **🟡 Moyenne** | Dédupliquer le mapping `BiomeType → Color` (utiliser `BiomeColor` partout) | Cohérence |
+| **🟢 Basse** | Dédupliquer les constantes de `bonus_animations.dart` (exposer depuis leur source) | Maintenabilité |
+| **🟢 Basse** | Ajouter des tests pour `placement_commit.dart` (confirmPlacement) | Couverture critique |
+| **🟢 Basse** | Envisager un toggle pour le mode immersif | UX |
+| **🟢 Basse** | Compléter le `AppTheme` (actuellement placeholder) | Polish |
+
+---
+
+## 11. Conclusion
+
+Le projet **Hex Cozy Games** est de **bonne qualité globale** pour une première release. L'architecture est bien organisée, la séparation des préoccupations est claire, les tests couvrent raisonnablement la logique métier (~243 tests pour ~24k lignes de code), et l'UI présente une esthétique cohérente et soignée [1]. Les principaux axes d'amélioration sont l'élimination du code mort (notamment `upgrades_screen.dart`), la réduction de la taille des fichiers UI les plus gros, le nettoyage des commentaires historiques, et l'ajout de tests pour la logique de récompense de placement (`placement_commit.dart`) qui est le cœur du gameplay mais manque de couverture directe [1].

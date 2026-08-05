@@ -168,6 +168,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get quests_category_streak => 'Connection streak';
 
   @override
+  String get quests_category_daily => 'Daily quests';
+
+  @override
   String get quests_status_active => 'Active';
 
   @override
@@ -183,7 +186,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get quests_reward_coins => 'Reward';
 
   @override
-  String get quests_reward_upgrade => 'Unlocks upgrade';
+  String get quests_reward_upgrade => 'Unlocks power-up';
 
   @override
   String get quests_progress => 'Progress';
@@ -198,7 +201,84 @@ class AppLocalizationsEn extends AppLocalizations {
   String get quests_next_reward => 'Next reward';
 
   @override
-  String get upgrades_title => 'Upgrades';
+  String quest_desc_best_game_coins(Object value) {
+    return 'Earn $value coins in a single game';
+  }
+
+  @override
+  String quest_desc_cluster_forest(Object value) {
+    return 'Make a green group of $value tiles';
+  }
+
+  @override
+  String quest_desc_cluster_water(Object value) {
+    return 'Make a blue group of $value tiles';
+  }
+
+  @override
+  String quest_desc_cluster_plain(Object value) {
+    return 'Make a yellow group of $value tiles';
+  }
+
+  @override
+  String quest_desc_cluster_mountain(Object value) {
+    return 'Make a purple group of $value tiles';
+  }
+
+  @override
+  String quest_desc_cluster_village(Object value) {
+    return 'Make a red group of $value tiles';
+  }
+
+  @override
+  String quest_desc_biomes_closed(Object value) {
+    return 'Close $value color zones';
+  }
+
+  @override
+  String quest_desc_coins_total(Object value) {
+    return 'Earn $value coins total';
+  }
+
+  @override
+  String quest_desc_coins_simple(Object value) {
+    return 'Earn $value coins';
+  }
+
+  @override
+  String quest_desc_streak(Object value) {
+    return 'Reach a streak of $value consecutive connections';
+  }
+
+  @override
+  String get quest_desc_triple_connection => 'Triple connection made';
+
+  @override
+  String get quest_desc_quad_connection => 'Quadruple connection made';
+
+  @override
+  String get quest_desc_quint_connection => 'Quintuple connection made';
+
+  @override
+  String get quest_desc_sext_connection => 'Sextuple connection made';
+
+  @override
+  String quest_desc_triple_connections_count(Object value) {
+    return 'Make $value triple connections';
+  }
+
+  @override
+  String quest_desc_quad_connections_count(Object value) {
+    return 'Make $value quadruple connections';
+  }
+
+  @override
+  String quest_desc_quint_connections_count(Object value) {
+    return 'Make $value quintuple connections';
+  }
+
+  @override
+  String get upgrades_title => 'Power-ups';
 
   @override
   String get upgrades_locked => 'Locked';
@@ -222,7 +302,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get upgrades_max => 'MAX';
 
   @override
-  String get upgrades_noneUnlocked => 'No upgrades unlocked yet';
+  String get upgrades_noneUnlocked => 'No power-ups unlocked yet';
 
   @override
   String get upgrades_confirmButton => 'Confirm?';
@@ -281,7 +361,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get upgrade_desc_hated_color =>
-      'Tap this upgrade during the game to choose a color to temporarily exclude from the tile stack, a limited number of times per game. Wait for the current exclusion to end before you can trigger a new one.';
+      'Tap this power-up during the game to choose a color to temporarily exclude from the tile stack, a limited number of times per game. Wait for the current exclusion to end before you can trigger a new one.';
 
   @override
   String get upgrade_hated_color_picker_title => 'Choose the color to exclude';
@@ -293,6 +373,168 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get upgrade_desc_warehouse =>
       'Starts a game with 500 tiles in reserve (developer tool).';
+
+  @override
+  String get upgrade_name_starting_tiles_plus => 'Cargo';
+
+  @override
+  String get upgrade_name_doubled_connections => 'Generous Tide';
+
+  @override
+  String get upgrade_name_coins_plus => 'Loot';
+
+  @override
+  String get upgrade_name_villages_plus => 'Red';
+
+  @override
+  String get upgrade_name_combo_plus => 'Trade Winds';
+
+  @override
+  String get upgrade_name_extended_preview => 'Spyglass';
+
+  @override
+  String get upgrade_name_hold_slot => 'Pouch';
+
+  @override
+  String get upgrade_name_second_chance => 'Undertow';
+
+  @override
+  String get upgrade_name_forest_plus => 'Green';
+
+  @override
+  String get upgrade_name_water_plus => 'Blue';
+
+  @override
+  String get upgrade_name_plain_plus => 'Yellow';
+
+  @override
+  String get upgrade_name_mountain_plus => 'Purple';
+
+  @override
+  String get upgrade_name_closure_bonus => 'Atoll';
+
+  @override
+  String get upgrade_name_hated_color => 'Exile';
+
+  @override
+  String get upgrade_name_millionaire => 'Millionaire';
+
+  @override
+  String get upgrade_name_warehouse => 'Warehouse';
+
+  @override
+  String get upgrade_effect_startingTilesBonus_0 => '+2 starting tiles';
+
+  @override
+  String get upgrade_effect_startingTilesBonus_1 => '+5 starting tiles';
+
+  @override
+  String get upgrade_effect_startingTilesBonus_2 => '+10 starting tiles';
+
+  @override
+  String get upgrade_effect_connectionBonusMultiplier_0 =>
+      '+1 bonus tile (5-6 connection)';
+
+  @override
+  String get upgrade_effect_connectionBonusMultiplier_1 =>
+      '+2 bonus tiles (5-6 connection)';
+
+  @override
+  String get upgrade_effect_connectionBonusMultiplier_2 =>
+      '+5 bonus tiles (5-6 connection)';
+
+  @override
+  String get upgrade_effect_coinsPercentBonus_0 =>
+      '+1 coin per 8 coins earned';
+
+  @override
+  String get upgrade_effect_coinsPercentBonus_1 =>
+      '+1 coin per 4 coins earned';
+
+  @override
+  String get upgrade_effect_coinsPercentBonus_2 =>
+      '+1 coin per 2 coins earned';
+
+  @override
+  String get upgrade_effect_biomeCoinsBonus_0 => '+1 coin per 4 sides';
+
+  @override
+  String get upgrade_effect_biomeCoinsBonus_1 => '+1 coin per 2 sides';
+
+  @override
+  String get upgrade_effect_biomeCoinsBonus_2 => '+1 coin per side';
+
+  @override
+  String get upgrade_effect_closureBonusTiles_0 =>
+      '+1 bonus tile / 8 zone tiles';
+
+  @override
+  String get upgrade_effect_closureBonusTiles_1 =>
+      '+2 bonus tiles / 8 zone tiles';
+
+  @override
+  String get upgrade_effect_closureBonusTiles_2 =>
+      '+3 bonus tiles / 8 zone tiles';
+
+  @override
+  String get upgrade_effect_hatedColorExclusion_0 =>
+      'Excludes a color (5 tiles), 1 use';
+
+  @override
+  String get upgrade_effect_hatedColorExclusion_1 =>
+      'Excludes a color (8 tiles), 2 uses';
+
+  @override
+  String get upgrade_effect_hatedColorExclusion_2 =>
+      'Excludes a color (10 tiles), 3 uses';
+
+  @override
+  String get upgrade_effect_extendedPreviewCount_0 => 'See 4 upcoming tiles';
+
+  @override
+  String get upgrade_effect_extendedPreviewCount_1 => 'See 5 upcoming tiles';
+
+  @override
+  String get upgrade_effect_extendedPreviewCount_2 => 'See 6 upcoming tiles';
+
+  @override
+  String get upgrade_effect_holdSlotUses_0 => 'Stores a tile, 1 use';
+
+  @override
+  String get upgrade_effect_holdSlotUses_1 => 'Stores a tile, 2 uses';
+
+  @override
+  String get upgrade_effect_holdSlotUses_2 => 'Stores a tile, 3 uses';
+
+  @override
+  String get upgrade_effect_secondChanceUses_0 =>
+      'Removes a placed tile, 1 use';
+
+  @override
+  String get upgrade_effect_secondChanceUses_1 =>
+      'Removes a placed tile, 2 uses';
+
+  @override
+  String get upgrade_effect_secondChanceUses_2 =>
+      'Removes a placed tile, 3 uses';
+
+  @override
+  String get upgrade_effect_comboBonusTiles_0 =>
+      'Bonus tile every 10 double connections';
+
+  @override
+  String get upgrade_effect_comboBonusTiles_1 =>
+      'Bonus tile every 8 double connections';
+
+  @override
+  String get upgrade_effect_comboBonusTiles_2 =>
+      'Bonus tile every 5 double connections';
+
+  @override
+  String get upgrade_effect_millionaireCoins_0 => '+1,000,000 coins';
+
+  @override
+  String get upgrade_effect_warehouseStartingTiles_0 => '+500 starting tiles';
 
   @override
   String get shop_title => 'Shop';
@@ -312,7 +554,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get shop_bestValueBadge => 'Best value';
 
   @override
-  String get shop_adRemovalIncludedBadge => 'No ads included';
+  String get shop_adRemovalIncludedBadge => 'Premium included';
 
   @override
   String get shop_premium => 'Premium';
@@ -323,6 +565,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get shop_buy => 'Buy';
+
+  @override
+  String shop_buyForPrice(Object price) {
+    return 'Buy — $price';
+  }
 
   @override
   String get shop_alreadyPremium => 'Already Premium';
@@ -352,11 +599,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get home_shop => 'Shop';
 
   @override
-  String get home_buildSelection => 'Upgrade selection';
+  String get home_buildSelection => 'Power-up selection';
 
   @override
   String get home_buildSelectionLockedResume =>
-      'Finish or abandon your current run before picking new upgrades.';
+      'Finish or abandon your current run before picking new power-ups.';
 
   @override
   String get home_quests => 'Quests';
@@ -390,6 +637,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get stats_totalCoins => 'Total coins earned';
+
+  @override
+  String get stats_colorGroups => 'COLOR GROUPS';
+
+  @override
+  String get stats_error => 'Error';
+
+  @override
+  String get stats_noData => 'No data';
 
   @override
   String stats_biomeMax(Object value) {

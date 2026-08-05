@@ -75,6 +75,25 @@ const Duration _kPulseDuration = Duration(milliseconds: 1100);
 const Color _kActiveGlass = Color(0xFFFFB300);
 const Color _kActiveBorder = Color(0xFFFFD54F);
 
+/// Nombre d'étincelles de l'explosion jouée au déclenchement d'un effet
+/// (voir [_SparkBurstPainter]) — assez dense pour se voir clairement sur
+/// une icône de ~44px sans la surcharger.
+const int _kSparkCount = 8;
+
+/// Fraction de la durée totale du pulse ([_kPulseDuration]) que dure
+/// l'explosion d'étincelles — beaucoup plus courte que le halo doré
+/// (aller-retour sur toute la durée) pour rester un flash bref au moment
+/// précis du déclenchement plutôt qu'un effet qui traîne.
+const double _kSparkBurstFraction = 0.4;
+
+/// Distance de projection des étincelles au-delà du bord de l'icône.
+const double _kSparkTravel = 20.0;
+
+/// Marge autour du slot réservée à l'explosion — les étincelles doivent
+/// pouvoir dépasser largement les limites de l'icône (contrairement au
+/// contour doré, qui reste dans les bords du [GlassContainer]).
+const double _kSparkBurstMargin = 32.0;
+
 /// Registre statique des slots de l'encart des améliorations actives,
 /// indexé par type d'effet — permet à du code hors de l'arbre Flutter (ici
 /// [HexBoardGame], via `game_screen.dart`) de cibler la position écran d'un
@@ -410,7 +429,7 @@ class _UpgradeSlotState extends ConsumerState<_UpgradeSlot>
   /// [biomeSizeOverlayProvider] et `hex_grid_component.dart`,
   /// `biomeSizeClusters`) : un chiffre blanc sur fond noir translucide
   /// au-dessus de chaque zone, pour visualiser la progression vers le seuil
-  /// de 10 tuiles du bonus. Un second tap masque l'affichage. Contour et
+  /// de 8 tuiles du bonus. Un second tap masque l'affichage. Contour et
   /// fond illuminés en doré tant que l'affichage reste actif (mêmes teintes
   /// que le slot Deuxième chance actif), pour signaler l'état en un coup
   /// d'œil.
@@ -459,7 +478,7 @@ class _UpgradeSlotState extends ConsumerState<_UpgradeSlot>
     required Widget Function(double glowAlpha, double scale) builder,
   }) {
     return Tooltip(
-      message: widget.upgrade.name,
+      message: upgradeName(context, widget.upgrade.id),
       child: SizedBox(
         key: UpgradeHudAnchors.keyFor(effectType),
         width: kActiveUpgradeSlotSize,
@@ -476,6 +495,27 @@ class _UpgradeSlotState extends ConsumerState<_UpgradeSlot>
                 alignment: Alignment.center,
                 children: [
                   builder(glowAlpha, scale),
+                  // Explosion d'étincelles au déclenchement — même
+                  // déclencheur (_controller.forward(from: 0)) que le
+                  // contour doré, mais jouée sur une fraction plus courte
+                  // de la durée totale (voir [_kSparkBurstFraction]) pour
+                  // rester un flash net plutôt qu'un effet qui traîne
+                  // aussi longtemps que le pulse du contour.
+                  Positioned(
+                    left: -_kSparkBurstMargin,
+                    top: -_kSparkBurstMargin,
+                    right: -_kSparkBurstMargin,
+                    bottom: -_kSparkBurstMargin,
+                    child: IgnorePointer(
+                      child: CustomPaint(
+                        painter: _SparkBurstPainter(
+                          progress: _controller.value,
+                          iconRadius: kActiveUpgradeSlotSize / 2,
+                          color: kRewardGold,
+                        ),
+                      ),
+                    ),
+                  ),
                   if (counter.swatchColor != null)
                     Positioned(
                       right: -4,
@@ -499,6 +539,67 @@ class _UpgradeSlotState extends ConsumerState<_UpgradeSlot>
       ),
     );
   }
+}
+
+/// Peintre de l'explosion d'étincelles jouée au déclenchement d'un effet
+/// (voir usage dans [_UpgradeSlotState._slotShell]) — [_kSparkCount]
+/// étincelles radiales qui partent du bord de l'icône et s'éloignent en
+/// s'estompant, sur les [_kSparkBurstFraction] premiers de [progress] (la
+/// valeur brute 0→1 de _controller, pas le pulse aller-retour du contour) :
+/// au-delà, l'explosion est déjà terminée et rien n'est dessiné, pour
+/// rester un flash bref plutôt qu'un effet qui traîne aussi longtemps que
+/// le halo doré du contour.
+class _SparkBurstPainter extends CustomPainter {
+  _SparkBurstPainter({
+    required this.progress,
+    required this.iconRadius,
+    required this.color,
+  });
+
+  final double progress;
+  final double iconRadius;
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final t = (progress / _kSparkBurstFraction).clamp(0.0, 1.0);
+    if (t <= 0.0 || t >= 1.0) return;
+
+    final center = size.center(Offset.zero);
+    final eased = Curves.easeOut.transform(t);
+    final fade = 1.0 - Curves.easeIn.transform(t);
+
+    for (var i = 0; i < _kSparkCount; i++) {
+      // Léger décalage d'angle alterné + longueur alternée : évite un
+      // motif trop parfaitement symétrique/mécanique pour un flash censé
+      // paraître spontané.
+      final angle = (2 * pi / _kSparkCount) * i + (i.isEven ? 0.12 : -0.12);
+      final lengthMul = i.isEven ? 1.0 : 0.72;
+      final dir = Offset(cos(angle), sin(angle));
+      final dist = iconRadius + eased * _kSparkTravel * lengthMul;
+
+      final paint = Paint()
+        ..color = color.withValues(alpha: fade * 0.9)
+        ..strokeWidth = 2.0
+        ..strokeCap = StrokeCap.round;
+      canvas.drawLine(
+        center + dir * dist,
+        center + dir * (dist + 6.0 + eased * 4.0),
+        paint,
+      );
+
+      // Petit point lumineux à la pointe de chaque étincelle.
+      canvas.drawCircle(
+        center + dir * (dist + 6.0 + eased * 4.0),
+        1.6 * (1.0 - eased * 0.4),
+        Paint()..color = color.withValues(alpha: fade),
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _SparkBurstPainter oldDelegate) =>
+      oldDelegate.progress != progress || oldDelegate.color != color;
 }
 
 /// Pastille ronde de la couleur du biome exclu — affichée en haut-droite de
@@ -684,7 +785,7 @@ class _UpgradeDescriptionSheet extends StatelessWidget {
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        upgrade.name,
+                        upgradeName(context, upgrade.id),
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 17,

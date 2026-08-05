@@ -29,11 +29,15 @@ import 'reward_model.dart';
 import 'upgrade_feedback_provider.dart';
 import '../core/game_enums.dart';
 
-// TODO(debug Atoll) : seuil normal = 10 tuiles par palier de Bonus de
-// clôture. Abaissé temporairement à 3 pour multiplier les tests de
-// fermeture sans reconstruire un plateau de 10+ tuiles à chaque essai —
-// REMETTRE À 10 avant toute release.
-const int kDebugAtollClosureThreshold = 3;
+// Seuil de palier du Bonus de clôture (Story B7) : (taille du cluster fermé
+// ÷ ce seuil) × niveau de l'amélioration, arrondi à l'entier inférieur.
+// Anciennement `kDebugAtollClosureThreshold`, abaissé temporairement à 3
+// pendant le débogage Atoll pour multiplier les tests de fermeture sans
+// reconstruire un plateau de 10+ tuiles à chaque essai — remis à 10
+// (valeur normale) une fois le diagnostic terminé, puis abaissé
+// définitivement à 8 pour rendre le bonus accessible sur des groupes
+// plus modestes.
+const int kAtollClosureThreshold = 8;
 
 class LastPlacement {
   LastPlacement(this.coords, this.tile,
@@ -308,12 +312,21 @@ void _triggerPlacementAudio(
   ref.read(audioServiceProvider).playCoinsGained(unanimatedBonusCoins);
 }
 
-/// Déclenche les retours haptiques associés à un placement : une vibration
-/// légère par pièce "de base" (côtés connectés), une vibration moyenne par
-/// pièce bonus, et une vibration forte par tuile bonus — jouées dans cet
-/// ordre (léger → moyen → fort) pour souligner l'intensité croissante du
-/// gain (voir [HapticsService.playReward]).
+/// Déclenche les retours haptiques associés à un placement :
+///  - [HapticsService.connectionSucceeded], pour CHAQUE pose (y compris 0
+///    côté connecté) — intensité/durée croissantes avec le nombre de côtés
+///    connectés (voir sa doc). Jusqu'ici définie mais jamais appelée nulle
+///    part dans le code — câblée ici.
+///  - [HapticsService.playReward] ensuite, pour les récompenses
+///    (pièces/pièces bonus/tuiles bonus) — une vibration légère par pièce
+///    "de base", moyenne par pièce bonus, forte par tuile bonus, jouées
+///    dans cet ordre (léger → moyen → fort) pour souligner l'intensité
+///    croissante du gain.
 void _triggerPlacementHaptics(ProviderContainer ref, PlacementReward reward) {
+  ref
+      .read(hapticsServiceProvider)
+      .connectionSucceeded(reward.connectedSides.length);
+
   final baseCoins = reward.connectedSides.length;
   if (baseCoins == 0 && reward.bonusCoins == 0 && reward.bonusTiles == 0) {
     return;
@@ -370,7 +383,43 @@ void _recordPlacement(
 /// [HexBoardGame.spawnCoinBonusParticles]).
 (PlacementReward, int, int, int, Map<UpgradeEffectType, int>) _applyReward(
     ProviderContainer ref, HexCoords pos, HexTile tile, PlacementReward reward) {
-  if (reward.connectedSides.isEmpty && reward.bonusTiles == 0) {
+  final effects = ref.read(gameEffectsServiceProvider);
+
+  // Bonus de clôture (Atoll) évalué EN PREMIER, avant le court-circuit
+  // "pose sans effet" ci-dessous : une pose peut fermer un cluster voisin
+  // (voir [GridState.biomesJustClosed]) sans que la tuile posée n'ait
+  // elle-même aucun côté connecté de sa propre couleur (`reward
+  // .connectedSides` vide) — par exemple une tuile qui comble, avec un
+  // côté d'une AUTRE couleur, le dernier trou d'un biome voisin déjà
+  // presque fermé. Avant ce correctif, `connectedSides.isEmpty` faisait
+  // sortir la fonction plus bas AVANT le calcul de fermeture : aucun log
+  // [Atoll], aucune récompense, sur ce cas précis ("fermeture sans
+  // connexion").
+  //
+  // Log inconditionnel (contrairement à l'ancien, uniquement à l'intérieur
+  // du `if (closureMult > 0)`) pour qu'une future régression similaire
+  // (fermeture ignorée avant même l'appel à [biomesJustClosed]) soit
+  // immédiatement visible : si cette ligne n'apparaît pas du tout dans les
+  // logs sur une pose, c'est que _applyReward n'a même pas été atteinte
+  // (voir [PlacementReward]/[confirmPlacement]), pas que la fermeture a
+  // échoué.
+  final closureMult = effects.getClosureBonusTiles();
+  var closureTiles = 0;
+  var closures = const <MapEntry<BiomeType, int>>[];
+  if (closureMult > 0) {
+    final grid = ref.read(gridProvider);
+    closures = grid.biomesJustClosed(pos, tile);
+    for (final entry in closures) {
+      closureTiles += (entry.value ~/ kAtollClosureThreshold) * closureMult;
+    }
+  }
+  debugPrint('[Atoll] _applyReward pos=$pos connectedSides='
+      '${reward.connectedSides} closureMult=$closureMult closures=$closures '
+      '=> closureTiles=$closureTiles');
+
+  if (reward.connectedSides.isEmpty &&
+      reward.bonusTiles == 0 &&
+      closureTiles == 0) {
     ref.read(sessionProvider.notifier).addReward(reward);
     // Story B12a : signale une pose "vide" (tick incrémenté, aucun type
     // déclenché) pour que l'encart des améliorations actives puisse malgré
@@ -386,7 +435,6 @@ void _recordPlacement(
   // signature (fonction pure déjà testée) : à réévaluer si un futur besoin
   // justifie de faire remonter le détail directement depuis le service.
   final triggeredTypes = <UpgradeEffectType>{};
-  final effects = ref.read(gameEffectsServiceProvider);
   final villageSides = effects.countBiomeSides(BiomeType.village, tile, reward.connectedSides);
   final forestSides = effects.countBiomeSides(BiomeType.forest, tile, reward.connectedSides);
   final waterSides = effects.countBiomeSides(BiomeType.water, tile, reward.connectedSides);
@@ -478,40 +526,25 @@ void _recordPlacement(
     triggeredTypes.add(UpgradeEffectType.comboBonusTiles);
   }
   // Story B7 — Bonus de clôture : détecte les biomes qui viennent de se
-  // fermer après cette pose et ajoute (taille ÷ 10) × niveau tuiles bonus.
+  // fermer après cette pose et ajoute (taille ÷ 8) × niveau tuiles bonus.
+  // `closures`/`closureTiles` déjà calculés en tête de fonction (voir plus
+  // haut) — AVANT le court-circuit "pose sans effet" — pour que la
+  // fermeture d'un cluster voisin sans connexion directe de la tuile posée
+  // (`reward.connectedSides` vide) ne soit plus jamais ignorée.
   //
-  // Correctif régression Atoll : PAS de plancher garanti en dessous de 10
-  // tuiles. [GridState._isClosed] ne vérifie que la présence d'une tuile
-  // voisine, pas son biome — un cluster peut donc se retrouver "fermé" en
-  // ne faisant qu'1 seule tuile, dès qu'il est encerclé par des tuiles de
-  // n'importe quelle couleur (fréquent une fois le plateau bien rempli).
-  // Avant ce correctif, `ratioBonus == 0` retombait quand même sur
-  // [closureMult] tuiles garanties, ce qui récompensait ces micro-clusters
-  // accidentels exactement comme une vraie zone de 6 à 9 tuiles. Désormais
-  // seules les zones ayant atteint 10 tuiles au moment de leur fermeture
-  // rapportent quoi que ce soit.
-  // TODO(debug Atoll) : seuil temporairement abaissé de 10 à 3 pour
-  // multiplier les tests de fermeture — remettre à 10 une fois le
-  // diagnostic terminé (voir kDebugAtollClosureThreshold ci-dessous).
-  final closureMult = effects.getClosureBonusTiles();
+  // Correctif régression Atoll : PAS de plancher garanti en dessous de 8
+  // tuiles. Avant correctif, `ratioBonus == 0` retombait quand même sur
+  // [closureMult] tuiles garanties, ce qui récompensait tout micro-cluster
+  // "fermé" (au sens large) exactement comme une vraie zone de 4 à 7
+  // tuiles. Désormais seules les zones ayant atteint 8 tuiles au moment de
+  // leur fermeture rapportent quoi que ce soit.
   var closureBonusTilesCount = 0;
-  if (closureMult > 0) {
-    final grid = ref.read(gridProvider);
-    final closures = grid.biomesJustClosed(pos, tile);
-    var closureTiles = 0;
-    for (final entry in closures) {
-      closureTiles +=
-          (entry.value ~/ kDebugAtollClosureThreshold) * closureMult;
-    }
-    debugPrint('[Atoll] closureMult=$closureMult closures=$closures '
-        '=> closureTiles=$closureTiles');
-    if (closureTiles > 0) {
-      ref.read(tileStackProvider.notifier).addBonusTiles(closureTiles);
-      ref.read(sessionProvider.notifier).addExtraBonusTiles(closureTiles);
-      totalBonusTilesAdded += closureTiles;
-      closureBonusTilesCount = closureTiles;
-      triggeredTypes.add(UpgradeEffectType.closureBonusTiles);
-    }
+  if (closureTiles > 0) {
+    ref.read(tileStackProvider.notifier).addBonusTiles(closureTiles);
+    ref.read(sessionProvider.notifier).addExtraBonusTiles(closureTiles);
+    totalBonusTilesAdded += closureTiles;
+    closureBonusTilesCount = closureTiles;
+    triggeredTypes.add(UpgradeEffectType.closureBonusTiles);
   }
 
   ref.read(upgradeFeedbackProvider.notifier).reportTriggered(triggeredTypes);

@@ -329,7 +329,7 @@ void main() {
       expect(service.getClosureBonusTiles(), 0);
     });
 
-    test('niveau 1 → 1 tuile/10', () {
+    test('niveau 1 → 1 tuile/8', () {
       final container = _makeContainer(
         const ActiveUpgradeEffects(closureBonusTiles: 1),
       );
@@ -337,7 +337,7 @@ void main() {
       expect(service.getClosureBonusTiles(), 1);
     });
 
-    test('niveau 3 → 3 tuiles/10', () {
+    test('niveau 3 → 3 tuiles/8', () {
       final container = _makeContainer(
         const ActiveUpgradeEffects(closureBonusTiles: 3),
       );

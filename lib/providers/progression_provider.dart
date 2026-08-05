@@ -9,12 +9,16 @@
 /// et met à jour le niveau courant.
 library;
 
+import 'dart:async';
+
 import 'package:drift/drift.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/game_enums.dart';
+import '../core/strings.dart';
 import '../data/app_database.dart';
+import '../services/analytics_service.dart';
 import 'player_profile_provider.dart';
 
 // ── Providers ────────────────────────────────────────────────────────────
@@ -76,6 +80,30 @@ enum UpgradeResult {
 /// Total pour maxer une amélioration : 15 000 pièces (voir équilibrage
 /// des packs de la boutique dans [kCoinPacks]).
 const kUpgradeCosts = [5000, 10000];
+
+/// Coûts de montée en niveau des améliorations de gain de pièces par
+/// couleur de biome (Rouge/Vert/Bleu/Jaune/Violet) — [kUpgradeCosts] divisé
+/// par 10, mêmes paliers (niveau 1→2, niveau 2→3).
+const kClusterColorUpgradeCosts = [500, 1000];
+
+/// Types d'effet concernés par [kClusterColorUpgradeCosts].
+const _kClusterColorEffectTypes = {
+  UpgradeEffectType.villageCoinsPercentBonus,
+  UpgradeEffectType.forestCoinsPercentBonus,
+  UpgradeEffectType.waterCoinsPercentBonus,
+  UpgradeEffectType.plainCoinsPercentBonus,
+  UpgradeEffectType.mountainCoinsPercentBonus,
+};
+
+/// Coûts de montée en niveau applicables à [upgrade] — [kClusterColorUpgradeCosts]
+/// pour les améliorations de gain de pièces par couleur, [kUpgradeCosts]
+/// pour toutes les autres.
+List<int> upgradeCostsFor(UpgradeRow upgrade) {
+  final effectType = UpgradeEffectType.fromDb(upgrade.effectType);
+  return _kClusterColorEffectTypes.contains(effectType)
+      ? kClusterColorUpgradeCosts
+      : kUpgradeCosts;
+}
 
 // ── Service ──────────────────────────────────────────────────────────────
 
@@ -175,19 +203,24 @@ class ProgressionService {
     if (upgrade == null || !upgrade.isUnlocked) {
       return UpgradeResult.maxLevelReached;
     }
-    if (upgrade.currentLevel >= kUpgradeCosts.length) {
+    if (upgrade.currentLevel >= upgradeCostsFor(upgrade).length) {
       return UpgradeResult.maxLevelReached;
     }
 
-    final cost = kUpgradeCosts[upgrade.currentLevel];
+    final cost = upgradeCostsFor(upgrade)[upgrade.currentLevel];
 
     return db.transaction<UpgradeResult>(() async {
       final enough = await spendCoins(db, cost);
       if (!enough) return UpgradeResult.insufficientCoins;
 
+      final newLevel = upgrade.currentLevel + 1;
       await (db.update(db.upgrades)..where((u) => u.id.equals(upgradeId)))
           .write(UpgradesCompanion(
-        currentLevel: Value(upgrade.currentLevel + 1),
+        currentLevel: Value(newLevel),
+      ));
+      unawaited(AnalyticsService.logEvent(
+        'upgrade_levelup_${AnalyticsService.colorEventId(upgradeId)}',
+        parameters: {'level': newLevel},
       ));
 
       return UpgradeResult.success;
@@ -253,9 +286,12 @@ Color? upgradeIconColor(UpgradeEffectType effectType) {
   }
 }
 
-/// Effet textuel au niveau actuel de l'amélioration.
-String upgradeEffectLabel(UpgradeRow upgrade) {
-  final all = upgradeAllLevelEffects(UpgradeEffectType.fromDb(upgrade.effectType));
+/// Effet textuel au niveau actuel de l'amélioration (localisé FR/EN).
+String upgradeEffectLabel(BuildContext context, UpgradeRow upgrade) {
+  final all = upgradeEffectLevelLabels(
+    context,
+    UpgradeEffectType.fromDb(upgrade.effectType),
+  );
   final idx = upgrade.currentLevel < all.length
       ? upgrade.currentLevel
       : all.length - 1;
@@ -296,9 +332,9 @@ List<String> upgradeAllLevelEffects(UpgradeEffectType effectType) {
       ];
     case UpgradeEffectType.closureBonusTiles:
       return [
-        '+1 tuile bonus / 10 tuiles de la zone',
-        '+2 tuiles bonus / 10 tuiles de la zone',
-        '+3 tuiles bonus / 10 tuiles de la zone',
+        '+1 tuile bonus / 8 tuiles de la zone',
+        '+2 tuiles bonus / 8 tuiles de la zone',
+        '+3 tuiles bonus / 8 tuiles de la zone',
       ];
     case UpgradeEffectType.hatedColorExclusion:
       return [

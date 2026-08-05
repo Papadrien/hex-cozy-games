@@ -133,8 +133,8 @@ final _permanentQuests = [
     category: QuestCategory.coinsEarned.dbValue,
     description: 'Gagner 1000 pièces au total',
     targetValue: 1000,
-    rewardType: RewardType.coins.dbValue,
-    rewardValue: 100,
+    rewardType: RewardType.upgradeUnlock.dbValue,
+    rewardValue: 0,
     nextQuestId: const Value('coins_2000'),
   ),
   PermanentQuestsCompanion.insert(
@@ -151,8 +151,8 @@ final _permanentQuests = [
     category: QuestCategory.coinsEarned.dbValue,
     description: 'Gagner 3000 pièces au total',
     targetValue: 3000,
-    rewardType: RewardType.upgradeUnlock.dbValue,
-    rewardValue: 0,
+    rewardType: RewardType.coins.dbValue,
+    rewardValue: 500,
     nextQuestId: const Value('coins_5000'),
   ),
   PermanentQuestsCompanion.insert(
@@ -160,8 +160,8 @@ final _permanentQuests = [
     category: QuestCategory.coinsEarned.dbValue,
     description: 'Gagner 5000 pièces au total',
     targetValue: 5000,
-    rewardType: RewardType.upgradeUnlock.dbValue,
-    rewardValue: 0,
+    rewardType: RewardType.coins.dbValue,
+    rewardValue: 1000,
   ),
 
   // "best_game_coins" — record du nombre de pièces gagnées en une seule
@@ -396,7 +396,7 @@ final kDailyQuestPool = [
     description: 'Gagner 15 pièces',
     targetValue: 15,
     rewardType: RewardType.coins,
-    rewardValue: 10,
+    rewardValue: 50,
   ),
   const DailyQuestDef(
     id: 'daily_coins_30',
@@ -404,7 +404,7 @@ final kDailyQuestPool = [
     description: 'Gagner 30 pièces',
     targetValue: 30,
     rewardType: RewardType.coins,
-    rewardValue: 12,
+    rewardValue: 50,
   ),
   const DailyQuestDef(
     id: 'daily_coins_50',
@@ -412,7 +412,7 @@ final kDailyQuestPool = [
     description: 'Gagner 50 pièces',
     targetValue: 50,
     rewardType: RewardType.coins,
-    rewardValue: 15,
+    rewardValue: 50,
   ),
   const DailyQuestDef(
     id: 'daily_village_3',
@@ -420,7 +420,7 @@ final kDailyQuestPool = [
     description: 'Faire un groupe rouge de 3 tuiles',
     targetValue: 3,
     rewardType: RewardType.coins,
-    rewardValue: 8,
+    rewardValue: 50,
   ),
   const DailyQuestDef(
     id: 'daily_village_5',
@@ -428,7 +428,7 @@ final kDailyQuestPool = [
     description: 'Faire un groupe rouge de 5 tuiles',
     targetValue: 5,
     rewardType: RewardType.coins,
-    rewardValue: 10,
+    rewardValue: 50,
   ),
   const DailyQuestDef(
     id: 'daily_village_8',
@@ -436,7 +436,7 @@ final kDailyQuestPool = [
     description: 'Faire un groupe rouge de 8 tuiles',
     targetValue: 8,
     rewardType: RewardType.coins,
-    rewardValue: 12,
+    rewardValue: 50,
   ),
   const DailyQuestDef(
     id: 'daily_biomes_2',
@@ -444,7 +444,7 @@ final kDailyQuestPool = [
     description: 'Fermer 2 zones de couleur',
     targetValue: 2,
     rewardType: RewardType.coins,
-    rewardValue: 6,
+    rewardValue: 50,
   ),
   const DailyQuestDef(
     id: 'daily_biomes_3',
@@ -452,7 +452,7 @@ final kDailyQuestPool = [
     description: 'Fermer 3 zones de couleur',
     targetValue: 3,
     rewardType: RewardType.coins,
-    rewardValue: 8,
+    rewardValue: 50,
   ),
   const DailyQuestDef(
     id: 'daily_biomes_5',
@@ -460,7 +460,7 @@ final kDailyQuestPool = [
     description: 'Fermer 5 zones de couleur',
     targetValue: 5,
     rewardType: RewardType.coins,
-    rewardValue: 10,
+    rewardValue: 50,
   ),
 ];
 
@@ -474,8 +474,8 @@ final _upgrades = [
     id: 'starting_tiles_plus',
     name: 'Cargaison',
     effectType: UpgradeEffectType.startingTilesBonus.dbValue,
-    unlockConditionType: 'coins_2000',
-    unlockConditionValue: 2000,
+    unlockConditionType: 'coins_1000',
+    unlockConditionValue: 1000,
   ),
   UpgradesCompanion.insert(
     id: 'doubled_connections',
@@ -488,8 +488,8 @@ final _upgrades = [
     id: 'coins_plus',
     name: 'Butin',
     effectType: UpgradeEffectType.coinsPercentBonus.dbValue,
-    unlockConditionType: 'coins_3000',
-    unlockConditionValue: 3000,
+    unlockConditionType: 'coins_2000',
+    unlockConditionValue: 2000,
   ),
   UpgradesCompanion.insert(
     id: 'villages_plus',

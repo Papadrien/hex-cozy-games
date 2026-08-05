@@ -44,10 +44,21 @@ final unclaimedQuestsProvider = Provider<List<PermanentQuestRow>>((ref) {
   return quests.where((q) => q.isCompleted && !q.rewardClaimed).toList();
 });
 
-/// Vrai s'il existe au moins une quête complétée en attente de réclamation
-/// — pilote le point rouge sur le bouton "Quêtes" de l'écran d'accueil.
+/// Vrai s'il existe au moins une quête (permanente ou quotidienne)
+/// complétée en attente de réclamation — pilote le point rouge sur le
+/// bouton "Quêtes" de l'écran d'accueil.
 final hasUnclaimedQuestProvider = Provider<bool>((ref) {
-  return ref.watch(unclaimedQuestsProvider).isNotEmpty;
+  return ref.watch(unclaimedQuestsProvider).isNotEmpty ||
+      ref.watch(hasUnclaimedDailyQuestProvider);
+});
+
+/// Vrai s'il existe au moins une quête quotidienne complétée en attente de
+/// réclamation (même mécanisme que [hasUnclaimedQuestProvider] côté
+/// permanentes).
+final hasUnclaimedDailyQuestProvider = Provider<bool>((ref) {
+  return ref
+      .watch(todayDailyQuestsProvider)
+      .any((q) => q.isCompleted && !q.rewardClaimed);
 });
 
 /// IDs des quêtes dont la récompense est en cours de réclamation — le temps
@@ -86,10 +97,16 @@ class DailyQuestWithProgress {
   final int currentValue;
   final bool isCompleted;
 
+  /// Vrai si la récompense a déjà été réclamée par le joueur (tap sur la
+  /// quête). Même mécanisme de claim manuel que les quêtes permanentes
+  /// (voir [QuestService.claimDailyReward]).
+  final bool rewardClaimed;
+
   const DailyQuestWithProgress({
     required this.def,
     required this.currentValue,
     required this.isCompleted,
+    required this.rewardClaimed,
   });
 }
 
@@ -121,6 +138,8 @@ final todayDailyQuestsProvider =
   final ids = (jsonDecode(row.questPoolIds) as List).cast<String>();
   final completed =
       (jsonDecode(row.completedIds) as List).cast<String>();
+  final claimed =
+      (jsonDecode(row.rewardClaimedIds) as List).cast<String>();
   final progress = (jsonDecode(row.progressByQuestId) as Map<String, dynamic>)
       .map((k, v) => MapEntry(k, v as int));
 
@@ -131,6 +150,7 @@ final todayDailyQuestsProvider =
             def: def,
             currentValue: progress[def.id] ?? 0,
             isCompleted: completed.contains(def.id),
+            rewardClaimed: claimed.contains(def.id),
           ))
       .toList();
 });
@@ -194,6 +214,7 @@ Future<void> _ensureDailyQuestsExist(AppDatabase db) async {
           questPoolIds: jsonEncode(drawnIds),
           completedIds: jsonEncode(<String>[]),
           progressByQuestId: jsonEncode(initialProgress),
+          rewardClaimedIds: Value(jsonEncode(<String>[])),
         ),
         mode: InsertMode.replace,
       );
@@ -587,7 +608,9 @@ class QuestService {
         progress[id] = newValue;
         if (newValue >= def.targetValue) {
           completed.add(id);
-          await _grantDailyReward(def);
+          // Récompense NON accordée ici — même mécanisme que les quêtes
+          // permanentes : la quête apparaît "terminée" (point rouge) mais
+          // attend le tap du joueur, géré dans [claimDailyReward].
         }
         changed = true;
       }
@@ -601,10 +624,32 @@ class QuestService {
     });
   }
 
-  Future<void> _grantDailyReward(DailyQuestDef def) async {
+  /// Réclame la récompense d'une quête quotidienne terminée (tap du joueur
+  /// sur la quête / le point rouge) — pendant du [claimReward] des quêtes
+  /// permanentes. Octroie les pièces puis marque la quête comme réclamée.
+  /// Ne fait rien si la quête n'existe pas, n'est pas terminée, ou a déjà
+  /// été réclamée (protège contre un double-tap).
+  Future<void> claimDailyReward(String questId) async {
+    final db = _ref.read(appDatabaseProvider);
+    final row = await (db.select(db.dailyQuests)..where((t) => t.id.equals(1)))
+        .getSingleOrNull();
+    if (row == null) return;
+
+    final completed =
+        (jsonDecode(row.completedIds) as List).cast<String>();
+    final claimed =
+        (jsonDecode(row.rewardClaimedIds) as List).cast<String>();
+    if (!completed.contains(questId) || claimed.contains(questId)) return;
+
+    final def = kDailyQuestDefMap[questId];
+    if (def == null) return;
+
     if (def.rewardType == RewardType.coins) {
-      final db = _ref.read(appDatabaseProvider);
       await addCoinsToProfile(db, def.rewardValue);
     }
+
+    await db.update(db.dailyQuests).replace(row.copyWith(
+          rewardClaimedIds: jsonEncode([...claimed, questId]),
+        ));
   }
 }

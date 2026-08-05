@@ -307,7 +307,7 @@ class _BuildCardState extends ConsumerState<_BuildCard>
                               children: [
                                 Flexible(
                                   child: Text(
-                                    upgrade.name,
+                                    upgradeName(context, upgrade.id),
                                     style: TextStyle(
                                       fontFamily: 'Nunito',
                                       color: isSelected
@@ -327,7 +327,7 @@ class _BuildCardState extends ConsumerState<_BuildCard>
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              upgradeEffectLabel(upgrade),
+                              upgradeEffectLabel(context, upgrade),
                               style: TextStyle(
                                 color: Colors.white.withValues(alpha: 0.6),
                                 fontSize: 13,
@@ -617,10 +617,13 @@ class _LevelComparison extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final levels = upgradeAllLevelEffects(UpgradeEffectType.fromDb(upgrade.effectType));
+    final levels = upgradeEffectLevelLabels(
+      context,
+      UpgradeEffectType.fromDb(upgrade.effectType),
+    );
     final level = upgrade.currentLevel;
     final currentLabel = levels[level.clamp(0, levels.length - 1)];
-    final isMax = level >= kUpgradeCosts.length || level + 1 >= levels.length;
+    final isMax = level >= upgradeCostsFor(upgrade).length || level + 1 >= levels.length;
 
     if (isMax) {
       return Row(
@@ -779,7 +782,7 @@ class _UpgradeButtonState extends ConsumerState<_UpgradeButton> {
     final upgrade = widget.upgrade;
     final totalCoins = widget.totalCoins;
     final levels = upgradeAllLevelEffects(UpgradeEffectType.fromDb(upgrade.effectType));
-    final isMaxLevel = upgrade.currentLevel >= kUpgradeCosts.length ||
+    final isMaxLevel = upgrade.currentLevel >= upgradeCostsFor(upgrade).length ||
         upgrade.currentLevel + 1 >= levels.length;
 
     if (isMaxLevel) {
@@ -798,7 +801,7 @@ class _UpgradeButtonState extends ConsumerState<_UpgradeButton> {
       );
     }
 
-    final cost = kUpgradeCosts[upgrade.currentLevel];
+    final cost = upgradeCostsFor(upgrade)[upgrade.currentLevel];
     final canAfford = totalCoins >= cost;
 
     if (_confirming) {
@@ -846,7 +849,7 @@ class _UpgradeButtonState extends ConsumerState<_UpgradeButton> {
 
     final (message, color) = switch (result) {
       UpgradeResult.success => (
-        '${upgrade.name} → ${context.tr.upgrades_level} ${upgrade.currentLevel + 2}',
+        '${upgradeName(context, upgrade.id)} → ${context.tr.upgrades_level} ${upgrade.currentLevel + 2}',
         kSuccessGreen,
       ),
       UpgradeResult.insufficientCoins => (

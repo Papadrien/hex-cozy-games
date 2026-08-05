@@ -38,7 +38,7 @@ class StatsScreen extends ConsumerWidget {
                     ),
                     error: (_, _) => Center(
                       child: Text(
-                        'Erreur',
+                        context.tr.stats_error,
                         style: TextStyle(
                           color: Colors.white.withValues(alpha: 0.6),
                         ),
@@ -88,7 +88,7 @@ class StatsScreen extends ConsumerWidget {
                                 ),
                                 const SizedBox(width: 8),
                                 Text(
-                                  'GROUPES DE COULEUR',
+                                  context.tr.stats_colorGroups,
                                   style: TextStyle(
                                     color: Colors.white.withValues(alpha: 0.65),
                                     fontSize: 11,
@@ -112,7 +112,7 @@ class StatsScreen extends ConsumerWidget {
                             Padding(
                               padding: const EdgeInsets.only(top: 12),
                               child: Text(
-                                'Aucune donnée',
+                                context.tr.stats_noData,
                                 style: TextStyle(
                                   color: Colors.white.withValues(alpha: 0.3),
                                   fontSize: 14,
