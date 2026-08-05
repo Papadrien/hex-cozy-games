@@ -17,7 +17,6 @@ library;
 
 import 'dart:collection';
 
-import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../game/hex_cell.dart';
@@ -224,39 +223,25 @@ class GridState {
   /// dernier trou de sa bordure. Les biomes candidats incluent donc, en plus
   /// de ceux de [tile], celui de chaque tuile voisine sur la face qui fait
   /// face à [pos].
-  ///
-  /// Logs de diagnostic (préfixe `[Atoll]`) ajoutés temporairement pour
-  /// analyser en direct les fermetures manquées — à retirer une fois le
-  /// débogage terminé.
   List<MapEntry<BiomeType, int>> biomesJustClosed(
       HexCoords pos, HexTile tile) {
     final closures = <MapEntry<BiomeType, int>>[];
     final visitedByBiome = <BiomeType, Set<HexCoords>>{};
 
-    debugPrint('[Atoll] biomesJustClosed pos=$pos '
-        'tileBiomes=${tile.sides.toSet()}');
-
     void checkCluster(HexCoords anchor, BiomeType biome) {
       final visited = visitedByBiome.putIfAbsent(biome, () => <HexCoords>{});
       if (visited.contains(anchor)) {
-        debugPrint('[Atoll]   skip biome=$biome anchor=$anchor '
-            '(déjà visité pour ce biome sur cette pose)');
         return;
       }
       final cluster = clusterAt(anchor, biome);
       if (cluster.isEmpty) return;
       visited.addAll(cluster);
-      // Auparavant calculé via _missingNeighbors (une fonction séparée,
-      // dédupliquée par position) — remplacé par _openEdges (même fonction
-      // que celle utilisée par l'overlay de rendu des arêtes ouvertes,
-      // hex_grid_component.dart) pour qu'il soit IMPOSSIBLE que le log et
-      // ce qui est tracé à l'écran divergent : une seule source de vérité.
+      // [openEdges] est la même fonction que celle utilisée par l'overlay de
+      // rendu des arêtes ouvertes (hex_grid_component.dart) pour qu'il soit
+      // IMPOSSIBLE que la détection de fermeture et ce qui est tracé à
+      // l'écran divergent : une seule source de vérité.
       final openEdges = _openEdges(cluster, biome);
       final closed = openEdges.isEmpty;
-      debugPrint('[Atoll]   cluster biome=$biome anchor=$anchor '
-          'size=${cluster.length} closed=$closed'
-          '${closed ? '' : ' openEdges=${openEdges.map((e) => '${e.coords}'
-              '/${e.side}').toList()}'}');
       if (closed) {
         closures.add(MapEntry(biome, cluster.length));
       }
@@ -277,7 +262,6 @@ class GridState {
       final facingBiome = neighborTile.sides[(side + 3) % 6];
       checkCluster(neighborPos, facingBiome);
     }
-    debugPrint('[Atoll] => closures=$closures');
     return closures;
   }
 
@@ -287,11 +271,8 @@ class GridState {
   /// Retourne, pour TOUTE tuile du [cluster], chaque côté (0-5) qui
   /// appartient bien au [biome] du cluster ET n'a pas de voisin posé — liste
   /// vide ⇔ cluster fermé ([_isClosed]). Seule et unique implémentation de
-  /// ce calcul (auparavant dupliquée avec `_missingNeighbors`, qui donnait
-  /// la position voisine plutôt que l'arête précise — supprimée pour qu'il
-  /// n'y ait plus qu'une source de vérité, utilisée à la fois par les logs
-  /// [Atoll] et par l'overlay de rendu des arêtes ouvertes,
-  /// `hex_grid_component.dart`).
+  /// ce calcul, utilisée à la fois par la détection de fermeture et par
+  /// l'overlay de rendu des arêtes ouvertes (`hex_grid_component.dart`).
   ///
   /// [biome] est indispensable : une tuile peut porter jusqu'à 3 biomes
   /// différents (Story 1.3), répartis en arcs de côtés. Un côté vide ne

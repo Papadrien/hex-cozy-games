@@ -1,7 +1,6 @@
 import 'dart:convert';
 
 import 'package:drift/drift.dart' show InsertMode, Value;
-import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -31,12 +30,8 @@ import '../core/game_enums.dart';
 
 // Seuil de palier du Bonus de clôture (Story B7) : (taille du cluster fermé
 // ÷ ce seuil) × niveau de l'amélioration, arrondi à l'entier inférieur.
-// Anciennement `kDebugAtollClosureThreshold`, abaissé temporairement à 3
-// pendant le débogage Atoll pour multiplier les tests de fermeture sans
-// reconstruire un plateau de 10+ tuiles à chaque essai — remis à 10
-// (valeur normale) une fois le diagnostic terminé, puis abaissé
-// définitivement à 8 pour rendre le bonus accessible sur des groupes
-// plus modestes.
+// Fixé à 8 pour rendre le bonus accessible sur des groupes relativement
+// modestes de tuiles.
 const int kAtollClosureThreshold = 8;
 
 class LastPlacement {
@@ -391,18 +386,7 @@ void _recordPlacement(
   // elle-même aucun côté connecté de sa propre couleur (`reward
   // .connectedSides` vide) — par exemple une tuile qui comble, avec un
   // côté d'une AUTRE couleur, le dernier trou d'un biome voisin déjà
-  // presque fermé. Avant ce correctif, `connectedSides.isEmpty` faisait
-  // sortir la fonction plus bas AVANT le calcul de fermeture : aucun log
-  // [Atoll], aucune récompense, sur ce cas précis ("fermeture sans
-  // connexion").
-  //
-  // Log inconditionnel (contrairement à l'ancien, uniquement à l'intérieur
-  // du `if (closureMult > 0)`) pour qu'une future régression similaire
-  // (fermeture ignorée avant même l'appel à [biomesJustClosed]) soit
-  // immédiatement visible : si cette ligne n'apparaît pas du tout dans les
-  // logs sur une pose, c'est que _applyReward n'a même pas été atteinte
-  // (voir [PlacementReward]/[confirmPlacement]), pas que la fermeture a
-  // échoué.
+  // presque fermé ("fermeture sans connexion").
   final closureMult = effects.getClosureBonusTiles();
   var closureTiles = 0;
   var closures = const <MapEntry<BiomeType, int>>[];
@@ -413,9 +397,6 @@ void _recordPlacement(
       closureTiles += (entry.value ~/ kAtollClosureThreshold) * closureMult;
     }
   }
-  debugPrint('[Atoll] _applyReward pos=$pos connectedSides='
-      '${reward.connectedSides} closureMult=$closureMult closures=$closures '
-      '=> closureTiles=$closureTiles');
 
   if (reward.connectedSides.isEmpty &&
       reward.bonusTiles == 0 &&
