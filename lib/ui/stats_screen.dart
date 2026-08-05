@@ -14,6 +14,8 @@ import 'tropical_background.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/colors.dart';
 import '../core/strings.dart';
+import '../game/hex_cell.dart';
+import '../game/tile_component.dart' show BiomeColor;
 import '../providers/player_stats_provider.dart';
 
 class StatsScreen extends ConsumerWidget {
@@ -131,31 +133,12 @@ class StatsScreen extends ConsumerWidget {
     );
   }
 
-  Color _biomeColor(String biome) {
-    switch (biome) {
-      case 'forest':
-        return const Color(0xFF43A047);
-      case 'village':
-        return const Color(0xFFE53935);
-      case 'plain':
-        return const Color(0xFFFFD600);
-      case 'water':
-        return const Color(0xFF1E88E5);
-      case 'mountain':
-        return const Color(0xFF8E24AA);
-      case 'orange':
-        return const Color(0xFFFB8C00);
-      case 'pink':
-        return const Color(0xFFFFABE6);
-      case 'black':
-        return const Color(0xFF212121);
-      case 'white':
-        return const Color(0xFFF5F5F5);
-      default:
-        return kBrandBlue;
-    }
+Color _biomeColor(String biome) =>
+      BiomeType.values.firstWhere(
+        (b) => b.name == biome,
+        orElse: () => BiomeType.forest,
+      ).color;
   }
-}
 
 class _StatCard extends StatelessWidget {
   const _StatCard({
