@@ -115,42 +115,15 @@ class AppDatabase extends _$AppDatabase {
   @override
   int get schemaVersion => 4;
 
+  /// Première release (v1.0.0) : aucune donnée utilisateur à migrer, la base
+  /// est recréée à neuf via `onCreate`. Aucun `onUpgrade` n'est donc nécessaire
+  /// ici — les futures migrations seront à ajouter lors d'une mise à jour.
   @override
   MigrationStrategy get migration {
     return MigrationStrategy(
       onCreate: (m) async {
         await m.createAll();
         await seedDatabase(this);
-      },
-      onUpgrade: (m, from, to) async {
-        if (from < 2) {
-          await m.addColumn(
-            playerProfile,
-            playerProfile.lastPremiumDailyCoinsDate,
-          );
-        }
-        if (from < 3) {
-          await m.addColumn(permanentQuests, permanentQuests.rewardClaimed);
-          // Les quêtes déjà marquées complétées avant cette version ont
-          // déjà reçu leur récompense (ancien comportement automatique) :
-          // on les marque comme réclamées pour ne pas réafficher un point
-          // rouge ni permettre un double octroi.
-          await customStatement(
-            'UPDATE permanent_quests SET reward_claimed = 1 WHERE is_completed = 1',
-          );
-        }
-        if (from < 4) {
-          await m.addColumn(dailyQuests, dailyQuests.rewardClaimedIds);
-          // Les quêtes quotidiennes déjà marquées complétées avant cette
-          // version ont déjà reçu leur récompense (ancien comportement
-          // automatique) : on les marque comme réclamées pour ne pas
-          // réafficher un point rouge ni permettre un double octroi.
-          await customStatement(
-            'UPDATE daily_quests SET reward_claimed_ids = completed_ids',
-          );
-        }
-        // MetaRunHistory table was removed — safe to ignore since
-        // no users in production and DB is recreated on reinstall.
       },
     );
   }
