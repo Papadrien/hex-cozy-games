@@ -75,11 +75,19 @@
 /// [HapticsService.tileRotated].
 ///
 /// Récompense de quête ([playQuestRewardClaimed], quest_reward.mp3) :
-/// lecteur dédié ([_questRewardPlayer]) plutôt que le pool tournant, pour
-/// couper net une éventuelle lecture encore en cours si le joueur réclame
-/// une autre récompense très rapidement, plutôt que de superposer deux
-/// lectures. Déclenché depuis `quests_screen.dart`
-/// (`_QuestCard._handleClaim`), aux côtés du retour haptique
+/// pioche elle aussi dans le pool tournant, comme [playUndo] /
+/// [playCoinsGained] — plusieurs réclamations rapprochées (quêtes
+/// permanentes et/ou quotidiennes) doivent se superposer plutôt que se
+/// couper l'une l'autre, chacune restant audible individuellement. Un
+/// lecteur dédié a été utilisé un temps pour ce bruitage, mais a été
+/// abandonné : au-delà de ne pas superposer les lectures (plus voulu), il
+/// exposait aussi un bug Android connu (voir le commentaire du
+/// constructeur sur `ReleaseMode.stop`) où le lecteur dédié pouvait
+/// occasionnellement refuser de rejouer après une première lecture menée à
+/// son terme naturel — c'est ce qui causait le son manquant à la toute
+/// première quête réclamée. Déclenché depuis `quest_card.dart`
+/// (`QuestCardState._handleClaim`) et `daily_quest_card.dart`
+/// (`DailyQuestCardState._handleClaim`), aux côtés du retour haptique
 /// [HapticsService.questRewardClaimed].
 library;
 
@@ -233,7 +241,6 @@ class AudioService {
     // fiable dans tous les cas.
     unawaited(_tileGainPlayer.setReleaseMode(ReleaseMode.stop));
     unawaited(_endGamePlayer.setReleaseMode(ReleaseMode.stop));
-    unawaited(_questRewardPlayer.setReleaseMode(ReleaseMode.stop));
   }
 
   final Ref _ref;
@@ -266,14 +273,6 @@ class AudioService {
   /// tuile, pièce gagnée) ne coupe le son de fin de partie en réutilisant
   /// le même lecteur (voir [playEndGame]).
   final AudioPlayer _endGamePlayer = AudioPlayer();
-
-  /// Lecteur dédié pour [SfxTrack.questReward] (voir
-  /// [playQuestRewardClaimed]) — comme [_endGamePlayer], en dehors du pool :
-  /// une nouvelle réclamation doit couper net une éventuelle lecture encore
-  /// en cours plutôt que la superposer, et un lecteur dédié évite qu'un
-  /// bruitage du pool (pose de tuile, pièce gagnée) ne l'interrompe en
-  /// réutilisant le même lecteur.
-  final AudioPlayer _questRewardPlayer = AudioPlayer();
 
   bool get _musicEnabled => _ref.read(optionsProvider).musicEnabled;
   bool get _sfxEnabled => _ref.read(optionsProvider).sfxEnabled;
@@ -436,13 +435,26 @@ class AudioService {
       await Future<void>.delayed(wait);
     }
     if (!_sfxEnabled) return;
-    await _tileGainPlayer.stop();
-    // seek(0) explicite : sur Android, stop() ne réinitialise pas toujours
-    // la position native du lecteur (bug connu du plugin audioplayers avec
+    // stop() défensif : ne doit jamais empêcher le play() qui suit, même si
+    // l'état natif du lecteur est inattendu (ex. déjà relâché après une
+    // complétion naturelle sur un appareil où ReleaseMode.stop ne serait pas
+    // encore effectif — voir le commentaire dans le constructeur et le même
+    // correctif appliqué à [playQuestRewardClaimed]). Sans ce try/catch, une
+    // exception ici n'était jamais rattrapée (appel fait via `unawaited`
+    // côté appelant) et empêchait silencieusement TOUTE lecture future de
+    // `tile_gain.mp3` pour le reste de la session.
+    try {
+      await _tileGainPlayer.stop();
+    } catch (_) {}
+    // seek(0) explicite, dans le même try/catch défensif que le stop()
+    // ci-dessus : sur Android, stop() seul ne réinitialise pas toujours la
+    // position native du lecteur (bug connu du plugin audioplayers avec
     // ReleaseMode.stop) — sans ce seek, chaque nouvelle lecture repart de la
     // position où la précédente s'est arrêtée plutôt que du début, d'où des
     // lectures de plus en plus courtes à chaque déclenchement rapproché.
-    await _tileGainPlayer.seek(Duration.zero);
+    try {
+      await _tileGainPlayer.seek(Duration.zero);
+    } catch (_) {}
     await _tileGainPlayer.setVolume(_sfxVolume);
     await _tileGainPlayer.play(AssetSource(SfxTrack.tileGain.assetPath));
   }
@@ -473,34 +485,17 @@ class AudioService {
   }
 
   /// Joue `quest_reward.mp3` au moment où le joueur réclame la récompense
-  /// d'une quête terminée (voir `quests_screen.dart`,
-  /// `_QuestCard._handleClaim`, déclenché aux côtés du retour haptique
-  /// [HapticsService.questRewardClaimed]). Lecteur dédié
-  /// ([_questRewardPlayer]) plutôt que le pool tournant, pour couper net
-  /// une éventuelle lecture encore en cours si le joueur réclame une autre
-  /// récompense très rapidement, plutôt que de superposer deux lectures.
-  Future<void> playQuestRewardClaimed() async {
-    if (!_sfxEnabled) return;
-    // stop() défensif : ne doit jamais empêcher le play() qui suit, même si
-    // l'état natif du lecteur est inattendu (ex. déjà relâché après une
-    // complétion naturelle sur un appareil où ReleaseMode.stop ne serait pas
-    // encore effectif — voir le commentaire dans le constructeur).
-    try {
-      await _questRewardPlayer.stop();
-    } catch (_) {}
-    // seek(0) explicite, dans le même try/catch défensif que le stop()
-    // ci-dessus : sur Android, stop() seul ne réinitialise pas toujours la
-    // position native du lecteur (bug connu du plugin audioplayers avec
-    // ReleaseMode.stop). Sans ce seek, réclamer plusieurs récompenses de
-    // suite fait repartir chaque lecture de la position où la précédente
-    // s'est arrêtée plutôt que du début — d'où un son qui se joue de moins
-    // en moins longtemps à chaque réclamation.
-    try {
-      await _questRewardPlayer.seek(Duration.zero);
-    } catch (_) {}
-    await _questRewardPlayer.setVolume(_sfxVolume);
-    await _questRewardPlayer.play(AssetSource(SfxTrack.questReward.assetPath));
-  }
+  /// d'une quête terminée — quête permanente (voir `quest_card.dart`,
+  /// `QuestCardState._handleClaim`) ou quotidienne (voir
+  /// `daily_quest_card.dart`, `DailyQuestCardState._handleClaim`),
+  /// déclenché aux côtés du retour haptique
+  /// [HapticsService.questRewardClaimed]). Pioche dans le pool tournant
+  /// comme [_playSfx] (même hauteur légèrement randomisée) : se superpose
+  /// librement à la musique (contexte audio global, voir le constructeur)
+  /// ainsi qu'à d'éventuelles autres lectures de `quest_reward.mp3` si
+  /// plusieurs récompenses sont réclamées coup sur coup, plutôt que de
+  /// couper net la précédente.
+  Future<void> playQuestRewardClaimed() => _playSfx(SfxTrack.questReward);
 
   /// Estime le délai à partir duquel le dernier `coin.mp3` d'un gain de
   /// [coinCount] pièces aura fini de sonner : vol de la pièce jusqu'au
@@ -561,7 +556,6 @@ class AudioService {
     }
     _tileGainPlayer.dispose();
     _endGamePlayer.dispose();
-    _questRewardPlayer.dispose();
   }
 }
 

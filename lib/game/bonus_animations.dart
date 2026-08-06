@@ -489,6 +489,17 @@ class BonusTileAnimComponent extends PositionComponent {
       final floatLife = _life - _preFlyDuration;
       position = Vector2(_liftedPos.x, _liftedPos.y - floatLife * 40);
       if (floatLife >= _kFloatDuration) {
+        // Sans cible de vol (bonusFlyTarget null — HUD pas encore mesuré,
+        // ex. tout début de partie), la tuile flotte puis disparaît sans
+        // jamais avoir déclenché [onImpact] : le son `tile_gain.mp3` et le
+        // retour haptique associés (voir `game_screen.dart`,
+        // `_game.onBonusImpact`) étaient donc silencieusement perdus pour
+        // cette tuile plutôt que simplement décalés. On les déclenche ici
+        // à la fin du flottement, une seule fois.
+        if (!_arrived) {
+          _arrived = true;
+          onImpact?.call();
+        }
         removeFromParent();
       }
     }
