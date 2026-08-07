@@ -1,0 +1,272 @@
+/// Service publicitaire — Story 3.1a / 3.1b / 3.2a.
+///
+/// Fournit les providers Riverpod pour les bannières, interstitielles et
+/// rewarded AdMob. Utilise les IDs de test pendant le développement ; les IDs
+/// de production doivent être configurés avant la release.
+library;
+
+import 'dart:async';
+import 'dart:io';
+
+import 'package:flutter/foundation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
+
+import '../core/constants.dart';
+import '../data/app_database.dart';
+import '../providers/player_profile_provider.dart';
+import 'audio_service.dart';
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+
+/// ID de bannière AdMob selon la plateforme (test en debug, production
+/// en release).
+String get _bannerAdUnitId {
+  if (kReleaseMode) {
+    if (Platform.isAndroid) return kAdMobBannerProdIdAndroid;
+    if (Platform.isIOS) return kAdMobBannerProdIdIOS;
+    return kAdMobBannerProdIdAndroid;
+  }
+  if (Platform.isAndroid) return kAdMobBannerTestIdAndroid;
+  if (Platform.isIOS) return kAdMobBannerTestIdIOS;
+  return kAdMobBannerTestIdAndroid;
+}
+
+String get _interstitialAdUnitId {
+  if (kReleaseMode) {
+    if (Platform.isAndroid) return kAdMobInterstitialProdIdAndroid;
+    if (Platform.isIOS) return kAdMobInterstitialProdIdIOS;
+    return kAdMobInterstitialProdIdAndroid;
+  }
+  if (Platform.isAndroid) return kAdMobInterstitialTestIdAndroid;
+  if (Platform.isIOS) return kAdMobInterstitialTestIdIOS;
+  return kAdMobInterstitialTestIdAndroid;
+}
+
+// ── Bannière (3.1a) ────────────────────────────────────────────────────────
+
+/// Provider qui crée, charge et maintient la bannière AdMob en vie.
+///
+/// `autoDispose` est indispensable ici : un [BannerAd] ne peut être associé
+/// qu'à un seul [AdWidget] pendant toute sa durée de vie (limitation du
+/// plugin google_mobile_ads). Sans `autoDispose`, ce provider global restait
+/// vivant d'une partie à l'autre (le [ProviderScope] racine n'est jamais
+/// détruit lors d'une navigation) : au lancement d'une nouvelle partie, la
+/// même instance de [BannerAd] — déjà utilisée par le précédent [AdWidget —
+/// était réutilisée pour construire un second [AdWidget], ce qui déclenche
+/// l'erreur "already initialized" du SDK AdMob. Avec `autoDispose`, la
+/// bannière est détruite quand l'écran de jeu précédent est démonté (plus
+/// personne ne l'écoute) et une bannière fraîche est chargée pour la
+/// nouvelle partie.
+final bannerAdProvider = Provider.autoDispose<BannerAd?>((ref) {
+  final banner = BannerAd(
+    adUnitId: _bannerAdUnitId,
+    size: AdSize.banner,
+    request: const AdRequest(),
+    listener: BannerAdListener(
+      onAdLoaded: (_) {
+        debugPrint('[AdMob] Banner loaded');
+      },
+      onAdFailedToLoad: (ad, error) {
+        debugPrint('[AdMob] Banner failed: $error');
+        ad.dispose();
+      },
+    ),
+  );
+
+  banner.load();
+  ref.onDispose(() => banner.dispose());
+
+  return banner;
+});
+
+// ── Interstitielle (3.1b) ──────────────────────────────────────────────────
+
+/// Compteur cumulatif de tuiles posées pour le déclenchement des
+/// interstitielles. Persiste entre les parties (pas de reset dans
+/// [startNewGame]).
+class AdTilesPlacedNotifier extends Notifier<int> {
+  @override
+  int build() => 0;
+
+  void increment() => state++;
+}
+
+final adTilesPlacedProvider =
+    NotifierProvider<AdTilesPlacedNotifier, int>(AdTilesPlacedNotifier.new);
+
+/// Charge et affiche une interstitielle AdMob. Retourne immédiatement
+/// si le chargement échoue (pas de crash). Met en pause la musique de fond
+/// (partie en cours) pendant l'affichage de la pub, et la reprend
+/// systématiquement à sa fermeture (fermeture normale ou échec d'affichage),
+/// voir [AudioService.pauseMusicForAd] / [resumeMusicFromAd].
+Future<void> showInterstitialAd(WidgetRef ref) async {
+  await InterstitialAd.load(
+    adUnitId: _interstitialAdUnitId,
+    request: const AdRequest(),
+    adLoadCallback: InterstitialAdLoadCallback(
+      onAdLoaded: (ad) {
+        ad.fullScreenContentCallback = FullScreenContentCallback(
+          onAdShowedFullScreenContent: (ad) {
+            ref.read(audioServiceProvider).pauseMusicForAd();
+          },
+          onAdDismissedFullScreenContent: (ad) {
+            ref.read(audioServiceProvider).resumeMusicFromAd();
+            ad.dispose();
+          },
+          onAdFailedToShowFullScreenContent: (ad, error) {
+            debugPrint('[AdMob] Interstitial show failed: $error');
+            ref.read(audioServiceProvider).resumeMusicFromAd();
+            ad.dispose();
+          },
+        );
+        ad.show();
+      },
+      onAdFailedToLoad: (error) {
+        debugPrint('[AdMob] Interstitial load failed: $error');
+      },
+    ),
+  );
+}
+
+// ── Récompense quotidienne (3.2a) ──────────────────────────────────────────
+
+/// ID de la rewarded AdMob selon la plateforme (test en debug, production
+/// en release).
+String get _rewardedAdUnitId {
+  if (kReleaseMode) {
+    if (Platform.isAndroid) return kAdMobRewardedProdIdAndroid;
+    if (Platform.isIOS) return kAdMobRewardedProdIdIOS;
+    return kAdMobRewardedProdIdAndroid;
+  }
+  if (Platform.isAndroid) return kAdMobRewardedTestIdAndroid;
+  if (Platform.isIOS) return kAdMobRewardedTestIdIOS;
+  return kAdMobRewardedTestIdAndroid;
+}
+
+/// true pendant le chargement/affichage d'une rewarded AdMob (entre le tap
+/// sur le bouton "Regarder une pub" et la résolution de [claimDailyReward]).
+/// Sert à bloquer le reste de l'interface le temps que la pub charge, car
+/// [RewardedAd.load] peut prendre plusieurs secondes avant que la pub ne
+/// s'affiche réellement (rien ne l'indique visuellement côté SDK).
+final isWatchingRewardedAdProvider = StateProvider<bool>((ref) => false);
+
+/// Date du dernier reward quotidien.
+final lastDailyRewardDateProvider = Provider<DateTime?>((ref) {
+  final profile = ref.watch(playerProfileProvider);
+  return profile.maybeWhen(
+    data: (row) => row.lastDailyRewardDate,
+    orElse: () => null,
+  );
+});
+
+/// true si la récompense quotidienne est disponible (aucun reward aujourd'hui).
+final isDailyRewardAvailableProvider = Provider<bool>((ref) {
+  final lastDate = ref.watch(lastDailyRewardDateProvider);
+  if (lastDate == null) return true;
+  final now = DateTime.now();
+  return now.year != lastDate.year ||
+      now.month != lastDate.month ||
+      now.day != lastDate.day;
+});
+
+/// Charge et affiche une rewarded AdMob.
+///
+/// Retourne `true` si l'utilisateur a regardé la vidéo entièrement et gagné
+/// la récompense, `false` en cas d'échec (fermeture anticipée, erreur de
+/// chargement, etc.). Ne crash jamais. Met en pause la musique de fond
+/// (accueil) pendant l'affichage de la pub, et la reprend systématiquement à
+/// sa fermeture (fermeture normale ou échec d'affichage), voir
+/// [AudioService.pauseMusicForAd] / [resumeMusicFromAd].
+Future<bool> showRewardedAd(WidgetRef ref) async {
+  final completer = Completer<bool>();
+
+  await RewardedAd.load(
+    adUnitId: _rewardedAdUnitId,
+    request: const AdRequest(),
+    rewardedAdLoadCallback: RewardedAdLoadCallback(
+      onAdLoaded: (ad) {
+        ad.fullScreenContentCallback = FullScreenContentCallback(
+          onAdShowedFullScreenContent: (ad) {
+            ref.read(audioServiceProvider).pauseMusicForAd();
+          },
+          onAdDismissedFullScreenContent: (ad) {
+            ref.read(audioServiceProvider).resumeMusicFromAd();
+            ad.dispose();
+            if (!completer.isCompleted) completer.complete(false);
+          },
+          onAdFailedToShowFullScreenContent: (ad, error) {
+            debugPrint('[AdMob] Rewarded show failed: $error');
+            ref.read(audioServiceProvider).resumeMusicFromAd();
+            ad.dispose();
+            if (!completer.isCompleted) completer.complete(false);
+          },
+        );
+        ad.show(onUserEarnedReward: (ad, reward) {
+          debugPrint('[AdMob] Reward earned');
+          if (!completer.isCompleted) completer.complete(true);
+        });
+      },
+      onAdFailedToLoad: (error) {
+        debugPrint('[AdMob] Rewarded load failed: $error');
+        if (!completer.isCompleted) completer.complete(false);
+      },
+    ),
+  );
+
+  return completer.future;
+}
+
+/// Réclame la récompense quotidienne.
+///
+/// 1. Vérifie si la récompense est disponible (pas déjà réclamée aujourd'hui).
+/// 2. Affiche une rewarded AdMob.
+/// 3. Si l'utilisateur regarde la vidéo entièrement : crédite
+///    [kAdRewardedCoins] pièces et met à jour [lastDailyRewardDate].
+///
+/// Retourne `true` si la récompense a été créditée, `false` sinon (indisponible,
+/// visionnage incomplet, échec de chargement).
+Future<bool> claimDailyReward(WidgetRef ref) async {
+  final available = ref.read(isDailyRewardAvailableProvider);
+  if (!available) return false;
+
+  final rewarded = await showRewardedAd(ref);
+  if (!rewarded) return false;
+
+  final db = ref.read(appDatabaseProvider);
+  await addCoinsToProfile(db, kAdRewardedCoins);
+  await updateLastDailyRewardDate(db);
+  return true;
+}
+
+// ── Récompense quotidienne premium (3.5b) ────────────────────────────────────
+
+/// true si la récompense quotidienne premium est disponible aujourd'hui
+/// (joueur premium ET pas encore crédité aujourd'hui).
+final isPremiumDailyCoinsAvailableProvider = Provider<bool>((ref) {
+  final profile = ref.watch(playerProfileProvider);
+  final row = profile.maybeWhen(data: (r) => r, orElse: () => null);
+  if (row == null || !row.isPremium) return false;
+
+  final lastDate = row.lastPremiumDailyCoinsDate;
+  if (lastDate == null) return true;
+  final now = DateTime.now();
+  return now.year != lastDate.year ||
+      now.month != lastDate.month ||
+      now.day != lastDate.day;
+});
+
+/// Crédite les [kAdRewardedCoins] pièces quotidiennes premium et met à jour la date.
+///
+/// Retourne `true` si les pièces ont été créditées, `false` si déjà fait
+/// aujourd'hui ou si l'utilisateur n'est pas premium.
+Future<bool> claimPremiumDailyCoins(WidgetRef ref) async {
+  final available = ref.read(isPremiumDailyCoinsAvailableProvider);
+  if (!available) return false;
+
+  final db = ref.read(appDatabaseProvider);
+  await addCoinsToProfile(db, kAdRewardedCoins);
+  await updateLastPremiumDailyCoinsDate(db);
+  return true;
+}

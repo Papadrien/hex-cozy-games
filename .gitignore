@@ -1,28 +1,37 @@
-# Dart/Flutter
+# Flutter/Dart
 .dart_tool/
 .flutter-plugins
 .flutter-plugins-dependencies
-.packages
 .pub-cache/
 .pub/
 build/
-*.iml
 
 # Android
-android/.gradle
+android/.gradle/
+android/build/
+android/app/build/
 android/local.properties
-android/captures/
-android/gradlew
-android/gradlew.bat
-**/GeneratedPluginRegistrant.java
+android/key.properties
+android/app/google-services.json
+android/app/keystore.jks
 *.jks
 *.keystore
+
+# iOS
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/Flutter.framework
+ios/Flutter/Flutter.pods
+ios/Flutter/App.framework
+ios/Flutter/ephemeral/
 
 # IDE
 .idea/
 .vscode/
-*.swp
-*.swo
+*.iml
 
 # macOS
 .DS_Store
+
+# Coverage
+coverage/

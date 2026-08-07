@@ -1,0 +1,603 @@
+/// Composant Flame pour le rendu d'une tuile hexagonale colorée — Story 1.3.
+///
+/// Rendu : chaque côté i est un trapèze allant du centre de l'hexagone vers
+/// les deux sommets qui encadrent ce côté.
+///
+/// Projection isométrique : les coins sont calculés en espace "monde plat"
+/// puis la coordonnée Y est multipliée par [kIsoScaleY] avant dessin.
+library;
+
+import 'dart:math';
+import 'dart:ui';
+
+import 'package:flame/components.dart';
+
+import '../core/constants.dart';
+import 'hex_cell.dart';
+import 'hex_coords.dart';
+import 'hex_tile.dart';
+
+/// Facteur d'écrasement vertical isométrique.
+const double kIsoScaleY = 0.57;
+
+/// Durée de l'effet de glow sur les côtés connectés.
+const double kGlowDurationSec = 0.6;
+
+/// Opacité initiale du glow.
+const double kGlowStartAlpha = 0.45;
+
+/// Proportion (depuis le bord extérieur) de la surbrillance de connexion —
+/// seuls les 10 % les plus proches du bord du côté sont éclairés, pas toute
+/// la longueur jusqu'au centre de la tuile.
+const double kHighlightOuterBand = 0.10;
+
+/// Correspondance [BiomeType] → couleur d'affichage.
+extension BiomeColor on BiomeType {
+  Color get color {
+    switch (this) {
+      case BiomeType.forest:
+        return const Color(0xFF43A047);
+      case BiomeType.village:
+        return const Color(0xFFE53935);
+      case BiomeType.plain:
+        return const Color(0xFFFFD600);
+      case BiomeType.water:
+        return const Color(0xFF1E88E5);
+      case BiomeType.mountain:
+        return const Color(0xFF8E24AA);
+      case BiomeType.orange:
+        return const Color(0xFFFB8C00);
+      case BiomeType.pink:
+        return const Color(0xFFFFABE6);
+      case BiomeType.black:
+        return const Color(0xFF212121);
+      case BiomeType.white:
+        return const Color(0xFFF5F5F5);
+    }
+  }
+}
+
+/// Épaisseur de base du "bloc" 3D des tuiles (à zoom 1.0).
+const double kTileDepth = 10.0;
+
+// ── Ondulation animée de la ligne basse du relief 3D ────────────────────────
+// Donne l'impression que le pied de la tuile "trempe" légèrement dans l'eau.
+
+/// Amplitude de l'ondulation (à zoom 1.0), en pixels.
+const double kEdgeWaveAmplitude = 1.6;
+
+/// Nombre d'oscillations le long de chaque arête.
+const double kEdgeWaveFrequency = 1.5;
+
+/// Vitesse d'animation de l'ondulation (rad/s).
+const double kEdgeWaveSpeed = 1.3;
+
+/// Nombre de segments utilisés pour dessiner la ligne ondulée.
+const int kEdgeWaveSegments = 8;
+
+/// Palier du nombre de tuiles posées au-delà duquel l'ondulation du bord
+/// bas est désactivée pour toutes les tuiles — le calcul de la ligne
+/// ondulée (sin + Path par face, par tuile, par frame) devient coûteux sur
+/// un plateau qui grossit indéfiniment, donc on la fige au-delà de ce
+/// palier pour préserver les performances. Voir [HexGridComponent.placeTile].
+const int kEdgeWaveTileCountThreshold = 150;
+
+const int kTileDepthPriorityBase = 100000;
+const int kTileDepthPriorityPreview = kTileDepthPriorityBase + 1000000;
+
+class TileComponent extends PositionComponent {
+  TileComponent({
+    required this.tile,
+    required this._coords,
+    double hexSize = kHexSize,
+    this._alpha = 1.0,
+    this.highlightedSides = const {},
+    Vector2? position,
+    double initialWaveIntensity = 1.0,
+  })  : _hexSize = hexSize,
+        _waveIntensity = initialWaveIntensity.clamp(0.0, 1.0),
+        super(
+          position: position ?? Vector2.zero(),
+          anchor: Anchor.center,
+          size: Vector2(sqrt(3) * hexSize, 2 * hexSize * kIsoScaleY),
+          priority: 1,
+        );
+
+  HexTile tile;
+
+  final HexCoords _coords;
+  HexCoords get coords => _coords;
+
+  /// Décalage de phase propre à cette tuile (basé sur ses coordonnées) pour
+  /// que les tuiles n'ondulent pas toutes de façon parfaitement synchrone.
+  late final double _wavePhaseOffset =
+      (_coords.q * 0.73 + _coords.r * 1.31).abs() % (2 * pi);
+
+  double _waveTime = 0.0;
+
+  // ── Ondulation progressive ────────────────────────────────────────────────
+  // L'intensité de l'ondulation (0 → 1) permet de la garder invisible en
+  // prévisualisation et de la faire apparaître progressivement une fois la
+  // tuile posée (voir [startWaveRampIn]).
+  double _waveIntensity;
+  bool _waveRampActive = false;
+  double _waveRampSpeed = 0.0;
+
+  static const double kWaveDuration = 5.0;
+  static const double kWaveFadeDuration = 1.0;
+
+  /// Démarre la montée en puissance progressive de l'ondulation du bord bas,
+  /// de 0 jusqu'à son intensité maximale, sur [duration] secondes.
+  void startWaveRampIn({double duration = 0.5}) {
+    _waveIntensity = 0.0;
+    _waveRampActive = true;
+    _waveRampSpeed = duration > 0 ? 1.0 / duration : double.infinity;
+  }
+
+  /// Fige immédiatement l'ondulation du bord bas (intensité à 0, pas de
+  /// ramp-in en cours) — utilisé au-delà de [kEdgeWaveTileCountThreshold]
+  /// tuiles posées pour économiser le calcul de la ligne ondulée à chaque
+  /// frame.
+  void freezeWave() {
+    _waveRampActive = false;
+    _waveIntensity = 0.0;
+  }
+
+  // ── Animation de rotation ────────────────────────────────────────────────
+  // Décalage angulaire "monde plat" (avant projection iso) appliqué à
+  // l'ensemble du rendu pour simuler une rotation fluide de la tuile lors
+  // d'un changement de côté en prévisualisation (voir [animateRotationSwirl]).
+  double _rotationVisualOffset = 0.0;
+  double _rotationAnimFrom = 0.0;
+  double _rotationAnimElapsed = 0.0;
+  double _rotationAnimDuration = 0.11;
+  bool _rotationAnimating = false;
+
+  /// Déclenche une rotation visuelle fluide de [steps] crans de 60° (positif
+  /// ou négatif) vers l'orientation actuelle de [tile]. À appeler juste après
+  /// avoir mis à jour [tile] avec la nouvelle orientation : le rendu part
+  /// visuellement de l'ancienne orientation puis pivote jusqu'à la nouvelle.
+  /// Durée par défaut doublée en vitesse (0.22s → 0.11s) à la demande.
+  void animateRotationSwirl(int steps, {double duration = 0.11}) {
+    if (steps == 0) return;
+    _rotationAnimFrom = -steps * (pi / 3);
+    _rotationVisualOffset = _rotationAnimFrom;
+    _rotationAnimElapsed = 0.0;
+    _rotationAnimDuration = duration;
+    _rotationAnimating = true;
+  }
+
+  // ── Fondu de sortie ──────────────────────────────────────────────────────
+  // Utilisé lors de l'annulation d'un placement : la tuile s'estompe
+  // progressivement pendant qu'elle s'envole vers la pile de prévisualisation
+  // (voir [HexGridComponent.removeTile]).
+  bool _fadeOutActive = false;
+  double _fadeOutSpeed = 0.0;
+
+  /// Démarre un fondu de sortie progressif de l'opacité actuelle jusqu'à 0
+  /// sur [duration] secondes.
+  void startFadeOut({double duration = 0.3}) {
+    _fadeOutActive = true;
+    _fadeOutSpeed = duration > 0 ? 1.0 / duration : double.infinity;
+  }
+
+  double _hexSize;
+  double get hexSize => _hexSize;
+  set hexSize(double value) {
+    _hexSize = value;
+    size = Vector2(sqrt(3) * value, 2 * value * kIsoScaleY);
+  }
+
+  void updateDepthPriority() {
+    priority = kTileDepthPriorityBase + position.y.round();
+  }
+
+  /// Épaisseur du bloc 3D proportionnelle au zoom courant.
+  double get _tileDepth => kTileDepth * (_hexSize / kHexSize);
+
+  /// Amplitude de l'ondulation proportionnelle au zoom courant et à
+  /// l'intensité progressive courante (0 en prévisualisation ou juste après
+  /// la pose, jusqu'à sa valeur pleine une fois [startWaveRampIn] terminé).
+  double get _waveAmplitude =>
+      kEdgeWaveAmplitude * (_hexSize / kHexSize) * _waveIntensity;
+
+  double _alpha;
+  double get alpha => _alpha;
+  set alpha(double value) {
+    _alpha = value.clamp(0.0, 1.0);
+  }
+
+  Set<int> highlightedSides;
+
+  /// Mode sélection de Deuxième chance actif (voir `hex_board_game.dart`,
+  /// propagé depuis [HexGridComponent.secondChanceHighlightActive]) : fait
+  /// apparaître un contour doré autour de la tuile pour la distinguer de ses
+  /// voisines pendant qu'on cherche laquelle taper pour la récupérer.
+  bool showSecondChanceOutline = false;
+
+  /// Couleur du contour de Deuxième chance — reprend la teinte du contour du
+  /// slot d'amélioration actif dans `active_upgrades_hud.dart`
+  /// (`_kActiveBorder`), pour une cohérence visuelle entre le HUD et le
+  /// plateau.
+  static const Color _kSecondChanceOutlineColor = Color(0xFFFFD54F);
+
+  /// Épaisseur (en pixels écran, avant mise à l'échelle du zoom) du contour
+  /// de Deuxième chance.
+  static const double _kSecondChanceOutlineWidth = 2.5;
+
+  /// Couleur de l'ombre portée derrière le contour de Deuxième chance — le
+  /// doré ([_kSecondChanceOutlineColor]) se distingue mal sur les tuiles de
+  /// couleur proche (biome plaine, jaune) sans ce liseré sombre en dessous.
+  static const Color _kSecondChanceOutlineShadowColor = Color(0xFF000000);
+
+  /// Épaisseur (en pixels écran, avant mise à l'échelle du zoom) de l'ombre
+  /// du contour de Deuxième chance — plus large que le contour doré
+  /// lui-même pour dépasser de part et d'autre et rester visible même sur
+  /// fond jaune.
+  static const double _kSecondChanceOutlineShadowWidth = 4.5;
+
+  /// Opacité de l'ombre du contour de Deuxième chance — volontairement
+  /// inférieure à l'opacité pleine de la tuile ([_alpha]) pour rester une
+  /// ombre discrète plutôt qu'un second contour tout aussi marqué que le
+  /// doré.
+  static const double _kSecondChanceOutlineShadowAlpha = 0.55;
+
+  /// Facteur d'opacité appliqué au contour doré lui-même (par opposition à
+  /// son ombre, voir [_kSecondChanceOutlineShadowAlpha]) — translucide à
+  /// 80 % de l'opacité pleine de la tuile ([_alpha]), soit 20 % de moins
+  /// d'opacité, pour un contour plus discret pendant la sélection.
+  static const double _kSecondChanceOutlineOpacity = 0.8;
+
+  // ── Glow ─────────────────────────────────────────────────────────────────
+  Set<int>? _glowSides;
+  double _glowAlpha = 0.0;
+
+  void startGlow(List<int> sides) {
+    _glowSides = sides.toSet();
+    _glowAlpha = kGlowStartAlpha;
+  }
+
+  // ── Rendu Canvas (hexagone coloré + effet 3D) ─────────────────────────────
+
+  @override
+  void render(Canvas canvas) {
+    final cx = size.x / 2;
+    final cyTop = size.y / 2 - _tileDepth / 2;
+    var topCorners = _isoCorners(cx, cyTop);
+
+    // Rotation visuelle : on "dé-écrase" temporairement l'axe Y (annule
+    // kIsoScaleY) pour tourner chaque coin de la face du dessus dans cet
+    // espace "monde plat" non déformé, puis on ré-applique l'écrasement iso.
+    // On ne transforme QUE les coins du dessus (pas tout le canvas) : si on
+    // transformait tout le rendu, l'extrusion verticale du bloc (ajoutée en
+    // coordonnées locales après coup, voir _renderTile) se retrouverait elle
+    // aussi tournée/désécrasée, ce qui fait pencher visuellement la tuile
+    // sur le côté pendant l'animation. En ne tournant que la face du dessus,
+    // l'extrusion reste purement verticale à l'écran et la tuile reste
+    // horizontale pendant toute la rotation.
+    final hasRotationOffset = _rotationVisualOffset.abs() > 0.0001;
+    if (hasRotationOffset) {
+      final pivot = Offset(cx, cyTop);
+      topCorners = [
+        for (final corner in topCorners)
+          _rotateAroundPivot(corner, pivot, _rotationVisualOffset),
+      ];
+    }
+
+    _renderTile(canvas, cx, cyTop, topCorners);
+  }
+
+  Offset _rotateAroundPivot(Offset point, Offset pivot, double angle) {
+    final dx = point.dx - pivot.dx;
+    var dy = (point.dy - pivot.dy) / kIsoScaleY;
+    final cosA = cos(angle);
+    final sinA = sin(angle);
+    final rx = dx * cosA - dy * sinA;
+    final ry = dx * sinA + dy * cosA;
+    dy = ry * kIsoScaleY;
+    return Offset(pivot.dx + rx, pivot.dy + dy);
+  }
+
+  void _renderTile(Canvas canvas, double cx, double cyTop, List<Offset> topCorners) {
+
+    // ── Faces latérales (effet bloc 3D) ──────────────────────────────────
+    for (var i = 0; i < 6; i++) {
+      final t0 = topCorners[i];
+      final t1 = topCorners[(i + 1) % 6];
+      final midY = (t0.dy + t1.dy) / 2;
+      if (midY < cyTop - 0.01) continue;
+
+      final b0 = Offset(t0.dx, t0.dy + _tileDepth);
+      final b1 = Offset(t1.dx, t1.dy + _tileDepth);
+
+      // Ligne basse ondulée (b1 → b0) : les extrémités restent fixes sur les
+      // coins pour garder une silhouette fermée, l'ondulation est maximale
+      // au milieu de l'arête (effet "trempé dans l'eau").
+      final wavyBottom = _wavyEdge(b1, b0, _wavePhaseOffset + i * 0.9);
+
+      final sidePath = Path()
+        ..moveTo(t0.dx, t0.dy)
+        ..lineTo(t1.dx, t1.dy);
+      for (final p in wavyBottom) {
+        sidePath.lineTo(p.dx, p.dy);
+      }
+      sidePath.close();
+
+      final baseColor = tile.sides[i].color;
+      final shaded = Color.from(
+        alpha: baseColor.a,
+        red: baseColor.r * 0.62,
+        green: baseColor.g * 0.62,
+        blue: baseColor.b * 0.62,
+      );
+
+      canvas.drawPath(
+        sidePath,
+        Paint()
+          ..color = shaded.withValues(alpha: _alpha)
+          ..style = PaintingStyle.fill,
+      );
+
+      // Ligne blanche sur l'ondulation du bord bas — uniquement sur les
+      // côtés bas-gauche (i == 3) et bas-droit (i == 2), pas sur les côtés
+      // gauche/droit (i == 4 / i == 1).
+      if (_waveIntensity > 0.01 && (i == 2 || i == 3)) {
+        final wavePath = Path();
+        for (var s = 0; s < wavyBottom.length; s++) {
+          if (s == 0) {
+            wavePath.moveTo(wavyBottom[s].dx, wavyBottom[s].dy);
+          } else {
+            wavePath.lineTo(wavyBottom[s].dx, wavyBottom[s].dy);
+          }
+        }
+        canvas.drawPath(
+          wavePath,
+          Paint()
+            ..color = const Color(0xFFFFFFFF).withValues(alpha: _alpha * 0.55)
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 3.0 * (_hexSize / kHexSize),
+        );
+      }
+    }
+
+    // ── Face du dessus ────────────────────────────────────────────────────
+    for (var i = 0; i < 6; i++) {
+      final c0 = topCorners[i];
+      final c1 = topCorners[(i + 1) % 6];
+
+      final path = Path()
+        ..moveTo(cx, cyTop)
+        ..lineTo(c0.dx, c0.dy)
+        ..lineTo(c1.dx, c1.dy)
+        ..close();
+
+      canvas.drawPath(
+        path,
+        Paint()
+          ..color = tile.sides[i].color.withValues(alpha: _alpha)
+          ..style = PaintingStyle.fill,
+      );
+
+      // Glow.
+      if (_glowSides != null && _glowSides!.contains(i) && _glowAlpha > 0.01) {
+        canvas.drawPath(
+          path,
+          Paint()
+            ..color = const Color(0xFFFFFFFF).withValues(alpha: _glowAlpha)
+            ..style = PaintingStyle.fill,
+        );
+      }
+
+      // Surbrillance côtés connectés — uniquement les 10 % extérieurs du
+      // côté (bande proche du bord, pas toute la longueur jusqu'au centre),
+      // en blanc peu translucide pour bien faire ressortir la connexion.
+      if (highlightedSides.contains(i)) {
+        final innerC0 = Offset(
+          cx + (c0.dx - cx) * (1 - kHighlightOuterBand),
+          cyTop + (c0.dy - cyTop) * (1 - kHighlightOuterBand),
+        );
+        final innerC1 = Offset(
+          cx + (c1.dx - cx) * (1 - kHighlightOuterBand),
+          cyTop + (c1.dy - cyTop) * (1 - kHighlightOuterBand),
+        );
+        final bandPath = Path()
+          ..moveTo(innerC0.dx, innerC0.dy)
+          ..lineTo(c0.dx, c0.dy)
+          ..lineTo(c1.dx, c1.dy)
+          ..lineTo(innerC1.dx, innerC1.dy)
+          ..close();
+        canvas.drawPath(
+          bandPath,
+          Paint()
+            ..color = const Color(0xFFFFFFFF).withValues(alpha: 0.75)
+            ..style = PaintingStyle.fill,
+        );
+      }
+    }
+
+    // ── Contour doré (mode sélection Deuxième chance) ───────────────────
+    if (showSecondChanceOutline) {
+      final outline = Path()..moveTo(topCorners[0].dx, topCorners[0].dy);
+      for (var i = 1; i < topCorners.length; i++) {
+        outline.lineTo(topCorners[i].dx, topCorners[i].dy);
+      }
+      outline.close();
+      // Ombre noire d'abord, plus large et dessinée en dessous : garde le
+      // contour doré visible même sur les tuiles de teinte proche (biome
+      // plaine, jaune) où il se fondrait sinon dans la couleur de la case.
+      canvas.drawPath(
+        outline,
+        Paint()
+          ..color = _kSecondChanceOutlineShadowColor.withValues(
+              alpha: _alpha * _kSecondChanceOutlineShadowAlpha)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth =
+              _kSecondChanceOutlineShadowWidth * (_hexSize / kHexSize),
+      );
+      canvas.drawPath(
+        outline,
+        Paint()
+          ..color = _kSecondChanceOutlineColor.withValues(
+              alpha: _alpha * _kSecondChanceOutlineOpacity)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = _kSecondChanceOutlineWidth * (_hexSize / kHexSize),
+      );
+    }
+
+    // ── Polygone central du biome majoritaire ────────────────────────────
+    final dominantColor = _dominantBiomeColor();
+    if (dominantColor != null) {
+      const double innerRatio = 0.32;
+      final innerCx = cx;
+      final innerCy = cyTop;
+      final innerPath = Path();
+      for (var i = 0; i < 6; i++) {
+        final angleDeg = 60.0 * i - 90.0;
+        final angleRad = angleDeg * pi / 180.0;
+        final x = innerCx + _hexSize * innerRatio * cos(angleRad);
+        final y = innerCy + _hexSize * innerRatio * sin(angleRad) * kIsoScaleY;
+        if (i == 0) {
+          innerPath.moveTo(x, y);
+        } else {
+          innerPath.lineTo(x, y);
+        }
+      }
+      innerPath.close();
+      canvas.drawPath(
+        innerPath,
+        Paint()
+          ..color = dominantColor.withValues(alpha: _alpha)
+          ..style = PaintingStyle.fill,
+      );
+    }
+
+  }
+
+  // Cache pour _dominantBiomeColor : la tuile change rarement après la pose,
+  // on évite de recompter les biomes à chaque frame.
+  HexTile? _lastDominantTile;
+  Color? _cachedDominantColor;
+
+  /// Retourne la couleur du biome majoritaire sur la tuile, ou null en cas
+  /// d'égalité.
+  Color? _dominantBiomeColor() {
+    if (identical(tile, _lastDominantTile)) {
+      return _cachedDominantColor;
+    }
+    _lastDominantTile = tile;
+    final counts = <BiomeType, int>{};
+    for (final b in tile.sides) {
+      counts[b] = (counts[b] ?? 0) + 1;
+    }
+    BiomeType? dominant;
+    int maxCount = 0;
+    bool tie = false;
+    for (final entry in counts.entries) {
+      if (entry.value > maxCount) {
+        maxCount = entry.value;
+        dominant = entry.key;
+        tie = false;
+      } else if (entry.value == maxCount) {
+        tie = true;
+      }
+    }
+    if (dominant == null || tie) {
+      _cachedDominantColor = null;
+      return null;
+    }
+    _cachedDominantColor = dominant.color;
+    return _cachedDominantColor;
+  }
+
+  @override
+  void update(double dt) {
+    super.update(dt);
+
+    // Incrémente le temps d'animation tant que l'ondulation n'est pas figée
+    // (le temps continue de défiler durant le fade-out pour une transition
+    // fluide du mouvement jusqu'à l'arrêt).
+    _waveTime += dt;
+
+    if (_waveRampActive) {
+      _waveIntensity += _waveRampSpeed * dt;
+      if (_waveIntensity >= 1.0) {
+        _waveIntensity = 1.0;
+        _waveRampActive = false;
+      }
+    }
+
+    if (_rotationAnimating) {
+      _rotationAnimElapsed += dt;
+      final t = (_rotationAnimElapsed / _rotationAnimDuration).clamp(0.0, 1.0);
+      // Ease-out cubique : rotation rapide au départ puis ralentie, pour un
+      // rendu "à la main" plutôt que linéaire/mécanique.
+      final eased = 1 - pow(1 - t, 3).toDouble();
+      _rotationVisualOffset = _rotationAnimFrom * (1 - eased);
+      if (t >= 1.0) {
+        _rotationVisualOffset = 0.0;
+        _rotationAnimating = false;
+      }
+    }
+
+    if (_glowSides != null && _glowAlpha > 0.01) {
+      _glowAlpha -= (kGlowStartAlpha / kGlowDurationSec) * dt;
+      if (_glowAlpha <= 0.01) {
+        _glowAlpha = 0.0;
+        _glowSides = null;
+      }
+    }
+
+    if (_fadeOutActive) {
+      alpha = _alpha - _fadeOutSpeed * dt;
+      if (_alpha <= 0.01) {
+        alpha = 0.0;
+        _fadeOutActive = false;
+      }
+    }
+  }
+
+  // ── Helpers ───────────────────────────────────────────────────────────────
+
+  /// Génère les points d'une arête ondulée entre [from] et [to].
+  ///
+  /// Les extrémités gardent un décalage nul (enveloppe en sinus) afin que
+  /// l'arête reste parfaitement raccordée aux coins de l'hexagone — seul le
+  /// milieu de l'arête ondule, comme une petite vague le long du pied de
+  /// la tuile.
+  ///
+  /// Utilise un buffer pré-alloué [_wavyBuffer] pour éviter les allocations
+  /// répétées (6 côtés × N tuiles × 60 fps).
+  static final List<Offset> _wavyBuffer =
+      List.filled(kEdgeWaveSegments + 1, Offset.zero);
+
+  List<Offset> _wavyEdge(Offset from, Offset to, double phase) {
+    if (_waveAmplitude < 0.001) {
+      _wavyBuffer[0] = from;
+      _wavyBuffer[1] = to;
+      return _wavyBuffer.sublist(0, 2);
+    }
+    final dx = to.dx - from.dx;
+    final dy = to.dy - from.dy;
+    for (var s = 0; s <= kEdgeWaveSegments; s++) {
+      final t = s / kEdgeWaveSegments;
+      final baseX = from.dx + dx * t;
+      final baseY = from.dy + dy * t;
+      final envelope = sin(pi * t); // 0 aux extrémités, 1 au centre
+      final wave = _waveAmplitude *
+          envelope *
+          sin(kEdgeWaveFrequency * 2 * pi * t + phase + _waveTime * kEdgeWaveSpeed);
+      _wavyBuffer[s] = Offset(baseX, baseY + wave);
+    }
+    return _wavyBuffer;
+  }
+
+  List<Offset> _isoCorners(double cx, double cy) {
+    return List.generate(6, (i) {
+      final angleDeg = 60.0 * i - 90.0;
+      final angleRad = angleDeg * pi / 180.0;
+      final x = cx + _hexSize * cos(angleRad);
+      final y = cy + _hexSize * sin(angleRad) * kIsoScaleY;
+      return Offset(x, y);
+    });
+  }
+}

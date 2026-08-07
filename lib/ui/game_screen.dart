@@ -1,54 +1,903 @@
-import 'package:flame/game.dart';
+/// Écran de jeu principal — story 1.2 / 1.3 / 1.5a / 1.5b / 1.6b / 1.7g.
+///
+/// Gestion des gestes :
+///  - Pan 1 doigt + Zoom pinch : délégués à Flame via [HexBoardGame]
+///    (PanDetector + ScaleDetector). Le [GameWidget] reçoit les gestes
+///    directement — pas de GestureDetector Flutter par-dessus pour ne pas
+///    interférer avec le multi-touch. Pendant une prévisualisation (story
+///    1.5a), le pan vertical sert à la rotation plutôt qu'au déplacement
+///    caméra — voir [HexBoardGame].
+///  - Tap : capturé via [TapDetector] dans [HexBoardGame] — sélectionne ou
+///    déplace la prévisualisation sur un emplacement disponible (1.5a),
+///    valide le placement au second tap sur la même cellule (1.5b).
+library;
+
+import 'dart:async';
+import 'dart:math' show sin, pi;
+import 'dart:ui' as ui;
+import 'package:flame/game.dart' hide Matrix4;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../game/hex_board_game.dart';
-import '../providers/setup_providers.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 
-/// Écran racine de l'app pour la story 1.1 : affiche le `GameWidget` Flame
-/// (fond coloré) et un indicateur de statut Riverpod pour valider que les
-/// deux systèmes sont bien intégrés ensemble.
-class GameScreen extends ConsumerWidget {
+import '../core/colors.dart';
+import '../core/constants.dart';
+import '../core/game_enums.dart';
+import '../core/strings.dart';
+import '../game/hex_board_game.dart';
+import '../game/hex_coords.dart';
+import '../game/hex_tile.dart';
+import '../game/upgrade_fx_overlay_game.dart';
+import '../providers/end_game_provider.dart';
+import '../providers/grid_state_provider.dart';
+import '../providers/pause_provider.dart';
+import '../providers/placement_provider.dart';
+import '../providers/player_profile_provider.dart';
+import '../providers/placement_commit.dart';
+import '../providers/undo_placement.dart';
+import '../providers/second_chance_provider.dart';
+import '../providers/session_provider.dart';
+import '../providers/tile_stack_provider.dart';
+import '../providers/tutorial_provider.dart';
+import '../services/ad_service.dart';
+import '../services/audio_service.dart';
+import '../services/haptics_service.dart';
+import 'active_upgrades_hud.dart';
+import 'glass_container.dart';
+import 'coin_icon.dart';
+import 'pause_button.dart';
+import 'pause_modal.dart';
+import 'results_modal.dart';
+import 'tile_stack_hud.dart';
+import 'tutorial_overlay.dart';
+
+/// Durée d'affichage de l'animation de confirmation de récompense (story 1.6b).
+/// Le tag reste visible 1.5s puis disparaît en fade out sur 0.5s (total 2s).
+const Duration _kConfirmationDuration = Duration(milliseconds: 1500);
+const Duration _kFadeOutDuration = Duration(milliseconds: 500);
+
+class GameScreen extends ConsumerStatefulWidget {
   const GameScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final riverpodStatus = ref.watch(setupStatusProvider);
+  ConsumerState<GameScreen> createState() => _GameScreenState();
+}
 
-    return Scaffold(
-      body: Stack(
-        children: [
-          GameWidget(game: HexBoardGame()),
-          Positioned(
-            top: 48,
-            left: 16,
-            child: _SetupStatusBadge(label: riverpodStatus),
-          ),
-        ],
+class _GameScreenState extends ConsumerState<GameScreen> {
+  late final HexBoardGame _game;
+
+  /// Canevas Flame superposé au HUD (voir `upgrade_fx_overlay_game.dart`) —
+  /// reçoit les particules déclenchées par une amélioration (Combo+, Bonus
+  /// de clôture, Pièces+...) pour qu'elles restent visibles par-dessus
+  /// l'encart des améliorations actives et la pile de tuiles, plutôt que
+  /// sous eux comme si elles étaient ajoutées au plateau ([_game]).
+  final UpgradeFxOverlayGame _overlayFx = UpgradeFxOverlayGame();
+  Timer? _clearRewardTimer;
+  double _rewardOpacity = 0.0;
+
+  // Décalage cumulatif de la caméra pour le parallax du fond de jeu.
+  double _bgOffsetX = 0.0;
+  double _bgOffsetY = 0.0;
+
+  // Clés réelles utilisées par le tutoriel (Story 1.10a) pour cibler les
+  // éléments UI à mettre en évidence — le highlight suit la position et la
+  // taille effectives du widget, plutôt que des coordonnées arbitraires.
+  final GlobalKey _boardKey = GlobalKey();
+  final GlobalKey _coinsKey = GlobalKey();
+  final GlobalKey _tileStackKey = GlobalKey();
+  final GlobalKey _undoKey = GlobalKey();
+  final GlobalKey<_TileStackImpactReactionState> _tileStackImpactKey =
+      GlobalKey();
+
+  @override
+  void initState() {
+    super.initState();
+    // Musique de la partie en cours (voir AudioService) — remplace la
+    // musique d'accueil active jusqu'ici en la faisant fondre plutôt que de
+    // la couper net (la partie se lance juste après avoir quitté
+    // l'accueil) ; ne relance rien si elle est déjà en cours (ex.
+    // "Rejouer" depuis la modale Résultats).
+    unawaited(
+        ref.read(audioServiceProvider).playMusicWithFadeOut(MusicTrack.ambient));
+    _game = HexBoardGame(
+      container: ref.container,
+      onCameraMove: (dx, dy) {
+        setState(() {
+          _bgOffsetX += dx;
+          _bgOffsetY += dy;
+        });
+      },
+    );
+    _game.overlayFx = _overlayFx;
+    _game.getBonusFlyTarget = () => _stackHudFlyTarget();
+    // Point de départ de la particule dédiée Combo+ (voir
+    // [HexBoardGame.spawnComboBonusParticle]) : la position écran de
+    // l'icône Combo+ dans l'encart des améliorations actives, plutôt que
+    // la tuile posée — ce bonus n'étant lié à aucun de ses côtés.
+    _game.getComboUpgradeOrigin = () {
+      final center =
+          UpgradeHudAnchors.globalCenterFor(UpgradeEffectType.comboBonusTiles);
+      return center == null ? null : Vector2(center.dx, center.dy);
+    };
+    // Point de départ de la particule dédiée Tuile bonus (voir
+    // [HexBoardGame.spawnConnectionBonusParticle]) — même principe que
+    // Combo+ ci-dessus, pour la part de bonus supplémentaire attribuable à
+    // l'amélioration sur une connexion quint/sext.
+    _game.getConnectionBonusUpgradeOrigin = () {
+      final center = UpgradeHudAnchors.globalCenterFor(
+          UpgradeEffectType.connectionBonusMultiplier);
+      return center == null ? null : Vector2(center.dx, center.dy);
+    };
+    // Point de départ de la particule dédiée Bonus de clôture (voir
+    // [HexBoardGame.spawnClosureBonusParticle]) — même principe que
+    // Combo+ ci-dessus, ses tuiles bonus n'étant liées à aucun côté de la
+    // tuile posée mais à la fermeture d'un biome détectée sur cette pose.
+    _game.getClosureBonusUpgradeOrigin = () {
+      final center = UpgradeHudAnchors.globalCenterFor(
+          UpgradeEffectType.closureBonusTiles);
+      return center == null ? null : Vector2(center.dx, center.dy);
+    };
+    // Point de départ des particules "pièce" des améliorations de gain de
+    // pièces (Pièces+/Rouge+/Vert+/Bleu+/Jaune+/Violet+) — même
+    // principe que Combo+ ci-dessus : la position écran de l'icône de
+    // l'amélioration concernée dans l'encart des améliorations actives,
+    // plutôt que la tuile posée (voir
+    // [HexBoardGame.spawnCoinBonusParticles]). [UpgradeHudAnchors] est déjà
+    // générique par [UpgradeEffectType], donc réutilisable telle quelle ici.
+    _game.getCoinUpgradeOrigin = (type) {
+      final center = UpgradeHudAnchors.globalCenterFor(type);
+      return center == null ? null : Vector2(center.dx, center.dy);
+    };
+    // Chaque icône de tuile bonus qui arrive sur le HUD (échelonnées sur
+    // les gains multi-tuiles) fait "pop" le compteur avec une intensité
+    // fixe. C'est désormais le seul déclencheur du pulse doré de la pile :
+    // on ne réagit plus à la pose elle-même (via [lastReward]) pour éviter
+    // une double réaction (pose + arrivée de la particule).
+    _game.onBonusImpact = (index) {
+      _tileStackImpactKey.currentState?.pulse(0.5);
+      unawaited(ref.read(hapticsServiceProvider).bonusTileArrived(index));
+      unawaited(ref.read(audioServiceProvider).playTileGained());
+    };
+    // Une seule pièce sur N déclenche ce callback (voir
+    // [HexGridComponent.showRewardIndicators]) — c'est [playCoinsGained] qui
+    // échelonne lui-même ses N lectures de `coin.mp3` à partir de là, pour
+    // qu'un gain de plusieurs pièces reste audible comme plusieurs impulsions
+    // distinctes plutôt qu'une seule, tout en restant synchronisé avec
+    // l'arrivée visuelle plutôt qu'anticipé sur la pose.
+    _game.onCoinImpact = (count) {
+      unawaited(ref.read(audioServiceProvider).playCoinsGained(count));
+    };
+    Future.microtask(
+      () => ref.read(tutorialProvider.notifier).checkAndStart(),
+    );
+  }
+
+  @override
+  void dispose() {
+    _clearRewardTimer?.cancel();
+    super.dispose();
+  }
+
+  /// Position (coordonnées jeu Flame) du centre de la pile de tuiles HUD,
+  /// utilisée comme cible de vol pour l'animation d'annulation — voir
+  /// [HexBoardGame.removeTileFromFlame]. [GameWidget] occupant tout l'écran
+  /// avec la même origine que le [Stack] racine, les coordonnées globales du
+  /// HUD correspondent directement aux coordonnées jeu.
+  Vector2? _stackHudFlyTarget() {
+    final hudBox = _tileStackKey.currentContext?.findRenderObject() as RenderBox?;
+    if (hudBox == null || !hudBox.hasSize) return null;
+    final globalCenter = hudBox.localToGlobal(hudBox.size.center(Offset.zero));
+    return Vector2(globalCenter.dx, globalCenter.dy);
+  }
+
+  /// Sélectionne et oriente automatiquement une tuile en prévisualisation
+  /// (sans la poser) pour l'étape 3 du tutoriel — les icônes pièce sont
+  /// calculées à partir de la prévisualisation, pas d'un placement réel.
+  ///
+  /// Priorité donnée à la case sud-ouest — la même que celle indiquée par le
+  /// doigt aux étapes 1 et 4 — pour que la démonstration reste cohérente
+  /// visuellement d'une étape à l'autre ; les 5 autres directions servent de
+  /// repli si cette case ne permet aucune connexion possible.
+  Future<void> _previewTutorialConnection() async {
+    final grid = ref.read(gridProvider);
+    if (grid.placedTiles.length != 1) return;
+    if (grid.tileAt(const HexCoords(0, 0)) == null) return;
+
+    final activeTile = ref.read(tileStackProvider).activeTile;
+    if (activeTile == null) return;
+
+    const directionsPriority = [3, 0, 1, 2, 4, 5]; // sud-ouest en premier
+    for (final dir in directionsPriority) {
+      final coords = const HexCoords(0, 0).neighbor(dir);
+      for (var rotation = 0; rotation < 6; rotation++) {
+        final rotated = activeTile.rotated(rotation);
+        if (!grid.hasCompatibleSide(coords, rotated)) continue;
+
+        final placementNotifier = ref.read(placementProvider.notifier);
+        placementNotifier.selectCell(coords);
+        placementNotifier.rotate(rotation);
+        return;
+      }
+    }
+  }
+
+  /// Déclenche automatiquement l'annulation du dernier placement (étape 6
+  /// du tutoriel), avec l'animation de vol vers la pile.
+  void _triggerUndo() {
+    final target = _stackHudFlyTarget();
+    undoPlacement(
+      ref,
+      onUndo: (coords) => _game.removeTileFromFlame(
+        coords,
+        flyTarget: target,
       ),
     );
   }
-}
 
-/// Petit badge de debug affichant l'état du setup — sera retiré une fois
-/// les premiers vrais écrans (story 1.2+) en place.
-class _SetupStatusBadge extends StatelessWidget {
-  const _SetupStatusBadge({required this.label});
+  /// Convertit une position écran globale (issue d'un [Draggable]/
+  /// [DragTarget], voir ci-dessous et `tile_stack_hud.dart`) en coordonnées
+  /// hexagonales, via le même repère que [HexBoardGame.hexAt] utilisé pour
+  /// le tap (relatif au [RenderBox] du [GameWidget], identifié par
+  /// [_boardKey]). Null si le board n'est pas encore monté/mesuré.
+  HexCoords? _hexAtGlobal(Offset globalPosition) {
+    final box = _boardKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null || !box.hasSize) return null;
+    return _game.hexAt(box.globalToLocal(globalPosition));
+  }
 
-  final String label;
+  /// Prévisualise l'emplacement survolé pendant un glisser-déposer de la
+  /// tuile active depuis la pile HUD (solution supplémentaire au tap pour
+  /// poser une tuile). Appelée en continu pendant le geste ([DragTarget.
+  /// onMove]) et une dernière fois au relâchement ([DragTarget.
+  /// onAcceptWithDetails]) — même logique que le premier tap dans
+  /// [HexBoardGame.onTapUp] : ne sélectionne que si la case survolée est
+  /// disponible, et ne déclenche le clic haptique qu'au changement effectif
+  /// de case (pas à chaque frame de déplacement du doigt). Ignorée pendant
+  /// la pause ou le mode sélection Deuxième chance, mutuellement exclusif
+  /// avec la prévisualisation de placement (comme pour le tap).
+  void _handleTileDragMove(Offset globalPosition) {
+    if (ref.read(pauseProvider).isPaused) return;
+    if (ref.read(secondChanceModeProvider)) return;
+    final coords = _hexAtGlobal(globalPosition);
+    if (coords == null) return;
+    final notifier = ref.read(placementProvider.notifier);
+    if (!notifier.availableCells.contains(coords)) return;
+    final previous = ref.read(placementProvider).selected;
+    notifier.selectCell(coords);
+    if (previous != coords) {
+      ref.read(hapticsServiceProvider).tilePreviewed();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.4),
-        borderRadius: BorderRadius.circular(12),
+    ref.listen<PauseState>(pauseProvider, (prev, next) {
+      if (prev?.isPaused != next.isPaused) {
+        _game.paused = next.isPaused;
+      }
+    });
+
+    // Tutoriel étape 3 (« les icônes pièce te montrent ce que tu vas
+    // gagner ») : pose automatiquement une tuile garantissant au moins une
+    // connexion avec la tuile centrale, pour que l'icône de pièce mise en
+    // évidence par [TutorialOverlay] soit effectivement visible à l'écran —
+    // voir [_autoPlaceTutorialConnection].
+    ref.listen<TutorialState>(tutorialProvider, (prev, next) {
+      if (!next.isActive) return;
+      final justEntered =
+          prev == null || prev.currentStep != next.currentStep || !prev.isActive;
+      if (!justEntered) return;
+
+      if (next.currentStep == 2) {
+        _previewTutorialConnection();
+      } else if (next.currentStep == 4) {
+        ref.read(placementProvider.notifier).clearSelection();
+      } else if (next.currentStep == 5) {
+        _triggerUndo();
+      }
+    });
+
+    // Interstitielle AdMob toutes les [kAdInterstitialFrequency] tuiles
+    // (Story 3.1b). Le compteur est cumulatif sur la session.
+    // Désactivée si le joueur est premium (Story 3.5a).
+    ref.listen<int>(adTilesPlacedProvider, (prev, next) {
+      if (prev != null && next > 0 && next % kAdInterstitialFrequency == 0) {
+        final isPremium =
+            ref.read(playerProfileProvider).maybeWhen(
+                  data: (row) => row.isPremium,
+                  orElse: () => false,
+                );
+        if (!isPremium) {
+          showInterstitialAd(ref);
+        }
+      }
+    });
+
+    // Auto-effacement de la dernière récompense affichée après le délai.
+    // Fade out sur 500ms après 1.5s de visibilité.
+    ref.listen<SessionState>(sessionProvider, (prev, next) {
+      if (next.lastReward != null && prev?.lastReward != next.lastReward) {
+        _clearRewardTimer?.cancel();
+        setState(() => _rewardOpacity = 1.0);
+        _clearRewardTimer = Timer(_kConfirmationDuration, () {
+          if (mounted) {
+            setState(() => _rewardOpacity = 0.0);
+            Future.delayed(_kFadeOutDuration, () {
+              // `mounted` reste vrai tant que dispose() n'a pas été appelé,
+              // même si l'Element est momentanément "inactive" (ex. retiré
+              // puis réinséré dans l'arbre au même frame lors d'un pop de
+              // route pendant ce délai). Dans ce cas, `ref.read` déclenche
+              // une recherche d'ancêtre sur un élément désactivé, qui lève
+              // une exception non rattrapable. On l'entoure donc d'un
+              // try/catch — l'échec ici n'est pas critique : au pire la
+              // dernière récompense affichée reste visible un peu plus
+              // longtemps.
+              if (mounted) {
+                try {
+                  ref.read(sessionProvider.notifier).clearLastReward();
+                } catch (_) {
+                  // Ignoré : voir commentaire ci-dessus.
+                }
+              }
+            });
+          }
+        });
+      }
+    });
+
+    // Audit UX : le bouton retour système (Android) n'était intercepté nulle
+    // part pendant une partie — un appui pouvait quitter l'écran de jeu sans
+    // passer par la modale Pause (qui, elle, protège bien la sortie via
+    // "Sauvegarder et quitter" / "Abandonner"). `PopScope(canPop: false)`
+    // rend les deux chemins de sortie cohérents :
+    //  - Partie en cours (pas en pause) → ouvre la modale Pause, comme le
+    //    bouton Pause du HUD.
+    //  - Modale Pause déjà ouverte → referme la modale (reprend le jeu),
+    //    comme le bouton Reprendre.
+    // Une fois la partie terminée (modale Résultats affichée), on laisse le
+    // pop système reprendre son cours normal (retour à l'accueil).
+    return PopScope(
+      canPop: ref.watch(isGameOverProvider),
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        final isPaused = ref.read(pauseProvider).isPaused;
+        if (isPaused) {
+          ref.read(pauseProvider.notifier).resume();
+        } else {
+          ref.read(pauseProvider.notifier).pause();
+        }
+      },
+      child: Scaffold(
+      backgroundColor: kBackgroundColor,
+      bottomNavigationBar: const _BannerAdWidget(),
+      body: Stack(
+        children: [
+          // ── Fond océan procédural (shader GLSL, résolution infinie) ──────────
+          _OceanBackground(
+            offsetX: _bgOffsetX,
+            offsetY: _bgOffsetY,
+            zoom: _game.zoom,
+          ),
+
+          // ── Jeu Flame — reçoit TOUS les gestes directement ────────────────
+          // Enrobé d'un DragTarget<HexTile> : le glisser-déposer depuis la
+          // pile de tuiles (tile_stack_hud.dart) est une solution
+          // supplémentaire au tap pour prévisualiser un emplacement — voir
+          // [_handleTileDragMove]. N'interfère pas avec les gestes Flame
+          // (pan/zoom/tap) : un DragTarget ne consomme que les événements
+          // d'un Draggable actif, jamais les gestes tactiles bruts.
+          DragTarget<HexTile>(
+            onWillAcceptWithDetails: (_) => true,
+            onMove: (details) => _handleTileDragMove(details.offset),
+            onAcceptWithDetails: (details) =>
+                _handleTileDragMove(details.offset),
+            builder: (context, candidateData, rejectedData) {
+              return GameWidget(key: _boardKey, game: _game);
+            },
+          ),
+
+          // ── Compteur de pièces (story 1.6b) + récompense pièces ────────
+          Positioned(
+            top: 80,
+            left: 16,
+            child: Consumer(builder: (context, ref, _) {
+              final session = ref.watch(sessionProvider);
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  GlassContainer(
+                    key: _coinsKey,
+                    borderRadius: 14,
+                    tintColor: kGlassBlue,
+                    tintAlpha: 0.22,
+                    borderColor: kGlassBlueBorder,
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          context.tr.game_sessionCoins,
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.6),
+                            fontSize: 11,
+                          ),
+                        ),
+                        Row(children: [
+                          const CoinIcon(size: 20),
+                          const SizedBox(width: 4),
+                          Text(
+                            '${session.coins}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ]),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  _RewardTag(opacity: _rewardOpacity, isCoin: true),
+                ],
+              );
+            }),
+          ),
+
+          // ── Bouton Annuler ─────────────────────────────────────────────
+          // Zone cliquable alignée sur `kActiveUpgradeSlotSize` (44×44) —
+          // même taille de cible tactile que les slots de l'encart central,
+          // au lieu des 40×40 d'origine (audit UX).
+          Consumer(builder: (context, ref, _) {
+            final canUndo = ref.watch(lastPlacementProvider) != null;
+
+            return Positioned(
+              bottom: 24,
+              right: 16,
+              child: Semantics(
+                button: true,
+                label: context.tr.game_undo_semanticLabel,
+                enabled: canUndo,
+                child: GlassContainer(
+                  key: _undoKey,
+                  borderRadius: 14,
+                  tintColor: kGlassBlue,
+                  tintAlpha: 0.22,
+                  borderColor: kGlassBlueBorder,
+                  width: kActiveUpgradeSlotSize,
+                  height: kActiveUpgradeSlotSize,
+                  onTap: canUndo
+                      ? () {
+                          buttonTapFeedback(context);
+                          final target = _stackHudFlyTarget();
+                          undoPlacement(
+                            ref,
+                            onUndo: (coords) => _game.removeTileFromFlame(
+                              coords,
+                              flyTarget: target,
+                            ),
+                          );
+                        }
+                      : null,
+                  child: const Icon(Icons.undo, color: Colors.white, size: 20),
+                ),
+              ),
+            );
+          }),
+
+          // ── Bouton Pause ──────────────────────────────────────────────────
+          const Positioned(
+            top: 42,
+            right: 6,
+            child: PauseButton(),
+          ),
+
+          // ── Encart des améliorations actives — Story B12e ───────────────
+          // Emplacement Joker (Hold) et Deuxième chance (ex Story B10/B11)
+          // sont désormais interactifs directement depuis leur slot ici,
+          // au lieu d'un HUD dédié séparé à gauche (audit UX : un seul
+          // emplacement à repérer par amélioration pendant la partie).
+          // La bannière d'indication du mode sélection Deuxième chance est
+          // empilée juste au-dessus, dans la même colonne centrée, pour
+          // qu'elle reste ancrée à l'encart plutôt qu'en haut d'écran.
+          const Positioned(
+            bottom: 24,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _SecondChanceHintBanner(),
+                  ActiveUpgradesHud(),
+                ],
+              ),
+            ),
+          ),
+
+          // ── HUD pile de tuiles + tag tuiles bonus (story 1.7g) ──────────
+          Positioned(
+            top: 96,
+            right: 12,
+            child: Column(
+              key: _tileStackKey,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                _TileStackImpactReaction(
+                    key: _tileStackImpactKey, child: const TileStackHud()),
+                _RewardTag(opacity: _rewardOpacity, isCoin: false),
+              ],
+            ),
+          ),
+
+          // ── Canevas superposé au HUD — particules d'amélioration ────────
+          // Doit rester APRÈS l'encart des améliorations actives et la pile
+          // de tuiles ci-dessus (peint par-dessus, donc visible au-dessus)
+          // mais avant les modales Pause/Résultats ci-dessous (qui doivent
+          // rester au sommet de tout). `IgnorePointer` : ce canevas ne sert
+          // qu'à peindre des particules, il ne doit jamais intercepter de
+          // geste destiné aux widgets qu'il recouvre.
+          IgnorePointer(
+            child: GameWidget(game: _overlayFx),
+          ),
+
+          // ── Modale Pause ──────────────────────────────────────────────────
+          const PauseModal(),
+
+          // ── Écran de résultats (Story 1.8b) ──────────────────────────────
+          const ResultsModal(),
+
+          // ── Tutoriel premier lancement (Story 1.10a / 1.10b) ────────────
+          TutorialOverlay(
+            targetKeys: {
+              'board': _boardKey,
+              'tileStack': _tileStackKey,
+              'coins': _coinsKey,
+              'undo': _undoKey,
+            },
+          ),
+        ],
       ),
-      child: Text(
-        label,
-        style: const TextStyle(color: Colors.white, fontSize: 12),
       ),
     );
   }
 }
+
+/// Fait "réagir" la pile de tuiles HUD lorsqu'une icône de tuile bonus
+/// arrive dessus après son vol depuis le plateau : léger rebond d'échelle
+/// (pop) et halo doré qui pulse, déclenchés via [pulse] par
+/// [HexBoardGame.onBonusImpact].
+///
+/// Le pulse n'est plus déclenché au moment de la pose elle-même — seul
+/// l'arrivée effective de la particule sur la pile déclenche le feedback,
+/// pour éviter une double réaction (pose + arrivée).
+class _TileStackImpactReaction extends StatefulWidget {
+  const _TileStackImpactReaction({super.key, required this.child});
+
+  final Widget child;
+
+  @override
+  State<_TileStackImpactReaction> createState() =>
+      _TileStackImpactReactionState();
+}
+
+class _TileStackImpactReactionState extends State<_TileStackImpactReaction>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  double _intensity = 0.0;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 260),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  /// Déclenche le pop/glow avec l'intensité donnée (0.0-1.0). Appelée
+  /// uniquement par [HexBoardGame.onBonusImpact], lorsque chaque icône de
+  /// tuile bonus échelonnée arrive sur le HUD après son vol depuis le
+  /// plateau — et non plus au moment de la pose elle-même, pour éviter
+  /// une double réaction (pose + arrivée).
+  void pulse(double intensity) {
+    if (!mounted || intensity <= 0) return;
+    _intensity = intensity.clamp(0.0, 1.0);
+    _controller.forward(from: 0);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        // Courbe "pop" : montée rapide puis léger sur-rebond avant de
+        // revenir à l'échelle normale (sin sur une demi-période étirée).
+        final t = _controller.value;
+        final pop = sin(t * pi) * _intensity;
+        final scale = 1.0 + pop * 0.14;
+        final glow = pop;
+
+        return Transform.scale(
+          scale: scale,
+          child: Container(
+            decoration: glow > 0.02
+                ? BoxDecoration(
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: kRewardGold.withValues(alpha: 0.45 * glow),
+                        blurRadius: 18 * glow,
+                        spreadRadius: 2 * glow,
+                      ),
+                    ],
+                  )
+                : null,
+            child: child,
+          ),
+        );
+      },
+      child: widget.child,
+    );
+  }
+}
+
+/// Tag récompense unique — pièces ou tuiles bonus, selon [isCoin].
+/// Disparaît en fade out. N'affiche que la partie bonus de la récompense.
+class _RewardTag extends ConsumerWidget {
+  const _RewardTag({required this.opacity, required this.isCoin});
+
+  final double opacity;
+  final bool isCoin;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final session = ref.watch(sessionProvider);
+    final reward = session.lastReward;
+    if (reward == null) return const SizedBox.shrink();
+
+    final value = isCoin ? reward.bonusCoins : reward.bonusTiles;
+    if (value <= 0) return const SizedBox.shrink();
+
+    return Opacity(
+      opacity: opacity,
+      child: GlassContainer(
+        borderRadius: 10,
+        tintColor: kGlassBlue,
+        tintAlpha: 0.22,
+        borderColor: kGlassBlueBorder,
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            isCoin
+                ? const CoinIcon(size: 16)
+                : const Icon(
+                    Icons.hexagon,
+                    color: Colors.lightBlue,
+                    size: 14,
+                  ),
+            const SizedBox(width: 4),
+            Text(
+              '+$value${isCoin ? context.tr.reward_coins : context.tr.reward_bonusTiles}',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Bannière publicitaire AdMob en bas de l'écran de jeu (Story 3.1a).
+///
+/// N'apparaît que si [isPremium] est faux (Story 3.5a). Affiche une bannière
+/// [AdSize.banner] (320×50 dp) centrée en bas. Si la bannière n'est pas
+/// chargée ou si le chargement échoue, un espace vide de la même hauteur est
+/// affiché pour éviter le sautillement du layout.
+class _BannerAdWidget extends ConsumerWidget {
+  const _BannerAdWidget();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isPremium = ref.watch(playerProfileProvider).maybeWhen(
+          data: (row) => row.isPremium,
+          orElse: () => false,
+        );
+    if (isPremium) return const SizedBox.shrink();
+
+    final banner = ref.watch(bannerAdProvider);
+    return Container(
+      color: kBackgroundColor,
+      height: kAdBannerHeight,
+      alignment: Alignment.center,
+      child: banner != null
+          ? AdWidget(ad: banner)
+          : const SizedBox.shrink(),
+    );
+  }
+}
+
+/// Fond d'océan procédural — dégradés Flutter natifs (plus de shader GLSL).
+///
+/// L'ancien shader `ocean.frag` n'avait plus d'animation réelle (uTime
+/// n'était plus utilisé) : il ne produisait qu'une couleur de fond unie, un
+/// dégradé de profondeur ancré à la grille hexagonale, et un vignettage fixe
+/// en espace écran. Faire tourner un `Ticker` + un fragment shader plein
+/// écran à chaque frame pour un résultat statique était donc du travail GPU
+/// pur perdu (contributeur direct à la chauffe/consommation). Ce widget
+/// reproduit exactement les mêmes trois couches avec `ui.Gradient.radial`
+/// (dégradés accélérés matériellement, natifs Skia) : le `CustomPainter` ne
+/// redessine que lorsque `offsetX`/`offsetY`/`zoom` changent réellement,
+/// c'est-à-dire lors d'un pan/zoom caméra — jamais en continu.
+///
+/// Les coordonnées monde du dégradé de profondeur utilisent le même pivot
+/// que [HexGridComponent._layout], ce qui garantit un ancrage identique à
+/// l'ancien rendu shader.
+class _OceanBackground extends StatelessWidget {
+  const _OceanBackground({
+    required this.offsetX,
+    required this.offsetY,
+    required this.zoom,
+  });
+
+  final double offsetX;
+  final double offsetY;
+  final double zoom;
+
+  @override
+  Widget build(BuildContext context) {
+    final size = MediaQuery.sizeOf(context);
+    return CustomPaint(
+      painter: _OceanPainter(offsetX: offsetX, offsetY: offsetY, zoom: zoom),
+      size: size,
+    );
+  }
+}
+
+class _OceanPainter extends CustomPainter {
+  const _OceanPainter({
+    required this.offsetX,
+    required this.offsetY,
+    required this.zoom,
+  });
+
+  final double offsetX;
+  final double offsetY;
+  final double zoom;
+
+  // Couleur de fond dominante = #40D2FF exact (identique à l'ancien
+  // shader : vec3(0.251, 0.824, 1.000)).
+  static const Color _cA = Color(0xFF40D2FF);
+  // Couleur "profonde" = cA mixée à 40% avec cA * (0.55, 0.68, 0.88),
+  // précalculée une fois (mix(cA, cA*deepFactor, 0.4) par canal).
+  static const Color _cDeep = Color(0xFF34B7F3);
+
+  // ── Dégradé de profondeur (ancré grille hexagonale) ─────────────────────
+  // Rayons monde d'origine : smoothstep(280, 900, length(world)). Le
+  // rapport 280/900 est constant quel que soit le zoom, donc les fractions
+  // de stops ci-dessous sont fixes ; seul le rayon extérieur (outerR)
+  // change avec le zoom.
+  static const double _innerRatio = 280.0 / 900.0;
+
+  static double _smoothstep(double t) => t * t * (3 - 2 * t);
+
+  Shader _depthShader(Offset pivot, double outerR) {
+    const steps = 6;
+    final colors = <Color>[_cA];
+    final stops = <double>[0.0, _innerRatio];
+    colors.add(_cA);
+    for (var i = 1; i <= steps; i++) {
+      final u = i / steps;
+      stops.add(_innerRatio + u * (1 - _innerRatio));
+      colors.add(Color.lerp(_cA, _cDeep, _smoothstep(u))!);
+    }
+    return ui.Gradient.radial(pivot, outerR, colors, stops);
+  }
+
+  // ── Vignettage (fixe en espace écran, indépendant du zoom/pan) ─────────
+  // Original : vigDist = length(screenUv - 0.5) avec screenUv normalisé
+  // par (largeur, hauteur) indépendamment — donc une ellipse en pixels,
+  // pas un cercle. Reproduite via une transformation d'échelle du canvas
+  // (scale non uniforme) autour d'un dégradé radial unitaire.
+  static const double _vigBrightEdge = 0.35; // vig = 1 (pas d'assombrissement)
+  static const double _vigDarkEdge = 0.85; // vig = 0 (assombrissement max)
+
+  Shader _vignetteShader() {
+    const steps = 6;
+    final colors = <Color>[Colors.transparent];
+    final stops = <double>[0.0, _vigBrightEdge];
+    colors.add(Colors.transparent);
+    for (var i = 1; i <= steps; i++) {
+      final u = i / steps;
+      final dist = _vigBrightEdge + u * (_vigDarkEdge - _vigBrightEdge);
+      stops.add(dist);
+      // color *= mix(0.82, 1.0, vig) <=> assombrir de (1 - mix) par-dessus
+      // en noir semi-transparent, vig décroissant de 1 à 0 sur ce segment.
+      final vig = 1 - _smoothstep(u);
+      final darken = 1 - (0.82 + 0.18 * vig);
+      colors.add(Colors.black.withValues(alpha: darken));
+    }
+    return ui.Gradient.radial(Offset.zero, 1.0, colors, stops);
+  }
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = Offset.zero & size;
+
+    // 1) Fond uni.
+    canvas.drawRect(rect, Paint()..color = _cA);
+
+    // 2) Dégradé de profondeur ancré à la grille hexagonale.
+    final pivot = Offset(
+      offsetX + size.width * 0.42,
+      offsetY + size.height * 0.38,
+    );
+    final outerR = 900.0 * zoom;
+    if (outerR > 0) {
+      canvas.drawRect(rect, Paint()..shader = _depthShader(pivot, outerR));
+    }
+
+    // 3) Vignettage, ellipse fixe couvrant tout l'écran en espace écran.
+    canvas.save();
+    canvas.translate(size.width / 2, size.height / 2);
+    canvas.scale(size.width, size.height);
+    canvas.drawRect(
+      const Rect.fromLTWH(-0.5, -0.5, 1.0, 1.0),
+      Paint()..shader = _vignetteShader(),
+    );
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(_OceanPainter oldDelegate) =>
+      oldDelegate.offsetX != offsetX ||
+      oldDelegate.offsetY != offsetY ||
+      oldDelegate.zoom != zoom;
+}
+
+/// Bannière d'indication affichée pendant le mode sélection de Deuxième
+/// chance (Story B11) — invisible sinon.
+class _SecondChanceHintBanner extends ConsumerWidget {
+  const _SecondChanceHintBanner();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isActive = ref.watch(secondChanceModeProvider);
+    if (!isActive) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: GlassContainer(
+        borderRadius: 20,
+        tintColor: const Color(0xFFFFB300),
+        tintAlpha: 0.28,
+        borderColor: const Color(0xFFFFD54F).withValues(alpha: 0.6),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: Text(
+          context.tr.game_secondChance_tooltipActive,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
