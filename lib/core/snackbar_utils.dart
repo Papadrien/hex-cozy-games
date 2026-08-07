@@ -31,16 +31,39 @@ final rootScaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
 ///    continue de s'afficher sur le nouvel écran. D'où [clearAppSnackBars],
 ///    à appeler juste avant chaque navigation.
 void showAppSnackBar(SnackBar snackBar) {
-  final messenger = rootScaffoldMessengerKey.currentState;
   // `currentState` peut renvoyer un State encore attaché à la GlobalKey mais
   // momentanément désactivé (ex. rebuild qui déplace/replace le widget dans
   // l'arbre au même frame que cet appel) — `showSnackBar` déclenche alors une
   // recherche d'ancêtre sur un élément désactivé, qui lève une exception non
   // rattrapable ("Looking up a deactivated widget's ancestor is unsafe").
-  // Le getter `mounted` (hérité de State) permet de s'en prémunir.
-  if (messenger == null || !messenger.mounted) return;
-  messenger.clearSnackBars();
-  messenger.showSnackBar(snackBar);
+  //
+  // Le getter `mounted` (hérité de State) NE suffit PAS à s'en prémunir :
+  // un State reste `mounted == true` pendant toute la fenêtre où son Element
+  // est "inactive" (retiré puis réinséré dans l'arbre au même frame, ce qui
+  // arrive avec les GlobalKey) — c'est précisément ce cas qui plantait ici.
+  // On protège donc l'appel par un try/catch, avec une nouvelle tentative au
+  // frame suivant une fois l'arbre stabilisé.
+  void attempt(SnackBar bar) {
+    final messenger = rootScaffoldMessengerKey.currentState;
+    if (messenger == null || !messenger.mounted) return;
+    try {
+      messenger.clearSnackBars();
+      messenger.showSnackBar(bar);
+    } catch (_) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final m = rootScaffoldMessengerKey.currentState;
+        if (m == null || !m.mounted) return;
+        try {
+          m.clearSnackBars();
+          m.showSnackBar(bar);
+        } catch (_) {
+          // Abandon silencieux : mieux vaut perdre une SnackBar qu'un crash.
+        }
+      });
+    }
+  }
+
+  attempt(snackBar);
 }
 
 /// À appeler juste avant toute navigation (push, pushReplacementNamed, etc.)

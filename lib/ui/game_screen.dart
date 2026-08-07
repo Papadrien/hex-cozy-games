@@ -324,8 +324,21 @@ class _GameScreenState extends ConsumerState<GameScreen> {
           if (mounted) {
             setState(() => _rewardOpacity = 0.0);
             Future.delayed(_kFadeOutDuration, () {
+              // `mounted` reste vrai tant que dispose() n'a pas été appelé,
+              // même si l'Element est momentanément "inactive" (ex. retiré
+              // puis réinséré dans l'arbre au même frame lors d'un pop de
+              // route pendant ce délai). Dans ce cas, `ref.read` déclenche
+              // une recherche d'ancêtre sur un élément désactivé, qui lève
+              // une exception non rattrapable. On l'entoure donc d'un
+              // try/catch — l'échec ici n'est pas critique : au pire la
+              // dernière récompense affichée reste visible un peu plus
+              // longtemps.
               if (mounted) {
-                ref.read(sessionProvider.notifier).clearLastReward();
+                try {
+                  ref.read(sessionProvider.notifier).clearLastReward();
+                } catch (_) {
+                  // Ignoré : voir commentaire ci-dessus.
+                }
               }
             });
           }

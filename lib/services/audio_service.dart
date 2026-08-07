@@ -474,12 +474,24 @@ class AudioService {
   /// délai supplémentaire soit nécessaire ici.
   Future<void> playEndGame() async {
     if (!_sfxEnabled) return;
-    await _endGamePlayer.stop();
+    // stop() et seek(0) défensifs, dans le même try/catch que
+    // [playTileGained] : sur certains appareils, le plugin `audioplayers`
+    // peut laisser le lecteur natif dans un état où `stop()`/`seek()` ne se
+    // résolvent jamais, ce qui déclenche côté plugin un `TimeoutException`
+    // après 30s (voir crash Crashlytics `AudioPlayer.seek` /
+    // `AudioService.playEndGame`). Sans ce try/catch, cette exception
+    // n'était jamais rattrapée et faisait planter l'app plutôt que de
+    // simplement empêcher ce bruitage ponctuel.
+    try {
+      await _endGamePlayer.stop();
+    } catch (_) {}
     // seek(0) explicite — voir le commentaire équivalent dans
     // [playTileGained] : sans ça, une lecture répétée sur le même lecteur
     // dédié peut repartir de la position de l'arrêt précédent au lieu du
     // début du fichier.
-    await _endGamePlayer.seek(Duration.zero);
+    try {
+      await _endGamePlayer.seek(Duration.zero);
+    } catch (_) {}
     await _endGamePlayer.setVolume(_sfxVolume);
     await _endGamePlayer.play(AssetSource(SfxTrack.endGame.assetPath));
   }
