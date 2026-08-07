@@ -8,7 +8,7 @@
         android:label="Hex Haven"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
-        <!-- AdMob App ID — ID de production (Raccoon Bandit). -->
+        <!-- AdMob App ID — ID de production (Hex Haven). -->
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
             android:value="ca-app-pub-7203301690798915~9389814553"/>

@@ -60,6 +60,22 @@ dependencies {
     // Requis par installSplashScreen() dans MainActivity.kt (splash natif
     // Android 12+ via l'API Theme.SplashScreen).
     implementation("androidx.core:core-splashscreen:1.0.1")
+
+    // Fix crash release : "Failed to create an instance of
+    // androidx.work.impl.WorkDatabase" (FATAL EXCEPTION au démarrage,
+    // via InitializationProvider -> WorkManagerInitializer).
+    // Cause probable : plusieurs versions de androidx.work résolues en
+    // transitif (AdMob, Firebase, Play Games Services v2) créant une
+    // incohérence de schéma Room pour la base interne de WorkManager.
+    // On force une version unique et récente pour éviter le conflit.
+    implementation("androidx.work:work-runtime-ktx:2.10.0")
+}
+
+configurations.all {
+    resolutionStrategy {
+        force("androidx.work:work-runtime:2.10.0")
+        force("androidx.work:work-runtime-ktx:2.10.0")
+    }
 }
 
 flutter {
