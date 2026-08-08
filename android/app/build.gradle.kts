@@ -1,7 +1,21 @@
+import java.util.Properties
+import java.io.FileInputStream
+
 plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
+}
+
+// Charge android/key.properties (généré en CI depuis les secrets, ou en
+// local si le dev a créé son propre keystore). Absent en local par défaut
+// -> le build release retombe sur le debug keystore (comportement Flutter
+// standard), mais en CI ce fichier est toujours présent.
+val keystorePropertiesFile = rootProject.file("key.properties")
+val keystoreProperties = Properties()
+val hasKeystoreProperties = keystorePropertiesFile.exists()
+if (hasKeystoreProperties) {
+    keystoreProperties.load(FileInputStream(keystorePropertiesFile))
 }
 
 // Le plugin Google Services (Firebase) n'est appliqué que si
@@ -41,11 +55,28 @@ android {
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        if (hasKeystoreProperties) {
+            create("release") {
+                keyAlias = keystoreProperties["keyAlias"] as String
+                keyPassword = keystoreProperties["keyPassword"] as String
+                storeFile = file(keystoreProperties["storeFile"] as String)
+                storePassword = keystoreProperties["storePassword"] as String
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            // Utilise le keystore release (key.properties, généré en CI
+            // depuis les secrets GitHub) s'il est présent, sinon retombe
+            // sur le debug keystore pour que `flutter run --release`
+            // fonctionne en local sans config supplémentaire.
+            signingConfig = if (hasKeystoreProperties) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
 
             // Flutter active R8 par défaut sur les builds release (même sans
             // isMinifyEnabled explicite ici) : on branche nos règles pour
