@@ -190,7 +190,7 @@ jobs:
           KEY_PROPERTIES: ${{ secrets.ANDROID_KEY_PROPERTIES }}
         run: |
           if [ -n "$KEYSTORE_BASE64" ]; then
-            echo "$KEYSTORE_BASE64" | base64 --decode > android/app/keystore.jks
+            echo "$KEYSTORE_BASE64" | base64 --decode > android/app/hexhaven.jks
             echo "$KEY_PROPERTIES" > android/key.properties
             echo "✅ Signing release (secrets)"
           else
