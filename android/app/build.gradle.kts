@@ -46,6 +46,15 @@ android {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
+
+            // Flutter active R8 par défaut sur les builds release (même sans
+            // isMinifyEnabled explicite ici) : on branche nos règles pour
+            // éviter que R8 ne strippe le constructeur sans-argument de
+            // WorkDatabase_Impl (cf. proguard-rules.pro).
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
         }
     }
 }
@@ -60,22 +69,6 @@ dependencies {
     // Requis par installSplashScreen() dans MainActivity.kt (splash natif
     // Android 12+ via l'API Theme.SplashScreen).
     implementation("androidx.core:core-splashscreen:1.0.1")
-
-    // Fix crash release : "Failed to create an instance of
-    // androidx.work.impl.WorkDatabase" (FATAL EXCEPTION au démarrage,
-    // via InitializationProvider -> WorkManagerInitializer).
-    // Cause probable : plusieurs versions de androidx.work résolues en
-    // transitif (AdMob, Firebase, Play Games Services v2) créant une
-    // incohérence de schéma Room pour la base interne de WorkManager.
-    // On force une version unique et récente pour éviter le conflit.
-    implementation("androidx.work:work-runtime-ktx:2.10.0")
-}
-
-configurations.all {
-    resolutionStrategy {
-        force("androidx.work:work-runtime:2.10.0")
-        force("androidx.work:work-runtime-ktx:2.10.0")
-    }
 }
 
 flutter {
