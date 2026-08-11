@@ -3,6 +3,7 @@
          (Analytics/Crashlytics) — le manifest debug la déclare déjà pour
          le hot reload, mais elle doit aussi être présente en release. -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="com.android.vending.BILLING"/>
 
     <application
         android:label="Hex Haven"
