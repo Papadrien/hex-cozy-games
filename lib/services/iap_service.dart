@@ -68,11 +68,12 @@ enum IapResult {
 
 /// Provider du service IAP. Initialise la connexion au store et expose les
 /// produits. Se dispose automatiquement via [ref.onDispose].
-final iapServiceProvider = Provider<IapService>((ref) {
+final iapServiceProvider = ChangeNotifierProvider<IapService>((ref) {
   final db = ref.read(appDatabaseProvider);
-  final service = IapService(db: db);
-  ref.onDispose(() => service.dispose());
-  return service;
+  // ChangeNotifierProvider appelle automatiquement service.dispose() à la
+  // destruction du provider — pas besoin de ref.onDispose ici (un appel
+  // manuel en plus provoquerait un double dispose()).
+  return IapService(db: db);
 });
 
 /// Provider exposant les [ProductDetails] des packs de pièces une fois
@@ -97,7 +98,7 @@ final premiumProductProvider = Provider<ProductDetails?>((ref) {
   return ref.watch(iapServiceProvider).premiumProduct;
 });
 
-class IapService {
+class IapService extends ChangeNotifier {
   final AppDatabase _db;
   final InAppPurchase _iap = InAppPurchase.instance;
 
@@ -135,6 +136,7 @@ class IapService {
     }
 
     _available = true;
+    notifyListeners();
 
     _subscription = _iap.purchaseStream.listen(_onPurchaseUpdate);
 
@@ -145,6 +147,7 @@ class IapService {
     for (final p in _products) {
       debugPrint('[IAP]   - ${p.id} (${p.rawPrice})');
     }
+    notifyListeners();
   }
 
   void _onPurchaseUpdate(List<PurchaseDetails> purchases) {
@@ -169,26 +172,31 @@ class IapService {
 
   void _handlePending(PurchaseDetails purchase) {
     _pendingCount++;
+    notifyListeners();
     // Ne pas résoudre le completer — attendre le statut purchased final.
   }
 
   Future<void> _handlePurchased(PurchaseDetails purchase) async {
     _pendingCount = max(0, _pendingCount - 1);
+    notifyListeners();
     await _deliver(purchase);
   }
 
   Future<void> _handleRestored(PurchaseDetails purchase) async {
     _pendingCount = max(0, _pendingCount - 1);
+    notifyListeners();
     await _deliver(purchase);
   }
 
   void _handleError(PurchaseDetails purchase) {
     _pendingCount = max(0, _pendingCount - 1);
+    notifyListeners();
     _resolveCompleter(purchase.productID, IapResult.error);
   }
 
   void _handleCanceled(PurchaseDetails purchase) {
     _pendingCount = max(0, _pendingCount - 1);
+    notifyListeners();
     _resolveCompleter(purchase.productID, IapResult.canceled);
   }
 
@@ -298,9 +306,11 @@ class IapService {
     return true;
   }
 
+  @override
   void dispose() {
     _subscription?.cancel();
     _pendingCompleters.clear();
+    super.dispose();
   }
 }
 
