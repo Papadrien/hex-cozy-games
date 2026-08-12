@@ -51,5 +51,9 @@
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
         </intent>
+        <!-- Requis Android 11+ (package visibility) pour que l'app puisse
+             résoudre les intents vers Google Play Services / Play Games. -->
+        <package android:name="com.google.android.gms"/>
+        <package android:name="com.google.android.play.games"/>
     </queries>
 </manifest>
