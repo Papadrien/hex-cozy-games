@@ -150,8 +150,13 @@ void main() {
     final updated = await (db.select(db.playerProfile)
           ..where((t) => t.id.equals(1)))
         .getSingle();
-    expect(updated.lastDailyRewardDate, cloudDate);
-    expect(updated.lastPremiumDailyCoinsDate, cloudDate);
+    expect(updated.lastDailyRewardDate, isA<DateTime>());
+    expect(updated.lastDailyRewardDate!.isAtSameMomentAs(cloudDate), isTrue);
+    expect(updated.lastPremiumDailyCoinsDate, isA<DateTime>());
+    expect(
+      updated.lastPremiumDailyCoinsDate!.isAtSameMomentAs(cloudDate),
+      isTrue,
+    );
   });
 
   test('applyToLocal updates permanent quest progress from cloud payload',
