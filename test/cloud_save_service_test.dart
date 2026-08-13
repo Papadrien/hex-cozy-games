@@ -125,4 +125,104 @@ void main() {
     expect(stats.bestScore, 800);
     expect(stats.maxBiomeSizes, '{"forest":15,"village":8}');
   });
+
+  test('applyToLocal updates daily reward dates from cloud payload',
+      () async {
+    final db = await _makeDb();
+    addTearDown(db.close);
+
+    await db.into(db.playerProfile).insert(
+          const PlayerProfileCompanion(
+            id: Value(1),
+            coins: Value(0),
+          ),
+        );
+
+    final cloudDate = DateTime.utc(2026, 8, 10, 9, 30);
+    await db.into(db.playerProfile).insertOnConflictUpdate(
+          PlayerProfileCompanion(
+            id: const Value(1),
+            lastDailyRewardDate: Value(cloudDate),
+            lastPremiumDailyCoinsDate: Value(cloudDate),
+          ),
+        );
+
+    final updated = await (db.select(db.playerProfile)
+          ..where((t) => t.id.equals(1)))
+        .getSingle();
+    expect(updated.lastDailyRewardDate, cloudDate);
+    expect(updated.lastPremiumDailyCoinsDate, cloudDate);
+  });
+
+  test('applyToLocal updates permanent quest progress from cloud payload',
+      () async {
+    final db = await _makeDb();
+    addTearDown(db.close);
+
+    final before = await (db.select(db.permanentQuests)
+          ..where((t) => t.id.equals('coins_500')))
+        .getSingle();
+    expect(before.currentValue, 0);
+    expect(before.isCompleted, false);
+    expect(before.rewardClaimed, false);
+
+    // Simulate cloud state application (same shape as
+    // permanentQuestsState -> _applyToLocal).
+    await (db.update(db.permanentQuests)
+          ..where((t) => t.id.equals('coins_500')))
+        .write(
+      const PermanentQuestsCompanion(
+        currentValue: Value(500),
+        isCompleted: Value(true),
+        rewardClaimed: Value(false),
+      ),
+    );
+
+    final after = await (db.select(db.permanentQuests)
+          ..where((t) => t.id.equals('coins_500')))
+        .getSingle();
+    expect(after.currentValue, 500);
+    expect(after.isCompleted, true);
+    expect(after.rewardClaimed, false);
+  });
+
+  test('applyToLocal updates daily quests from cloud payload when same day',
+      () async {
+    final db = await _makeDb();
+    addTearDown(db.close);
+
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    await db.into(db.dailyQuests).insert(
+          DailyQuestsCompanion.insert(
+            id: const Value(1),
+            date: today,
+            questPoolIds: '["q1","q2"]',
+            completedIds: '[]',
+            progressByQuestId: '{"q1":0,"q2":0}',
+            rewardClaimedIds: const Value('[]'),
+          ),
+        );
+
+    // Simulate cloud payload from another device, same calendar day,
+    // with further progress.
+    await db.into(db.dailyQuests).insertOnConflictUpdate(
+          DailyQuestsCompanion(
+            id: const Value(1),
+            date: Value(today),
+            questPoolIds: const Value('["q1","q2"]'),
+            completedIds: const Value('["q1"]'),
+            progressByQuestId: const Value('{"q1":3,"q2":1}'),
+            rewardClaimedIds: const Value('["q1"]'),
+          ),
+        );
+
+    final updated = await (db.select(db.dailyQuests)
+          ..where((t) => t.id.equals(1)))
+        .getSingle();
+    expect(updated.completedIds, '["q1"]');
+    expect(updated.progressByQuestId, '{"q1":3,"q2":1}');
+    expect(updated.rewardClaimedIds, '["q1"]');
+  });
 }
