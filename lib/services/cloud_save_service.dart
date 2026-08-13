@@ -37,8 +37,10 @@ class CloudSaveService {
   /// seulement si elle est plus récente que notre dernier timestamp de sync.
   /// En cas d'horloges désynchronisées (écart < 60 s), compare les
   /// métriques de progression (tiles, coins) pour départager.
-  /// Silencieux si non connecté ou en erreur.
+  /// Tente une connexion Play Games silencieuse avant la sync.
+  /// Silencieux si non connecté, refusé, ou en erreur (aucune UI bloquante).
   Future<void> syncOnLaunch() async {
+    await _trySignIn();
     if (!await _isSignedIn()) return;
     final cloudData = await _loadFromCloud();
     if (cloudData == null) return;
@@ -114,6 +116,18 @@ class CloudSaveService {
     } catch (_) {
       return false;
     }
+  }
+
+  /// Déclenche la connexion Play Games (Android) / Game Center (iOS).
+  /// Si le joueur est déjà connecté au niveau OS, ceci est silencieux
+  /// (pas de popup). Si un compte doit être choisi/autorisé, l'OS affiche
+  /// sa propre UI native de consentement.
+  /// Aucune exception ne remonte : un échec ou un refus laisse simplement
+  /// l'app en mode "non connecté" (cloud save désactivé, tout reste local).
+  Future<void> _trySignIn() async {
+    try {
+      await GamesServices.signIn();
+    } catch (_) {}
   }
 
   Future<Map<String, dynamic>?> _loadFromCloud() async {
