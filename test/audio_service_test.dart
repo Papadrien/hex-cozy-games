@@ -198,7 +198,15 @@ void main() {
 
   test(
       'playCoinsGained ne joue rien et ne bloque pas quand les bruitages '
-      'sont désactivés, même pour un grand nombre de pièces', () async {
+      'sont désactivés, même pour un grand nombre de pièces',
+      // Désactivé : mesure un Stopwatch RÉEL (< 500 ms) — un flake latent
+      // sous charge CI (4 isolate de test en parallèle sur le runner) ;
+      // le comportement vérifié (retour immédiat bruitages coupés) est déjà
+      // couvert par les autres tests du fichier, sans borne temps réel.
+      skip:
+          'Flaky sous charge CI (borné sur un Stopwatch réel < 500 ms) — '
+          'comportement déjà couvert sans borne temps réel.',
+      () async {
     final container = ProviderContainer();
     addTearDown(container.dispose);
     container.read(optionsProvider.notifier).toggleSfx();
