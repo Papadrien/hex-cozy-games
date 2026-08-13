@@ -128,7 +128,15 @@ jobs:
           fi
 
       - name: Build APK (Debug)
-        run: flutter build apk --debug --no-pub && echo done || (cd android && ./gradlew assembleDebug --stacktrace)
+        run: |
+          for i in 1 2 3; do
+            flutter build apk --debug --no-pub && echo done && break
+            echo "⚠️  Tentative $i échouée (probable flake réseau sur le téléchargement de libsqlite3), retry..."
+            if [ "$i" = "3" ]; then
+              (cd android && ./gradlew assembleDebug --stacktrace)
+            fi
+            sleep 10
+          done
 
       - name: Rename artifact
         run: |
@@ -214,10 +222,22 @@ jobs:
       - run: flutter gen-l10n
 
       - name: Build APK
-        run: flutter build apk --release --no-pub --build-name=${{ needs.analyze.outputs.app_version }} --build-number=${{ needs.analyze.outputs.app_build }}
+        run: |
+          for i in 1 2 3; do
+            flutter build apk --release --no-pub --build-name=${{ needs.analyze.outputs.app_version }} --build-number=${{ needs.analyze.outputs.app_build }} && break
+            echo "⚠️  Tentative $i échouée (probable flake réseau sur le téléchargement de libsqlite3), retry..."
+            if [ "$i" = "3" ]; then exit 1; fi
+            sleep 10
+          done
 
       - name: Build App Bundle
-        run: flutter build appbundle --release --no-pub --build-name=${{ needs.analyze.outputs.app_version }} --build-number=${{ needs.analyze.outputs.app_build }}
+        run: |
+          for i in 1 2 3; do
+            flutter build appbundle --release --no-pub --build-name=${{ needs.analyze.outputs.app_version }} --build-number=${{ needs.analyze.outputs.app_build }} && break
+            echo "⚠️  Tentative $i échouée (probable flake réseau sur le téléchargement de libsqlite3), retry..."
+            if [ "$i" = "3" ]; then exit 1; fi
+            sleep 10
+          done
 
       - name: Rename artifacts
         run: |
