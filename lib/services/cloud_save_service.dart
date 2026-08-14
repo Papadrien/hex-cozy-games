@@ -19,11 +19,14 @@ library;
 import 'dart:convert';
 
 import 'package:drift/drift.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:games_services/games_services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../data/app_database.dart';
+
+const _logTag = '[CloudSave]';
 
 class CloudSaveService {
   CloudSaveService(this._ref);
@@ -41,10 +44,16 @@ class CloudSaveService {
   /// Tente une connexion Play Games silencieuse avant la sync.
   /// Silencieux si non connecté, refusé, ou en erreur (aucune UI bloquante).
   Future<void> syncOnLaunch() async {
+    debugPrint('$_logTag syncOnLaunch: début');
     await _trySignIn();
-    if (!await _isSignedIn()) return;
+    final signedIn = await _isSignedIn();
+    debugPrint('$_logTag syncOnLaunch: connecté=$signedIn');
+    if (!signedIn) return;
     final cloudData = await _loadFromCloud();
-    if (cloudData == null) return;
+    if (cloudData == null) {
+      debugPrint('$_logTag syncOnLaunch: aucune sauvegarde cloud trouvée');
+      return;
+    }
 
     final cloudTime =
         DateTime.tryParse(cloudData['lastUpdated'] as String? ?? '');
@@ -81,7 +90,10 @@ class CloudSaveService {
       }
     }
 
-    if (!cloudIsNewer) return;
+    if (!cloudIsNewer) {
+      debugPrint('$_logTag syncOnLaunch: local plus récent, cloud ignoré');
+      return;
+    }
 
     final db = _ref.read(appDatabaseProvider);
     await _applyToLocal(db, cloudData);
@@ -90,13 +102,16 @@ class CloudSaveService {
         _prefsLastSyncTilesKey, cloudData['totalTilesPlaced'] as int? ?? 0);
     await prefs.setInt(
         _prefsLastSyncCoinsKey, cloudData['coins'] as int? ?? 0);
+    debugPrint('$_logTag syncOnLaunch: données cloud appliquées localement');
   }
 
   /// Sérialise la progression locale et la pousse vers le cloud, puis
   /// met à jour le timestamp local de dernière sync.
   /// Silencieux si non connecté ou en erreur.
   Future<void> syncAfterGame() async {
-    if (!await _isSignedIn()) return;
+    final signedIn = await _isSignedIn();
+    debugPrint('$_logTag syncAfterGame: connecté=$signedIn');
+    if (!signedIn) return;
     final db = _ref.read(appDatabaseProvider);
     final data = await _serialize(db);
     await _saveToCloud(data);
@@ -109,12 +124,14 @@ class CloudSaveService {
         _prefsLastSyncTilesKey, data['totalTilesPlaced'] as int? ?? 0);
     await prefs.setInt(
         _prefsLastSyncCoinsKey, data['coins'] as int? ?? 0);
+    debugPrint('$_logTag syncAfterGame: poussé vers le cloud');
   }
 
   Future<bool> _isSignedIn() async {
     try {
       return await GamesServices.isSignedIn;
-    } catch (_) {
+    } catch (e) {
+      debugPrint('$_logTag _isSignedIn: erreur $e');
       return false;
     }
   }
@@ -128,7 +145,11 @@ class CloudSaveService {
   Future<void> _trySignIn() async {
     try {
       await GamesServices.signIn();
-    } catch (_) {}
+      debugPrint('$_logTag _trySignIn: signIn() terminé sans exception');
+    } catch (e, st) {
+      debugPrint('$_logTag _trySignIn: échec — $e');
+      debugPrint('$_logTag _trySignIn: stack — $st');
+    }
   }
 
   Future<Map<String, dynamic>?> _loadFromCloud() async {
@@ -136,7 +157,8 @@ class CloudSaveService {
       final raw = await SaveGame.loadGame(name: _saveName);
       if (raw == null) return null;
       return jsonDecode(raw) as Map<String, dynamic>;
-    } catch (_) {
+    } catch (e) {
+      debugPrint('$_logTag _loadFromCloud: erreur $e');
       return null;
     }
   }
@@ -147,7 +169,9 @@ class CloudSaveService {
         name: _saveName,
         data: jsonEncode(data),
       );
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('$_logTag _saveToCloud: erreur $e');
+    }
   }
 
   Future<Map<String, dynamic>> _serialize(AppDatabase db) async {
