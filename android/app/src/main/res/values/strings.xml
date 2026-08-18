@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ID du projet Google Cloud lié à Play Games Services (Configuration
+         des services de jeux Play → ID du projet). Requis par le plugin
+         games_services pour l'initialisation du sign-in. -->
+    <string name="game_services_project_id" translatable="false">45321471389</string>
+</resources>
