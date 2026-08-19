@@ -11,6 +11,7 @@ import '../services/cloud_save_service.dart';
 ///
 /// Précharge en parallèle :
 ///   - les images statiques clés (home_background, hibiscus) ;
+///   - tous les bruitages (voir AudioService.preloadSfx) ;
 ///   - activeSessionProvider pour que le bouton Jouer soit prêt sans loader ;
 ///   - la sync cloud (cloudSaveServiceProvider).
 ///
@@ -39,6 +40,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     try {
       await Future.wait([
         _precacheImages(),
+        ref.read(audioServiceProvider).preloadSfx(),
         ref.read(activeSessionProvider.future).catchError((_) => false),
         ref.read(cloudSaveServiceProvider).syncOnLaunch(),
         Future<void>.delayed(_kMinDisplayDuration),

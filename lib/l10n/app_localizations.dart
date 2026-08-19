@@ -1112,6 +1112,30 @@ abstract class AppLocalizations {
   /// **'Purchase canceled'**
   String get shop_purchaseCanceled;
 
+  /// No description provided for @shop_purchaseSuccessCoinsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Purchase successful!'**
+  String get shop_purchaseSuccessCoinsTitle;
+
+  /// No description provided for @shop_purchaseSuccessCoinsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'added to your balance'**
+  String get shop_purchaseSuccessCoinsSubtitle;
+
+  /// No description provided for @shop_purchaseSuccessPremiumTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Premium unlocked!'**
+  String get shop_purchaseSuccessPremiumTitle;
+
+  /// No description provided for @shop_purchaseSuccessContinue.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get shop_purchaseSuccessContinue;
+
   /// No description provided for @shop_restorePurchases.
   ///
   /// In en, this message translates to:

@@ -587,6 +587,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get shop_purchaseCanceled => 'Purchase canceled';
 
   @override
+  String get shop_purchaseSuccessCoinsTitle => 'Purchase successful!';
+
+  @override
+  String get shop_purchaseSuccessCoinsSubtitle => 'added to your balance';
+
+  @override
+  String get shop_purchaseSuccessPremiumTitle => 'Premium unlocked!';
+
+  @override
+  String get shop_purchaseSuccessContinue => 'Continue';
+
+  @override
   String get shop_restorePurchases => 'Restore purchases';
 
   @override

@@ -119,7 +119,8 @@ enum SfxTrack {
   tilePlaced('audio/tile_placed.mp3'),
   tileRotate('audio/tile_rotate.mp3'),
   buttonClick('audio/button_click.mp3'),
-  questReward('audio/quest_reward.mp3');
+  questReward('audio/quest_reward.mp3'),
+  purchaseSuccess('audio/purchase_success.mp3');
 
   const SfxTrack(this.assetPath);
 
@@ -194,6 +195,11 @@ const double _kTilePlacedVolumeScale = 0.9;
 /// Facteur multiplicatif appliqué au réglage « Bruitages »
 /// ([OptionsState.sfxVolume]) pour le clic de rotation.
 const double _kRotationClickVolumeScale = 0.63;
+
+/// Atténuation appliquée au son de gain de pièce ([AudioService.playCoinsGained])
+/// par rapport au réglage « Bruitages » — 20 % plus discret que le volume
+/// nominal.
+const double _kCoinVolumeScale = 0.8;
 
 class AudioService {
   AudioService(this._ref) {
@@ -391,7 +397,7 @@ class AudioService {
     if (!_sfxEnabled) return;
     final n = count.clamp(0, kMaxCoinSfxRepeats);
     for (var i = 0; i < n; i++) {
-      unawaited(_playSfx(SfxTrack.coin));
+      unawaited(_playSfx(SfxTrack.coin, volumeScale: _kCoinVolumeScale));
       if (i < n - 1) {
         await Future<void>.delayed(kCoinSfxGap);
       }
@@ -508,6 +514,49 @@ class AudioService {
   /// plusieurs récompenses sont réclamées coup sur coup, plutôt que de
   /// couper net la précédente.
   Future<void> playQuestRewardClaimed() => _playSfx(SfxTrack.questReward);
+
+  /// Précharge tous les bruitages ([SfxTrack]) en cache disque local via
+  /// [AudioCache] — appelé une seule fois au lancement de l'app (voir
+  /// `SplashScreen._load`, en parallèle de `_precacheImages`), avant même
+  /// que le joueur n'atteigne l'accueil.
+  ///
+  /// Sans ça, chaque bruitage encourt un délai perceptible à sa toute
+  /// première lecture : le plugin doit encore extraire l'asset du bundle
+  /// vers un fichier temporaire avant de pouvoir le jouer. Particulièrement
+  /// gênant pour `tile_gain.mp3` et `end_game.mp3` : joués sur des lecteurs
+  /// dédiés ([_tileGainPlayer], [_endGamePlayer]) plutôt que le pool
+  /// tournant, donc jamais "réchauffés" par une lecture antérieure d'un
+  /// autre bruitage — leur toute première lecture en jeu (souvent la
+  /// première tuile posée, ou la toute fin de partie) est aussi celle qui
+  /// subit ce délai, au pire moment pour le ressenti de la récompense.
+  ///
+  /// Ne précharge volontairement PAS [MusicTrack] (home.mp3, ambient_1.mp3,
+  /// plusieurs Mo chacun) : `playMusic` démarre déjà sans délai perceptible
+  /// (voir le commentaire de [playMusic]), et forcer leur extraction
+  /// complète sur disque ici ralentirait inutilement le lancement pour un
+  /// gain qui ne concerne pas le problème visé.
+  Future<void> preloadSfx() async {
+    try {
+      await AudioCache.instance.loadAll(
+        SfxTrack.values.map((t) => t.assetPath).toList(),
+      );
+    } catch (_) {
+      // Optimisation de confort, pas une nécessité : un échec (stockage
+      // plein, permission refusée...) ne doit jamais bloquer le reste du
+      // lancement de l'app ni faire planter SplashScreen._load — les sons
+      // resteront simplement joignables normalement, juste sans le gain de
+      // préchargement.
+    }
+  }
+
+  /// Joue `purchase_success.mp3` (fanfare procédurale) lorsqu'un achat
+  /// in-app aboutit — pack de pièces ou premium, voir
+  /// `purchase_success_popup.dart` — déclenché à l'ouverture de la pop-up
+  /// de célébration, aux côtés du retour haptique
+  /// [HapticsService.purchaseSuccess]. Pioche dans le pool tournant comme
+  /// [_playSfx] : un achat n'arrive jamais coup sur coup avec un autre, mais
+  /// autant rester cohérent avec le reste des bruitages ponctuels.
+  Future<void> playPurchaseSuccess() => _playSfx(SfxTrack.purchaseSuccess);
 
   /// Estime le délai à partir duquel le dernier `coin.mp3` d'un gain de
   /// [coinCount] pièces aura fini de sonner : vol de la pièce jusqu'au

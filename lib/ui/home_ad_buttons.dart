@@ -150,50 +150,74 @@ class HomePremiumDailyCoinsButton extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final available = ref.watch(isPremiumDailyCoinsAvailableProvider);
 
-    return SizedBox(
-      width: double.infinity,
-      child: GlassButton(
-        tint: available ? kUpgradePurple : Colors.grey,
-        onPressed: available
-            ? () async {
-                buttonTapFeedback(context);
-                final claimed = await claimPremiumDailyCoins(ref);
-                if (claimed && context.mounted) {
-                  animController.forward().then((_) {
-                    Future.delayed(const Duration(seconds: 2), () {
-                      if (context.mounted) animController.reverse();
-                    });
-                  });
-                }
-              }
-            : null,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            available
-                ? const CoinIcon(size: 20)
-                : Icon(
-                    Icons.check_circle_outline,
-                    size: 20,
-                    color: Colors.white.withValues(alpha: 0.4),
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        SizedBox(
+          width: double.infinity,
+          child: GlassButton(
+            tint: available ? kUpgradePurple : Colors.grey,
+            onPressed: available
+                ? () async {
+                    buttonTapFeedback(context);
+                    final claimed = await claimPremiumDailyCoins(ref);
+                    if (claimed && context.mounted) {
+                      animController.forward().then((_) {
+                        Future.delayed(const Duration(seconds: 2), () {
+                          if (context.mounted) animController.reverse();
+                        });
+                      });
+                    }
+                  }
+                : null,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                available
+                    ? const CoinIcon(size: 20)
+                    : Icon(
+                        Icons.check_circle_outline,
+                        size: 20,
+                        color: Colors.white.withValues(alpha: 0.4),
+                      ),
+                const SizedBox(width: 8),
+                Text(
+                  available
+                      ? context.tr.premium_dailyCoinsButton
+                      : context.tr.ads_comeBackTomorrow,
+                  style: TextStyle(
+                    fontFamily: 'Nunito',
+                    color: available
+                        ? Colors.white
+                        : Colors.white.withValues(alpha: 0.5),
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
                   ),
-            const SizedBox(width: 8),
-            Text(
-              available
-                  ? context.tr.premium_dailyCoinsButton
-                  : context.tr.ads_comeBackTomorrow,
-              style: TextStyle(
-                fontFamily: 'Nunito',
-                color: available
-                    ? Colors.white
-                    : Colors.white.withValues(alpha: 0.5),
-                fontSize: 14,
-                fontWeight: FontWeight.w800,
+                ),
+              ],
+            ),
+          ),
+        ),
+        // Même pastille rouge que le bouton pub (HomeRewardedAdButton)
+        // lorsqu'une récompense est disponible.
+        if (available)
+          Positioned(
+            top: -4,
+            right: -4,
+            child: Container(
+              width: 14,
+              height: 14,
+              decoration: BoxDecoration(
+                color: Colors.redAccent,
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: Colors.black.withValues(alpha: 0.35),
+                  width: 1.5,
+                ),
               ),
             ),
-          ],
-        ),
-      ),
+          ),
+      ],
     );
   }
 }

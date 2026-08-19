@@ -176,6 +176,21 @@ class HapticsService {
       await HapticFeedback.heavyImpact();
     }
   }
+
+  /// Retour haptique joué à l'ouverture de la pop-up de succès d'achat
+  /// in-app (pack de pièces ou premium) — voir `purchase_success_popup.dart`.
+  /// Triple impact fort, plus marqué que [questRewardClaimed] (qui n'en
+  /// utilise que deux, moyen puis fort) : un achat réel reste un événement
+  /// plus rare et plus engageant qu'une simple récompense de quête, la
+  /// célébration doit se sentir nettement au-dessus.
+  Future<void> purchaseSuccess() async {
+    if (!_enabled) return;
+    await HapticFeedback.heavyImpact();
+    await Future<void>.delayed(const Duration(milliseconds: 90));
+    await HapticFeedback.heavyImpact();
+    await Future<void>.delayed(const Duration(milliseconds: 90));
+    await HapticFeedback.heavyImpact();
+  }
 }
 
 final hapticsServiceProvider = Provider<HapticsService>((ref) {

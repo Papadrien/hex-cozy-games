@@ -1,5 +1,7 @@
 /// Petite explosion de particules jouée lorsqu'une récompense de quête est
 /// réclamée manuellement — voir [_QuestCard] dans `quests_screen.dart`.
+/// Réutilisée en version élargie (plus de particules, palette multicolore)
+/// pour la pop-up de succès d'achat — voir `purchase_success_popup.dart`.
 ///
 /// Purement visuel et sans état propre : piloté par un [progress] externe
 /// (0.0 → 1.0) fourni par l'`AnimationController` du parent via
@@ -16,15 +18,25 @@ class QuestRewardBurst extends StatelessWidget {
     super.key,
     required this.progress,
     this.color = Colors.amber,
+    this.colors,
+    this.particleCount = 10,
+    this.maxDistance = 42,
   });
 
   /// Avancement de l'animation, de 0.0 (départ, particules au centre) à
   /// 1.0 (fin, particules dispersées et invisibles).
   final double progress;
+
+  /// Couleur unique des particules — ignorée si [colors] est fourni.
   final Color color;
 
-  static const int _particleCount = 10;
-  static const double _maxDistance = 42;
+  /// Palette multicolore optionnelle : chaque particule pioche dedans en
+  /// alternance (index % colors.length) au lieu d'utiliser [color] seul —
+  /// donne un effet confetti pour les célébrations plus marquantes (achat).
+  final List<Color>? colors;
+
+  final int particleCount;
+  final double maxDistance;
 
   @override
   Widget build(BuildContext context) {
@@ -34,19 +46,22 @@ class QuestRewardBurst extends StatelessWidget {
     // pour que le "pop" précède l'explosion plutôt que de se superposer.
     final burst = Curves.easeOut.transform(progress.clamp(0.0, 1.0));
     final fade = Curves.easeIn.transform(progress.clamp(0.0, 1.0));
+    final palette = colors;
 
     return IgnorePointer(
       child: Stack(
         alignment: Alignment.center,
         clipBehavior: Clip.none,
-        children: List.generate(_particleCount, (i) {
-          final angle = (2 * pi / _particleCount) * i + (i.isEven ? 0.18 : 0);
-          final distance = burst * _maxDistance;
+        children: List.generate(particleCount, (i) {
+          final angle = (2 * pi / particleCount) * i + (i.isEven ? 0.18 : 0);
+          final distance = burst * maxDistance;
           final dx = cos(angle) * distance;
           final dy = sin(angle) * distance - (burst * 6); // léger envol
           final opacity = (1 - fade).clamp(0.0, 1.0);
           final scale = (1 - burst * 0.5).clamp(0.0, 1.0);
           final isStar = i.isEven;
+          final particleColor =
+              palette != null ? palette[i % palette.length] : color;
 
           return Transform.translate(
             offset: Offset(dx, dy),
@@ -57,7 +72,7 @@ class QuestRewardBurst extends StatelessWidget {
                 child: Icon(
                   isStar ? Icons.star_rounded : Icons.circle,
                   size: isStar ? 13 : 6,
-                  color: color,
+                  color: particleColor,
                 ),
               ),
             ),

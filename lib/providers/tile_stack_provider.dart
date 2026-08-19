@@ -52,7 +52,13 @@ class TileStackState {
 
   /// Nombre de tuiles posées, à partir de l'activation, pendant lesquelles
   /// [excludeBiome] est exclu du pool — 0 si l'amélioration n'est pas
-  /// possédée pour cette partie.
+  /// possédée pour cette partie. Peut être inférieur à la durée nominale de
+  /// l'amélioration ([ActiveUpgradeEffects.hatedColorExclusionDuration]) si
+  /// la pile de tuiles restantes en contenait moins au moment de
+  /// l'activation (voir [TileStack.activateHatedColor]) : reflète toujours
+  /// le nombre de tuiles RÉELLEMENT régénérées sans [excludeBiome], pour que
+  /// le décompte affiché ([hatedColorTilesRemaining]) ne promette jamais
+  /// plus de tuiles protégées qu'il n'y en a effectivement.
   final int hatedDuration;
 
   /// Nombre de tuiles posées au moment de l'activation de "Couleur
@@ -199,7 +205,18 @@ class TileStack extends _$TileStack {
     }
 
     _excludeBiome = biome;
-    _hatedDuration = duration;
+    // [count] plutôt que [duration] : en fin de partie, la pile peut
+    // contenir moins de tuiles que la durée nominale de l'amélioration
+    // (10 tuiles au niveau 3 sur une pile de départ de seulement
+    // [kStartingTiles] = 21 — bien plus susceptible d'être entamé que les
+    // 5/8 tuiles des niveaux 1/2). Seules les [count] premières tuiles ont
+    // réellement été régénérées sans [biome] ci-dessus ; le reste de la
+    // file (`rest`) peut très bien encore en contenir. Stocker [duration]
+    // ici ferait continuer le décompte affiché ([hatedColorTilesRemaining])
+    // au-delà du nombre de tuiles vraiment protégées, laissant croire que
+    // l'exclusion dure encore alors que la couleur détestée peut déjà
+    // réapparaître.
+    _hatedDuration = count;
     _hatedStartCount = placedCount;
     _hatedActivated = true;
     state = _buildState();

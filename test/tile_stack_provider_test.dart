@@ -208,5 +208,51 @@ void main() {
       expect(state.excludeBiome, isNull);
       expect(state.hatedActivated, isFalse);
     });
+
+    test(
+        'hatedDuration reflète le nombre de tuiles réellement protégées '
+        'si la pile restante en contient moins que la durée nominale '
+        '(régression niveau 3, 10 tuiles sur kStartingTiles = 21)', () {
+      // Durée nominale de 10 tuiles (niveau 3), comme
+      // [ActiveUpgradeEffects.hatedColorExclusionDuration] au niveau max.
+      final container = makeContainer(hatedColorExclusionDuration: 10);
+      addTearDown(container.dispose);
+
+      final notifier = container.read(tileStackProvider.notifier);
+      // Consomme des tuiles jusqu'à ce qu'il n'en reste que 6 dans la pile
+      // (kStartingTiles - 15), volontairement moins que la durée nominale.
+      final dummyTile = HexTile(sides: const [
+        BiomeType.forest,
+        BiomeType.forest,
+        BiomeType.village,
+        BiomeType.village,
+        BiomeType.plain,
+        BiomeType.plain,
+      ]);
+      for (var i = 0; i < 15; i++) {
+        container.read(gridProvider.notifier).placeTile(HexCoords(i, 0), dummyTile);
+        notifier.consumeActiveTile();
+      }
+      expect(container.read(tileStackProvider).remaining, 6);
+
+      notifier.activateHatedColor(BiomeType.forest);
+      final state = container.read(tileStackProvider);
+
+      // hatedDuration doit refléter les 6 tuiles réellement disponibles
+      // (et donc réellement régénérées sans forêt), PAS la durée nominale
+      // de 10 promise par l'amélioration — sinon le décompte affiché sur
+      // l'amélioration en cours de partie continuerait au-delà de la fin
+      // effective de l'exclusion.
+      expect(state.hatedDuration, 6);
+      expect(hatedColorTilesRemaining(state, 15), 6);
+
+      // Les 6 tuiles restantes (la totalité de ce qui reste dans la pile)
+      // doivent toutes respecter l'exclusion.
+      for (var i = 0; i < 6; i++) {
+        final tile = container.read(tileStackProvider).activeTile!;
+        expect(tile.sides, isNot(contains(BiomeType.forest)));
+        notifier.consumeActiveTile();
+      }
+    });
   });
 }

@@ -13,6 +13,7 @@ import '../game/hex_tile.dart';
 import '../services/ad_service.dart';
 import '../services/analytics_service.dart';
 import 'build_provider.dart';
+import 'biome_size_overlay_provider.dart';
 import 'end_game_provider.dart';
 import 'game_effects_service.dart';
 import 'grid_state_provider.dart';
@@ -198,6 +199,17 @@ void startNewGame(WidgetRef ref) {
   ref.invalidate(bannerAdProvider);
   ref.invalidate(holdSlotProvider);
   ref.invalidate(secondChanceModeProvider);
+  // Sans ce reset, l'affichage à la demande des tailles de zone ("Bonus de
+  // clôture", voir `biome_size_overlay_provider.dart` et
+  // `active_upgrades_hud.dart`) reste actif d'une partie à l'autre : c'est
+  // un provider @riverpod autoDispose, mais [HexBoardGame.onLoad]
+  // l'écoute via `_container.listen(...)` sans jamais fermer l'abonnement
+  // à la fin de la partie — un écouteur actif suffit à empêcher Riverpod
+  // de le disposer, donc son état (`true` si le joueur avait activé
+  // l'affichage) survit tel quel à la prochaine partie, même si Atoll
+  // n'est plus équipé (le slot pour le désactiver n'est alors même plus
+  // affiché).
+  ref.invalidate(biomeSizeOverlayProvider);
   ref.read(sessionProvider.notifier).reset();
   ref.read(upgradeFeedbackProvider.notifier).reset();
   ref.read(lastPlacementProvider.notifier).set(null);

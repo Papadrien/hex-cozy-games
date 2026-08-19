@@ -594,6 +594,18 @@ class AppLocalizationsFr extends AppLocalizations {
   String get shop_purchaseCanceled => 'Achat annulé';
 
   @override
+  String get shop_purchaseSuccessCoinsTitle => 'Achat réussi !';
+
+  @override
+  String get shop_purchaseSuccessCoinsSubtitle => 'ajoutées à ton solde';
+
+  @override
+  String get shop_purchaseSuccessPremiumTitle => 'Premium débloqué !';
+
+  @override
+  String get shop_purchaseSuccessContinue => 'Continuer';
+
+  @override
   String get shop_restorePurchases => 'Restaurer les achats';
 
   @override

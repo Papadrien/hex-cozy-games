@@ -10,6 +10,7 @@ import '../services/iap_service.dart';
 import '../services/haptics_service.dart';
 import 'coin_icon.dart';
 import 'glass_container.dart';
+import 'purchase_success_popup.dart';
 import 'screen_app_bar.dart';
 import 'tropical_background.dart';
 
@@ -117,6 +118,11 @@ class _CoinPackCard extends ConsumerStatefulWidget {
 class _CoinPackCardState extends ConsumerState<_CoinPackCard> {
   bool _loading = false;
 
+  /// Snackbar de résultat pour tous les cas SAUF un achat réellement réussi
+  /// ([IapResult.success]), qui affiche désormais [showPurchaseSuccessPopup]
+  /// à la place (voir l'appelant). [IapResult.restored] garde ce simple
+  /// snackbar : une restauration n'est pas un nouvel achat, pas de raison
+  /// de la célébrer avec la même intensité.
   void _showPurchaseResult(BuildContext context, IapResult result, int coins) {
     final (String message, Color color) = switch (result) {
       IapResult.success => (
@@ -226,8 +232,16 @@ class _CoinPackCardState extends ConsumerState<_CoinPackCard> {
                       final result =
                           await purchaseCoinPack(ref, widget.index);
                       if (!context.mounted) return;
-                      _showPurchaseResult(
-                          context, result, widget.pack.coins);
+                      if (result == IapResult.success) {
+                        await showPurchaseSuccessPopup(
+                          context,
+                          ref,
+                          coins: widget.pack.coins,
+                        );
+                      } else {
+                        _showPurchaseResult(
+                            context, result, widget.pack.coins);
+                      }
                     } finally {
                       if (context.mounted) {
                         setState(() => _loading = false);
@@ -460,13 +474,10 @@ class _PremiumCardState extends ConsumerState<_PremiumCard> {
                       final result = await purchasePremium(ref);
                       if (!context.mounted) return;
                       if (result == IapResult.success) {
-                        showAppSnackBar(
-                          SnackBar(
-                            content: Text(context.tr.shop_premium),
-                            backgroundColor:
-                                Colors.green.withValues(alpha: 0.3),
-                            behavior: SnackBarBehavior.floating,
-                          ),
+                        await showPurchaseSuccessPopup(
+                          context,
+                          ref,
+                          isPremium: true,
                         );
                       } else {
                         _showPremiumResult(context, result);
