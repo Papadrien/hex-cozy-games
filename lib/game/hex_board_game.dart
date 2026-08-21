@@ -56,6 +56,7 @@ import 'bonus_animations.dart' show kBonusIconStaggerInterval;
 import 'hex_coords.dart';
 import 'hex_grid_component.dart';
 import 'hex_tile.dart';
+import 'sailboat_component.dart';
 import 'upgrade_fx_overlay_game.dart';
 
 class HexBoardGame extends FlameGame
@@ -66,6 +67,30 @@ class HexBoardGame extends FlameGame
   final void Function(double dx, double dy)? onCameraMove;
 
   final ProviderContainer _container;
+
+  /// Nombre de tuiles posées (cumulé sur la partie) à partir duquel le
+  /// voilier décoratif ([SailboatComponent]) apparaît, une seule fois par
+  /// partie — easter egg purement visuel, sans impact sur le jeu. Compté
+  /// uniquement sur les poses interactives du joueur (voir
+  /// [placeTileOnFlame]), pas sur la restauration du plateau au chargement
+  /// d'une partie reprise (voir [_initBoard]) : une partie reprise avec déjà
+  /// [kSailboatTriggerTileCount] tuiles ou plus déclenchera le voilier dès
+  /// la prochaine pose plutôt qu'au chargement.
+  static const int kSailboatTriggerTileCount = 5;
+
+  bool _sailboatTriggered = false;
+
+  void _maybeSpawnSailboat() {
+    if (_sailboatTriggered) return;
+    final grid = _grid;
+    if (grid == null) return;
+    if (grid.placedTiles.length < kSailboatTriggerTileCount) return;
+    _sailboatTriggered = true;
+    grid.add(SailboatComponent(
+      screenSize: grid.screenSize.clone(),
+      zoom: grid.zoom,
+    ));
+  }
 
   /// Canevas Flame superposé au HUD (voir `upgrade_fx_overlay_game.dart`),
   /// branché depuis `game_screen.dart` juste après sa création. Reçoit les
@@ -336,6 +361,7 @@ class HexBoardGame extends FlameGame
           onBonusImpact: _handleBonusImpact,
           onCoinImpact: onCoinImpact);
     }
+    _maybeSpawnSailboat();
   }
 
   /// Déclenche la particule dédiée de tuile bonus Combo+ : contrairement au

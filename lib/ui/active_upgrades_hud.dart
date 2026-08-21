@@ -477,65 +477,62 @@ class _UpgradeSlotState extends ConsumerState<_UpgradeSlot>
     required UpgradeCounterInfo counter,
     required Widget Function(double glowAlpha, double scale) builder,
   }) {
-    return Tooltip(
-      message: upgradeName(context, widget.upgrade.id),
-      child: SizedBox(
-        key: UpgradeHudAnchors.keyFor(effectType),
-        width: kActiveUpgradeSlotSize,
-        height: kActiveUpgradeSlotSize,
-        child: AnimatedBuilder(
-          animation: _controller,
-          builder: (context, child) {
-            final glowAlpha = _glow.value;
-            final scale = 1.0 + (0.14 * _scale.value);
-            return Transform.scale(
-              scale: scale,
-              child: Stack(
-                clipBehavior: Clip.none,
-                alignment: Alignment.center,
-                children: [
-                  builder(glowAlpha, scale),
-                  // Explosion d'étincelles au déclenchement — même
-                  // déclencheur (_controller.forward(from: 0)) que le
-                  // contour doré, mais jouée sur une fraction plus courte
-                  // de la durée totale (voir [_kSparkBurstFraction]) pour
-                  // rester un flash net plutôt qu'un effet qui traîne
-                  // aussi longtemps que le pulse du contour.
-                  Positioned(
-                    left: -_kSparkBurstMargin,
-                    top: -_kSparkBurstMargin,
-                    right: -_kSparkBurstMargin,
-                    bottom: -_kSparkBurstMargin,
-                    child: IgnorePointer(
-                      child: CustomPaint(
-                        painter: _SparkBurstPainter(
-                          progress: _controller.value,
-                          iconRadius: kActiveUpgradeSlotSize / 2,
-                          color: kRewardGold,
-                        ),
+    return SizedBox(
+      key: UpgradeHudAnchors.keyFor(effectType),
+      width: kActiveUpgradeSlotSize,
+      height: kActiveUpgradeSlotSize,
+      child: AnimatedBuilder(
+        animation: _controller,
+        builder: (context, child) {
+          final glowAlpha = _glow.value;
+          final scale = 1.0 + (0.14 * _scale.value);
+          return Transform.scale(
+            scale: scale,
+            child: Stack(
+              clipBehavior: Clip.none,
+              alignment: Alignment.center,
+              children: [
+                builder(glowAlpha, scale),
+                // Explosion d'étincelles au déclenchement — même
+                // déclencheur (_controller.forward(from: 0)) que le
+                // contour doré, mais jouée sur une fraction plus courte
+                // de la durée totale (voir [_kSparkBurstFraction]) pour
+                // rester un flash net plutôt qu'un effet qui traîne
+                // aussi longtemps que le pulse du contour.
+                Positioned(
+                  left: -_kSparkBurstMargin,
+                  top: -_kSparkBurstMargin,
+                  right: -_kSparkBurstMargin,
+                  bottom: -_kSparkBurstMargin,
+                  child: IgnorePointer(
+                    child: CustomPaint(
+                      painter: _SparkBurstPainter(
+                        progress: _controller.value,
+                        iconRadius: kActiveUpgradeSlotSize / 2,
+                        color: kRewardGold,
                       ),
                     ),
                   ),
-                  if (counter.swatchColor != null)
-                    Positioned(
-                      right: -4,
-                      top: -4,
-                      child: _SwatchBadge(color: counter.swatchColor!),
+                ),
+                if (counter.swatchColor != null)
+                  Positioned(
+                    right: -4,
+                    top: -4,
+                    child: _SwatchBadge(color: counter.swatchColor!),
+                  ),
+                if (counter.value != null)
+                  Positioned(
+                    right: -4,
+                    bottom: -4,
+                    child: _NumberBadge(
+                      value: counter.value!,
+                      max: counter.max,
                     ),
-                  if (counter.value != null)
-                    Positioned(
-                      right: -4,
-                      bottom: -4,
-                      child: _NumberBadge(
-                        value: counter.value!,
-                        max: counter.max,
-                      ),
-                    ),
-                ],
-              ),
-            );
-          },
-        ),
+                  ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }

@@ -108,6 +108,7 @@ flutter:
     - assets/images/hibiscus.png
     - assets/images/splash_logo.png
     - assets/images/coin.png
+    - assets/images/sailboat.png
     - assets/audio/home.mp3
     - assets/audio/ambient_1.mp3
     - assets/audio/coin.mp3
