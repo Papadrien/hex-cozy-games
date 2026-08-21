@@ -19,10 +19,11 @@
 ///     généralement le plateau) — best effort uniquement : aucune détection
 ///     des tuiles réellement posées n'est effectuée, voir la priorité de
 ///     rendu ci-dessous pour ce qui se passe si le plateau déborde dessus.
-///  2. Pause de [kPauseDuration] à cette position, puis miroir horizontal
-///     du sprite (symétrie selon un axe vertical passant par le point de
-///     pause — fait "virer" le voilier sans avoir besoin d'un second
-///     sprite) et glissade vers le coin bas-gauche selon le cap miroir du
+///  2. Pause de [kPauseDuration] à cette position ; c'est seulement à la fin
+///     de cette pause que le sprite subit un miroir horizontal (symétrie
+///     selon un axe vertical passant par le point de pause — fait "virer"
+///     le voilier sans avoir besoin d'un second sprite), immédiatement
+///     suivi de la glissade vers le coin bas-gauche selon le cap miroir du
 ///     premier trajet, jusqu'à sortir franchement de l'écran (courbe
 ///     easeIn — accélération, inverse du ralenti à l'approche), avant
 ///     suppression du composant.
@@ -120,18 +121,24 @@ class SailboatComponent extends SpriteComponent {
       pausePosition,
       EffectController(duration: approachDuration, curve: Curves.easeOut),
     )..onComplete = () {
-        // Symétrie selon un axe vertical : fait "virer" le voilier en place
-        // (le point de pause reste le pivot grâce à l'ancre centrée) sans
-        // nécessiter de second sprite orienté vers la gauche.
-        scale.x = -scale.x;
-        add(MoveEffect.to(
-          exitPosition,
-          EffectController(
-            duration: departureDuration,
-            curve: Curves.easeIn,
-            startDelay: kPauseDuration,
-          ),
-        )..onComplete = () => removeFromParent());
+        // Pause immobile — un MoveEffect à déplacement nul sert de minuteur
+        // pour ne déclencher la symétrie/le départ (ci-dessous) qu'à la fin
+        // des [kPauseDuration] secondes, pas dès l'arrivée au point de pause.
+        add(MoveEffect.by(
+          Vector2.zero(),
+          EffectController(duration: kPauseDuration),
+        )..onComplete = () {
+            // Symétrie selon un axe vertical, appliquée seulement maintenant
+            // (fin de la pause) : fait "virer" le voilier en place (le
+            // point de pause reste le pivot grâce à l'ancre centrée) sans
+            // nécessiter de second sprite orienté vers la gauche, juste
+            // avant de déclencher le trajet de départ.
+            scale.x = -scale.x;
+            add(MoveEffect.to(
+              exitPosition,
+              EffectController(duration: departureDuration, curve: Curves.easeIn),
+            )..onComplete = () => removeFromParent());
+          });
       });
   }
 }

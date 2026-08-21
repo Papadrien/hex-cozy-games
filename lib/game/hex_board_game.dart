@@ -56,6 +56,7 @@ import 'bonus_animations.dart' show kBonusIconStaggerInterval;
 import 'hex_coords.dart';
 import 'hex_grid_component.dart';
 import 'hex_tile.dart';
+import 'plane_component.dart';
 import 'sailboat_component.dart';
 import 'upgrade_fx_overlay_game.dart';
 
@@ -87,6 +88,26 @@ class HexBoardGame extends FlameGame
     if (grid.placedTiles.length < kSailboatTriggerTileCount) return;
     _sailboatTriggered = true;
     grid.add(SailboatComponent(
+      screenSize: grid.screenSize.clone(),
+      zoom: grid.zoom,
+    ));
+  }
+
+  /// Nombre de tuiles posées à partir duquel l'avion décoratif
+  /// ([PlaneComponent]) apparaît, une seule fois par partie — même logique
+  /// que [kSailboatTriggerTileCount] mais avec un seuil différent pour que
+  /// les deux easter eggs ne se déclenchent pas systématiquement ensemble.
+  static const int kPlaneTriggerTileCount = 12;
+
+  bool _planeTriggered = false;
+
+  void _maybeSpawnPlane() {
+    if (_planeTriggered) return;
+    final grid = _grid;
+    if (grid == null) return;
+    if (grid.placedTiles.length < kPlaneTriggerTileCount) return;
+    _planeTriggered = true;
+    grid.add(PlaneComponent(
       screenSize: grid.screenSize.clone(),
       zoom: grid.zoom,
     ));
@@ -362,6 +383,7 @@ class HexBoardGame extends FlameGame
           onCoinImpact: onCoinImpact);
     }
     _maybeSpawnSailboat();
+    _maybeSpawnPlane();
   }
 
   /// Déclenche la particule dédiée de tuile bonus Combo+ : contrairement au
