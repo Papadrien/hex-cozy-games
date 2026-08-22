@@ -9,22 +9,21 @@
 /// beaupré (≈1247, 923), soit environ 16.8° sous l'horizontale.
 ///
 /// Trajet en deux temps :
-///  1. Apparition dans le quart haut-gauche de l'écran — position tirée au
-///     sort à chaque déclenchement pour un rendu plus organique, pouvant
-///     légèrement déborder de la zone visible actuelle (pas besoin d'être
-///     collé au bord du canevas de fond, qui est virtuellement infini).
-///     Glissade ensuite en ligne oblique suivant [_kHeadingAngle] vers le
-///     bas-droite, ralentissant (courbe easeOut) jusqu'à un point de pause
-///     choisi tout près du bord du plateau réellement posé (et non plus
-///     d'un point arbitraire à 62% de la largeur d'écran, qui pouvait
-///     laisser le voilier s'arrêter loin de tuiles peu nombreuses ou
-///     regroupées près du centre) : la bounding box des tuiles de
+///  1. Apparition à distance du plateau réellement posé, dans la direction
+///     opposée au cap d'approche fixe ([_kHeadingAngle], imposé par
+///     l'orientation du sprite) — la bounding box des tuiles de
 ///     [HexGridComponent.placedTiles] est calculée à l'apparition (voir
-///     [_boardWorldBoundsOffset]), puis on cherche le point où le rayon
-///     d'approche entre dans cette boîte (légèrement agrandie d'une marge,
-///     [_kBoardApproachMargin]) — voir [_rayBoxEnterDistance]. Si le rayon
-///     ne croise pas la boîte (cas limite), on se rabat sur l'ancien calcul
-///     à fraction fixe de l'écran ([_kFallbackApproachDxFraction]).
+///     [_boardWorldBoundsOffset]) ; on y tire un point au hasard, puis on
+///     recule le long de ce cap jusqu'à sortir de la boîte (légèrement
+///     agrandie d'une marge, [_kBoardApproachMargin]) pour obtenir le point
+///     de pause, et encore un peu plus loin pour le point de départ (voir
+///     [_distanceToBoxExit]) — le trajet croise donc toujours le plateau
+///     par construction, quels que soient sa taille et sa position à
+///     l'écran (contrairement à un point de départ choisi indépendamment,
+///     par ex. dans le quart haut-gauche de l'écran, qui pouvait manquer
+///     un petit plateau excentré). Glissade en ligne oblique suivant
+///     [_kHeadingAngle] vers le bas-droite, ralentissant (courbe easeOut) à
+///     l'approche du point de pause.
 ///  2. Pause de [kPauseDuration] à cette position ; c'est seulement à la fin
 ///     de cette pause que le sprite subit un miroir horizontal (symétrie
 ///     selon un axe vertical passant par le point de pause — fait "virer"
@@ -100,11 +99,12 @@ const double _kMaxLegDuration = 7.0;
 /// bord (ou, pire, dessus).
 const double _kBoardApproachMargin = kHexSize * 1.5;
 
-/// Distance de repli (fraction de la largeur d'écran) si le rayon
-/// d'approche ne croise pas la bounding box du plateau (cas limite — départ
-/// tiré au sort déjà « aligné » avec le plateau selon [_kHeadingAngle]) :
-/// on avance alors simplement d'une fraction de l'écran dans la direction
-/// du plateau, comme avant la prise en compte des tuiles réellement posées.
+/// Distance de repli (fraction de la largeur d'écran) utilisée uniquement
+/// si aucune tuile n'est posée (ne devrait pas arriver en usage normal,
+/// voir `HexBoardGame.kSailboatTriggerTileCount`) — dans ce cas la bounding
+/// box du plateau n'existe pas et on retombe sur un point de départ dans le
+/// quart haut-gauche de l'écran (comportement d'origine, avant la prise en
+/// compte des tuiles réellement posées).
 const double _kFallbackApproachDxFraction = 0.62;
 
 /// Marge (px) garantie au-delà du bord gauche de l'écran pour le point de
@@ -154,38 +154,66 @@ class SailboatComponent extends SpriteComponent {
     sprite = await Sprite.load('sailboat.png');
 
     final rand = Random();
-    // Point d'apparition organique dans le quart haut-gauche de l'écran —
-    // peut légèrement déborder hors du cadre visible actuel (valeurs
-    // négatives), sans coller au bord du canevas de fond. Exprimé
-    // directement comme un offset par rapport au centre écran.
-    final startPosition = Vector2(
-      screenSize.x * (-0.08 + rand.nextDouble() * 0.30),
-      screenSize.y * (-0.08 + rand.nextDouble() * 0.30),
-    );
-    _startOffset = startPosition - screenSize / 2;
 
-    // Direction unitaire du trajet d'approche (bas-droite).
-    final headingDir =
-        Vector2(1.0, tan(_kHeadingAngle))..normalize();
+    // Direction unitaire du trajet d'approche (bas-droite) — fixe, imposée
+    // par l'orientation du sprite (voir [_kHeadingAngle]).
+    final headingDir = Vector2(1.0, tan(_kHeadingAngle))..normalize();
 
     final boardBox = _boardWorldBoundsOffset();
-    double approachDistance;
     if (boardBox != null) {
-      final margin = _kBoardApproachMargin * _spawnZoom;
-      final enterDistance = _rayBoxEnterDistance(
-        origin: _startOffset,
-        direction: headingDir,
-        boxMin: boardBox.$1 - Vector2.all(margin),
-        boxMax: boardBox.$2 + Vector2.all(margin),
+      // Point visé tiré au sort À L'INTÉRIEUR de la bounding box réelle du
+      // plateau (donc sur/near une tuile) — donne un peu de variété d'une
+      // apparition à l'autre sans jamais pouvoir rater le plateau, au
+      // contraire de l'ancienne version qui tirait le point de départ au
+      // hasard dans le quart haut-gauche de l'écran puis espérait que le
+      // trajet (de pente fixe, ~17°) croise le plateau : sur un plateau
+      // excentré ou petit par rapport à l'écran, le rayon manquait presque
+      // toujours la boîte et retombait systématiquement sur l'ancien calcul
+      // de repli (fraction fixe de la largeur d'écran) — c'est ce bug qui
+      // faisait apparaître le voilier loin du plateau.
+      final (boardMin, boardMax) = boardBox;
+      final aimPoint = Vector2(
+        boardMin.x + rand.nextDouble() * (boardMax.x - boardMin.x),
+        boardMin.y + rand.nextDouble() * (boardMax.y - boardMin.y),
       );
-      approachDistance = enterDistance ??
-          screenSize.x * _kFallbackApproachDxFraction / headingDir.x;
+
+      // Point de pause = point où le trajet d'approche entre dans la boîte
+      // (légèrement agrandie d'une marge, [_kBoardApproachMargin]) : on
+      // part du point visé (garanti à l'intérieur) et on recule le long de
+      // la direction opposée jusqu'à sortir de la boîte agrandie — ce qui,
+      // par construction, correspond exactement au point d'entrée d'un
+      // trajet arrivant dans le sens inverse (voir [_distanceToBoxExit]).
+      final margin = _kBoardApproachMargin * _spawnZoom;
+      final entryDistance = _distanceToBoxExit(
+        origin: aimPoint,
+        direction: headingDir * -1.0,
+        boxMin: boardMin - Vector2.all(margin),
+        boxMax: boardMax + Vector2.all(margin),
+      );
+      _pauseOffset = aimPoint - headingDir * entryDistance;
+
+      // Distance de vol avant la pause, tirée au sort pour un rendu
+      // organique — à l'échelle de la diagonale écran plutôt qu'en dur,
+      // pour rester cohérente quelle que soit la taille d'écran.
+      final travelDistance =
+          screenSize.length * (0.35 + rand.nextDouble() * 0.35);
+      _startOffset = _pauseOffset - headingDir * travelDistance;
     } else {
-      approachDistance =
-          screenSize.x * _kFallbackApproachDxFraction / headingDir.x;
+      // Repli si jamais aucune tuile n'est posée (ne devrait pas arriver en
+      // usage normal, voir `HexBoardGame.kSailboatTriggerTileCount`) :
+      // ancien comportement, point de départ dans le quart haut-gauche de
+      // l'écran.
+      final startPosition = Vector2(
+        screenSize.x * (-0.08 + rand.nextDouble() * 0.30),
+        screenSize.y * (-0.08 + rand.nextDouble() * 0.30),
+      );
+      _startOffset = startPosition - screenSize / 2;
+      final approachDx = screenSize.x * _kFallbackApproachDxFraction;
+      _pauseOffset =
+          _startOffset + Vector2(approachDx, approachDx * tan(_kHeadingAngle));
     }
 
-    _pauseOffset = _startOffset + headingDir * approachDistance;
+    final approachDistance = (_pauseOffset - _startOffset).length;
     _approachDuration = (approachDistance / _kSailSpeed)
         .clamp(_kMinLegDuration, _kMaxLegDuration);
 
@@ -305,44 +333,38 @@ class SailboatComponent extends SpriteComponent {
   }
 }
 
-/// Distance (> 0) le long du rayon (origine [origin], direction [direction]
-/// — doit être unitaire) jusqu'à son entrée dans la boîte
-/// [boxMin]–[boxMax] (méthode des « slabs », intersection rayon/AABB
-/// standard). Renvoie `null` si le rayon ne croise pas la boîte, ou si
-/// l'origine est déjà à l'intérieur/au-delà (distance d'entrée nulle ou
-/// négative — pas pertinent ici, l'appelant se rabat alors sur
-/// [_kFallbackApproachDxFraction]).
-double? _rayBoxEnterDistance({
+/// Distance de sortie (> 0) depuis [origin] (supposé à l'intérieur de la
+/// boîte [boxMin]–[boxMax]) en avançant le long de [direction] (unitaire)
+/// — c'est-à-dire la distance jusqu'à ce que le rayon sorte de la boîte.
+///
+/// Utilisé pour retrouver, à partir d'un point visé à l'intérieur du
+/// plateau, le point d'entrée du trajet d'approche : appelé avec
+/// `-headingDir` depuis un point du plateau, cette distance correspond
+/// exactement (par symétrie) à la distance qu'un trajet arrivant dans le
+/// sens `+headingDir` depuis l'extérieur parcourrait avant d'entrer dans la
+/// boîte — pas besoin de tester une intersection rayon/boîte classique
+/// (qui peut échouer à trouver un point si l'origine testée n'est pas déjà
+/// sur la bonne trajectoire), l'appelant garantit ici l'intersection par
+/// construction en partant toujours d'un point interne à la boîte.
+double _distanceToBoxExit({
   required Vector2 origin,
   required Vector2 direction,
   required Vector2 boxMin,
   required Vector2 boxMax,
 }) {
-  var tEnter = double.negativeInfinity;
   var tExit = double.infinity;
-
   for (var axis = 0; axis < 2; axis++) {
     final o = axis == 0 ? origin.x : origin.y;
     final d = axis == 0 ? direction.x : direction.y;
     final bMin = axis == 0 ? boxMin.x : boxMin.y;
     final bMax = axis == 0 ? boxMax.x : boxMax.y;
 
-    if (d.abs() < 1e-9) {
-      if (o < bMin || o > bMax) return null;
-      continue;
-    }
-    var t1 = (bMin - o) / d;
-    var t2 = (bMax - o) / d;
-    if (t1 > t2) {
-      final tmp = t1;
-      t1 = t2;
-      t2 = tmp;
-    }
-    if (t1 > tEnter) tEnter = t1;
-    if (t2 < tExit) tExit = t2;
-    if (tEnter > tExit) return null;
+    if (d.abs() < 1e-9) continue; // axe non contraignant (direction // bord)
+    final t = d > 0 ? (bMax - o) / d : (bMin - o) / d;
+    if (t < tExit) tExit = t;
   }
-
-  if (tEnter <= 0) return null;
-  return tEnter;
+  // `direction` a toujours une composante non nulle sur les deux axes ici
+  // (angle de cap fixe ~17°, jamais horizontal ni vertical pur) : au moins
+  // un axe contraint toujours tExit, qui reste donc fini en pratique.
+  return tExit.isFinite ? tExit : 0.0;
 }
