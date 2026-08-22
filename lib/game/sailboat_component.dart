@@ -93,11 +93,15 @@ const double _kSailSpeed = 90.0;
 const double _kMinLegDuration = 2.5;
 const double _kMaxLegDuration = 7.0;
 
+/// Largeur d'une tuile (hexWidth = sqrt(3) * kHexSize) — sert d'unité pour
+/// [_kBoardApproachMargin].
+const double _kTileWidth = 1.7320508075688772 * kHexSize; // sqrt(3)
+
 /// Marge (px, à l'échelle du zoom de spawn) ajoutée autour de la bounding
 /// box réelle des tuiles posées pour déterminer le point de pause — le
-/// voilier s'arrête juste à l'extérieur du plateau plutôt que pile sur son
-/// bord (ou, pire, dessus).
-const double _kBoardApproachMargin = kHexSize * 1.5;
+/// voilier s'arrête à environ deux largeurs de tuile à l'extérieur du
+/// plateau plutôt que pile sur son bord (ou, pire, dessus).
+const double _kBoardApproachMargin = _kTileWidth * 2;
 
 /// Distance de repli (fraction de la largeur d'écran) utilisée uniquement
 /// si aucune tuile n'est posée (ne devrait pas arriver en usage normal,

@@ -56,6 +56,7 @@ import 'bonus_animations.dart' show kBonusIconStaggerInterval;
 import 'hex_coords.dart';
 import 'hex_grid_component.dart';
 import 'hex_tile.dart';
+import 'hot_air_balloon_component.dart';
 import 'plane_component.dart';
 import 'sailboat_component.dart';
 import 'upgrade_fx_overlay_game.dart';
@@ -108,6 +109,27 @@ class HexBoardGame extends FlameGame
     if (grid.placedTiles.length < kPlaneTriggerTileCount) return;
     _planeTriggered = true;
     grid.add(PlaneComponent(
+      screenSize: grid.screenSize.clone(),
+      zoom: grid.zoom,
+    ));
+  }
+
+  /// Nombre de tuiles posées à partir duquel la montgolfière décorative
+  /// ([HotAirBalloonComponent]) apparaît, une seule fois par partie — même
+  /// logique que [kSailboatTriggerTileCount]/[kPlaneTriggerTileCount] mais
+  /// avec un seuil différent pour que les trois easter eggs ne se
+  /// déclenchent pas systématiquement ensemble.
+  static const int kHotAirBalloonTriggerTileCount = 20;
+
+  bool _hotAirBalloonTriggered = false;
+
+  void _maybeSpawnHotAirBalloon() {
+    if (_hotAirBalloonTriggered) return;
+    final grid = _grid;
+    if (grid == null) return;
+    if (grid.placedTiles.length < kHotAirBalloonTriggerTileCount) return;
+    _hotAirBalloonTriggered = true;
+    grid.add(HotAirBalloonComponent(
       screenSize: grid.screenSize.clone(),
       zoom: grid.zoom,
     ));
@@ -384,6 +406,7 @@ class HexBoardGame extends FlameGame
     }
     _maybeSpawnSailboat();
     _maybeSpawnPlane();
+    _maybeSpawnHotAirBalloon();
   }
 
   /// Déclenche la particule dédiée de tuile bonus Combo+ : contrairement au
