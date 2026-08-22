@@ -53,6 +53,7 @@ import '../core/constants.dart' show kHexSize;
 import '../services/audio_service.dart';
 import '../services/haptics_service.dart';
 import 'bonus_animations.dart' show kBonusIconStaggerInterval;
+import 'fishing_boat_component.dart';
 import 'hex_coords.dart';
 import 'hex_grid_component.dart';
 import 'hex_tile.dart';
@@ -130,6 +131,26 @@ class HexBoardGame extends FlameGame
     if (grid.placedTiles.length < kHotAirBalloonTriggerTileCount) return;
     _hotAirBalloonTriggered = true;
     grid.add(HotAirBalloonComponent(
+      screenSize: grid.screenSize.clone(),
+      zoom: grid.zoom,
+    ));
+  }
+
+  /// Nombre de tuiles posées à partir duquel le bateau de pêche décoratif
+  /// ([FishingBoatComponent]) apparaît, une seule fois par partie — même
+  /// logique que les autres seuils ci-dessus, avec un seuil différent pour
+  /// que les easter eggs ne se déclenchent pas systématiquement ensemble.
+  static const int kFishingBoatTriggerTileCount = 30;
+
+  bool _fishingBoatTriggered = false;
+
+  void _maybeSpawnFishingBoat() {
+    if (_fishingBoatTriggered) return;
+    final grid = _grid;
+    if (grid == null) return;
+    if (grid.placedTiles.length < kFishingBoatTriggerTileCount) return;
+    _fishingBoatTriggered = true;
+    grid.add(FishingBoatComponent(
       screenSize: grid.screenSize.clone(),
       zoom: grid.zoom,
     ));
@@ -407,6 +428,7 @@ class HexBoardGame extends FlameGame
     _maybeSpawnSailboat();
     _maybeSpawnPlane();
     _maybeSpawnHotAirBalloon();
+    _maybeSpawnFishingBoat();
   }
 
   /// Déclenche la particule dédiée de tuile bonus Combo+ : contrairement au
