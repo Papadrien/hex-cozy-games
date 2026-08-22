@@ -28,19 +28,39 @@
 /// courbe `easeInOut` classique (qui accélère vers le milieu), c'est ici
 /// l'inverse : le milieu est le point le plus lent.
 ///
-/// Priorité de rendu volontairement inférieure à celle de n'importe quelle
-/// [TileComponent] posée (même logique que le voilier) : si le trajet croise
-/// une tuile du plateau, celle-ci est dessinée par-dessus.
+/// Priorité de rendu volontairement supérieure à celle de n'importe quelle
+/// [TileComponent] posée — contrairement au voilier (qui passe sous le
+/// plateau), l'avion survole le plateau : il reste visible même s'il croise
+/// une tuile posée. Utilise [kTileDepthPriorityPreview] (priorité de la
+/// tuile actuellement en main du joueur, la plus haute du jeu) + 1 pour
+/// garantir qu'il passe au-dessus de tout, y compris cette tuile en main.
+///
+/// Suivi du pan/zoom du plateau : [HexGridComponent] lui-même ne porte
+/// aucune transformation (position fixe à l'origine, échelle 1 — voir son
+/// constructeur) ; le pan/zoom y est simulé "à la main" pour chaque tuile,
+/// recalculée à chaque frame à partir de [HexGridComponent.cameraOffset] et
+/// [HexGridComponent.zoom] (voir `HexGridComponent.layout`). Pour que
+/// l'avion suive le plateau de la même façon plutôt que de rester figé en
+/// coordonnées écran, sa trajectoire est calculée une fois pour toutes en
+/// [onLoad] sous forme d'un simple offset (départ/arrivée) par rapport au
+/// centre de l'écran, à l'échelle du zoom au moment de l'apparition — puis
+/// [update] reconvertit cet offset en position écran réelle à chaque frame
+/// en tenant compte du pan courant (translation de [cameraOffset]) et du
+/// zoom courant (mise à l'échelle de l'offset et de la taille du sprite par
+/// rapport au zoom de spawn), exactement comme le fait [HexGridComponent]
+/// pour ses tuiles. L'animation n'utilise donc plus [MoveEffect] (qui écrit
+/// directement dans `position`, incompatible avec cette reconversion par
+/// frame) mais un minutage manuel dans [update].
 library;
 
 import 'dart:math' show Random, atan2, cos, pi, sin;
 
 import 'package:flame/components.dart';
-import 'package:flame/effects.dart';
 import 'package:flutter/animation.dart' show Curve;
 
 import '../core/constants.dart' show kHexSize;
-import 'tile_component.dart' show kTileDepthPriorityBase;
+import 'hex_grid_component.dart' show HexGridComponent;
+import 'tile_component.dart' show kTileDepthPriorityPreview;
 
 /// Angle (radians, sous l'horizontale) du cap naturel de l'avion tel que
 /// dessiné dans l'asset, mesuré sur l'image source — voir doc de fichier.
@@ -93,20 +113,43 @@ class _MidFlightSlowdownCurve extends Curve {
 
 class PlaneComponent extends SpriteComponent {
   PlaneComponent({required this.screenSize, double zoom = 1.0})
-      : _zoom = zoom,
-        super(anchor: Anchor.center, priority: kTileDepthPriorityBase - 1);
+      : _spawnZoom = zoom,
+        super(anchor: Anchor.center, priority: kTileDepthPriorityPreview + 1);
 
   final Vector2 screenSize;
-  final double _zoom;
+
+  /// Zoom du plateau au moment de l'apparition — sert de référence pour la
+  /// mise à l'échelle de la trajectoire et du sprite en fonction du zoom
+  /// courant (voir doc de fichier). Le zoom courant, lui, est relu en
+  /// direct sur [_grid] à chaque frame.
+  final double _spawnZoom;
+
+  /// Grille parente, dont on lit [HexGridComponent.cameraOffset] et
+  /// [HexGridComponent.zoom] à chaque frame — `null` seulement si le
+  /// composant a été ajouté hors d'un [HexGridComponent] (ne devrait pas
+  /// arriver en usage normal, l'avion étant toujours ajouté via `grid.add`).
+  HexGridComponent? _grid;
+
+  /// Offsets de départ/arrivée par rapport au centre écran, exprimés à
+  /// l'échelle du zoom de spawn — voir doc de fichier.
+  late final Vector2 _startOffset;
+  late final Vector2 _endOffset;
+  late final double _duration;
+
+  double _elapsed = 0.0;
+  bool _done = false;
+
+  static const _curve = _MidFlightSlowdownCurve();
 
   @override
   Future<void> onLoad() async {
     await super.onLoad();
+    final p = parent;
+    _grid = p is HexGridComponent ? p : null;
+
     sprite = await Sprite.load('plane.png');
-    size = Vector2(_kBaseWidth * _zoom, _kBaseWidth * _zoom * _kSpriteAspect);
 
     final rand = Random();
-    final center = screenSize / 2;
 
     // Longueur (px) parcourue de part et d'autre du centre, avec une légère
     // variation aléatoire (appliquée identiquement aux deux moitiés pour
@@ -116,21 +159,45 @@ class PlaneComponent extends SpriteComponent {
     final halfLength =
         (screenSize.x * reachFraction) / cos(_kHeadingAngle) + _kEdgeMargin;
 
-    final startPosition = center - _kDirection * halfLength;
-    final endPosition = center + _kDirection * halfLength;
+    _startOffset = _kDirection * (-halfLength);
+    _endOffset = _kDirection * halfLength;
 
     final totalDistance = halfLength * 2;
-    final duration = (totalDistance / (_kFlightSpeed * _zoom))
+    _duration = (totalDistance / (_kFlightSpeed * _spawnZoom))
         .clamp(_kMinFlightDuration, _kMaxFlightDuration);
 
-    position = startPosition;
+    _applyFrame(0.0);
+  }
 
-    add(MoveEffect.to(
-      endPosition,
-      EffectController(
-        duration: duration,
-        curve: const _MidFlightSlowdownCurve(),
-      ),
-    )..onComplete = () => removeFromParent());
+  @override
+  void update(double dt) {
+    super.update(dt);
+    if (_done) return;
+
+    _elapsed += dt;
+    final rawT = (_elapsed / _duration).clamp(0.0, 1.0);
+    _applyFrame(rawT);
+
+    if (rawT >= 1.0) {
+      _done = true;
+      removeFromParent();
+    }
+  }
+
+  /// Calcule la position/taille écran réelles pour la progression [rawT]
+  /// (0..1, avant application de la courbe de vitesse), à partir du pan et
+  /// du zoom courants du plateau — voir doc de fichier.
+  void _applyFrame(double rawT) {
+    final t = _curve.transform(rawT);
+    final baseOffset = _startOffset + (_endOffset - _startOffset) * t;
+
+    final grid = _grid;
+    final currentZoom = grid?.zoom ?? _spawnZoom;
+    final cameraOffset = grid?.cameraOffset ?? Vector2.zero();
+    final zoomRatio = currentZoom / _spawnZoom;
+
+    size = Vector2(
+        _kBaseWidth * currentZoom, _kBaseWidth * currentZoom * _kSpriteAspect);
+    position = cameraOffset + screenSize / 2 + baseOffset * zoomRatio;
   }
 }
