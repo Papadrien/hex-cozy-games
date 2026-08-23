@@ -69,7 +69,7 @@
 /// inspirées de la forme du sillage sur l'image de référence fournie.
 library;
 
-import 'dart:math' show Point, Random, atan2, cos, pi, sin, tan;
+import 'dart:math' show Point, Random, atan2, cos, pi, sin, sqrt, tan;
 import 'dart:ui' show Canvas, Color, Offset, Paint, PaintingStyle, Path, StrokeCap;
 
 import 'package:flame/components.dart';
@@ -142,31 +142,40 @@ double _offScreenSafetyFactor(double spawnZoom) =>
 
 // ── Sillage en V à l'arrière du bateau ──────────────────────────────────────
 
-/// Position de la poupe (arrière de la coque, point d'où part le sillage)
-/// en coordonnées normalisées (fraction de la largeur/hauteur du sprite,
-/// 0..1) — pointée directement sur l'asset embarqué (768×512, quadrillage
-/// à l'appui) plutôt qu'estimée sur une image source à une autre échelle :
-/// poupe (près du gouvernail) ≈ (150, 350).
-const Offset _kSternFrac = Offset(150 / 768, 350 / 512);
+/// Position de la poupe (arrière de la coque, au niveau de la ligne de
+/// flottaison — pas du pont) en coordonnées normalisées (fraction de la
+/// largeur/hauteur du sprite, 0..1) — pointée directement sur l'asset
+/// embarqué (768×512, quadrillage à l'appui) : poupe ≈ (190, 415).
+/// Volontairement au ras de la coque plutôt qu'au niveau du pont/gouvernail
+/// : un point plus haut faisait passer le sillage à travers le bateau au
+/// lieu de longer sa coque.
+const Offset _kSternFrac = Offset(190 / 768, 415 / 512);
 
-/// Position de la proue (pointe avant de la coque, hors beaupré) — sert
-/// uniquement à déterminer la direction "vers l'arrière" du sillage (poupe
-/// → proue inversé), voir [_renderWake] : proue ≈ (600, 410).
-const Offset _kBowFrac = Offset(600 / 768, 410 / 512);
+/// Position de la proue (pointe avant de la coque, hors beaupré, au niveau
+/// de la ligne de flottaison) — sert à la fois d'origine du sillage (départ
+/// à l'avant, voir [_renderWake]) et, avec [_kSternFrac], à déterminer la
+/// direction "vers l'arrière" (poupe → proue inversé) : proue ≈ (600, 440).
+const Offset _kBowFrac = Offset(600 / 768, 440 / 512);
 
 /// Angle (radians) d'écartement de chaque branche du sillage par rapport à
 /// l'axe arrière, à son extrémité — forme en "V" évasé, inspirée de l'image
-/// de référence fournie.
-const double _kWakeSpreadAngle = 24 * pi / 180;
+/// de référence fournie. Volontairement modeste : un angle trop large (avec
+/// [_kWakeLengthFraction]) faisait sortir une branche du sillage par-dessus
+/// le pont/la voile au lieu de longer la coque.
+const double _kWakeSpreadAngle = 8 * pi / 180;
 
-/// Longueur du sillage (fraction de la largeur du sprite).
+/// Longueur du sillage, en multiple de la distance poupe→proue (et non plus
+/// de la largeur du sprite) — pour rester à l'échelle du bateau lui-même
+/// quels que soient le cadrage et les marges transparentes de l'asset, qui
+/// n'ont rien à voir avec la taille réelle de la coque.
 const double _kWakeLengthFraction = 0.85;
 
-/// Amplitude de l'ondulation du sillage (fraction de la largeur du sprite),
-/// croissante avec la distance à la poupe — même technique que
-/// l'ondulation du pied des tuiles ([kEdgeWaveFrequency]/[kEdgeWaveSpeed]),
-/// réappliquée ici perpendiculairement à chaque branche.
-const double _kWakeRippleFraction = 0.035;
+/// Amplitude de l'ondulation du sillage, en fraction de la distance
+/// poupe→proue (même remarque que [_kWakeLengthFraction]) — croissante avec
+/// la distance à la proue, même technique que l'ondulation du pied des
+/// tuiles ([kEdgeWaveFrequency]/[kEdgeWaveSpeed]), réappliquée ici
+/// perpendiculairement à chaque branche.
+const double _kWakeRippleFraction = 0.02;
 
 /// Nombre de segments de chaque branche du sillage — volontairement plus
 /// élevé que pour l'ondulation du pied des tuiles ([kEdgeWaveSegments] = 8) :
@@ -357,8 +366,11 @@ class SailboatComponent extends SpriteComponent {
         _applyFrame(_pauseOffset + (_exitOffset - _pauseOffset) * t);
         // Le sillage reprend avec l'accélération du départ (rawT → 1 =
         // vitesse maximale en fin de départ, voir la courbe `easeIn`
-        // ci-dessus).
-        _wakeIntensity = rawT;
+        // ci-dessus) — en racine carrée plutôt que linéaire pour remonter
+        // plus vite au début (ex. déjà 70% d'intensité à 50% du trajet de
+        // départ, contre 50% en linéaire), le fondu linéaire restant trop
+        // discret pour bien se voir.
+        _wakeIntensity = sqrt(rawT);
         if (rawT >= 1.0) {
           _phase = _SailPhase.done;
           removeFromParent();
@@ -413,10 +425,15 @@ class SailboatComponent extends SpriteComponent {
 
     // La longueur rétrécit légèrement en plus de l'estompage (alpha) — un
     // sillage qui s'efface tout en se rétractant est plus naturel qu'un
-    // simple fondu sur place.
-    final length =
-        size.x * _kWakeLengthFraction * (0.3 + 0.7 * _wakeIntensity);
-    final rippleAmplitude = size.x * _kWakeRippleFraction;
+    // simple fondu sur place. Échelle sur la distance poupe→proue (la
+    // taille réelle de la coque), pas sur `size.x` (largeur de tout le
+    // sprite, qui inclut la voile et les marges transparentes de l'asset et
+    // n'a donc aucun rapport avec la longueur du bateau) — voir doc de
+    // [_kWakeLengthFraction].
+    final length = bowToSternLength *
+        _kWakeLengthFraction *
+        (0.3 + 0.7 * _wakeIntensity);
+    final rippleAmplitude = bowToSternLength * _kWakeRippleFraction;
     final paint = Paint()
       ..color = const Color(0xFFFFFFFF).withValues(alpha: 0.55 * _wakeIntensity)
       ..style = PaintingStyle.stroke
