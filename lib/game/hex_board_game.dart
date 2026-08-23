@@ -140,7 +140,7 @@ class HexBoardGame extends FlameGame
   /// ([FishingBoatComponent]) apparaît, une seule fois par partie — même
   /// logique que les autres seuils ci-dessus, avec un seuil différent pour
   /// que les easter eggs ne se déclenchent pas systématiquement ensemble.
-  static const int kFishingBoatTriggerTileCount = 30;
+  static const int kFishingBoatTriggerTileCount = 2;
 
   bool _fishingBoatTriggered = false;
 
