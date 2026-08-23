@@ -71,7 +71,7 @@
 /// coordonnées de poupe/proue propres à `fishing_boat.png`.
 library;
 
-import 'dart:math' show Point, Random, atan2, cos, pi, sin, sqrt, tan;
+import 'dart:math' show Point, Random, atan2, cos, pi, pow, sin, sqrt, tan;
 import 'dart:ui' show Canvas, Color, Offset, Paint, PaintingStyle, Path, StrokeCap;
 
 import 'package:flame/components.dart';
@@ -144,32 +144,34 @@ double _offScreenSafetyFactor(double spawnZoom) =>
 /// flottaison — pas du pont) en coordonnées normalisées (fraction de la
 /// largeur/hauteur du sprite, 0..1) — pointée directement sur l'asset
 /// embarqué (1536×1024, quadrillage à l'appui) : poupe (sous la grue) ≈
-/// (30, 700).
-const Offset _kSternFrac = Offset(30 / 1536, 700 / 1024);
+/// (30, 730).
+const Offset _kSternFrac = Offset(30 / 1536, 730 / 1024);
 
 /// Position de la proue (pointe avant de la coque, au niveau de la ligne de
 /// flottaison) — sert à la fois d'origine du sillage (départ à l'avant,
 /// voir [_renderWake]) et, avec [_kSternFrac], à déterminer la direction
-/// "vers l'arrière" (poupe → proue inversé) : proue ≈ (1300, 790).
-const Offset _kBowFrac = Offset(1300 / 1536, 790 / 1024);
+/// "vers l'arrière" (poupe → proue inversé) : proue ≈ (1300, 820).
+const Offset _kBowFrac = Offset(1300 / 1536, 820 / 1024);
 
 /// Angle (radians) d'écartement de chaque branche du sillage par rapport à
-/// l'axe arrière, à son extrémité — même valeur que [SailboatComponent]
-/// (voir sa doc de fichier : un angle plus large faisait sortir une branche
-/// du sillage par-dessus le pont au lieu de longer la coque).
-const double _kWakeSpreadAngle = 8 * pi / 180;
+/// l'axe arrière, à son extrémité — même valeur que [SailboatComponent].
+const double _kWakeSpreadAngle = 16 * pi / 180;
+
+/// Exposant appliqué à `t` pour façonner l'écartement — même valeur que
+/// [SailboatComponent] (voir sa doc de fichier pour le détail).
+const double _kWakeWidenExponent = 0.65;
 
 /// Longueur du sillage, en multiple de la distance poupe→proue — voir la
 /// doc de [SailboatComponent] pour le détail (échelle sur la coque réelle,
 /// pas sur `size.x` qui inclut les marges transparentes de l'asset).
-const double _kWakeLengthFraction = 0.85;
+const double _kWakeLengthFraction = 0.95;
 
 /// Amplitude de l'ondulation du sillage, en fraction de la distance
 /// poupe→proue (même remarque que [_kWakeLengthFraction]) — croissante avec
 /// la distance à la proue, même technique que l'ondulation du pied des
 /// tuiles ([kEdgeWaveFrequency]/[kEdgeWaveSpeed]), réappliquée ici
 /// perpendiculairement à chaque branche.
-const double _kWakeRippleFraction = 0.02;
+const double _kWakeRippleFraction = 0.028;
 
 /// Nombre de segments de chaque branche du sillage — voir la doc de
 /// [SailboatComponent] pour le détail : 24 segments (plutôt que 10) pour un
@@ -427,7 +429,7 @@ class FishingBoatComponent extends SpriteComponent {
     final paint = Paint()
       ..color = const Color(0xFFFFFFFF).withValues(alpha: 0.55 * _wakeIntensity)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.2 * (size.x / _kBaseWidth)
+      ..strokeWidth = 3.4 * (size.x / _kBaseWidth)
       ..strokeCap = StrokeCap.round;
 
     for (final side in [-1.0, 1.0]) {
@@ -465,7 +467,7 @@ class FishingBoatComponent extends SpriteComponent {
     final path = Path()..moveTo(origin.dx, origin.dy);
     for (var s = 1; s <= _kWakeSegments; s++) {
       final t = s / _kWakeSegments;
-      final angle = spreadAngle * t * t;
+      final angle = spreadAngle * pow(t, _kWakeWidenExponent);
       final cosA = cos(angle);
       final sinA = sin(angle);
       final dirX = backward.dx * cosA - backward.dy * sinA;
