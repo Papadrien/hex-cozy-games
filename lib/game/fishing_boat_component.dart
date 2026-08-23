@@ -393,10 +393,11 @@ class FishingBoatComponent extends SpriteComponent {
     super.render(canvas);
   }
 
-  /// Sillage en V partant de la poupe — même principe que
-  /// [SailboatComponent], voir sa doc de fichier. Intensité modulée par
-  /// [_wakeIntensity] (alpha et longueur), pour s'atténuer avec le
-  /// ralentissement, disparaître pendant la pause et reprendre avec
+  /// Sillage en V partant de la proue et enveloppant la coque vers
+  /// l'arrière — même principe que [SailboatComponent] (voir sa doc de
+  /// fichier pour le détail du choix de la proue comme origine). Intensité
+  /// modulée par [_wakeIntensity] (alpha et longueur), pour s'atténuer avec
+  /// le ralentissement, disparaître pendant la pause et reprendre avec
   /// l'accélération du départ.
   void _renderWake(Canvas canvas) {
     if (_wakeIntensity <= 0.001) return;
@@ -423,7 +424,8 @@ class FishingBoatComponent extends SpriteComponent {
     for (final side in [-1.0, 1.0]) {
       canvas.drawPath(
         _wakeLinePath(
-          origin: sternPx,
+          // Origine à la proue (pas la poupe), voir doc de [_renderWake].
+          origin: bowPx,
           backward: backward,
           length: length,
           spreadAngle: _kWakeSpreadAngle * side,

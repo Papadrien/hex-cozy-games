@@ -395,7 +395,9 @@ class SailboatComponent extends SpriteComponent {
     super.render(canvas);
   }
 
-  /// Sillage en V partant de la poupe — voir doc de fichier. Intensité
+  /// Sillage en V partant de la proue et enveloppant la coque vers
+  /// l'arrière (et non de la poupe vers l'extérieur, qui donnait un rendu
+  /// en fourche détachée du bateau) — voir doc de fichier. Intensité
   /// modulée par [_wakeIntensity] (alpha et longueur), pour s'atténuer avec
   /// le ralentissement, disparaître pendant la pause et reprendre avec
   /// l'accélération du départ.
@@ -424,7 +426,13 @@ class SailboatComponent extends SpriteComponent {
     for (final side in [-1.0, 1.0]) {
       canvas.drawPath(
         _wakeLinePath(
-          origin: sternPx,
+          // Origine à la proue (pas la poupe) : chaque branche part donc
+          // de l'avant, longe la coque sur le côté en s'écartant
+          // progressivement (voir [_kWakeSpreadAngle] et le `t * t` dans
+          // [_wakeLinePath]), et ne dépasse la largeur du bateau qu'après
+          // avoir atteint/dépassé la poupe — le sillage englobe ainsi la
+          // coque au lieu de se réduire à une fourche isolée en arrière.
+          origin: bowPx,
           backward: backward,
           length: length,
           spreadAngle: _kWakeSpreadAngle * side,
