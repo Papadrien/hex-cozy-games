@@ -54,10 +54,23 @@
 /// rapport au zoom de spawn), exactement comme le fait [HexGridComponent]
 /// pour ses tuiles. L'animation n'utilise donc plus [MoveEffect] (qui
 /// écrit directement dans `position`, incompatible avec cette reconversion
-/// par frame) mais un minutage manuel dans [update].
+/// par frame) mais un minutage manuel dans [update]. Voir aussi
+/// [_offScreenSafetyFactor] : la distance de départ et la marge de sortie
+/// sont gonflées pour rester hors du cadre visible même après un dézoom du
+/// plateau survenu après l'apparition.
+///
+/// Sillage en V à l'arrière du bateau (voir [_renderWake]) : dessiné en
+/// coordonnées locales du sprite (donc automatiquement suivi par le
+/// pan/zoom et le miroir de virage, puisqu'appliqués par le moteur avant
+/// l'appel à [render]), sur le même principe que l'ondulation animée du
+/// pied des tuiles ([kEdgeWaveFrequency]/[kEdgeWaveSpeed] dans
+/// `tile_component.dart`, réutilisées ici) — deux branches ondulées
+/// partant de la poupe et s'écartant progressivement vers l'arrière,
+/// inspirées de la forme du sillage sur l'image de référence fournie.
 library;
 
-import 'dart:math' show Point, Random, atan2, tan;
+import 'dart:math' show Point, Random, atan2, cos, pi, sin, tan;
+import 'dart:ui' show Canvas, Color, Offset, Paint, PaintingStyle, Path, StrokeCap;
 
 import 'package:flame/components.dart';
 import 'package:flutter/animation.dart' show Curves;
@@ -65,7 +78,8 @@ import 'package:flutter/animation.dart' show Curves;
 import '../core/constants.dart' show kHexSize;
 import 'hex_coords.dart' show HexLayout;
 import 'hex_grid_component.dart' show HexGridComponent;
-import 'tile_component.dart' show kIsoScaleY, kTileDepthPriorityBase;
+import 'tile_component.dart'
+    show kEdgeWaveFrequency, kEdgeWaveSpeed, kIsoScaleY, kTileDepthPriorityBase;
 
 /// Angle (radians, sous l'horizontale) du cap naturel du voilier tel que
 /// dessiné dans l'asset, mesuré sur l'image source — voir doc de fichier.
@@ -116,6 +130,44 @@ const double _kFallbackApproachDxFraction = 0.62;
 /// suppression plutôt que de s'arrêter en plein milieu.
 const double _kExitMargin = 90.0;
 
+/// Facteur de sécurité appliqué aux distances hors-écran (départ, sortie)
+/// pour qu'elles restent hors du cadre visible même si le plateau est
+/// dézoomé au maximum après l'apparition — voir la doc de fichier de
+/// `plane_component.dart` (même principe, dupliqué ici car privé) : les
+/// offsets sont calculés en pixels à l'échelle du zoom de spawn, puis mis à
+/// l'échelle du zoom courant à chaque frame ; un zoom arrière après
+/// l'apparition réduit donc leur distance apparente à l'écran d'autant.
+double _offScreenSafetyFactor(double spawnZoom) =>
+    spawnZoom / HexGridComponent.minZoom;
+
+// ── Sillage en V à l'arrière du bateau ──────────────────────────────────────
+
+/// Position de la poupe (arrière de la coque, point d'où part le sillage)
+/// en coordonnées normalisées (fraction de la largeur/hauteur du sprite,
+/// 0..1) — dérivée des mêmes coordonnées pixel que [_kHeadingAngle] (poupe
+/// ≈314, 641 sur l'image source 1536×1024).
+const Offset _kSternFrac = Offset(314 / 1536, 641 / 1024);
+
+/// Position de la proue — sert uniquement à déterminer la direction "vers
+/// l'arrière" du sillage (poupe → proue inversé), voir [_renderWake].
+const Offset _kBowFrac = Offset(1247 / 1536, 923 / 1024);
+
+/// Angle (radians) d'écartement de chaque branche du sillage par rapport à
+/// l'axe arrière, à son extrémité — forme en "V" évasé, inspirée de l'image
+/// de référence fournie.
+const double _kWakeSpreadAngle = 24 * pi / 180;
+
+/// Longueur du sillage (fraction de la largeur du sprite).
+const double _kWakeLengthFraction = 0.85;
+
+/// Amplitude de l'ondulation du sillage (fraction de la largeur du sprite),
+/// croissante avec la distance à la poupe — même technique que
+/// l'ondulation du pied des tuiles ([kEdgeWaveFrequency]/[kEdgeWaveSpeed]),
+/// réappliquée ici perpendiculairement à chaque branche.
+const double _kWakeRippleFraction = 0.035;
+
+const int _kWakeSegments = 10;
+
 enum _SailPhase { approach, pause, departure, done }
 
 class SailboatComponent extends SpriteComponent {
@@ -148,6 +200,7 @@ class SailboatComponent extends SpriteComponent {
 
   _SailPhase _phase = _SailPhase.approach;
   double _elapsedInPhase = 0.0;
+  double _wakeTime = 0.0;
 
   @override
   Future<void> onLoad() async {
@@ -198,9 +251,12 @@ class SailboatComponent extends SpriteComponent {
 
       // Distance de vol avant la pause, tirée au sort pour un rendu
       // organique — à l'échelle de la diagonale écran plutôt qu'en dur,
-      // pour rester cohérente quelle que soit la taille d'écran.
-      final travelDistance =
-          screenSize.length * (0.35 + rand.nextDouble() * 0.35);
+      // pour rester cohérente quelle que soit la taille d'écran. Gonflée
+      // par [_offScreenSafetyFactor] pour rester hors-écran même après un
+      // dézoom survenu depuis l'apparition.
+      final travelDistance = screenSize.length *
+          (0.35 + rand.nextDouble() * 0.35) *
+          _offScreenSafetyFactor(_spawnZoom);
       _startOffset = _pauseOffset - headingDir * travelDistance;
     } else {
       // Repli si jamais aucune tuile n'est posée (ne devrait pas arriver en
@@ -223,8 +279,14 @@ class SailboatComponent extends SpriteComponent {
 
     // Trajet de sortie : cap miroir (bas-gauche) de la même pente, prolongé
     // au besoin pour garantir une sortie franche par la gauche de l'écran
-    // ([_kExitMargin]) plutôt que de s'arrêter en plein cadre.
-    final departureDx = _pauseOffset.x + screenSize.x / 2 + _kExitMargin;
+    // ([_kExitMargin], gonflée par [_offScreenSafetyFactor]) plutôt que de
+    // s'arrêter en plein cadre. Le terme `_pauseOffset.x` n'est volontairement
+    // pas gonflé : il ne fait que compenser la position déjà atteinte par le
+    // point de pause (annulé dans l'offset final `_exitOffset.x`), seule la
+    // distance à parcourir au-delà du bord gauche doit rester garantie
+    // hors-écran quel que soit le zoom.
+    final departureDx = _pauseOffset.x +
+        (screenSize.x / 2 + _kExitMargin) * _offScreenSafetyFactor(_spawnZoom);
     final departureDy = departureDx * tan(_kHeadingAngle);
     _exitOffset = _pauseOffset + Vector2(-departureDx, departureDy);
     _departureDuration = (departureDx / _kSailSpeed)
@@ -236,6 +298,7 @@ class SailboatComponent extends SpriteComponent {
   @override
   void update(double dt) {
     super.update(dt);
+    _wakeTime += dt;
     if (_phase == _SailPhase.done) return;
 
     _elapsedInPhase += dt;
@@ -294,6 +357,87 @@ class SailboatComponent extends SpriteComponent {
     size = Vector2(
         _kBaseWidth * currentZoom, _kBaseWidth * currentZoom * _kSpriteAspect);
     position = cameraOffset + screenSize / 2 + offset * zoomRatio;
+  }
+
+  @override
+  void render(Canvas canvas) {
+    // Dessiné avant le sprite (donc visuellement en dessous), en
+    // coordonnées locales — le moteur a déjà appliqué position/zoom et le
+    // miroir de virage à `canvas` avant cet appel, donc [_kSternFrac] etc.
+    // (exprimées en fraction de la boîte locale [0, size]) suivent
+    // automatiquement le bateau sans logique supplémentaire.
+    _renderWake(canvas);
+    super.render(canvas);
+  }
+
+  /// Sillage en V partant de la poupe — voir doc de fichier.
+  void _renderWake(Canvas canvas) {
+    final sternPx = Offset(_kSternFrac.dx * size.x, _kSternFrac.dy * size.y);
+    final bowPx = Offset(_kBowFrac.dx * size.x, _kBowFrac.dy * size.y);
+    final bowToStern = sternPx - bowPx;
+    final bowToSternLength = bowToStern.distance;
+    if (bowToSternLength < 0.001) return;
+    final backward = bowToStern / bowToSternLength;
+
+    final length = size.x * _kWakeLengthFraction;
+    final rippleAmplitude = size.x * _kWakeRippleFraction;
+    final paint = Paint()
+      ..color = const Color(0xFFFFFFFF).withValues(alpha: 0.55)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.2 * (size.x / _kBaseWidth)
+      ..strokeCap = StrokeCap.round;
+
+    for (final side in [-1.0, 1.0]) {
+      canvas.drawPath(
+        _wakeLinePath(
+          origin: sternPx,
+          backward: backward,
+          length: length,
+          spreadAngle: _kWakeSpreadAngle * side,
+          rippleAmplitude: rippleAmplitude,
+          // Légèrement déphasées entre les deux branches pour éviter une
+          // ondulation parfaitement symétrique (moins naturelle).
+          phase: side > 0 ? 0.0 : pi,
+        ),
+        paint,
+      );
+    }
+  }
+
+  /// Construit une branche du sillage : part de [origin] (la poupe) selon
+  /// [backward] (unitaire), s'écarte progressivement jusqu'à [spreadAngle]
+  /// à son extrémité (effet d'éventail), avec une ondulation perpendiculaire
+  /// croissante ([rippleAmplitude]) animée par [_wakeTime] — même
+  /// principe que l'ondulation du pied des tuiles.
+  Path _wakeLinePath({
+    required Offset origin,
+    required Offset backward,
+    required double length,
+    required double spreadAngle,
+    required double rippleAmplitude,
+    required double phase,
+  }) {
+    final perp = Offset(-backward.dy, backward.dx);
+    final path = Path()..moveTo(origin.dx, origin.dy);
+    for (var s = 1; s <= _kWakeSegments; s++) {
+      final t = s / _kWakeSegments;
+      final angle = spreadAngle * t * t;
+      final cosA = cos(angle);
+      final sinA = sin(angle);
+      final dirX = backward.dx * cosA - backward.dy * sinA;
+      final dirY = backward.dx * sinA + backward.dy * cosA;
+      final dist = length * t;
+      final ripple = rippleAmplitude *
+          t *
+          sin(kEdgeWaveFrequency * 2 * pi * t * 2 +
+              phase +
+              _wakeTime * kEdgeWaveSpeed);
+      path.lineTo(
+        origin.dx + dirX * dist + perp.dx * ripple,
+        origin.dy + dirY * dist + perp.dy * ripple,
+      );
+    }
+    return path;
   }
 
   /// Bounding box (min, max) des tuiles réellement posées

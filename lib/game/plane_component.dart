@@ -50,7 +50,10 @@
 /// rapport au zoom de spawn), exactement comme le fait [HexGridComponent]
 /// pour ses tuiles. L'animation n'utilise donc plus [MoveEffect] (qui écrit
 /// directement dans `position`, incompatible avec cette reconversion par
-/// frame) mais un minutage manuel dans [update].
+/// frame) mais un minutage manuel dans [update]. Voir aussi
+/// [_offScreenSafetyFactor] : les distances de départ/arrivée sont
+/// gonflées pour rester hors du cadre visible même après un dézoom du
+/// plateau survenu après l'apparition.
 library;
 
 import 'dart:math' show Random, atan2, cos, pi, sin;
@@ -94,6 +97,21 @@ const double _kReachFraction = 0.62;
 /// départ/arrivée, ajoutée symétriquement des deux côtés (ne modifie donc
 /// pas la position du milieu du trajet, qui reste le centre de l'écran).
 const double _kEdgeMargin = 100.0;
+
+/// Facteur de sécurité appliqué à la distance de départ/arrivée pour rester
+/// hors du cadre visible même si le plateau est dézoomé au maximum après
+/// l'apparition — voir doc de fichier ("Suivi du pan/zoom") : les offsets
+/// sont calculés en pixels à l'échelle du zoom de spawn, puis mis à
+/// l'échelle du zoom courant à chaque frame ; un zoom arrière après
+/// l'apparition réduit donc leur distance apparente à l'écran d'autant.
+/// Sans ce facteur, un avion apparu à peine hors-écran à
+/// [HexGridComponent.maxZoom] pourrait se retrouver visible en plein écran
+/// si le joueur dézoome ensuite jusqu'à [HexGridComponent.minZoom] (jusqu'à
+/// 5× plus de plateau visible). En multipliant la distance de départ par
+/// (zoom de spawn / zoom minimal), elle reste garantie hors-écran même dans
+/// ce pire des cas, quel que soit le zoom au moment de l'apparition.
+double _offScreenSafetyFactor(double spawnZoom) =>
+    spawnZoom / HexGridComponent.minZoom;
 
 /// Courbe de vitesse en creux : progress(t) = t + sin(2πt) / (6π).
 ///
@@ -157,7 +175,8 @@ class PlaneComponent extends SpriteComponent {
     final reachFraction =
         _kReachFraction * (0.9 + rand.nextDouble() * 0.2); // ±10%
     final halfLength =
-        (screenSize.x * reachFraction) / cos(_kHeadingAngle) + _kEdgeMargin;
+        ((screenSize.x * reachFraction) / cos(_kHeadingAngle) + _kEdgeMargin) *
+            _offScreenSafetyFactor(_spawnZoom);
 
     _startOffset = _kDirection * (-halfLength);
     _endOffset = _kDirection * halfLength;

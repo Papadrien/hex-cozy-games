@@ -46,7 +46,9 @@
 /// courant (interpolé le long de la courbe de Bézier) en position écran
 /// réelle, en tenant compte du pan et du zoom courants du plateau
 /// ([HexGridComponent.cameraOffset], [HexGridComponent.zoom]) — un
-/// minutage manuel, sans [MoveEffect].
+/// minutage manuel, sans [MoveEffect]. Voir aussi [_offScreenSafetyFactor] :
+/// les points de départ/arrivée sont gonflés pour rester hors du cadre
+/// visible même après un dézoom du plateau survenu après l'apparition.
 library;
 
 import 'dart:math' show Random, pi, sin;
@@ -86,6 +88,13 @@ const double _kEndLeftFractionRange = 0.18;
 /// points de départ/arrivée, pour que la montgolfière parte et disparaisse
 /// bien hors du cadre visible plutôt que de s'arrêter en plein écran.
 const double _kEdgeMargin = 120.0;
+
+/// Facteur de sécurité appliqué aux points de départ/arrivée pour rester
+/// hors du cadre visible même si le plateau est dézoomé au maximum après
+/// l'apparition — même principe que [PlaneComponent] (voir sa doc de
+/// fichier pour le détail), dupliqué ici car privé à `plane_component.dart`.
+double _offScreenSafetyFactor(double spawnZoom) =>
+    spawnZoom / HexGridComponent.minZoom;
 
 /// Amplitude de la légère courbe : fraction de la distance départ→arrivée
 /// dont le point de contrôle de la courbe de Bézier est décalé
@@ -156,14 +165,17 @@ class HotAirBalloonComponent extends SpriteComponent {
     final endLeftFraction = _kEndLeftFraction +
         (rand.nextDouble() * 2 - 1) * _kEndLeftFractionRange;
 
+    final safetyFactor = _offScreenSafetyFactor(_spawnZoom);
     _startOffset = Vector2(
-      screenSize.x * startRightFraction,
-      screenSize.y / 2 + _kEdgeMargin,
-    );
+          screenSize.x * startRightFraction,
+          screenSize.y / 2 + _kEdgeMargin,
+        ) *
+        safetyFactor;
     _endOffset = Vector2(
-      -screenSize.x * endLeftFraction,
-      -(screenSize.y / 2 + _kEdgeMargin),
-    );
+          -screenSize.x * endLeftFraction,
+          -(screenSize.y / 2 + _kEdgeMargin),
+        ) *
+        safetyFactor;
 
     // Point de contrôle : milieu du segment direct, décalé
     // perpendiculairement pour une légère courbe (signe aléatoire).
