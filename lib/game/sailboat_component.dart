@@ -405,13 +405,16 @@ class SailboatComponent extends SpriteComponent {
 
   @override
   void render(Canvas canvas) {
-    // Dessiné avant le sprite (donc visuellement en dessous), en
+    // Dessiné après le sprite (donc visuellement au-dessus), en
     // coordonnées locales — le moteur a déjà appliqué position/zoom et le
     // miroir de virage à `canvas` avant cet appel, donc [_kSternFrac] etc.
     // (exprimées en fraction de la boîte locale [0, size]) suivent
-    // automatiquement le bateau sans logique supplémentaire.
-    _renderWake(canvas);
+    // automatiquement le bateau sans logique supplémentaire. Le sillage
+    // hugging la coque de près, le dessiner avant le sprite le cachait en
+    // grande partie sous la coque elle-même — il doit passer par-dessus
+    // pour rester visible.
     super.render(canvas);
+    _renderWake(canvas);
   }
 
   /// Sillage en V partant de la proue et enveloppant la coque vers
