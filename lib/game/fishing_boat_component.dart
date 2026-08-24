@@ -142,20 +142,25 @@ double _offScreenSafetyFactor(double spawnZoom) =>
 
 /// Position de la poupe (arrière de la coque, au niveau de la ligne de
 /// flottaison — pas du pont) en coordonnées normalisées (fraction de la
-/// largeur/hauteur du sprite, 0..1) — pointée directement sur l'asset
-/// embarqué (1536×1024, quadrillage à l'appui) : poupe (sous la grue) ≈
-/// (30, 730).
-const Offset _kSternFrac = Offset(30 / 1536, 730 / 1024);
+/// largeur/hauteur du sprite, 0..1) — pointée par analyse des pixels
+/// non-transparents de l'asset embarqué (1536×1024, colonne la plus à
+/// gauche du contour de la coque) : poupe ≈ (30, 460).
+const Offset _kSternFrac = Offset(30 / 1536, 460 / 1024);
 
-/// Position de la proue (pointe avant de la coque, au niveau de la ligne de
-/// flottaison) — sert à la fois d'origine du sillage (départ à l'avant,
-/// voir [_renderWake]) et, avec [_kSternFrac], à déterminer la direction
-/// "vers l'arrière" (poupe → proue inversé) : proue ≈ (1300, 820).
-const Offset _kBowFrac = Offset(1300 / 1536, 820 / 1024);
+/// Position de la proue (pointe avant de la coque) — sert à la fois
+/// d'origine du sillage (départ à l'avant, voir [_renderWake]) et, avec
+/// [_kSternFrac], à déterminer la direction "vers l'arrière" (poupe → proue
+/// inversé) : proue ≈ (1500, 768), le point le plus à droite du contour de
+/// la coque (pointée par analyse des pixels non-transparents — la valeur
+/// précédente, (1300, 790), tombait pile à mi-coque plutôt qu'à la pointe
+/// avant, d'où un sillage qui semblait partir du tiers du bateau).
+const Offset _kBowFrac = Offset(1500 / 1536, 768 / 1024);
 
 /// Angle (radians) d'écartement de chaque branche du sillage par rapport à
-/// l'axe arrière, à son extrémité — même valeur que [SailboatComponent].
-const double _kWakeSpreadAngle = 16 * pi / 180;
+/// l'axe arrière, à son extrémité — moitié de celui du voilier
+/// ([SailboatComponent._kWakeSpreadAngle] = 16°) : un sillage aussi ouvert
+/// sur ce bateau plus long faisait déborder une branche par-dessus le pont.
+const double _kWakeSpreadAngle = 8 * pi / 180;
 
 /// Exposant appliqué à `t` pour façonner l'écartement — même valeur que
 /// [SailboatComponent] (voir sa doc de fichier pour le détail).
