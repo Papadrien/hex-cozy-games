@@ -66,9 +66,10 @@
 /// sont gonflées pour rester hors du cadre visible même après un dézoom du
 /// plateau survenu après l'apparition.
 ///
-/// Sillage en V à l'arrière du bateau (voir [_renderWake]) — même principe
-/// que [SailboatComponent] (voir sa doc de fichier), dupliqué ici avec les
-/// coordonnées de poupe/proue propres à `fishing_boat.png`.
+/// Sillage en V à l'arrière du bateau (voir [_wakeRenderPlan]) — même
+/// principe que [SailboatComponent] (voir sa doc de fichier, y compris le
+/// partage des deux branches entre avant et arrière du sprite), dupliqué
+/// ici avec les coordonnées de poupe/proue propres à `fishing_boat.png`.
 library;
 
 import 'dart:math' show Point, Random, atan2, cos, pi, pow, sin, tan;
@@ -143,18 +144,21 @@ double _offScreenSafetyFactor(double spawnZoom) =>
 /// Position de la poupe (arrière de la coque, au niveau de la ligne de
 /// flottaison — pas du pont) en coordonnées normalisées (fraction de la
 /// largeur/hauteur du sprite, 0..1) — pointée par analyse des pixels
-/// non-transparents de l'asset embarqué (1536×1024, colonne la plus à
-/// gauche du contour de la coque) : poupe ≈ (30, 460).
-const Offset _kSternFrac = Offset(30 / 1536, 460 / 1024);
+/// non-transparents de l'asset embarqué (1536×1024, point le plus bas du
+/// contour de la coque côté poupe) : poupe ≈ (30, 478). La valeur
+/// précédente, (30, 460), tombait ~18px plus haut, dans le flanc crème de
+/// la coque au-dessus de la ligne de flottaison plutôt qu'au ras de l'eau.
+const Offset _kSternFrac = Offset(30 / 1536, 478 / 1024);
 
-/// Position de la proue (pointe avant de la coque) — sert à la fois
-/// d'origine du sillage (départ à l'avant, voir [_renderWake]) et, avec
-/// [_kSternFrac], à déterminer la direction "vers l'arrière" (poupe → proue
-/// inversé) : proue ≈ (1500, 768), le point le plus à droite du contour de
-/// la coque (pointée par analyse des pixels non-transparents — la valeur
-/// précédente, (1300, 790), tombait pile à mi-coque plutôt qu'à la pointe
-/// avant, d'où un sillage qui semblait partir du tiers du bateau).
-const Offset _kBowFrac = Offset(1500 / 1536, 768 / 1024);
+/// Position de la proue (pointe avant de la coque, à l'endroit où l'eau
+/// touche l'avant de la coque — la ligne de flottaison peinte en liseré sur
+/// l'asset, pas le haut du plat-bord) — sert à la fois d'origine du sillage
+/// (départ à l'avant, voir [_renderWake]) et, avec [_kSternFrac], à
+/// déterminer la direction "vers l'arrière" (poupe → proue inversé) : proue
+/// ≈ (1493, 776). La valeur précédente, (1500, 768), suivait le plat-bord
+/// (haut de coque, au niveau du liseré rouille) plutôt que la ligne de
+/// flottaison, plus bas d'une trentaine de pixels à cet endroit.
+const Offset _kBowFrac = Offset(1493 / 1536, 776 / 1024);
 
 /// Angle (radians) d'écartement de chaque branche du sillage par rapport à
 /// l'axe arrière, à son extrémité — moitié de celui du voilier
@@ -403,32 +407,37 @@ class FishingBoatComponent extends SpriteComponent {
 
   @override
   void render(Canvas canvas) {
-    // Dessiné après le sprite (donc visuellement au-dessus), en
-    // coordonnées locales — le moteur a déjà appliqué position/zoom et le
-    // miroir (apparition + virage) à `canvas` avant cet appel, donc
-    // [_kSternFrac] etc. (exprimées en fraction de la boîte locale
-    // [0, size]) suivent automatiquement le bateau sans logique
-    // supplémentaire. Le sillage hugging la coque de près, le dessiner
-    // avant le sprite le cachait en grande partie sous la coque elle-même
-    // — il doit passer par-dessus pour rester visible.
+    // Le sillage est scindé en deux branches (voir [_wakeRenderPlan]) —
+    // même principe que [SailboatComponent] (voir sa doc de fichier pour le
+    // détail) : la branche qui remonte le plus vers le haut de l'écran
+    // passe derrière la coque (dessinée avant `super.render`), l'autre
+    // passe devant (dessinée après). Coordonnées locales — le moteur a déjà
+    // appliqué position/zoom et le miroir (apparition + virage) à `canvas`
+    // avant cet appel, donc [_kSternFrac] etc. suivent automatiquement le
+    // bateau.
+    final plan = _wakeRenderPlan();
+    if (plan != null) canvas.drawPath(plan.behind, plan.paint);
     super.render(canvas);
-    _renderWake(canvas);
+    if (plan != null) canvas.drawPath(plan.front, plan.paint);
   }
 
-  /// Sillage en V partant de la proue et enveloppant la coque vers
-  /// l'arrière — même principe que [SailboatComponent] (voir sa doc de
-  /// fichier pour le détail du choix de la proue comme origine). Intensité
-  /// modulée par [_wakeIntensity] (alpha et longueur), pour s'atténuer avec
-  /// le ralentissement, disparaître pendant la pause et reprendre avec
-  /// l'accélération du départ.
-  void _renderWake(Canvas canvas) {
-    if (_wakeIntensity <= 0.001) return;
+  /// Construit les deux branches du sillage en V partant de la proue et
+  /// enveloppant la coque vers l'arrière — même principe que
+  /// [SailboatComponent] (voir sa doc de fichier pour le détail du choix de
+  /// la proue comme origine et du classement devant/derrière) — et
+  /// détermine laquelle passe derrière la coque (voir [render]) et laquelle
+  /// passe devant. Intensité modulée par [_wakeIntensity] (alpha et
+  /// longueur), pour s'atténuer avec le ralentissement, disparaître pendant
+  /// la pause et reprendre avec l'accélération du départ. Renvoie `null` si
+  /// le sillage est invisible ou si poupe/proue coïncident.
+  ({Path behind, Path front, Paint paint})? _wakeRenderPlan() {
+    if (_wakeIntensity <= 0.001) return null;
 
     final sternPx = Offset(_kSternFrac.dx * size.x, _kSternFrac.dy * size.y);
     final bowPx = Offset(_kBowFrac.dx * size.x, _kBowFrac.dy * size.y);
     final bowToStern = sternPx - bowPx;
     final bowToSternLength = bowToStern.distance;
-    if (bowToSternLength < 0.001) return;
+    if (bowToSternLength < 0.001) return null;
     final backward = bowToStern / bowToSternLength;
 
     // La longueur rétrécit légèrement en plus de l'estompage (alpha) — un
@@ -445,10 +454,8 @@ class FishingBoatComponent extends SpriteComponent {
       ..strokeWidth = 3.4 * (size.x / _kBaseWidth)
       ..strokeCap = StrokeCap.round;
 
-    for (final side in [-1.0, 1.0]) {
-      canvas.drawPath(
-        _wakeLinePath(
-          // Origine à la proue (pas la poupe), voir doc de [_renderWake].
+    // Origine à la proue (pas la poupe), voir doc de [_wakeRenderPlan].
+    Path pathForSide(double side) => _wakeLinePath(
           origin: bowPx,
           backward: backward,
           length: length,
@@ -457,10 +464,29 @@ class FishingBoatComponent extends SpriteComponent {
           // Légèrement déphasées entre les deux branches pour éviter une
           // ondulation parfaitement symétrique (moins naturelle).
           phase: side > 0 ? 0.0 : pi,
-        ),
-        paint,
-      );
+        );
+
+    // Composante Y (verticale écran) de la direction de chaque branche à
+    // mi-longueur — sert uniquement à classer les branches, voir doc de
+    // [SailboatComponent._wakeRenderPlan] pour le détail (notamment sur
+    // l'insensibilité au miroir horizontal du virage/de l'apparition
+    // inversée).
+    double dirYForSide(double side) {
+      final angle = _kWakeSpreadAngle *
+          side *
+          pow(0.5, _kWakeWidenExponent).toDouble();
+      return backward.dx * sin(angle) + backward.dy * cos(angle);
     }
+
+    final pathPositiveSide = pathForSide(1.0);
+    final pathNegativeSide = pathForSide(-1.0);
+    final positiveSideIsBehind = dirYForSide(1.0) < dirYForSide(-1.0);
+
+    return (
+      behind: positiveSideIsBehind ? pathPositiveSide : pathNegativeSide,
+      front: positiveSideIsBehind ? pathNegativeSide : pathPositiveSide,
+      paint: paint,
+    );
   }
 
   /// Construit une branche du sillage : part de [origin] (la poupe) selon
