@@ -162,7 +162,7 @@ const Offset _kSternFrac = Offset(30 / 1536, 478 / 1024);
 /// ≈ (1493, 776). La valeur précédente, (1500, 768), suivait le plat-bord
 /// (haut de coque, au niveau du liseré rouille) plutôt que la ligne de
 /// flottaison, plus bas d'une trentaine de pixels à cet endroit.
-const Offset _kBowFrac = Offset(1493 / 1536, 806 / 1024);
+const Offset _kBowFrac = Offset(1493 / 1536, 850 / 1024);
 
 /// Angle (radians) d'écartement de chaque branche du sillage par rapport à
 /// l'axe arrière, à son extrémité — moitié de celui du voilier
