@@ -101,6 +101,10 @@ const double _kSpriteAspect = 1024 / 1536;
 /// voilier ([kPauseDuration] dans `sailboat_component.dart`).
 const double kPauseDuration = 5.0;
 
+/// Durée du fondu du sillage à l'arrêt et au redémarrage — identique à
+/// celle du voilier ([_kWakeFadeDuration] dans `sailboat_component.dart`).
+const double _kWakeFadeDuration = 0.5;
+
 /// Vitesse moyenne visée pour les deux trajets (px/s à zoom 1.0) —
 /// identique à celle du voilier ([_kSailSpeed] dans
 /// `sailboat_component.dart`), comme demandé.
@@ -218,19 +222,17 @@ class FishingBoatComponent extends SpriteComponent {
   late final double _approachDuration;
   late final double _departureDuration;
 
-  /// Distances totales de chaque trajet et distance de fondu du sillage —
-  /// même principe que [SailboatComponent], voir sa doc de fichier pour le
-  /// détail.
+  /// Distance totale du trajet d'approche — même principe que
+  /// [SailboatComponent], voir sa doc de fichier pour le détail.
   late final double _approachDistance;
-  late final double _departureDistance;
-  late final double _wakeFadeDistance;
 
   _BoatPhase _phase = _BoatPhase.approach;
   double _elapsedInPhase = 0.0;
   double _wakeTime = 0.0;
 
-  /// Intensité du sillage (0..1) — voir [_updateWakeIntensity] côté
-  /// [SailboatComponent] pour le détail du calcul (identique ici).
+  /// Intensité du sillage (0..1) — voir doc de
+  /// [SailboatComponent._wakeIntensity] pour le détail du calcul
+  /// (identique ici).
   double _wakeIntensity = 1.0;
 
   @override
@@ -325,9 +327,6 @@ class FishingBoatComponent extends SpriteComponent {
     _departureDuration = (departureDx / _kBoatSpeed)
         .clamp(_kMinLegDuration, _kMaxLegDuration);
 
-    _departureDistance = (_exitOffset - _pauseOffset).length;
-    _wakeFadeDistance = screenSize.length * 0.25;
-
     _applyFrame(_startOffset);
   }
 
@@ -344,10 +343,9 @@ class FishingBoatComponent extends SpriteComponent {
         final rawT = (_elapsedInPhase / _approachDuration).clamp(0.0, 1.0);
         final t = Curves.easeOut.transform(rawT);
         _applyFrame(_startOffset + (_pauseOffset - _startOffset) * t);
-        // Intensité basée sur la distance restante jusqu'à la pause, pas
-        // sur `rawT` — voir la doc de [SailboatComponent._wakeFadeDistance].
-        final distanceRemaining = _approachDistance * (1.0 - t);
-        _wakeIntensity = (distanceRemaining / _wakeFadeDistance).clamp(0.0, 1.0);
+        // Sillage à pleine intensité tant que le bateau navigue — voir doc
+        // de [SailboatComponent._wakeIntensity].
+        _wakeIntensity = 1.0;
         if (rawT >= 1.0) {
           _phase = _BoatPhase.pause;
           _elapsedInPhase = 0.0;
@@ -358,7 +356,11 @@ class FishingBoatComponent extends SpriteComponent {
         // Immobile — reste à l'offset de pause (reconverti chaque frame
         // pour continuer à suivre le pan/zoom pendant l'arrêt).
         _applyFrame(_pauseOffset);
-        _wakeIntensity = 0.0;
+        // Fondu du sillage sur [_kWakeFadeDuration] pile au moment où le
+        // bateau s'arrête — voir doc de [SailboatComponent._wakeIntensity].
+        final fadeT =
+            (_elapsedInPhase / _kWakeFadeDuration).clamp(0.0, 1.0);
+        _wakeIntensity = 1.0 - fadeT;
         if (_elapsedInPhase >= kPauseDuration) {
           // Symétrie selon un axe vertical, appliquée seulement maintenant
           // (fin de la pause) : fait "virer" le bateau en place (le point
@@ -376,10 +378,11 @@ class FishingBoatComponent extends SpriteComponent {
         final rawT = (_elapsedInPhase / _departureDuration).clamp(0.0, 1.0);
         final t = Curves.easeIn.transform(rawT);
         _applyFrame(_pauseOffset + (_exitOffset - _pauseOffset) * t);
-        // Intensité basée sur la distance déjà parcourue depuis la pause,
-        // pas sur `rawT` — voir la doc de [SailboatComponent].
-        final distanceTraveled = _departureDistance * t;
-        _wakeIntensity = (distanceTraveled / _wakeFadeDistance).clamp(0.0, 1.0);
+        // Fondu du sillage sur [_kWakeFadeDuration] pile au moment où le
+        // bateau redémarre — voir doc de [SailboatComponent._wakeIntensity].
+        final fadeT =
+            (_elapsedInPhase / _kWakeFadeDuration).clamp(0.0, 1.0);
+        _wakeIntensity = fadeT;
         if (rawT >= 1.0) {
           _phase = _BoatPhase.done;
           removeFromParent();
