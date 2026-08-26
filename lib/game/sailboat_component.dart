@@ -177,7 +177,7 @@ const Offset _kBowFrac = Offset(477 / 768, 510 / 512);
 /// (plus petit et plus fin que le bateau de pêche).
 
 /// Exposant appliqué à `t` (progression 0..1 le long d'une branche) pour
-/// façonner l'écartement : `angle(t) = spreadAngle * t^kWakeWidenExponent`.
+/// façonner l'écartement : `angle(t) = spreadAngle * t^WakeMixin.kWakeWidenExponent`.
 /// Un exposant < 1 fait s'écarter les branches rapidement dès la sortie de
 /// la proue (le "V" est déjà bien ouvert à mi-longueur) plutôt que de
 /// rester serré contre la coque jusqu'au bout et ne s'évaser qu'en toute
@@ -190,7 +190,7 @@ const Offset _kBowFrac = Offset(477 / 768, 510 / 512);
 /// n'ont rien à voir avec la taille réelle de la coque.
 
 /// Amplitude de l'ondulation du sillage, en fraction de la distance
-/// poupe→proue (même remarque que [kWakeLengthFraction]) — croissante avec
+/// poupe→proue (même remarque que [WakeMixin.kWakeLengthFraction]) — croissante avec
 /// la distance à la proue, même technique que l'ondulation du pied des
 /// tuiles ([kEdgeWaveFrequency]/[kEdgeWaveSpeed]), réappliquée ici
 /// perpendiculairement à chaque branche.
@@ -223,9 +223,6 @@ class SailboatComponent extends SpriteComponent with WakeMixin {
 
   @override
   double get wakeTime => _wakeTime;
-
-  @override
-  double get _baseWidthForStroke => _kBaseWidth;
 
   /// Zoom du plateau au moment de l'apparition — sert de référence pour la
   /// mise à l'échelle de la trajectoire et du sprite en fonction du zoom
@@ -479,11 +476,11 @@ class SailboatComponent extends SpriteComponent with WakeMixin {
     // taille réelle de la coque), pas sur `size.x` (largeur de tout le
     // sprite, qui inclut la voile et les marges transparentes de l'asset et
     // n'a donc aucun rapport avec la longueur du bateau) — voir doc de
-    // [kWakeLengthFraction].
+    // [WakeMixin.kWakeLengthFraction].
     final length = bowToSternLength *
-        kWakeLengthFraction *
+        WakeMixin.kWakeLengthFraction *
         (0.3 + 0.7 * _wakeIntensity);
-    final rippleAmplitude = bowToSternLength * kWakeRippleFraction;
+    final rippleAmplitude = bowToSternLength * WakeMixin.kWakeRippleFraction;
     final paint = Paint()
       ..color = const Color(0xFFFFFFFF).withValues(alpha: 0.55 * _wakeIntensity)
       ..style = PaintingStyle.stroke
@@ -492,7 +489,7 @@ class SailboatComponent extends SpriteComponent with WakeMixin {
 
     // Origine à la proue (pas la poupe) : chaque branche part donc de
     // l'avant, longe la coque sur le côté en s'écartant progressivement
-    // (voir [kWakeSpreadAngle] et l'exposant dans [_wakeLinePath]), et ne
+    // (voir [WakeMixin.kWakeSpreadAngle] et l'exposant dans [_wakeLinePath]), et ne
     // dépasse la largeur du bateau qu'après avoir atteint/dépassé la poupe
     // — le sillage englobe ainsi la coque au lieu de se réduire à une
     // fourche isolée en arrière.
@@ -500,7 +497,7 @@ class SailboatComponent extends SpriteComponent with WakeMixin {
           origin: bowPx,
           backward: backward,
           length: length,
-          spreadAngle: kWakeSpreadAngle * side,
+          spreadAngle: WakeMixin.kWakeSpreadAngle * side,
           rippleAmplitude: rippleAmplitude,
           // Légèrement déphasées entre les deux branches pour éviter une
           // ondulation parfaitement symétrique (moins naturelle).
@@ -516,9 +513,9 @@ class SailboatComponent extends SpriteComponent with WakeMixin {
     // fichier) : un miroir purement horizontal ne change pas l'ordre des Y,
     // donc ce classement reste valide y compris après le virage.
     double dirYForSide(double side) {
-      final angle = kWakeSpreadAngle *
+      final angle = WakeMixin.kWakeSpreadAngle *
           side *
-          pow(0.5, kWakeWidenExponent).toDouble();
+          pow(0.5, WakeMixin.kWakeWidenExponent).toDouble();
       return backward.dx * sin(angle) + backward.dy * cos(angle);
     }
 
@@ -552,9 +549,9 @@ class SailboatComponent extends SpriteComponent with WakeMixin {
   }) {
     final perp = Offset(-backward.dy, backward.dx);
     final path = Path()..moveTo(origin.dx, origin.dy);
-    for (var s = 1; s <= kWakeSegments; s++) {
-      final t = s / kWakeSegments;
-      final angle = spreadAngle * pow(t, kWakeWidenExponent);
+    for (var s = 1; s <= WakeMixin.kWakeSegments; s++) {
+      final t = s / WakeMixin.kWakeSegments;
+      final angle = spreadAngle * pow(t, WakeMixin.kWakeWidenExponent);
       final cosA = cos(angle);
       final sinA = sin(angle);
       final dirX = backward.dx * cosA - backward.dy * sinA;

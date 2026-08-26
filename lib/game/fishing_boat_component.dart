@@ -166,7 +166,7 @@ const Offset _kBowFrac = Offset(1493 / 1536, 806 / 1024);
 
 /// Angle (radians) d'écartement de chaque branche du sillage par rapport à
 /// l'axe arrière, à son extrémité — moitié de celui du voilier
-/// ([SailboatComponent.kWakeSpreadAngle] = 16°) : un sillage aussi ouvert
+/// ([SailboatComponent.WakeMixin.kWakeSpreadAngle] = 16°) : un sillage aussi ouvert
 /// sur ce bateau plus long faisait déborder une branche par-dessus le pont.
 
 /// Exposant appliqué à `t` pour façonner l'écartement — même valeur que
@@ -177,7 +177,7 @@ const Offset _kBowFrac = Offset(1493 / 1536, 806 / 1024);
 /// pas sur `size.x` qui inclut les marges transparentes de l'asset).
 
 /// Amplitude de l'ondulation du sillage, en fraction de la distance
-/// poupe→proue (même remarque que [kWakeLengthFraction]) — croissante avec
+/// poupe→proue (même remarque que [WakeMixin.kWakeLengthFraction]) — croissante avec
 /// la distance à la proue, même technique que l'ondulation du pied des
 /// tuiles ([kEdgeWaveFrequency]/[kEdgeWaveSpeed]), réappliquée ici
 /// perpendiculairement à chaque branche.
@@ -207,9 +207,6 @@ class FishingBoatComponent extends SpriteComponent with WakeMixin {
 
   @override
   double get wakeTime => _wakeTime;
-
-  @override
-  double get _baseWidthForStroke => _kBaseWidth;
 
   /// Zoom du plateau au moment de l'apparition — sert de référence pour la
   /// mise à l'échelle de la trajectoire et du sprite en fonction du zoom
@@ -457,11 +454,11 @@ class FishingBoatComponent extends SpriteComponent with WakeMixin {
     // La longueur rétrécit légèrement en plus de l'estompage (alpha) — un
     // sillage qui s'efface tout en se rétractant est plus naturel qu'un
     // simple fondu sur place. Échelle sur la distance poupe→proue, voir la
-    // doc de [SailboatComponent.kWakeLengthFraction].
+    // doc de [SailboatComponent.WakeMixin.kWakeLengthFraction].
     final length = bowToSternLength *
-        kWakeLengthFraction *
+        WakeMixin.kWakeLengthFraction *
         (0.3 + 0.7 * _wakeIntensity);
-    final rippleAmplitude = bowToSternLength * kWakeRippleFraction;
+    final rippleAmplitude = bowToSternLength * WakeMixin.kWakeRippleFraction;
     final paint = Paint()
       ..color = const Color(0xFFFFFFFF).withValues(alpha: 0.55 * _wakeIntensity)
       ..style = PaintingStyle.stroke
@@ -473,7 +470,7 @@ class FishingBoatComponent extends SpriteComponent with WakeMixin {
           origin: bowPx,
           backward: backward,
           length: length,
-          spreadAngle: kWakeSpreadAngle * side,
+          spreadAngle: WakeMixin.kWakeSpreadAngle * side,
           rippleAmplitude: rippleAmplitude,
           // Légèrement déphasées entre les deux branches pour éviter une
           // ondulation parfaitement symétrique (moins naturelle).
@@ -486,9 +483,9 @@ class FishingBoatComponent extends SpriteComponent with WakeMixin {
     // l'insensibilité au miroir horizontal du virage/de l'apparition
     // inversée).
     double dirYForSide(double side) {
-      final angle = kWakeSpreadAngle *
+      final angle = WakeMixin.kWakeSpreadAngle *
           side *
-          pow(0.5, kWakeWidenExponent).toDouble();
+          pow(0.5, WakeMixin.kWakeWidenExponent).toDouble();
       return backward.dx * sin(angle) + backward.dy * cos(angle);
     }
 
@@ -519,9 +516,9 @@ class FishingBoatComponent extends SpriteComponent with WakeMixin {
   }) {
     final perp = Offset(-backward.dy, backward.dx);
     final path = Path()..moveTo(origin.dx, origin.dy);
-    for (var s = 1; s <= kWakeSegments; s++) {
-      final t = s / kWakeSegments;
-      final angle = spreadAngle * pow(t, kWakeWidenExponent);
+    for (var s = 1; s <= WakeMixin.kWakeSegments; s++) {
+      final t = s / WakeMixin.kWakeSegments;
+      final angle = spreadAngle * pow(t, WakeMixin.kWakeWidenExponent);
       final cosA = cos(angle);
       final sinA = sin(angle);
       final dirX = backward.dx * cosA - backward.dy * sinA;

@@ -16,14 +16,14 @@
 library;
 
 import 'dart:math' show pi, pow, sin, cos;
-import 'dart:ui' show Canvas, Color, Offset, Paint, PaintingStyle, Path, StrokeCap;
+import 'dart:ui' show Color, Offset, Paint, PaintingStyle, Path, StrokeCap;
 
 import 'package:flame/components.dart';
 
 import 'tile_component.dart' show kEdgeWaveFrequency, kEdgeWaveSpeed;
 
 /// Mixin de sillage pour les composants bateau.
-abstract mixin WakeMixin on SpriteComponent {
+mixin WakeMixin on SpriteComponent {
   /// Angle (radians) d'écartement de chaque branche du sillage par rapport
   /// à l'axe arrière, à son extrémité.
   static const double kWakeSpreadAngle = 8 * pi / 180;
@@ -57,11 +57,7 @@ abstract mixin WakeMixin on SpriteComponent {
   /// le composant.
   double get wakeTime;
 
-  /// Largeur de référence pour le calcul de l'épaisseur du trait de sillage.
-  /// Doit être redéfinie par les composants.
-  double get _baseWidthForStroke;
-
-  /// Construit les deux branches du sillage en V partant de la proue et
+/// Construit les deux branches du sillage en V partant de la proue et
   /// enveloppant la coque vers l'arrière, et détermine laquelle passe
   /// derrière la coque (dessinée avant le sprite) et laquelle passe devant.
   ///
@@ -84,7 +80,7 @@ abstract mixin WakeMixin on SpriteComponent {
     final paint = Paint()
       ..color = const Color(0xFFFFFFFF).withValues(alpha: 0.55 * wakeIntensity)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 3.4 * (size.x / _baseWidthForStroke)
+      ..strokeWidth = 3.4
       ..strokeCap = StrokeCap.round;
 
     // Origine à la proue (pas la poupe).
