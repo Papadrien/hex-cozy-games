@@ -203,10 +203,10 @@ class FishingBoatComponent extends SpriteComponent with WakeMixin {
   Offset get bowFrac => _kBowFrac;
 
   @override
-  double get wakeIntensity => wakeIntensity;
+  double get wakeIntensity => _wakeIntensity;
 
   @override
-  double get wakeTime => wakeTime;
+  double get wakeTime => _wakeTime;
 
   @override
   double get _baseWidthForStroke => _kBaseWidth;
@@ -238,12 +238,12 @@ class FishingBoatComponent extends SpriteComponent with WakeMixin {
 
   _BoatPhase _phase = _BoatPhase.approach;
   double _elapsedInPhase = 0.0;
-  double wakeTime = 0.0;
+  double _wakeTime = 0.0;
 
   /// Intensité du sillage (0..1) — voir doc de
   /// [SailboatComponent.wakeIntensity] pour le détail du calcul
   /// (identique ici).
-  double wakeIntensity = 1.0;
+  double _wakeIntensity = 1.0;
 
   @override
   Future<void> onLoad() async {
@@ -343,7 +343,7 @@ class FishingBoatComponent extends SpriteComponent with WakeMixin {
   @override
   void update(double dt) {
     super.update(dt);
-    wakeTime += dt;
+    _wakeTime += dt;
     if (_phase == _BoatPhase.done) return;
 
     _elapsedInPhase += dt;
@@ -355,7 +355,7 @@ class FishingBoatComponent extends SpriteComponent with WakeMixin {
         _applyFrame(_startOffset + (_pauseOffset - _startOffset) * t);
         // Sillage à pleine intensité tant que le bateau navigue — voir doc
         // de [SailboatComponent.wakeIntensity].
-        wakeIntensity = 1.0;
+        _wakeIntensity = 1.0;
         if (rawT >= 1.0) {
           _phase = _BoatPhase.pause;
           _elapsedInPhase = 0.0;
@@ -370,7 +370,7 @@ class FishingBoatComponent extends SpriteComponent with WakeMixin {
         // bateau s'arrête — voir doc de [SailboatComponent.wakeIntensity].
         final fadeT =
             (_elapsedInPhase / 0.5).clamp(0.0, 1.0);
-        wakeIntensity = 1.0 - fadeT;
+        _wakeIntensity = 1.0 - fadeT;
         if (_elapsedInPhase >= kPauseDuration) {
           // Symétrie selon un axe vertical, appliquée seulement maintenant
           // (fin de la pause) : fait "virer" le bateau en place (le point
@@ -392,7 +392,7 @@ class FishingBoatComponent extends SpriteComponent with WakeMixin {
         // bateau redémarre — voir doc de [SailboatComponent.wakeIntensity].
         final fadeT =
             (_elapsedInPhase / 0.5).clamp(0.0, 1.0);
-        wakeIntensity = fadeT;
+        _wakeIntensity = fadeT;
         if (rawT >= 1.0) {
           _phase = _BoatPhase.done;
           removeFromParent();
@@ -445,10 +445,10 @@ class FishingBoatComponent extends SpriteComponent with WakeMixin {
   /// le sillage est invisible ou si poupe/proue coïncident.
   @override
   ({Path behind, Path front, Paint paint})? wakeRenderPlan() {
-    if (wakeIntensity <= 0.001) return null;
+    if (_wakeIntensity <= 0.001) return null;
 
-    final sternPx = Offset(_kSternFrac.dx * size.x, _kSternFrac.dy * size.y);
-    final bowPx = Offset(_kBowFrac.dx * size.x, _kBowFrac.dy * size.y);
+    final sternPx = Offset(sternFrac.dx * size.x, sternFrac.dy * size.y);
+    final bowPx = Offset(bowFrac.dx * size.x, bowFrac.dy * size.y);
     final bowToStern = sternPx - bowPx;
     final bowToSternLength = bowToStern.distance;
     if (bowToSternLength < 0.001) return null;
@@ -460,10 +460,10 @@ class FishingBoatComponent extends SpriteComponent with WakeMixin {
     // doc de [SailboatComponent.kWakeLengthFraction].
     final length = bowToSternLength *
         kWakeLengthFraction *
-        (0.3 + 0.7 * wakeIntensity);
+        (0.3 + 0.7 * _wakeIntensity);
     final rippleAmplitude = bowToSternLength * kWakeRippleFraction;
     final paint = Paint()
-      ..color = const Color(0xFFFFFFFF).withValues(alpha: 0.55 * wakeIntensity)
+      ..color = const Color(0xFFFFFFFF).withValues(alpha: 0.55 * _wakeIntensity)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 3.4 * (size.x / _kBaseWidth)
       ..strokeCap = StrokeCap.round;
@@ -531,7 +531,7 @@ class FishingBoatComponent extends SpriteComponent with WakeMixin {
           t *
           sin(kEdgeWaveFrequency * 2 * pi * t +
               phase +
-              wakeTime * kEdgeWaveSpeed);
+              _wakeTime * kEdgeWaveSpeed);
       path.lineTo(
         origin.dx + dirX * dist + perp.dx * ripple,
         origin.dy + dirY * dist + perp.dy * ripple,
