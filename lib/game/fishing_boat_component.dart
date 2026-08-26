@@ -83,6 +83,7 @@ import 'hex_coords.dart' show HexLayout;
 import 'hex_grid_component.dart' show HexGridComponent;
 import 'tile_component.dart'
     show kEdgeWaveFrequency, kEdgeWaveSpeed, kIsoScaleY, kTileDepthPriorityBase;
+import 'wake_mixin.dart' show WakeMixin;
 
 /// Angle (radians, sous l'horizontale) du cap naturel du bateau tel que
 /// dessiné dans l'asset, mesuré sur l'image source — voir doc de fichier.
@@ -102,8 +103,7 @@ const double _kSpriteAspect = 1024 / 1536;
 const double kPauseDuration = 5.0;
 
 /// Durée du fondu du sillage à l'arrêt et au redémarrage — identique à
-/// celle du voilier ([_kWakeFadeDuration] dans `sailboat_component.dart`).
-const double _kWakeFadeDuration = 0.5;
+/// celle du voilier ([0.5] dans `sailboat_component.dart`).
 
 /// Vitesse moyenne visée pour les deux trajets (px/s à zoom 1.0) —
 /// identique à celle du voilier ([_kSailSpeed] dans
@@ -166,40 +166,50 @@ const Offset _kBowFrac = Offset(1493 / 1536, 806 / 1024);
 
 /// Angle (radians) d'écartement de chaque branche du sillage par rapport à
 /// l'axe arrière, à son extrémité — moitié de celui du voilier
-/// ([SailboatComponent._kWakeSpreadAngle] = 16°) : un sillage aussi ouvert
+/// ([SailboatComponent.kWakeSpreadAngle] = 16°) : un sillage aussi ouvert
 /// sur ce bateau plus long faisait déborder une branche par-dessus le pont.
-const double _kWakeSpreadAngle = 8 * pi / 180;
 
 /// Exposant appliqué à `t` pour façonner l'écartement — même valeur que
 /// [SailboatComponent] (voir sa doc de fichier pour le détail).
-const double _kWakeWidenExponent = 0.65;
 
 /// Longueur du sillage, en multiple de la distance poupe→proue — voir la
 /// doc de [SailboatComponent] pour le détail (échelle sur la coque réelle,
 /// pas sur `size.x` qui inclut les marges transparentes de l'asset).
-const double _kWakeLengthFraction = 0.95;
 
 /// Amplitude de l'ondulation du sillage, en fraction de la distance
-/// poupe→proue (même remarque que [_kWakeLengthFraction]) — croissante avec
+/// poupe→proue (même remarque que [kWakeLengthFraction]) — croissante avec
 /// la distance à la proue, même technique que l'ondulation du pied des
 /// tuiles ([kEdgeWaveFrequency]/[kEdgeWaveSpeed]), réappliquée ici
 /// perpendiculairement à chaque branche.
-const double _kWakeRippleFraction = 0.028;
 
 /// Nombre de segments de chaque branche du sillage — voir la doc de
 /// [SailboatComponent] pour le détail : 24 segments (plutôt que 10) pour un
 /// tracé lisse au lieu d'angles vifs façon "éclair".
 
-const int _kWakeSegments = 24;
 
 enum _BoatPhase { approach, pause, departure, done }
 
-class FishingBoatComponent extends SpriteComponent {
+class FishingBoatComponent extends SpriteComponent with WakeMixin {
   FishingBoatComponent({required this.screenSize, double zoom = 1.0})
       : _spawnZoom = zoom,
         super(anchor: Anchor.center, priority: kTileDepthPriorityBase - 1);
 
   final Vector2 screenSize;
+
+  @override
+  Offset get sternFrac => _kSternFrac;
+
+  @override
+  Offset get bowFrac => _kBowFrac;
+
+  @override
+  double get wakeIntensity => wakeIntensity;
+
+  @override
+  double get wakeTime => wakeTime;
+
+  @override
+  double get _baseWidthForStroke => _kBaseWidth;
 
   /// Zoom du plateau au moment de l'apparition — sert de référence pour la
   /// mise à l'échelle de la trajectoire et du sprite en fonction du zoom
@@ -228,12 +238,12 @@ class FishingBoatComponent extends SpriteComponent {
 
   _BoatPhase _phase = _BoatPhase.approach;
   double _elapsedInPhase = 0.0;
-  double _wakeTime = 0.0;
+  double wakeTime = 0.0;
 
   /// Intensité du sillage (0..1) — voir doc de
-  /// [SailboatComponent._wakeIntensity] pour le détail du calcul
+  /// [SailboatComponent.wakeIntensity] pour le détail du calcul
   /// (identique ici).
-  double _wakeIntensity = 1.0;
+  double wakeIntensity = 1.0;
 
   @override
   Future<void> onLoad() async {
@@ -333,7 +343,7 @@ class FishingBoatComponent extends SpriteComponent {
   @override
   void update(double dt) {
     super.update(dt);
-    _wakeTime += dt;
+    wakeTime += dt;
     if (_phase == _BoatPhase.done) return;
 
     _elapsedInPhase += dt;
@@ -344,8 +354,8 @@ class FishingBoatComponent extends SpriteComponent {
         final t = Curves.easeOut.transform(rawT);
         _applyFrame(_startOffset + (_pauseOffset - _startOffset) * t);
         // Sillage à pleine intensité tant que le bateau navigue — voir doc
-        // de [SailboatComponent._wakeIntensity].
-        _wakeIntensity = 1.0;
+        // de [SailboatComponent.wakeIntensity].
+        wakeIntensity = 1.0;
         if (rawT >= 1.0) {
           _phase = _BoatPhase.pause;
           _elapsedInPhase = 0.0;
@@ -356,11 +366,11 @@ class FishingBoatComponent extends SpriteComponent {
         // Immobile — reste à l'offset de pause (reconverti chaque frame
         // pour continuer à suivre le pan/zoom pendant l'arrêt).
         _applyFrame(_pauseOffset);
-        // Fondu du sillage sur [_kWakeFadeDuration] pile au moment où le
-        // bateau s'arrête — voir doc de [SailboatComponent._wakeIntensity].
+        // Fondu du sillage sur [0.5] pile au moment où le
+        // bateau s'arrête — voir doc de [SailboatComponent.wakeIntensity].
         final fadeT =
-            (_elapsedInPhase / _kWakeFadeDuration).clamp(0.0, 1.0);
-        _wakeIntensity = 1.0 - fadeT;
+            (_elapsedInPhase / 0.5).clamp(0.0, 1.0);
+        wakeIntensity = 1.0 - fadeT;
         if (_elapsedInPhase >= kPauseDuration) {
           // Symétrie selon un axe vertical, appliquée seulement maintenant
           // (fin de la pause) : fait "virer" le bateau en place (le point
@@ -378,11 +388,11 @@ class FishingBoatComponent extends SpriteComponent {
         final rawT = (_elapsedInPhase / _departureDuration).clamp(0.0, 1.0);
         final t = Curves.easeIn.transform(rawT);
         _applyFrame(_pauseOffset + (_exitOffset - _pauseOffset) * t);
-        // Fondu du sillage sur [_kWakeFadeDuration] pile au moment où le
-        // bateau redémarre — voir doc de [SailboatComponent._wakeIntensity].
+        // Fondu du sillage sur [0.5] pile au moment où le
+        // bateau redémarre — voir doc de [SailboatComponent.wakeIntensity].
         final fadeT =
-            (_elapsedInPhase / _kWakeFadeDuration).clamp(0.0, 1.0);
-        _wakeIntensity = fadeT;
+            (_elapsedInPhase / 0.5).clamp(0.0, 1.0);
+        wakeIntensity = fadeT;
         if (rawT >= 1.0) {
           _phase = _BoatPhase.done;
           removeFromParent();
@@ -418,7 +428,7 @@ class FishingBoatComponent extends SpriteComponent {
     // appliqué position/zoom et le miroir (apparition + virage) à `canvas`
     // avant cet appel, donc [_kSternFrac] etc. suivent automatiquement le
     // bateau.
-    final plan = _wakeRenderPlan();
+    final plan = wakeRenderPlan();
     if (plan != null) canvas.drawPath(plan.behind, plan.paint);
     super.render(canvas);
     if (plan != null) canvas.drawPath(plan.front, plan.paint);
@@ -429,12 +439,13 @@ class FishingBoatComponent extends SpriteComponent {
   /// [SailboatComponent] (voir sa doc de fichier pour le détail du choix de
   /// la proue comme origine et du classement devant/derrière) — et
   /// détermine laquelle passe derrière la coque (voir [render]) et laquelle
-  /// passe devant. Intensité modulée par [_wakeIntensity] (alpha et
+  /// passe devant. Intensité modulée par [wakeIntensity] (alpha et
   /// longueur), pour s'atténuer avec le ralentissement, disparaître pendant
   /// la pause et reprendre avec l'accélération du départ. Renvoie `null` si
   /// le sillage est invisible ou si poupe/proue coïncident.
-  ({Path behind, Path front, Paint paint})? _wakeRenderPlan() {
-    if (_wakeIntensity <= 0.001) return null;
+  @override
+  ({Path behind, Path front, Paint paint})? wakeRenderPlan() {
+    if (wakeIntensity <= 0.001) return null;
 
     final sternPx = Offset(_kSternFrac.dx * size.x, _kSternFrac.dy * size.y);
     final bowPx = Offset(_kBowFrac.dx * size.x, _kBowFrac.dy * size.y);
@@ -446,23 +457,23 @@ class FishingBoatComponent extends SpriteComponent {
     // La longueur rétrécit légèrement en plus de l'estompage (alpha) — un
     // sillage qui s'efface tout en se rétractant est plus naturel qu'un
     // simple fondu sur place. Échelle sur la distance poupe→proue, voir la
-    // doc de [SailboatComponent._kWakeLengthFraction].
+    // doc de [SailboatComponent.kWakeLengthFraction].
     final length = bowToSternLength *
-        _kWakeLengthFraction *
-        (0.3 + 0.7 * _wakeIntensity);
-    final rippleAmplitude = bowToSternLength * _kWakeRippleFraction;
+        kWakeLengthFraction *
+        (0.3 + 0.7 * wakeIntensity);
+    final rippleAmplitude = bowToSternLength * kWakeRippleFraction;
     final paint = Paint()
-      ..color = const Color(0xFFFFFFFF).withValues(alpha: 0.55 * _wakeIntensity)
+      ..color = const Color(0xFFFFFFFF).withValues(alpha: 0.55 * wakeIntensity)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 3.4 * (size.x / _kBaseWidth)
       ..strokeCap = StrokeCap.round;
 
     // Origine à la proue (pas la poupe), voir doc de [_wakeRenderPlan].
-    Path pathForSide(double side) => _wakeLinePath(
+    Path pathForSide(double side) => wakeLinePath(
           origin: bowPx,
           backward: backward,
           length: length,
-          spreadAngle: _kWakeSpreadAngle * side,
+          spreadAngle: kWakeSpreadAngle * side,
           rippleAmplitude: rippleAmplitude,
           // Légèrement déphasées entre les deux branches pour éviter une
           // ondulation parfaitement symétrique (moins naturelle).
@@ -475,9 +486,9 @@ class FishingBoatComponent extends SpriteComponent {
     // l'insensibilité au miroir horizontal du virage/de l'apparition
     // inversée).
     double dirYForSide(double side) {
-      final angle = _kWakeSpreadAngle *
+      final angle = kWakeSpreadAngle *
           side *
-          pow(0.5, _kWakeWidenExponent).toDouble();
+          pow(0.5, kWakeWidenExponent).toDouble();
       return backward.dx * sin(angle) + backward.dy * cos(angle);
     }
 
@@ -495,9 +506,10 @@ class FishingBoatComponent extends SpriteComponent {
   /// Construit une branche du sillage : part de [origin] (la poupe) selon
   /// [backward] (unitaire), s'écarte progressivement jusqu'à [spreadAngle]
   /// à son extrémité (effet d'éventail), avec une ondulation perpendiculaire
-  /// croissante ([rippleAmplitude]) animée par [_wakeTime] — même
+  /// croissante ([rippleAmplitude]) animée par [wakeTime] — même
   /// principe que l'ondulation du pied des tuiles.
-  Path _wakeLinePath({
+  @override
+  Path wakeLinePath({
     required Offset origin,
     required Offset backward,
     required double length,
@@ -507,9 +519,9 @@ class FishingBoatComponent extends SpriteComponent {
   }) {
     final perp = Offset(-backward.dy, backward.dx);
     final path = Path()..moveTo(origin.dx, origin.dy);
-    for (var s = 1; s <= _kWakeSegments; s++) {
-      final t = s / _kWakeSegments;
-      final angle = spreadAngle * pow(t, _kWakeWidenExponent);
+    for (var s = 1; s <= kWakeSegments; s++) {
+      final t = s / kWakeSegments;
+      final angle = spreadAngle * pow(t, kWakeWidenExponent);
       final cosA = cos(angle);
       final sinA = sin(angle);
       final dirX = backward.dx * cosA - backward.dy * sinA;
@@ -519,7 +531,7 @@ class FishingBoatComponent extends SpriteComponent {
           t *
           sin(kEdgeWaveFrequency * 2 * pi * t +
               phase +
-              _wakeTime * kEdgeWaveSpeed);
+              wakeTime * kEdgeWaveSpeed);
       path.lineTo(
         origin.dx + dirX * dist + perp.dx * ripple,
         origin.dy + dirY * dist + perp.dy * ripple,
