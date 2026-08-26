@@ -162,7 +162,7 @@ const Offset _kSternFrac = Offset(30 / 1536, 478 / 1024);
 /// ≈ (1493, 776). La valeur précédente, (1500, 768), suivait le plat-bord
 /// (haut de coque, au niveau du liseré rouille) plutôt que la ligne de
 /// flottaison, plus bas d'une trentaine de pixels à cet endroit.
-const Offset _kBowFrac = Offset(1493 / 1536, 894 / 1024);
+const Offset _kBowFrac = Offset(1493 / 1536, 940 / 1024);
 
 /// Angle (radians) d'écartement de chaque branche du sillage par rapport à
 /// l'axe arrière, à son extrémité — moitié de celui du voilier
@@ -383,7 +383,7 @@ class FishingBoatComponent extends SpriteComponent with WakeMixin {
 
       case _BoatPhase.departure:
         final rawT = (_elapsedInPhase / _departureDuration).clamp(0.0, 1.0);
-        final t = Curves.easeIn.transform(rawT);
+        final t = Curves.easeOut.transform(rawT);
         _applyFrame(_pauseOffset + (_exitOffset - _pauseOffset) * t);
         // Fondu du sillage sur [0.5] pile au moment où le
         // bateau redémarre — voir doc de [SailboatComponent.wakeIntensity].
