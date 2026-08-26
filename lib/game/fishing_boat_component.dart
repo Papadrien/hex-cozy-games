@@ -159,10 +159,12 @@ const Offset _kSternFrac = Offset(30 / 1536, 478 / 1024);
 /// l'asset, pas le haut du plat-bord) — sert à la fois d'origine du sillage
 /// (départ à l'avant, voir [_renderWake]) et, avec [_kSternFrac], à
 /// déterminer la direction "vers l'arrière" (poupe → proue inversé) : proue
-/// ≈ (1493, 776). La valeur précédente, (1500, 768), suivait le plat-bord
-/// (haut de coque, au niveau du liseré rouille) plutôt que la ligne de
-/// flottaison, plus bas d'une trentaine de pixels à cet endroit.
-const Offset _kBowFrac = Offset(1463 / 1536, 970 / 1024);
+/// ≈ (1202, 991), pointée directement sur l'asset (bord bas-avant de la
+/// coque, juste avant le passage à la transparence). La valeur précédente,
+/// (1463, 970), tombait carrément hors de la coque, dans la zone
+/// transparente à droite du sprite — le sillage partait donc dans le vide
+/// plutôt que de la coque elle-même.
+const Offset _kBowFrac = Offset(1202 / 1536, 991 / 1024);
 
 /// Angle (radians) d'écartement de chaque branche du sillage par rapport à
 /// l'axe arrière, à son extrémité — moitié de celui du voilier
@@ -348,7 +350,7 @@ class FishingBoatComponent extends SpriteComponent with WakeMixin {
     switch (_phase) {
       case _BoatPhase.approach:
         final rawT = (_elapsedInPhase / _approachDuration).clamp(0.0, 1.0);
-        final t = Curves.easeIn.transform(rawT);
+        final t = Curves.easeOut.transform(rawT);
         _applyFrame(_startOffset + (_pauseOffset - _startOffset) * t);
         // Sillage à pleine intensité tant que le bateau navigue — voir doc
         // de [SailboatComponent.wakeIntensity].
