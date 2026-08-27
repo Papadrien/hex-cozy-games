@@ -159,12 +159,13 @@ const Offset _kSternFrac = Offset(30 / 1536, 478 / 1024);
 /// l'asset, pas le haut du plat-bord) — sert à la fois d'origine du sillage
 /// (départ à l'avant, voir [_renderWake]) et, avec [_kSternFrac], à
 /// déterminer la direction "vers l'arrière" (poupe → proue inversé) : proue
-/// ≈ (1202, 991), pointée directement sur l'asset (bord bas-avant de la
-/// coque, juste avant le passage à la transparence). La valeur précédente,
-/// (1463, 970), tombait carrément hors de la coque, dans la zone
-/// transparente à droite du sprite — le sillage partait donc dans le vide
-/// plutôt que de la coque elle-même.
-const Offset _kBowFrac = Offset(1202 / 1536, 991 / 1024);
+/// ≈ (1052, 997), quasiment le point le plus bas du contour de la coque
+/// (le ventre de la coque touche la transparence vers y≈999 sur cette
+/// plage de x) — pointée directement sur l'asset. Les valeurs précédentes,
+/// (1463, 970) puis (1202, 991), s'écartaient encore trop de la ligne de
+/// flottaison réelle (la première tombait même hors de la coque, dans la
+/// zone transparente).
+const Offset _kBowFrac = Offset(1052 / 1536, 997 / 1024);
 
 /// Angle (radians) d'écartement de chaque branche du sillage par rapport à
 /// l'axe arrière, à son extrémité — moitié de celui du voilier
