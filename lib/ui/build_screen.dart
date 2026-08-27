@@ -408,7 +408,7 @@ class _BuildIconBadge extends StatelessWidget {
         effectType: UpgradeEffectType.fromDb(upgrade.effectType),
         upgradeId: upgrade.id,
         color: iconColor,
-        size: 20,
+        size: 32,
       ),
     );
   }

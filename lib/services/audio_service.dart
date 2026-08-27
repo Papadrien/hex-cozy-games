@@ -197,9 +197,9 @@ const double _kTilePlacedVolumeScale = 0.9;
 const double _kRotationClickVolumeScale = 0.63;
 
 /// Atténuation appliquée au son de gain de pièce ([AudioService.playCoinsGained])
-/// par rapport au réglage « Bruitages » — 20 % plus discret que le volume
+/// par rapport au réglage « Bruitages » — 36 % plus discret que le volume
 /// nominal.
-const double _kCoinVolumeScale = 0.8;
+const double _kCoinVolumeScale = 0.64;
 
 class AudioService {
   AudioService(this._ref) {
