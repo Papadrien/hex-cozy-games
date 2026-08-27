@@ -388,7 +388,6 @@ class _UpgradeSlotState extends ConsumerState<_UpgradeSlot>
     final usesRemaining =
         ref.watch(sessionProvider.select((s) => s.hatedColorRemainingUses));
     final canActivate = !isExclusionActive && usesRemaining > 0;
-    final tint = upgradeIconColor(UpgradeEffectType.hatedColorExclusion);
     final counter = upgradeCounterFor(ref, UpgradeEffectType.hatedColorExclusion);
 
     return GestureDetector(
@@ -412,9 +411,9 @@ class _UpgradeSlotState extends ConsumerState<_UpgradeSlot>
               : null,
           child: Opacity(
             opacity: canActivate ? 1.0 : 0.4,
-            child: Icon(
-              upgradeIconData(UpgradeEffectType.hatedColorExclusion),
-              color: tint ?? Colors.white,
+            child: const UpgradeEffectIcon(
+              effectType: UpgradeEffectType.hatedColorExclusion,
+              upgradeId: 'hated_color',
               size: 22,
             ),
           ),

@@ -112,6 +112,7 @@ flutter:
     - assets/images/plane.png
     - assets/images/hot_air_balloon.png
     - assets/images/fishing_boat.png
+    - assets/images/power-ups/
     - assets/audio/home.mp3
     - assets/audio/ambient_1.mp3
     - assets/audio/coin.mp3
