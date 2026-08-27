@@ -299,7 +299,12 @@ class _UpgradeSlotState extends ConsumerState<_UpgradeSlot>
             opacity: canSwap ? 1.0 : 0.4,
             child: heldTile != null
                 ? _HeldTilePreview(tile: heldTile)
-                : const Icon(Icons.swap_horiz, color: Colors.white, size: 22),
+                : const UpgradeEffectIcon(
+                    effectType: UpgradeEffectType.holdSlotUses,
+                    upgradeId: 'hold_slot',
+                    color: Colors.white,
+                    size: 22,
+                  ),
           ),
         ),
       ),
@@ -343,11 +348,14 @@ class _UpgradeSlotState extends ConsumerState<_UpgradeSlot>
               : null,
           child: Opacity(
             opacity: canTap ? 1.0 : 0.4,
-            child: Icon(
-              isActive ? Icons.close : Icons.replay,
-              color: Colors.white,
-              size: 22,
-            ),
+            child: isActive
+                ? const Icon(Icons.close, color: Colors.white, size: 22)
+                : const UpgradeEffectIcon(
+                    effectType: UpgradeEffectType.secondChanceUses,
+                    upgradeId: 'second_chance',
+                    color: Colors.white,
+                    size: 22,
+                  ),
           ),
         ),
       ),
