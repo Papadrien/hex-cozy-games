@@ -132,8 +132,11 @@ const double _kTileWidth = 1.7320508075688772 * kHexSize; // sqrt(3)
 
 /// Marge (px, à l'échelle du zoom de spawn) ajoutée autour de la bounding
 /// box réelle des tuiles posées pour déterminer le point de pause — le
-/// bateau s'arrête à environ deux largeurs de tuile à l'extérieur du
-/// plateau plutôt que pile sur son bord (ou, pire, dessus).
+/// bateau s'arrête à environ une largeur de tuile à l'extérieur du
+/// plateau plutôt que pile sur son bord (ou, pire, dessus). Réduite de
+/// moitié (`* 4` → `* 2`), comme pour le voilier (voir
+/// `sailboat_component.dart`) : le point de pause précédent laissait trop
+/// d'écart visuel entre le bateau et le plateau.
 const double _kBoardApproachMargin = _kTileWidth * 2;
 
 /// Distance de repli (fraction de la largeur d'écran) utilisée uniquement
@@ -325,7 +328,7 @@ class FishingBoatComponent extends SpriteComponent with WakeMixin {
       // par [_offScreenSafetyFactor] pour rester hors-écran même après un
       // dézoom survenu depuis l'apparition.
       final travelDistance = screenSize.length *
-          (0.35 + rand.nextDouble() * 0.35) *
+          (0.70 + rand.nextDouble() * 0.70) *
           _offScreenSafetyFactor(_spawnZoom);
       _startOffset = _pauseOffset - headingDir * travelDistance;
     } else {
@@ -333,7 +336,7 @@ class FishingBoatComponent extends SpriteComponent with WakeMixin {
       // usage normal, voir `HexBoardGame.kFishingBoatTriggerTileCount`) :
       // point de départ dans le quart haut-droit de l'écran.
       final startPosition = Vector2(
-        screenSize.x * (0.70 + rand.nextDouble() * 0.30),
+        screenSize.x * (-0.16 + rand.nextDouble() * 0.60),
         screenSize.y * (-0.08 + rand.nextDouble() * 0.30),
       );
       _startOffset = startPosition - screenSize / 2;
@@ -355,7 +358,7 @@ class FishingBoatComponent extends SpriteComponent with WakeMixin {
     // distance à parcourir au-delà du bord droit doit rester garantie
     // hors-écran quel que soit le zoom.
     final departureDx =
-        (screenSize.x / 2 + _kExitMargin) * _offScreenSafetyFactor(_spawnZoom) -
+        (screenSize.x + _kExitMargin * 2) * _offScreenSafetyFactor(_spawnZoom) -
             _pauseOffset.x;
     final departureDy = departureDx * tan(_kHeadingAngle);
     _exitOffset = _pauseOffset + Vector2(departureDx, departureDy);
