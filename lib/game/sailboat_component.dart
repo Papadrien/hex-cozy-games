@@ -124,7 +124,7 @@ const double _kTileWidth = 1.7320508075688772 * kHexSize; // sqrt(3)
 /// box réelle des tuiles posées pour déterminer le point de pause — le
 /// voilier s'arrête à environ deux largeurs de tuile à l'extérieur du
 /// plateau plutôt que pile sur son bord (ou, pire, dessus).
-const double _kBoardApproachMargin = _kTileWidth * 2;
+const double _kBoardApproachMargin = _kTileWidth * 4;
 
 /// Distance de repli (fraction de la largeur d'écran) utilisée uniquement
 /// si aucune tuile n'est posée (ne devrait pas arriver en usage normal,

@@ -566,7 +566,19 @@ class AudioService {
   Future<void> playBoatAmbient() async {
     if (!_sfxEnabled) return;
     final generation = ++_boatAmbientFadeGeneration;
-    await _boatAmbientPlayer.stop();
+    // stop() et seek(0) défensifs : même pattern que [playTileGained] et
+    // [playEndGame] — sur certains appareils, le plugin `audioplayers`
+    // peut laisser le lecteur natif dans un état où `stop()`/`seek()` ne se
+    // résolvent jamais, ce qui déclenche côté plugin un `TimeoutException`
+    // après 30s. Sans ce try/catch, cette exception n'est jamais rattrapée
+    // (appel fait via `unawaited` côté appelant) et fait planter l'app plutôt
+    // que de simplement empêcher ce bruitage ponctuel.
+    try {
+      await _boatAmbientPlayer.stop();
+    } catch (_) {}
+    try {
+      await _boatAmbientPlayer.seek(Duration.zero);
+    } catch (_) {}
     await _boatAmbientPlayer.setVolume(0.0);
     await _boatAmbientPlayer.play(AssetSource(_kBoatAmbientAssetPath));
     final targetVolume = _sfxVolume;
@@ -598,7 +610,10 @@ class AudioService {
       }
     }
     if (generation == _boatAmbientFadeGeneration) {
-      await _boatAmbientPlayer.stop();
+      // stop() défensif — voir le commentaire équivalent dans [playBoatAmbient].
+      try {
+        await _boatAmbientPlayer.stop();
+      } catch (_) {}
     }
   }
 
