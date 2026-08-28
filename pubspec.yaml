@@ -124,6 +124,7 @@ flutter:
     - assets/audio/button_click.mp3
     - assets/audio/quest_reward.mp3
     - assets/audio/purchase_success.mp3
+    - assets/audio/boat_ambient.mp3
 
   fonts:
     - family: Pacifico

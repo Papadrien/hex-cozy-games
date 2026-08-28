@@ -152,6 +152,7 @@ class HexBoardGame extends FlameGame
     _fishingBoatTriggered = true;
     grid.add(FishingBoatComponent(
       screenSize: grid.screenSize.clone(),
+      container: _container,
       zoom: grid.zoom,
     ));
   }

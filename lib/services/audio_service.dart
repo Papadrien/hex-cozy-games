@@ -89,6 +89,13 @@
 /// (`QuestCardState._handleClaim`) et `daily_quest_card.dart`
 /// (`DailyQuestCardState._handleClaim`), aux côtés du retour haptique
 /// [HapticsService.questRewardClaimed].
+///
+/// Ambiance du bateau de pêche ([playBoatAmbient]/[stopBoatAmbient],
+/// boat_ambient.mp3) : lecteur dédié en boucle ([_boatAmbientPlayer]),
+/// démarré/arrêté en fondu (voir [_kBoatAmbientFadeDuration]) plutôt que
+/// net, depuis les hooks de cycle de vie de [FishingBoatComponent]
+/// (`onLoad`/`onRemove`, `fishing_boat_component.dart`) — présent à
+/// l'écran seulement tant que ce composant décoratif l'est.
 library;
 
 import 'dart:async';
@@ -181,6 +188,21 @@ const Duration _kMusicFadeOutDuration = Duration(milliseconds: 500);
 /// et nombre d'appels à [AudioPlayer.setVolume].
 const int _kMusicFadeSteps = 12;
 
+/// Chemin (relatif à `assets/`) du son d'ambiance du bateau de pêche — voir
+/// [AudioService.playBoatAmbient]/[AudioService.stopBoatAmbient].
+const String _kBoatAmbientAssetPath = 'audio/boat_ambient.mp3';
+
+/// Durée des fondus d'entrée/sortie du son d'ambiance du bateau de pêche —
+/// même ordre de grandeur que [_kMusicFadeOutDuration], suffisamment long
+/// pour que l'apparition/disparition reste discrète plutôt qu'une coupure
+/// nette, sans pour autant traîner sur une bonne partie du trajet du bateau
+/// (~2.5 à 7s par segment, voir `fishing_boat_component.dart`).
+const Duration _kBoatAmbientFadeDuration = Duration(milliseconds: 1200);
+
+/// Nombre de paliers de volume utilisés pour les fondus du son d'ambiance
+/// du bateau de pêche — même principe que [_kMusicFadeSteps].
+const int _kBoatAmbientFadeSteps = 12;
+
 /// Facteur multiplicatif appliqué au réglage « Bruitages »
 /// ([OptionsState.sfxVolume]) pour le clic de bouton — plus discret que les
 /// autres bruitages (gain de pièces, pose de tuile) puisqu'il accompagne
@@ -247,6 +269,9 @@ class AudioService {
     // fiable dans tous les cas.
     unawaited(_tileGainPlayer.setReleaseMode(ReleaseMode.stop));
     unawaited(_endGamePlayer.setReleaseMode(ReleaseMode.stop));
+    // Boucle tant que le bateau de pêche est présent — voir
+    // [playBoatAmbient]/[stopBoatAmbient].
+    unawaited(_boatAmbientPlayer.setReleaseMode(ReleaseMode.loop));
   }
 
   final Ref _ref;
@@ -279,6 +304,22 @@ class AudioService {
   /// tuile, pièce gagnée) ne coupe le son de fin de partie en réutilisant
   /// le même lecteur (voir [playEndGame]).
   final AudioPlayer _endGamePlayer = AudioPlayer();
+
+  /// Lecteur dédié pour le son d'ambiance du bateau de pêche
+  /// ([FishingBoatComponent]) — en boucle ([ReleaseMode.loop]) tant que le
+  /// composant est présent à l'écran, avec fondu d'entrée
+  /// ([playBoatAmbient]) et de sortie ([stopBoatAmbient]) plutôt que des
+  /// coupures nettes. En dehors du pool comme [_tileGainPlayer]/
+  /// [_endGamePlayer] : c'est le seul lecteur SFX voué à jouer en continu
+  /// sur plusieurs secondes, il ne doit pas pouvoir être réquisitionné par
+  /// un bruitage ponctuel entre-temps.
+  final AudioPlayer _boatAmbientPlayer = AudioPlayer();
+
+  /// Incrémenté à chaque appel de [playBoatAmbient]/[stopBoatAmbient] —
+  /// permet à un fondu de sortie déclenché pendant qu'un fondu d'entrée est
+  /// encore en cours (ou vice-versa) d'invalider proprement la boucle de
+  /// l'appel précédent plutôt que de laisser les deux se marcher dessus.
+  int _boatAmbientFadeGeneration = 0;
 
   bool get _musicEnabled => _ref.read(optionsProvider).musicEnabled;
   bool get _sfxEnabled => _ref.read(optionsProvider).sfxEnabled;
@@ -515,10 +556,57 @@ class AudioService {
   /// couper net la précédente.
   Future<void> playQuestRewardClaimed() => _playSfx(SfxTrack.questReward);
 
-  /// Précharge tous les bruitages ([SfxTrack]) en cache disque local via
-  /// [AudioCache] — appelé une seule fois au lancement de l'app (voir
-  /// `SplashScreen._load`, en parallèle de `_precacheImages`), avant même
-  /// que le joueur n'atteigne l'accueil.
+  /// Démarre `boat_ambient.mp3` en boucle avec un fondu d'entrée sur
+  /// [_kBoatAmbientFadeDuration], appelé depuis [FishingBoatComponent.onLoad]
+  /// dès l'apparition du bateau de pêche décoratif (encore hors champ à ce
+  /// stade). Ne fait rien si les bruitages sont désactivés. Invalide tout
+  /// fondu de sortie ([stopBoatAmbient]) encore en cours (voir
+  /// [_boatAmbientFadeGeneration]) — ne devrait pas arriver en usage normal
+  /// (un seul bateau à la fois par partie), mais reste robuste si jamais.
+  Future<void> playBoatAmbient() async {
+    if (!_sfxEnabled) return;
+    final generation = ++_boatAmbientFadeGeneration;
+    await _boatAmbientPlayer.stop();
+    await _boatAmbientPlayer.setVolume(0.0);
+    await _boatAmbientPlayer.play(AssetSource(_kBoatAmbientAssetPath));
+    final targetVolume = _sfxVolume;
+    final stepDuration = _kBoatAmbientFadeDuration ~/ _kBoatAmbientFadeSteps;
+    for (var i = 1; i <= _kBoatAmbientFadeSteps; i++) {
+      if (generation != _boatAmbientFadeGeneration) return;
+      await _boatAmbientPlayer.setVolume(targetVolume * i / _kBoatAmbientFadeSteps);
+      if (stepDuration > Duration.zero) {
+        await Future<void>.delayed(stepDuration);
+      }
+    }
+  }
+
+  /// Arrête `boat_ambient.mp3` avec un fondu de sortie sur
+  /// [_kBoatAmbientFadeDuration], appelé depuis
+  /// [FishingBoatComponent.onRemove] une fois le bateau de pêche
+  /// définitivement retiré de l'écran (fin de son trajet de départ). Voir
+  /// [playBoatAmbient] pour le principe symétrique (fondu d'entrée) et
+  /// [_boatAmbientFadeGeneration] pour l'invalidation croisée.
+  Future<void> stopBoatAmbient() async {
+    final generation = ++_boatAmbientFadeGeneration;
+    final startVolume = _boatAmbientPlayer.volume;
+    final stepDuration = _kBoatAmbientFadeDuration ~/ _kBoatAmbientFadeSteps;
+    for (var i = _kBoatAmbientFadeSteps - 1; i >= 0; i--) {
+      if (generation != _boatAmbientFadeGeneration) return;
+      await _boatAmbientPlayer.setVolume(startVolume * i / _kBoatAmbientFadeSteps);
+      if (stepDuration > Duration.zero) {
+        await Future<void>.delayed(stepDuration);
+      }
+    }
+    if (generation == _boatAmbientFadeGeneration) {
+      await _boatAmbientPlayer.stop();
+    }
+  }
+
+  /// Précharge tous les bruitages ([SfxTrack]) — ainsi que
+  /// `boat_ambient.mp3` (voir [playBoatAmbient]/[stopBoatAmbient]) — en
+  /// cache disque local via [AudioCache] — appelé une seule fois au
+  /// lancement de l'app (voir `SplashScreen._load`, en parallèle de
+  /// `_precacheImages`), avant même que le joueur n'atteigne l'accueil.
   ///
   /// Sans ça, chaque bruitage encourt un délai perceptible à sa toute
   /// première lecture : le plugin doit encore extraire l'asset du bundle
@@ -538,7 +626,7 @@ class AudioService {
   Future<void> preloadSfx() async {
     try {
       await AudioCache.instance.loadAll(
-        SfxTrack.values.map((t) => t.assetPath).toList(),
+        [...SfxTrack.values.map((t) => t.assetPath), _kBoatAmbientAssetPath],
       );
     } catch (_) {
       // Optimisation de confort, pas une nécessité : un échec (stockage
@@ -617,6 +705,7 @@ class AudioService {
     }
     _tileGainPlayer.dispose();
     _endGamePlayer.dispose();
+    _boatAmbientPlayer.dispose();
   }
 }
 

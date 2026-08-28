@@ -70,15 +70,28 @@
 /// principe que [SailboatComponent] (voir sa doc de fichier, y compris le
 /// partage des deux branches entre avant et arrière du sprite), dupliqué
 /// ici avec les coordonnées de poupe/proue propres à `fishing_boat.png`.
+///
+/// Son d'ambiance dédié (`boat_ambient.mp3`, [AudioService.playBoatAmbient]/
+/// [AudioService.stopBoatAmbient]) : démarré en fondu d'entrée à
+/// [onLoad] (le bateau vient d'apparaître, encore hors champ), arrêté en
+/// fondu de sortie à [onRemove] (juste après sa disparition définitive de
+/// l'écran, en fin de trajet de départ) — voir [AudioService] pour le
+/// détail des fondus. Nécessite le [ProviderContainer] de l'app (même
+/// principe que [HexBoardGame._container]) pour accéder à
+/// [audioServiceProvider] depuis ce composant Flame, qui n'a pas de
+/// `WidgetRef` propre.
 library;
 
+import 'dart:async' show unawaited;
 import 'dart:math' show Point, Random, atan2, cos, pi, pow, sin, tan;
 import 'dart:ui' show Canvas, Color, Offset, Paint, PaintingStyle, Path, StrokeCap;
 
 import 'package:flame/components.dart';
 import 'package:flutter/animation.dart' show Curves;
+import 'package:flutter_riverpod/flutter_riverpod.dart' show ProviderContainer;
 
 import '../core/constants.dart' show kHexSize;
+import '../services/audio_service.dart' show audioServiceProvider;
 import 'hex_coords.dart' show HexLayout;
 import 'hex_grid_component.dart' show HexGridComponent;
 import 'tile_component.dart'
@@ -193,11 +206,19 @@ const Offset _kBowFrac = Offset(1052 / 1536, 997 / 1024);
 enum _BoatPhase { approach, pause, departure, done }
 
 class FishingBoatComponent extends SpriteComponent with WakeMixin {
-  FishingBoatComponent({required this.screenSize, double zoom = 1.0})
-      : _spawnZoom = zoom,
+  FishingBoatComponent({
+    required this.screenSize,
+    required ProviderContainer container,
+    double zoom = 1.0,
+  })  : _spawnZoom = zoom,
+        _container = container,
         super(anchor: Anchor.center, priority: kTileDepthPriorityBase - 1);
 
   final Vector2 screenSize;
+
+  /// Voir doc de fichier (son d'ambiance) — permet d'accéder à
+  /// [audioServiceProvider] sans `WidgetRef` propre au composant.
+  final ProviderContainer _container;
 
   @override
   Offset get sternFrac => _kSternFrac;
@@ -252,6 +273,10 @@ class FishingBoatComponent extends SpriteComponent with WakeMixin {
     _grid = p is HexGridComponent ? p : null;
 
     sprite = await Sprite.load('fishing_boat.png');
+
+    // Démarre le son d'ambiance en fondu d'entrée dès l'apparition du
+    // bateau (encore hors champ à ce stade) — voir doc de fichier.
+    unawaited(_container.read(audioServiceProvider).playBoatAmbient());
 
     // Miroir horizontal appliqué dès l'apparition (voir doc de fichier) :
     // le cap naturel du sprite pointe vers le bas-droite, mais le premier
@@ -402,6 +427,15 @@ class FishingBoatComponent extends SpriteComponent with WakeMixin {
       case _BoatPhase.done:
         break;
     }
+  }
+
+  /// Arrête le son d'ambiance en fondu de sortie une fois le composant
+  /// définitivement retiré (fin de trajet de départ, voir [update],
+  /// `_BoatPhase.departure`) — voir doc de fichier.
+  @override
+  void onRemove() {
+    unawaited(_container.read(audioServiceProvider).stopBoatAmbient());
+    super.onRemove();
   }
 
   /// Convertit un offset (par rapport au centre écran, à l'échelle du zoom
