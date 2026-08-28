@@ -325,7 +325,7 @@ class FishingBoatComponent extends SpriteComponent with WakeMixin {
       // par [_offScreenSafetyFactor] pour rester hors-écran même après un
       // dézoom survenu depuis l'apparition.
       final travelDistance = screenSize.length *
-          (0.35 + rand.nextDouble() * 0.35) *
+          (0.70 + rand.nextDouble() * 0.70) *
           _offScreenSafetyFactor(_spawnZoom);
       _startOffset = _pauseOffset - headingDir * travelDistance;
     } else {
@@ -333,7 +333,7 @@ class FishingBoatComponent extends SpriteComponent with WakeMixin {
       // usage normal, voir `HexBoardGame.kFishingBoatTriggerTileCount`) :
       // point de départ dans le quart haut-droit de l'écran.
       final startPosition = Vector2(
-        screenSize.x * (0.70 + rand.nextDouble() * 0.30),
+        screenSize.x * (-0.16 + rand.nextDouble() * 0.60),
         screenSize.y * (-0.08 + rand.nextDouble() * 0.30),
       );
       _startOffset = startPosition - screenSize / 2;
@@ -355,7 +355,7 @@ class FishingBoatComponent extends SpriteComponent with WakeMixin {
     // distance à parcourir au-delà du bord droit doit rester garantie
     // hors-écran quel que soit le zoom.
     final departureDx =
-        (screenSize.x / 2 + _kExitMargin) * _offScreenSafetyFactor(_spawnZoom) -
+        (screenSize.x + _kExitMargin * 2) * _offScreenSafetyFactor(_spawnZoom) -
             _pauseOffset.x;
     final departureDy = departureDx * tan(_kHeadingAngle);
     _exitOffset = _pauseOffset + Vector2(departureDx, departureDy);
