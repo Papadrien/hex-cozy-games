@@ -91,6 +91,7 @@ class HexBoardGame extends FlameGame
     _sailboatTriggered = true;
     grid.add(SailboatComponent(
       screenSize: grid.screenSize.clone(),
+      container: _container,
       zoom: grid.zoom,
     ));
   }
@@ -111,6 +112,7 @@ class HexBoardGame extends FlameGame
     _planeTriggered = true;
     grid.add(PlaneComponent(
       screenSize: grid.screenSize.clone(),
+      container: _container,
       zoom: grid.zoom,
     ));
   }
@@ -132,6 +134,7 @@ class HexBoardGame extends FlameGame
     _hotAirBalloonTriggered = true;
     grid.add(HotAirBalloonComponent(
       screenSize: grid.screenSize.clone(),
+      container: _container,
       zoom: grid.zoom,
     ));
   }

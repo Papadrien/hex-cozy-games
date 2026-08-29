@@ -96,6 +96,23 @@
 /// net, depuis les hooks de cycle de vie de [FishingBoatComponent]
 /// (`onLoad`/`onRemove`, `fishing_boat_component.dart`) — présent à
 /// l'écran seulement tant que ce composant décoratif l'est.
+///
+/// Ambiance du voilier ([playSailboatAmbient]/[stopSailboatAmbient],
+/// sailboat_ambient.mp3) : même principe exactement, sur un lecteur dédié
+/// distinct ([_sailboatAmbientPlayer]), depuis les hooks de cycle de vie de
+/// [SailboatComponent] (`onLoad`/`onRemove`, `sailboat_component.dart`).
+///
+/// Ambiance de l'avion ([playPlaneAmbient]/[stopPlaneAmbient],
+/// plane_ambient.mp3) : même principe exactement, sur un lecteur dédié
+/// distinct ([_planeAmbientPlayer]), depuis les hooks de cycle de vie de
+/// [PlaneComponent] (`onLoad`/`onRemove`, `plane_component.dart`).
+///
+/// Ambiance de la montgolfière ([playHotAirBalloonAmbient]/
+/// [stopHotAirBalloonAmbient], hot_air_balloon_ambient.mp3) : même principe
+/// exactement, sur un lecteur dédié distinct
+/// ([_hotAirBalloonAmbientPlayer]), depuis les hooks de cycle de vie de
+/// [HotAirBalloonComponent] (`onLoad`/`onRemove`,
+/// `hot_air_balloon_component.dart`).
 library;
 
 import 'dart:async';
@@ -224,6 +241,96 @@ const Duration _kBoatAmbientFadeDuration = Duration(milliseconds: 1200);
 /// du bateau de pêche — même principe que [_kMusicFadeSteps].
 const int _kBoatAmbientFadeSteps = 12;
 
+/// Chemin (relatif à `assets/`) du son d'ambiance du voilier — voir
+/// [AudioService.playSailboatAmbient]/[AudioService.stopSailboatAmbient].
+const String _kSailboatAmbientAssetPath = 'audio/sailboat_ambient.mp3';
+
+/// Contexte audio appliqué directement à la lecture du voilier — même
+/// principe que [_kBoatAmbientAudioContext] (autonome vis-à-vis du contexte
+/// global).
+final AudioContext _kSailboatAmbientAudioContext = AudioContext(
+  iOS: AudioContextIOS(
+    category: AVAudioSessionCategory.playback,
+    options: {AVAudioSessionOptions.mixWithOthers},
+  ),
+  android: const AudioContextAndroid(
+    isSpeakerphoneOn: false,
+    stayAwake: false,
+    contentType: AndroidContentType.music,
+    usageType: AndroidUsageType.game,
+    audioFocus: AndroidAudioFocus.none,
+  ),
+);
+
+/// Durée des fondus d'entrée/sortie du son d'ambiance du voilier — même
+/// valeur que [_kBoatAmbientFadeDuration].
+const Duration _kSailboatAmbientFadeDuration = Duration(milliseconds: 1200);
+
+/// Nombre de paliers de volume utilisés pour les fondus du son d'ambiance
+/// du voilier — même valeur que [_kBoatAmbientFadeSteps].
+const int _kSailboatAmbientFadeSteps = 12;
+
+/// Chemin (relatif à `assets/`) du son d'ambiance de l'avion — voir
+/// [AudioService.playPlaneAmbient]/[AudioService.stopPlaneAmbient].
+const String _kPlaneAmbientAssetPath = 'audio/plane_ambient.mp3';
+
+/// Contexte audio appliqué directement à la lecture de l'avion — même
+/// principe que [_kBoatAmbientAudioContext] (autonome vis-à-vis du contexte
+/// global).
+final AudioContext _kPlaneAmbientAudioContext = AudioContext(
+  iOS: AudioContextIOS(
+    category: AVAudioSessionCategory.playback,
+    options: {AVAudioSessionOptions.mixWithOthers},
+  ),
+  android: const AudioContextAndroid(
+    isSpeakerphoneOn: false,
+    stayAwake: false,
+    contentType: AndroidContentType.music,
+    usageType: AndroidUsageType.game,
+    audioFocus: AndroidAudioFocus.none,
+  ),
+);
+
+/// Durée des fondus d'entrée/sortie du son d'ambiance de l'avion — même
+/// valeur que [_kBoatAmbientFadeDuration].
+const Duration _kPlaneAmbientFadeDuration = Duration(milliseconds: 1200);
+
+/// Nombre de paliers de volume utilisés pour les fondus du son d'ambiance
+/// de l'avion — même valeur que [_kBoatAmbientFadeSteps].
+const int _kPlaneAmbientFadeSteps = 12;
+
+/// Chemin (relatif à `assets/`) du son d'ambiance de la montgolfière — voir
+/// [AudioService.playHotAirBalloonAmbient]/
+/// [AudioService.stopHotAirBalloonAmbient].
+const String _kHotAirBalloonAmbientAssetPath =
+    'audio/hot_air_balloon_ambient.mp3';
+
+/// Contexte audio appliqué directement à la lecture de la montgolfière —
+/// même principe que [_kBoatAmbientAudioContext] (autonome vis-à-vis du
+/// contexte global).
+final AudioContext _kHotAirBalloonAmbientAudioContext = AudioContext(
+  iOS: AudioContextIOS(
+    category: AVAudioSessionCategory.playback,
+    options: {AVAudioSessionOptions.mixWithOthers},
+  ),
+  android: const AudioContextAndroid(
+    isSpeakerphoneOn: false,
+    stayAwake: false,
+    contentType: AndroidContentType.music,
+    usageType: AndroidUsageType.game,
+    audioFocus: AndroidAudioFocus.none,
+  ),
+);
+
+/// Durée des fondus d'entrée/sortie du son d'ambiance de la montgolfière —
+/// même valeur que [_kBoatAmbientFadeDuration].
+const Duration _kHotAirBalloonAmbientFadeDuration =
+    Duration(milliseconds: 1200);
+
+/// Nombre de paliers de volume utilisés pour les fondus du son d'ambiance
+/// de la montgolfière — même valeur que [_kBoatAmbientFadeSteps].
+const int _kHotAirBalloonAmbientFadeSteps = 12;
+
 /// Facteur multiplicatif appliqué au réglage « Bruitages »
 /// ([OptionsState.sfxVolume]) pour le clic de bouton — plus discret que les
 /// autres bruitages (gain de pièces, pose de tuile) puisqu'il accompagne
@@ -319,6 +426,15 @@ class AudioService {
     // Boucle tant que le bateau de pêche est présent — voir
     // [playBoatAmbient]/[stopBoatAmbient].
     unawaited(_boatAmbientPlayer.setReleaseMode(ReleaseMode.loop));
+    // Boucle tant que le voilier est présent — voir
+    // [playSailboatAmbient]/[stopSailboatAmbient].
+    unawaited(_sailboatAmbientPlayer.setReleaseMode(ReleaseMode.loop));
+    // Boucle tant que l'avion est présent — voir
+    // [playPlaneAmbient]/[stopPlaneAmbient].
+    unawaited(_planeAmbientPlayer.setReleaseMode(ReleaseMode.loop));
+    // Boucle tant que la montgolfière est présente — voir
+    // [playHotAirBalloonAmbient]/[stopHotAirBalloonAmbient].
+    unawaited(_hotAirBalloonAmbientPlayer.setReleaseMode(ReleaseMode.loop));
   }
 
   /// Résolu une fois le contexte audio global (voir constructeur) réellement
@@ -396,6 +512,64 @@ class AudioService {
   /// atteindre le `play()` (ou la fin du fondu de sortie) en un temps borné,
   /// plutôt que de rester bloqué indéfiniment sur un appel préalable.
   static const Duration _kBoatAmbientCallTimeout = Duration(seconds: 2);
+
+  /// Lecteur dédié pour le son d'ambiance du voilier ([SailboatComponent])
+  /// — même principe exactement que [_boatAmbientPlayer], en dehors du pool
+  /// pour les mêmes raisons.
+  final AudioPlayer _sailboatAmbientPlayer = AudioPlayer();
+
+  /// Incrémenté à chaque appel de [playSailboatAmbient]/[stopSailboatAmbient]
+  /// — même principe que [_boatAmbientFadeGeneration].
+  int _sailboatAmbientFadeGeneration = 0;
+
+  /// Passe à `true` dès que [_sailboatAmbientPlayer] a effectivement
+  /// commencé à jouer au moins une fois — même principe que
+  /// [_boatAmbientHasPlayedOnce].
+  bool _sailboatAmbientHasPlayedOnce = false;
+
+  /// Timeout appliqué à chaque appel natif individuel dans
+  /// [playSailboatAmbient]/[stopSailboatAmbient] — même principe que
+  /// [_kBoatAmbientCallTimeout].
+  static const Duration _kSailboatAmbientCallTimeout = Duration(seconds: 2);
+
+  /// Lecteur dédié pour le son d'ambiance de l'avion ([PlaneComponent]) —
+  /// même principe exactement que [_boatAmbientPlayer], en dehors du pool
+  /// pour les mêmes raisons.
+  final AudioPlayer _planeAmbientPlayer = AudioPlayer();
+
+  /// Incrémenté à chaque appel de [playPlaneAmbient]/[stopPlaneAmbient] —
+  /// même principe que [_boatAmbientFadeGeneration].
+  int _planeAmbientFadeGeneration = 0;
+
+  /// Passe à `true` dès que [_planeAmbientPlayer] a effectivement commencé
+  /// à jouer au moins une fois — même principe que [_boatAmbientHasPlayedOnce].
+  bool _planeAmbientHasPlayedOnce = false;
+
+  /// Timeout appliqué à chaque appel natif individuel dans
+  /// [playPlaneAmbient]/[stopPlaneAmbient] — même principe que
+  /// [_kBoatAmbientCallTimeout].
+  static const Duration _kPlaneAmbientCallTimeout = Duration(seconds: 2);
+
+  /// Lecteur dédié pour le son d'ambiance de la montgolfière
+  /// ([HotAirBalloonComponent]) — même principe exactement que
+  /// [_boatAmbientPlayer], en dehors du pool pour les mêmes raisons.
+  final AudioPlayer _hotAirBalloonAmbientPlayer = AudioPlayer();
+
+  /// Incrémenté à chaque appel de
+  /// [playHotAirBalloonAmbient]/[stopHotAirBalloonAmbient] — même principe
+  /// que [_boatAmbientFadeGeneration].
+  int _hotAirBalloonAmbientFadeGeneration = 0;
+
+  /// Passe à `true` dès que [_hotAirBalloonAmbientPlayer] a effectivement
+  /// commencé à jouer au moins une fois — même principe que
+  /// [_boatAmbientHasPlayedOnce].
+  bool _hotAirBalloonAmbientHasPlayedOnce = false;
+
+  /// Timeout appliqué à chaque appel natif individuel dans
+  /// [playHotAirBalloonAmbient]/[stopHotAirBalloonAmbient] — même principe
+  /// que [_kBoatAmbientCallTimeout].
+  static const Duration _kHotAirBalloonAmbientCallTimeout =
+      Duration(seconds: 2);
 
   bool get _musicEnabled => _ref.read(optionsProvider).musicEnabled;
   bool get _sfxEnabled => _ref.read(optionsProvider).sfxEnabled;
@@ -784,6 +958,428 @@ class AudioService {
     }
   }
 
+  /// Démarre `sailboat_ambient.mp3` en boucle avec un fondu d'entrée sur
+  /// [_kSailboatAmbientFadeDuration], appelé depuis
+  /// [SailboatComponent.onLoad] dès l'apparition du voilier décoratif
+  /// (encore hors champ à ce stade) — même principe exactement que
+  /// [playBoatAmbient], sur le lecteur dédié [_sailboatAmbientPlayer].
+  Future<void> playSailboatAmbient() async {
+    debugPrint(
+      '[SailboatAmbient] playSailboatAmbient() appelé — sfxEnabled=$_sfxEnabled '
+      'sfxVolume=$_sfxVolume',
+    );
+    if (!_sfxEnabled) {
+      debugPrint('[SailboatAmbient] bruitages désactivés — abandon.');
+      return;
+    }
+
+    // Voir le commentaire équivalent dans [playBoatAmbient] : ne pas
+    // utiliser setSource()+resume() ici, toujours play() depuis la source.
+    await _audioContextReady;
+
+    final generation = ++_sailboatAmbientFadeGeneration;
+
+    // Sur les apparitions suivantes, on réinitialise le lecteur existant.
+    // Sur la toute première, on ne fait volontairement pas de stop() sur un
+    // lecteur natif jamais utilisé — voir [playBoatAmbient].
+    if (_sailboatAmbientHasPlayedOnce) {
+      try {
+        await _sailboatAmbientPlayer.stop().timeout(_kSailboatAmbientCallTimeout);
+      } catch (e) {
+        debugPrint('[SailboatAmbient] stop() ignoré (échec/timeout) : $e');
+      }
+    }
+
+    try {
+      await _sailboatAmbientPlayer
+          .setReleaseMode(ReleaseMode.loop)
+          .timeout(_kSailboatAmbientCallTimeout);
+      await _sailboatAmbientPlayer
+          .play(
+            AssetSource(_kSailboatAmbientAssetPath),
+            volume: 0.0,
+            ctx: _kSailboatAmbientAudioContext,
+            mode: PlayerMode.mediaPlayer,
+          )
+          .timeout(_kSailboatAmbientCallTimeout);
+      _sailboatAmbientHasPlayedOnce = true;
+      debugPrint(
+        '[SailboatAmbient] play() réussi, asset=$_kSailboatAmbientAssetPath',
+      );
+    } catch (e, stack) {
+      debugPrint('[SailboatAmbient] ÉCHEC de play() : $e\n$stack');
+      return;
+    }
+
+    // Diagnostic identique à celui de [playBoatAmbient] : vérifie que le
+    // lecteur natif avance réellement, indépendamment du fondu de volume.
+    unawaited(() async {
+      await Future<void>.delayed(const Duration(milliseconds: 600));
+      try {
+        final state = _sailboatAmbientPlayer.state;
+        final position = await _sailboatAmbientPlayer
+            .getCurrentPosition()
+            .timeout(_kSailboatAmbientCallTimeout);
+        final duration = await _sailboatAmbientPlayer
+            .getDuration()
+            .timeout(_kSailboatAmbientCallTimeout);
+        debugPrint(
+          '[SailboatAmbient] diagnostic 600ms après play() — state=$state '
+          'position=$position duration=$duration '
+          'volumeLogique=${_sailboatAmbientPlayer.volume}',
+        );
+      } catch (e) {
+        debugPrint('[SailboatAmbient] diagnostic 600ms — échec de lecture d\'état : $e');
+      }
+    }());
+
+    final targetVolume = _sfxVolume;
+    final stepDuration =
+        _kSailboatAmbientFadeDuration ~/ _kSailboatAmbientFadeSteps;
+    for (var i = 1; i <= _kSailboatAmbientFadeSteps; i++) {
+      if (generation != _sailboatAmbientFadeGeneration) {
+        debugPrint(
+          '[SailboatAmbient] fondu d\'entrée invalidé (generation $generation).',
+        );
+        return;
+      }
+      try {
+        await _sailboatAmbientPlayer
+            .setVolume(targetVolume * i / _kSailboatAmbientFadeSteps)
+            .timeout(_kSailboatAmbientCallTimeout);
+      } catch (e) {
+        debugPrint(
+          '[SailboatAmbient] setVolume() (fondu d\'entrée) ignoré (échec/timeout) : $e',
+        );
+      }
+      if (stepDuration > Duration.zero) {
+        await Future<void>.delayed(stepDuration);
+      }
+    }
+    debugPrint('[SailboatAmbient] fondu d\'entrée terminé, volume cible=$targetVolume');
+  }
+
+  /// Arrête `sailboat_ambient.mp3` avec un fondu de sortie sur
+  /// [_kSailboatAmbientFadeDuration], appelé depuis
+  /// [SailboatComponent.onRemove] une fois le voilier définitivement retiré
+  /// de l'écran — même principe exactement que [stopBoatAmbient].
+  Future<void> stopSailboatAmbient() async {
+    final generation = ++_sailboatAmbientFadeGeneration;
+    final startVolume = _sailboatAmbientPlayer.volume;
+    final stepDuration =
+        _kSailboatAmbientFadeDuration ~/ _kSailboatAmbientFadeSteps;
+    for (var i = _kSailboatAmbientFadeSteps - 1; i >= 0; i--) {
+      if (generation != _sailboatAmbientFadeGeneration) return;
+      try {
+        await _sailboatAmbientPlayer
+            .setVolume(startVolume * i / _kSailboatAmbientFadeSteps)
+            .timeout(_kSailboatAmbientCallTimeout);
+      } catch (e) {
+        debugPrint(
+          '[SailboatAmbient] setVolume() (fondu de sortie) ignoré (échec/timeout) : $e',
+        );
+      }
+      if (stepDuration > Duration.zero) {
+        await Future<void>.delayed(stepDuration);
+      }
+    }
+    if (generation == _sailboatAmbientFadeGeneration) {
+      try {
+        await _sailboatAmbientPlayer.stop().timeout(_kSailboatAmbientCallTimeout);
+      } catch (e) {
+        debugPrint(
+          '[SailboatAmbient] stop() (fondu de sortie) ignoré (échec/timeout) : $e',
+        );
+      }
+    }
+  }
+
+  /// Démarre `plane_ambient.mp3` en boucle avec un fondu d'entrée sur
+  /// [_kPlaneAmbientFadeDuration], appelé depuis [PlaneComponent.onLoad] dès
+  /// l'apparition de l'avion décoratif (encore hors champ à ce stade) —
+  /// même principe exactement que [playBoatAmbient], sur le lecteur dédié
+  /// [_planeAmbientPlayer].
+  Future<void> playPlaneAmbient() async {
+    debugPrint(
+      '[PlaneAmbient] playPlaneAmbient() appelé — sfxEnabled=$_sfxEnabled '
+      'sfxVolume=$_sfxVolume',
+    );
+    if (!_sfxEnabled) {
+      debugPrint('[PlaneAmbient] bruitages désactivés — abandon.');
+      return;
+    }
+
+    // Voir le commentaire équivalent dans [playBoatAmbient] : ne pas
+    // utiliser setSource()+resume() ici, toujours play() depuis la source.
+    await _audioContextReady;
+
+    final generation = ++_planeAmbientFadeGeneration;
+
+    // Sur les apparitions suivantes, on réinitialise le lecteur existant.
+    // Sur la toute première, on ne fait volontairement pas de stop() sur un
+    // lecteur natif jamais utilisé — voir [playBoatAmbient].
+    if (_planeAmbientHasPlayedOnce) {
+      try {
+        await _planeAmbientPlayer.stop().timeout(_kPlaneAmbientCallTimeout);
+      } catch (e) {
+        debugPrint('[PlaneAmbient] stop() ignoré (échec/timeout) : $e');
+      }
+    }
+
+    try {
+      await _planeAmbientPlayer
+          .setReleaseMode(ReleaseMode.loop)
+          .timeout(_kPlaneAmbientCallTimeout);
+      await _planeAmbientPlayer
+          .play(
+            AssetSource(_kPlaneAmbientAssetPath),
+            volume: 0.0,
+            ctx: _kPlaneAmbientAudioContext,
+            mode: PlayerMode.mediaPlayer,
+          )
+          .timeout(_kPlaneAmbientCallTimeout);
+      _planeAmbientHasPlayedOnce = true;
+      debugPrint(
+        '[PlaneAmbient] play() réussi, asset=$_kPlaneAmbientAssetPath',
+      );
+    } catch (e, stack) {
+      debugPrint('[PlaneAmbient] ÉCHEC de play() : $e\n$stack');
+      return;
+    }
+
+    // Diagnostic identique à celui de [playBoatAmbient] : vérifie que le
+    // lecteur natif avance réellement, indépendamment du fondu de volume.
+    unawaited(() async {
+      await Future<void>.delayed(const Duration(milliseconds: 600));
+      try {
+        final state = _planeAmbientPlayer.state;
+        final position = await _planeAmbientPlayer
+            .getCurrentPosition()
+            .timeout(_kPlaneAmbientCallTimeout);
+        final duration = await _planeAmbientPlayer
+            .getDuration()
+            .timeout(_kPlaneAmbientCallTimeout);
+        debugPrint(
+          '[PlaneAmbient] diagnostic 600ms après play() — state=$state '
+          'position=$position duration=$duration '
+          'volumeLogique=${_planeAmbientPlayer.volume}',
+        );
+      } catch (e) {
+        debugPrint('[PlaneAmbient] diagnostic 600ms — échec de lecture d\'état : $e');
+      }
+    }());
+
+    final targetVolume = _sfxVolume;
+    final stepDuration =
+        _kPlaneAmbientFadeDuration ~/ _kPlaneAmbientFadeSteps;
+    for (var i = 1; i <= _kPlaneAmbientFadeSteps; i++) {
+      if (generation != _planeAmbientFadeGeneration) {
+        debugPrint(
+          '[PlaneAmbient] fondu d\'entrée invalidé (generation $generation).',
+        );
+        return;
+      }
+      try {
+        await _planeAmbientPlayer
+            .setVolume(targetVolume * i / _kPlaneAmbientFadeSteps)
+            .timeout(_kPlaneAmbientCallTimeout);
+      } catch (e) {
+        debugPrint(
+          '[PlaneAmbient] setVolume() (fondu d\'entrée) ignoré (échec/timeout) : $e',
+        );
+      }
+      if (stepDuration > Duration.zero) {
+        await Future<void>.delayed(stepDuration);
+      }
+    }
+    debugPrint('[PlaneAmbient] fondu d\'entrée terminé, volume cible=$targetVolume');
+  }
+
+  /// Arrête `plane_ambient.mp3` avec un fondu de sortie sur
+  /// [_kPlaneAmbientFadeDuration], appelé depuis [PlaneComponent.onRemove]
+  /// une fois l'avion définitivement retiré de l'écran — même principe
+  /// exactement que [stopBoatAmbient].
+  Future<void> stopPlaneAmbient() async {
+    final generation = ++_planeAmbientFadeGeneration;
+    final startVolume = _planeAmbientPlayer.volume;
+    final stepDuration =
+        _kPlaneAmbientFadeDuration ~/ _kPlaneAmbientFadeSteps;
+    for (var i = _kPlaneAmbientFadeSteps - 1; i >= 0; i--) {
+      if (generation != _planeAmbientFadeGeneration) return;
+      try {
+        await _planeAmbientPlayer
+            .setVolume(startVolume * i / _kPlaneAmbientFadeSteps)
+            .timeout(_kPlaneAmbientCallTimeout);
+      } catch (e) {
+        debugPrint(
+          '[PlaneAmbient] setVolume() (fondu de sortie) ignoré (échec/timeout) : $e',
+        );
+      }
+      if (stepDuration > Duration.zero) {
+        await Future<void>.delayed(stepDuration);
+      }
+    }
+    if (generation == _planeAmbientFadeGeneration) {
+      try {
+        await _planeAmbientPlayer.stop().timeout(_kPlaneAmbientCallTimeout);
+      } catch (e) {
+        debugPrint(
+          '[PlaneAmbient] stop() (fondu de sortie) ignoré (échec/timeout) : $e',
+        );
+      }
+    }
+  }
+
+  /// Démarre `hot_air_balloon_ambient.mp3` en boucle avec un fondu d'entrée
+  /// sur [_kHotAirBalloonAmbientFadeDuration], appelé depuis
+  /// [HotAirBalloonComponent.onLoad] dès l'apparition de la montgolfière
+  /// décorative (encore hors champ à ce stade) — même principe exactement
+  /// que [playBoatAmbient], sur le lecteur dédié
+  /// [_hotAirBalloonAmbientPlayer].
+  Future<void> playHotAirBalloonAmbient() async {
+    debugPrint(
+      '[HotAirBalloonAmbient] playHotAirBalloonAmbient() appelé — '
+      'sfxEnabled=$_sfxEnabled sfxVolume=$_sfxVolume',
+    );
+    if (!_sfxEnabled) {
+      debugPrint('[HotAirBalloonAmbient] bruitages désactivés — abandon.');
+      return;
+    }
+
+    // Voir le commentaire équivalent dans [playBoatAmbient] : ne pas
+    // utiliser setSource()+resume() ici, toujours play() depuis la source.
+    await _audioContextReady;
+
+    final generation = ++_hotAirBalloonAmbientFadeGeneration;
+
+    // Sur les apparitions suivantes, on réinitialise le lecteur existant.
+    // Sur la toute première, on ne fait volontairement pas de stop() sur un
+    // lecteur natif jamais utilisé — voir [playBoatAmbient].
+    if (_hotAirBalloonAmbientHasPlayedOnce) {
+      try {
+        await _hotAirBalloonAmbientPlayer
+            .stop()
+            .timeout(_kHotAirBalloonAmbientCallTimeout);
+      } catch (e) {
+        debugPrint('[HotAirBalloonAmbient] stop() ignoré (échec/timeout) : $e');
+      }
+    }
+
+    try {
+      await _hotAirBalloonAmbientPlayer
+          .setReleaseMode(ReleaseMode.loop)
+          .timeout(_kHotAirBalloonAmbientCallTimeout);
+      await _hotAirBalloonAmbientPlayer
+          .play(
+            AssetSource(_kHotAirBalloonAmbientAssetPath),
+            volume: 0.0,
+            ctx: _kHotAirBalloonAmbientAudioContext,
+            mode: PlayerMode.mediaPlayer,
+          )
+          .timeout(_kHotAirBalloonAmbientCallTimeout);
+      _hotAirBalloonAmbientHasPlayedOnce = true;
+      debugPrint(
+        '[HotAirBalloonAmbient] play() réussi, '
+        'asset=$_kHotAirBalloonAmbientAssetPath',
+      );
+    } catch (e, stack) {
+      debugPrint('[HotAirBalloonAmbient] ÉCHEC de play() : $e\n$stack');
+      return;
+    }
+
+    // Diagnostic identique à celui de [playBoatAmbient] : vérifie que le
+    // lecteur natif avance réellement, indépendamment du fondu de volume.
+    unawaited(() async {
+      await Future<void>.delayed(const Duration(milliseconds: 600));
+      try {
+        final state = _hotAirBalloonAmbientPlayer.state;
+        final position = await _hotAirBalloonAmbientPlayer
+            .getCurrentPosition()
+            .timeout(_kHotAirBalloonAmbientCallTimeout);
+        final duration = await _hotAirBalloonAmbientPlayer
+            .getDuration()
+            .timeout(_kHotAirBalloonAmbientCallTimeout);
+        debugPrint(
+          '[HotAirBalloonAmbient] diagnostic 600ms après play() — '
+          'state=$state position=$position duration=$duration '
+          'volumeLogique=${_hotAirBalloonAmbientPlayer.volume}',
+        );
+      } catch (e) {
+        debugPrint(
+          '[HotAirBalloonAmbient] diagnostic 600ms — échec de lecture d\'état : $e',
+        );
+      }
+    }());
+
+    final targetVolume = _sfxVolume;
+    final stepDuration =
+        _kHotAirBalloonAmbientFadeDuration ~/ _kHotAirBalloonAmbientFadeSteps;
+    for (var i = 1; i <= _kHotAirBalloonAmbientFadeSteps; i++) {
+      if (generation != _hotAirBalloonAmbientFadeGeneration) {
+        debugPrint(
+          '[HotAirBalloonAmbient] fondu d\'entrée invalidé (generation $generation).',
+        );
+        return;
+      }
+      try {
+        await _hotAirBalloonAmbientPlayer
+            .setVolume(targetVolume * i / _kHotAirBalloonAmbientFadeSteps)
+            .timeout(_kHotAirBalloonAmbientCallTimeout);
+      } catch (e) {
+        debugPrint(
+          '[HotAirBalloonAmbient] setVolume() (fondu d\'entrée) ignoré '
+          '(échec/timeout) : $e',
+        );
+      }
+      if (stepDuration > Duration.zero) {
+        await Future<void>.delayed(stepDuration);
+      }
+    }
+    debugPrint(
+      '[HotAirBalloonAmbient] fondu d\'entrée terminé, volume cible=$targetVolume',
+    );
+  }
+
+  /// Arrête `hot_air_balloon_ambient.mp3` avec un fondu de sortie sur
+  /// [_kHotAirBalloonAmbientFadeDuration], appelé depuis
+  /// [HotAirBalloonComponent.onRemove] une fois la montgolfière
+  /// définitivement retirée de l'écran — même principe exactement que
+  /// [stopBoatAmbient].
+  Future<void> stopHotAirBalloonAmbient() async {
+    final generation = ++_hotAirBalloonAmbientFadeGeneration;
+    final startVolume = _hotAirBalloonAmbientPlayer.volume;
+    final stepDuration =
+        _kHotAirBalloonAmbientFadeDuration ~/ _kHotAirBalloonAmbientFadeSteps;
+    for (var i = _kHotAirBalloonAmbientFadeSteps - 1; i >= 0; i--) {
+      if (generation != _hotAirBalloonAmbientFadeGeneration) return;
+      try {
+        await _hotAirBalloonAmbientPlayer
+            .setVolume(startVolume * i / _kHotAirBalloonAmbientFadeSteps)
+            .timeout(_kHotAirBalloonAmbientCallTimeout);
+      } catch (e) {
+        debugPrint(
+          '[HotAirBalloonAmbient] setVolume() (fondu de sortie) ignoré '
+          '(échec/timeout) : $e',
+        );
+      }
+      if (stepDuration > Duration.zero) {
+        await Future<void>.delayed(stepDuration);
+      }
+    }
+    if (generation == _hotAirBalloonAmbientFadeGeneration) {
+      try {
+        await _hotAirBalloonAmbientPlayer
+            .stop()
+            .timeout(_kHotAirBalloonAmbientCallTimeout);
+      } catch (e) {
+        debugPrint(
+          '[HotAirBalloonAmbient] stop() (fondu de sortie) ignoré '
+          '(échec/timeout) : $e',
+        );
+      }
+    }
+  }
+
   /// Précharge tous les bruitages ([SfxTrack]) — ainsi que
   /// `boat_ambient.mp3` (voir [playBoatAmbient]/[stopBoatAmbient]) — en
   /// cache disque local via [AudioCache] — appelé une seule fois au
@@ -808,7 +1404,13 @@ class AudioService {
   Future<void> preloadSfx() async {
     try {
       await AudioCache.instance.loadAll(
-        [...SfxTrack.values.map((t) => t.assetPath), _kBoatAmbientAssetPath],
+        [
+          ...SfxTrack.values.map((t) => t.assetPath),
+          _kBoatAmbientAssetPath,
+          _kSailboatAmbientAssetPath,
+          _kPlaneAmbientAssetPath,
+          _kHotAirBalloonAmbientAssetPath,
+        ],
       );
     } catch (_) {
       // Optimisation de confort, pas une nécessité : un échec (stockage
@@ -888,6 +1490,9 @@ class AudioService {
     _tileGainPlayer.dispose();
     _endGamePlayer.dispose();
     _boatAmbientPlayer.dispose();
+    _sailboatAmbientPlayer.dispose();
+    _planeAmbientPlayer.dispose();
+    _hotAirBalloonAmbientPlayer.dispose();
   }
 }
 

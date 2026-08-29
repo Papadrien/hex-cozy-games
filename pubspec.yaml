@@ -125,6 +125,9 @@ flutter:
     - assets/audio/quest_reward.mp3
     - assets/audio/purchase_success.mp3
     - assets/audio/boat_ambient.mp3
+    - assets/audio/sailboat_ambient.mp3
+    - assets/audio/plane_ambient.mp3
+    - assets/audio/hot_air_balloon_ambient.mp3
 
   fonts:
     - family: Pacifico

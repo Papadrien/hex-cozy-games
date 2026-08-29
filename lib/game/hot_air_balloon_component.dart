@@ -49,14 +49,30 @@
 /// minutage manuel, sans [MoveEffect]. Voir aussi [_offScreenSafetyFactor] :
 /// les points de départ/arrivée sont gonflés pour rester hors du cadre
 /// visible même après un dézoom du plateau survenu après l'apparition.
+///
+/// Son d'ambiance dédié (`hot_air_balloon_ambient.mp3`,
+/// [AudioService.playHotAirBalloonAmbient]/
+/// [AudioService.stopHotAirBalloonAmbient]) : démarré en fondu d'entrée à
+/// [onLoad] (la montgolfière vient d'apparaître, encore hors champ), arrêté
+/// en fondu de sortie à [onRemove] (juste après sa disparition définitive
+/// de l'écran, en fin de trajet) — même principe exactement que
+/// [FishingBoatComponent]/[SailboatComponent]/[PlaneComponent] (voir leur
+/// doc de fichier), sur un lecteur dédié distinct. Nécessite le
+/// [ProviderContainer] de l'app (même principe que
+/// [HexBoardGame._container]) pour accéder à [audioServiceProvider] depuis
+/// ce composant Flame, qui n'a pas de `WidgetRef` propre.
 library;
 
+import 'dart:async' show unawaited;
 import 'dart:math' show Random, pi, sin;
 
 import 'package:flame/components.dart';
 import 'package:flutter/animation.dart' show Curve;
+import 'package:flutter/foundation.dart' show debugPrint;
+import 'package:flutter_riverpod/flutter_riverpod.dart' show ProviderContainer;
 
 import '../core/constants.dart' show kHexSize;
+import '../services/audio_service.dart' show audioServiceProvider;
 import 'hex_grid_component.dart' show HexGridComponent;
 import 'tile_component.dart' show kTileDepthPriorityPreview;
 
@@ -118,11 +134,19 @@ class _MidFlightSlowdownCurve extends Curve {
 }
 
 class HotAirBalloonComponent extends SpriteComponent {
-  HotAirBalloonComponent({required this.screenSize, double zoom = 1.0})
-      : _spawnZoom = zoom,
+  HotAirBalloonComponent({
+    required this.screenSize,
+    required ProviderContainer container,
+    double zoom = 1.0,
+  })  : _spawnZoom = zoom,
+        _container = container,
         super(anchor: Anchor.center, priority: kTileDepthPriorityPreview + 1);
 
   final Vector2 screenSize;
+
+  /// Voir doc de fichier (son d'ambiance) — permet d'accéder à
+  /// [audioServiceProvider] sans `WidgetRef` propre au composant.
+  final ProviderContainer _container;
 
   /// Zoom du plateau au moment de l'apparition — sert de référence pour la
   /// mise à l'échelle de la trajectoire et du sprite en fonction du zoom
@@ -157,6 +181,14 @@ class HotAirBalloonComponent extends SpriteComponent {
     _grid = p is HexGridComponent ? p : null;
 
     sprite = await Sprite.load('hot_air_balloon.png');
+
+    // Démarre le son d'ambiance en fondu d'entrée dès l'apparition de la
+    // montgolfière (encore hors champ à ce stade) — voir doc de fichier.
+    debugPrint(
+      '[HotAirBalloonAmbient] HotAirBalloonComponent.onLoad → appel '
+      'playHotAirBalloonAmbient()',
+    );
+    unawaited(_container.read(audioServiceProvider).playHotAirBalloonAmbient());
 
     final rand = Random();
 
@@ -205,6 +237,15 @@ class HotAirBalloonComponent extends SpriteComponent {
       _done = true;
       removeFromParent();
     }
+  }
+
+  /// Arrête le son d'ambiance en fondu de sortie une fois le composant
+  /// définitivement retiré (fin de trajet, voir [update]) — voir doc de
+  /// fichier.
+  @override
+  void onRemove() {
+    unawaited(_container.read(audioServiceProvider).stopHotAirBalloonAmbient());
+    super.onRemove();
   }
 
   /// Interpole la courbe de Bézier quadratique (départ / contrôle /

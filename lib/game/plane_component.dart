@@ -54,14 +54,29 @@
 /// [_offScreenSafetyFactor] : les distances de départ/arrivée sont
 /// gonflées pour rester hors du cadre visible même après un dézoom du
 /// plateau survenu après l'apparition.
+///
+/// Son d'ambiance dédié (`plane_ambient.mp3`,
+/// [AudioService.playPlaneAmbient]/[AudioService.stopPlaneAmbient]) :
+/// démarré en fondu d'entrée à [onLoad] (l'avion vient d'apparaître, encore
+/// hors champ), arrêté en fondu de sortie à [onRemove] (juste après sa
+/// disparition définitive de l'écran, en fin de trajet) — même principe
+/// exactement que [FishingBoatComponent]/[SailboatComponent] (voir leur
+/// doc de fichier), sur un lecteur dédié distinct. Nécessite le
+/// [ProviderContainer] de l'app (même principe que
+/// [HexBoardGame._container]) pour accéder à [audioServiceProvider] depuis
+/// ce composant Flame, qui n'a pas de `WidgetRef` propre.
 library;
 
+import 'dart:async' show unawaited;
 import 'dart:math' show Random, atan2, cos, pi, sin;
 
 import 'package:flame/components.dart';
 import 'package:flutter/animation.dart' show Curve;
+import 'package:flutter/foundation.dart' show debugPrint;
+import 'package:flutter_riverpod/flutter_riverpod.dart' show ProviderContainer;
 
 import '../core/constants.dart' show kHexSize;
+import '../services/audio_service.dart' show audioServiceProvider;
 import 'hex_grid_component.dart' show HexGridComponent;
 import 'tile_component.dart' show kTileDepthPriorityPreview;
 
@@ -130,11 +145,19 @@ class _MidFlightSlowdownCurve extends Curve {
 }
 
 class PlaneComponent extends SpriteComponent {
-  PlaneComponent({required this.screenSize, double zoom = 1.0})
-      : _spawnZoom = zoom,
+  PlaneComponent({
+    required this.screenSize,
+    required ProviderContainer container,
+    double zoom = 1.0,
+  })  : _spawnZoom = zoom,
+        _container = container,
         super(anchor: Anchor.center, priority: kTileDepthPriorityPreview + 1);
 
   final Vector2 screenSize;
+
+  /// Voir doc de fichier (son d'ambiance) — permet d'accéder à
+  /// [audioServiceProvider] sans `WidgetRef` propre au composant.
+  final ProviderContainer _container;
 
   /// Zoom du plateau au moment de l'apparition — sert de référence pour la
   /// mise à l'échelle de la trajectoire et du sprite en fonction du zoom
@@ -166,6 +189,11 @@ class PlaneComponent extends SpriteComponent {
     _grid = p is HexGridComponent ? p : null;
 
     sprite = await Sprite.load('plane.png');
+
+    // Démarre le son d'ambiance en fondu d'entrée dès l'apparition de
+    // l'avion (encore hors champ à ce stade) — voir doc de fichier.
+    debugPrint('[PlaneAmbient] PlaneComponent.onLoad → appel playPlaneAmbient()');
+    unawaited(_container.read(audioServiceProvider).playPlaneAmbient());
 
     final rand = Random();
 
@@ -201,6 +229,15 @@ class PlaneComponent extends SpriteComponent {
       _done = true;
       removeFromParent();
     }
+  }
+
+  /// Arrête le son d'ambiance en fondu de sortie une fois le composant
+  /// définitivement retiré (fin de trajet, voir [update]) — voir doc de
+  /// fichier.
+  @override
+  void onRemove() {
+    unawaited(_container.read(audioServiceProvider).stopPlaneAmbient());
+    super.onRemove();
   }
 
   /// Calcule la position/taille écran réelles pour la progression [rawT]
