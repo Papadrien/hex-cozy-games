@@ -66,7 +66,7 @@ dependencies:
   google_mobile_ads: ^9.0.0
 
   # Audio (musique de fond + bruitages)
-  audioplayers: ^6.1.0
+  audioplayers: ^6.8.1
 
   # Achats in-app
   in_app_purchase: ^3.2.4
