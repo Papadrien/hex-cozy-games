@@ -193,6 +193,26 @@ const int _kMusicFadeSteps = 12;
 /// [AudioService.playBoatAmbient]/[AudioService.stopBoatAmbient].
 const String _kBoatAmbientAssetPath = 'audio/boat_ambient.mp3';
 
+/// Contexte audio appliqué directement à la lecture du bateau.
+///
+/// Le contexte global reste utilisé par les autres lecteurs, mais le bateau
+/// est volontairement autonome : le contexte est passé directement à
+/// `AudioPlayer.play()`, ce qui évite toute dépendance à l'ordre
+/// d'initialisation du contexte global.
+final AudioContext _kBoatAmbientAudioContext = AudioContext(
+  iOS: AudioContextIOS(
+    category: AVAudioSessionCategory.playback,
+    options: {AVAudioSessionOptions.mixWithOthers},
+  ),
+  android: const AudioContextAndroid(
+    isSpeakerphoneOn: false,
+    stayAwake: false,
+    contentType: AndroidContentType.music,
+    usageType: AndroidUsageType.game,
+    audioFocus: AndroidAudioFocus.none,
+  ),
+);
+
 /// Durée des fondus d'entrée/sortie du son d'ambiance du bateau de pêche —
 /// même ordre de grandeur que [_kMusicFadeOutDuration], suffisamment long
 /// pour que l'apparition/disparition reste discrète plutôt qu'une coupure
@@ -366,16 +386,6 @@ class AudioService {
   /// sont donc faits qu'à partir du second déclenchement du bateau, quand
   /// le lecteur a réellement un état à réinitialiser.
   bool _boatAmbientHasPlayedOnce = false;
-
-  /// `true` when the boat player has an audio source prepared natively.
-  ///
-  /// The previous implementation "primed" the player by actually calling
-  /// `play()` at volume 0 during SplashScreen. That still opened a real
-  /// Android playback session and could race with the global audio-context
-  /// setup / Ads initialization. Preparing the source with `setSource()` and
-  /// starting it later with `resume()` avoids that race while still warming
-  /// the native player.
-  bool _boatAmbientPrepared = false;
 
   /// Timeout appliqué à chaque appel natif individuel dans
   /// [playBoatAmbient]/[stopBoatAmbient] : sur certains appareils, le
@@ -642,17 +652,6 @@ class AudioService {
   /// [_boatAmbientFadeGeneration]) — ne devrait pas arriver en usage normal
   /// (un seul bateau à la fois par partie), mais reste robuste si jamais.
   Future<void> playBoatAmbient() async {
-    // `debugPrint` volontaire (voir aussi celui plus bas, sur l'échec de
-    // `play()`) : l'app installe un handler global
-    // (`PlatformDispatcher.instance.onError`, voir `analytics_service.dart`)
-    // qui capture toute exception non rattrapée d'un Future non-awaité (ce
-    // qui est le cas ici, appelé via `unawaited` depuis
-    // `FishingBoatComponent.onLoad`) et l'envoie à Crashlytics — SANS
-    // jamais l'imprimer en console/logcat. Sans ce `debugPrint` explicite,
-    // un échec de lecture natif de `boat_ambient.mp3` serait donc
-    // totalement invisible en local (adb logcat / `flutter logs`), y
-    // compris en build debug : seul le dashboard Crashlytics (avec un
-    // délai de remontée) en garderait la trace.
     debugPrint(
       '[BoatAmbient] playBoatAmbient() appelé — sfxEnabled=$_sfxEnabled '
       'sfxVolume=$_sfxVolume',
@@ -661,103 +660,52 @@ class AudioService {
       debugPrint('[BoatAmbient] bruitages désactivés — abandon.');
       return;
     }
-    // Attend que le contexte audio natif (audioFocus: none, voir
-    // constructeur) soit réellement appliqué avant tout `play()` — c'est ce
-    // qui manquait et causait le silence confirmé en logcat (voir le
-    // commentaire détaillé dans le constructeur de [AudioService]).
+
+    // Do not use setSource()+resume() here. With audioplayers, resume() is
+    // intended to resume a paused player; after setSource() the player is not
+    // necessarily in the paused state. That path can therefore report a
+    // successful call while producing no audio. Always use play() to start
+    // this ambience from its source.
     await _audioContextReady;
+
     final generation = ++_boatAmbientFadeGeneration;
-    // stop() et seek(0) défensifs, mais seulement à partir du second
-    // déclenchement (voir [_boatAmbientHasPlayedOnce]) : sur le tout
-    // premier appel, le lecteur natif vient d'être créé et n'a jamais été
-    // préparé. Logcat a confirmé que c'est précisément `stop()` sur ce
-    // lecteur "vierge" qui bloquait indéfiniment (l'exécution n'atteignait
-    // jamais `play()`, ni même le `catch` — l'`await` ne se résolvait tout
-    // simplement jamais). Le `.timeout()` ci-dessous est une seconde
-    // protection, pour les appels suivants où stop()/seek() ont
-    // effectivement un état à réinitialiser : même défensifs, ils ne
-    // doivent plus jamais pouvoir bloquer indéfiniment.
+
+    // On subsequent appearances, reset the existing player. On the first
+    // appearance we deliberately do not call stop() on a never-used native
+    // player because some Android versions/plugins can leave that call
+    // unresolved before the player has ever been started.
     if (_boatAmbientHasPlayedOnce) {
       try {
         await _boatAmbientPlayer.stop().timeout(_kBoatAmbientCallTimeout);
       } catch (e) {
         debugPrint('[BoatAmbient] stop() ignoré (échec/timeout) : $e');
       }
-      try {
-        await _boatAmbientPlayer
-            .seek(Duration.zero)
-            .timeout(_kBoatAmbientCallTimeout);
-      } catch (e) {
-        debugPrint('[BoatAmbient] seek() ignoré (échec/timeout) : $e');
-      }
     }
-    // Réaffirmé ici (et pas seulement dans le constructeur) : le constructeur
-    // l'appelle via `unawaited`, donc rien ne garantit qu'il ait bien été
-    // appliqué nativement avant ce tout premier `play()` si le bateau de
-    // pêche apparaît très tôt en partie (dès 2 tuiles posées, voir
-    // `HexBoardGame.kFishingBoatTriggerTileCount`). Sans boucle effective, le
-    // son s'arrêterait net après sa seule lecture (~40s) au lieu de tourner
-    // tant que le bateau est à l'écran.
+
     try {
       await _boatAmbientPlayer
           .setReleaseMode(ReleaseMode.loop)
           .timeout(_kBoatAmbientCallTimeout);
-    } catch (e) {
-      debugPrint('[BoatAmbient] setReleaseMode() ignoré (échec/timeout) : $e');
-    }
-    try {
-      await _boatAmbientPlayer.setVolume(0.0).timeout(_kBoatAmbientCallTimeout);
-    } catch (e) {
-      debugPrint('[BoatAmbient] setVolume(0.0) ignoré (échec/timeout) : $e');
-    }
-    // Contrairement aux appels ci-dessus (dont l'échec est sans
-    // conséquence grave : au pire un fondu repart d'un état non idéal), un
-    // échec ICI signifie que le son ne sera jamais audible — c'est donc le
-    // seul point de cette méthode où l'erreur est à la fois catchée ET
-    // rendue visible localement (voir le commentaire sur `debugPrint`
-    // au début de la méthode), plutôt que simplement avalée par le handler
-    // global. `return` après l'échec : poursuivre le fondu sur un lecteur
-    // qui n'a pas démarré n'aurait aucun effet audible.
-    try {
-      // If the source was prepared during splash, use `resume()` instead of
-      // `play()`: `play()` calls `setSource()` again and unnecessarily
-      // re-prepares the Android MediaPlayer. This is especially important for
-      // this long looping ambience because the boat is a decorative component
-      // created while other Android SDKs may still be initializing.
-      if (_boatAmbientPrepared) {
-        await _boatAmbientPlayer
-            .resume()
-            .timeout(_kBoatAmbientCallTimeout);
-      } else {
-        await _boatAmbientPlayer
-            .play(AssetSource(_kBoatAmbientAssetPath))
-            .timeout(_kBoatAmbientCallTimeout);
-      }
+      // Set the initial volume to zero before starting so the fade-in is
+      // deterministic, then start with play() (not resume()).
+      await _boatAmbientPlayer
+          .play(
+            AssetSource(_kBoatAmbientAssetPath),
+            volume: 0.0,
+            ctx: _kBoatAmbientAudioContext,
+            mode: PlayerMode.mediaPlayer,
+          )
+          .timeout(_kBoatAmbientCallTimeout);
       _boatAmbientHasPlayedOnce = true;
-      debugPrint(
-        '[BoatAmbient] démarrage réussi, asset=$_kBoatAmbientAssetPath '
-        'prepared=$_boatAmbientPrepared',
-      );
+      debugPrint('[BoatAmbient] play() réussi, asset=$_kBoatAmbientAssetPath');
     } catch (e, stack) {
-      debugPrint('[BoatAmbient] ÉCHEC du démarrage : $e\n$stack');
-      _boatAmbientPrepared = false;
+      debugPrint('[BoatAmbient] ÉCHEC de play() : $e\n$stack');
       return;
     }
-    // Diagnostic supplémentaire : `play()` réussi ne garantit pas que le
-    // lecteur natif avance réellement dans le fichier — sur certains
-    // appareils, l'appel de plateforme peut "réussir" (retourner sans
-    // erreur) sans que le rendu audio matériel démarre vraiment derrière.
-    // On vérifie ici, 600ms après le lancement, l'état natif réel du
-    // lecteur ET sa position de lecture :
-    //  - state != playing → le lecteur ne joue pas réellement, malgré le
-    //    succès apparent de `play()` ;
-    //  - state == playing mais position toujours ~0 → le lecteur est
-    //    "démarré" côté plugin mais bloqué en interne (décodage/rendu qui
-    //    ne progresse pas) ;
-    //  - state == playing ET position qui avance → la lecture est
-    //    RÉELLEMENT active côté natif, ce qui déplacerait la cause du
-    //    silence hors de ce code (routage audio de l'appareil, sortie
-    //    active, volume média système...).
+
+    // Verify that the native player actually advances. This is deliberately
+    // independent from the volume fade: a player can be in `playing` state
+    // while still being stuck at position zero on a platform failure.
     unawaited(() async {
       await Future<void>.delayed(const Duration(milliseconds: 600));
       try {
@@ -770,12 +718,14 @@ class AudioService {
             .timeout(_kBoatAmbientCallTimeout);
         debugPrint(
           '[BoatAmbient] diagnostic 600ms après play() — state=$state '
-          'position=$position duration=$duration volumeLogique=${_boatAmbientPlayer.volume}',
+          'position=$position duration=$duration '
+          'volumeLogique=${_boatAmbientPlayer.volume}',
         );
       } catch (e) {
         debugPrint('[BoatAmbient] diagnostic 600ms — échec de lecture d\'état : $e');
       }
     }());
+
     final targetVolume = _sfxVolume;
     final stepDuration = _kBoatAmbientFadeDuration ~/ _kBoatAmbientFadeSteps;
     for (var i = 1; i <= _kBoatAmbientFadeSteps; i++) {
@@ -866,73 +816,6 @@ class AudioService {
       // lancement de l'app ni faire planter SplashScreen._load — les sons
       // resteront simplement joignables normalement, juste sans le gain de
       // préchargement.
-    }
-  }
-
-  /// « Réchauffe » [_boatAmbientPlayer] au lancement en le faisant vraiment
-  /// jouer une fraction de seconde (à volume nul) puis pause, plutôt que de
-  /// le laisser vierge jusqu'au tout premier passage du bateau de pêche.
-  ///
-  /// Réplique ce qui rend [_musicPlayer] fiable : ce dernier n'est JAMAIS
-  /// utilisé "à froid" — `SplashScreen.initState` appelle déjà
-  /// `playMusic(home)` en tout premier, avant même `preloadSfx`/le reste de
-  /// `_load` (voir `splash_screen.dart`), si bien que par le temps où
-  /// `game_screen.dart` demande `MusicTrack.ambient`, ce lecteur a déjà
-  /// traversé un cycle complet play/prepare natif réussi, bien avant que le
-  /// SDK Ads ne commence son initialisation. C'est justement cette toute
-  /// première préparation native, à froid, de [_boatAmbientPlayer] qui
-  /// posait problème (logcat : `stop()` qui ne se résolvait jamais sur un
-  /// lecteur jamais préparé, puis, une fois ce point contourné, un silence
-  /// total malgré des logs de succès à chaque étape) — et qui survenait
-  /// systématiquement dans la fenêtre de quelques secondes après le
-  /// lancement où le SDK Ads s'initialise (`DynamiteModule`, chargement de
-  /// la bannière...), contrairement à `_musicPlayer` dont le premier
-  /// `play()` a lieu plus tôt, avant cette contention.
-  ///
-  /// Appelée depuis `SplashScreen.initState`, `unawaited`, juste après
-  /// `playMusic(home)` — même point d'entrée, même timing — plutôt que
-  /// depuis [preloadSfx] (qui ne démarre qu'ensuite, dans `_load`, après
-  /// `AudioCache.loadAll` de tous les autres bruitages, ce qui aurait
-  /// repoussé ce premier cycle natif un peu plus tard, réduisant l'avance
-  /// prise sur le SDK Ads). En avançant ce premier cycle natif ici, le
-  /// bateau de pêche ne fait plus jamais sa toute première lecture "à
-  /// froid" en pleine partie : quand [playBoatAmbient] s'exécute, le
-  /// lecteur est déjà dans le même état "déjà utilisé une fois" que
-  /// [_musicPlayer] l'est pour sa propre toute première lecture en jeu.
-  Future<void> primeBoatAmbient() async {
-    try {
-      // Never touch the native player before the global audio context has
-      // actually been installed. The old implementation started a real,
-      // silent playback here, which could acquire the default Android audio
-      // focus while Ads was initializing and then leave the player silent.
-      await _audioContextReady;
-
-      await _boatAmbientPlayer
-          .setReleaseMode(ReleaseMode.loop)
-          .timeout(_kBoatAmbientCallTimeout);
-      await _boatAmbientPlayer
-          .setVolume(0.0)
-          .timeout(_kBoatAmbientCallTimeout);
-
-      // Prepare the asset without starting playback. `resume()` in
-      // playBoatAmbient() will start this already-prepared source.
-      await _boatAmbientPlayer
-          .setSource(AssetSource(_kBoatAmbientAssetPath))
-          .timeout(_kBoatAmbientCallTimeout);
-
-      _boatAmbientPrepared = true;
-      debugPrint(
-        '[BoatAmbient] préchauffage natif réussi (source préparée, '
-        'lecture non démarrée).',
-      );
-    } catch (e, stack) {
-      _boatAmbientPrepared = false;
-      // A failed warm-up must never prevent the normal playback path from
-      // trying again when the boat actually appears.
-      debugPrint(
-        '[BoatAmbient] préchauffage échoué (sans conséquence) : '
-        '$e\n$stack',
-      );
     }
   }
 

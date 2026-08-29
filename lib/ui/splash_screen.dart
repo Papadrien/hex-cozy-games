@@ -33,13 +33,6 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     // démarrée dès le splash pour une présence sonore immédiate au
     // lancement de l'app.
     unawaited(ref.read(audioServiceProvider).playMusic(MusicTrack.home));
-    // Même timing, même logique (voir AudioService.primeBoatAmbient) :
-    // fait traverser à _boatAmbientPlayer son tout premier cycle natif
-    // play/prepare ici, en silence, pendant que le lancement a encore la
-    // main libre — avant que le SDK Ads ne commence son initialisation —
-    // plutôt que de le laisser le faire "à froid" au tout premier passage
-    // du bateau de pêche en pleine partie.
-    unawaited(ref.read(audioServiceProvider).primeBoatAmbient());
     _load();
   }
 
