@@ -102,6 +102,7 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:audioplayers/audioplayers.dart';
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/options_provider.dart';
@@ -564,7 +565,25 @@ class AudioService {
   /// [_boatAmbientFadeGeneration]) — ne devrait pas arriver en usage normal
   /// (un seul bateau à la fois par partie), mais reste robuste si jamais.
   Future<void> playBoatAmbient() async {
-    if (!_sfxEnabled) return;
+    // `debugPrint` volontaire (voir aussi celui plus bas, sur l'échec de
+    // `play()`) : l'app installe un handler global
+    // (`PlatformDispatcher.instance.onError`, voir `analytics_service.dart`)
+    // qui capture toute exception non rattrapée d'un Future non-awaité (ce
+    // qui est le cas ici, appelé via `unawaited` depuis
+    // `FishingBoatComponent.onLoad`) et l'envoie à Crashlytics — SANS
+    // jamais l'imprimer en console/logcat. Sans ce `debugPrint` explicite,
+    // un échec de lecture natif de `boat_ambient.mp3` serait donc
+    // totalement invisible en local (adb logcat / `flutter logs`), y
+    // compris en build debug : seul le dashboard Crashlytics (avec un
+    // délai de remontée) en garderait la trace.
+    debugPrint(
+      '[BoatAmbient] playBoatAmbient() appelé — sfxEnabled=$_sfxEnabled '
+      'sfxVolume=$_sfxVolume',
+    );
+    if (!_sfxEnabled) {
+      debugPrint('[BoatAmbient] bruitages désactivés — abandon.');
+      return;
+    }
     final generation = ++_boatAmbientFadeGeneration;
     // stop() et seek(0) défensifs : même pattern que [playTileGained] et
     // [playEndGame] — sur certains appareils, le plugin `audioplayers`
@@ -590,16 +609,34 @@ class AudioService {
       await _boatAmbientPlayer.setReleaseMode(ReleaseMode.loop);
     } catch (_) {}
     await _boatAmbientPlayer.setVolume(0.0);
-    await _boatAmbientPlayer.play(AssetSource(_kBoatAmbientAssetPath));
+    // Contrairement au `stop()`/`seek()` ci-dessus (dont l'échec est sans
+    // conséquence : au pire un fondu repart d'une position non nulle), un
+    // échec ICI signifie que le son ne sera jamais audible — c'est donc le
+    // seul point de cette méthode où l'erreur est à la fois catchée ET
+    // rendue visible localement (voir le commentaire sur `debugPrint`
+    // au début de la méthode), plutôt que simplement avalée par le handler
+    // global. `return` après l'échec : poursuivre le fondu sur un lecteur
+    // qui n'a pas démarré n'aurait aucun effet audible.
+    try {
+      await _boatAmbientPlayer.play(AssetSource(_kBoatAmbientAssetPath));
+      debugPrint('[BoatAmbient] play() a réussi, asset=$_kBoatAmbientAssetPath');
+    } catch (e, stack) {
+      debugPrint('[BoatAmbient] ÉCHEC de play() : $e\n$stack');
+      return;
+    }
     final targetVolume = _sfxVolume;
     final stepDuration = _kBoatAmbientFadeDuration ~/ _kBoatAmbientFadeSteps;
     for (var i = 1; i <= _kBoatAmbientFadeSteps; i++) {
-      if (generation != _boatAmbientFadeGeneration) return;
+      if (generation != _boatAmbientFadeGeneration) {
+        debugPrint('[BoatAmbient] fondu d\'entrée invalidé (generation $generation).');
+        return;
+      }
       await _boatAmbientPlayer.setVolume(targetVolume * i / _kBoatAmbientFadeSteps);
       if (stepDuration > Duration.zero) {
         await Future<void>.delayed(stepDuration);
       }
     }
+    debugPrint('[BoatAmbient] fondu d\'entrée terminé, volume cible=$targetVolume');
   }
 
   /// Arrête `boat_ambient.mp3` avec un fondu de sortie sur

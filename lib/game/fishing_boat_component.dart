@@ -88,6 +88,7 @@ import 'dart:ui' show Canvas, Color, Offset, Paint, PaintingStyle, Path, StrokeC
 
 import 'package:flame/components.dart';
 import 'package:flutter/animation.dart' show Curves;
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter_riverpod/flutter_riverpod.dart' show ProviderContainer;
 
 import '../core/constants.dart' show kHexSize;
@@ -279,6 +280,15 @@ class FishingBoatComponent extends SpriteComponent with WakeMixin {
 
     // Démarre le son d'ambiance en fondu d'entrée dès l'apparition du
     // bateau (encore hors champ à ce stade) — voir doc de fichier.
+    //
+    // `debugPrint` temporaire de diagnostic (voir aussi ceux dans
+    // `AudioService.playBoatAmbient`) : confirme que ce point du code est
+    // bien atteint, à distinguer d'un `onLoad` qui échouerait plus tôt
+    // (ex. `Sprite.load` ou `_boardWorldBoundsOffset`) sans jamais
+    // atteindre l'appel audio — ce qui, avec le handler d'erreurs global
+    // (voir `analytics_service.dart`), serait sinon tout aussi invisible en
+    // local que l'échec du son lui-même.
+    debugPrint('[BoatAmbient] FishingBoatComponent.onLoad → appel playBoatAmbient()');
     unawaited(_container.read(audioServiceProvider).playBoatAmbient());
 
     // Miroir horizontal appliqué dès l'apparition (voir doc de fichier) :
