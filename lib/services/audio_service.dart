@@ -322,6 +322,26 @@ class AudioService {
   /// l'appel précédent plutôt que de laisser les deux se marcher dessus.
   int _boatAmbientFadeGeneration = 0;
 
+  /// Passe à `true` dès que [_boatAmbientPlayer] a effectivement commencé à
+  /// jouer au moins une fois. Voir [playBoatAmbient] : sur le tout premier
+  /// appel, le lecteur natif vient d'être créé et n'a jamais été préparé —
+  /// lui demander `stop()`/`seek()` avant même un premier `play()` est ce
+  /// qui provoquait le blocage observé en logcat (l'`await` ne se résolvait
+  /// jamais, empêchant d'atteindre `play()`). Ces deux appels défensifs ne
+  /// sont donc faits qu'à partir du second déclenchement du bateau, quand
+  /// le lecteur a réellement un état à réinitialiser.
+  bool _boatAmbientHasPlayedOnce = false;
+
+  /// Timeout appliqué à chaque appel natif individuel dans
+  /// [playBoatAmbient]/[stopBoatAmbient] : sur certains appareils, le
+  /// plugin `audioplayers` peut laisser un `await` ne jamais se résoudre
+  /// (bug déjà observé en logcat — voir doc de [playBoatAmbient]). Un
+  /// `try/catch` seul ne protège pas contre un `Future` qui ne se termine
+  /// jamais ; il faut un timeout explicite pour être certain de toujours
+  /// atteindre le `play()` (ou la fin du fondu de sortie) en un temps borné,
+  /// plutôt que de rester bloqué indéfiniment sur un appel préalable.
+  static const Duration _kBoatAmbientCallTimeout = Duration(seconds: 2);
+
   bool get _musicEnabled => _ref.read(optionsProvider).musicEnabled;
   bool get _sfxEnabled => _ref.read(optionsProvider).sfxEnabled;
   double get _musicVolume => _ref.read(optionsProvider).musicVolume;
@@ -585,19 +605,30 @@ class AudioService {
       return;
     }
     final generation = ++_boatAmbientFadeGeneration;
-    // stop() et seek(0) défensifs : même pattern que [playTileGained] et
-    // [playEndGame] — sur certains appareils, le plugin `audioplayers`
-    // peut laisser le lecteur natif dans un état où `stop()`/`seek()` ne se
-    // résolvent jamais, ce qui déclenche côté plugin un `TimeoutException`
-    // après 30s. Sans ce try/catch, cette exception n'est jamais rattrapée
-    // (appel fait via `unawaited` côté appelant) et fait planter l'app plutôt
-    // que de simplement empêcher ce bruitage ponctuel.
-    try {
-      await _boatAmbientPlayer.stop();
-    } catch (_) {}
-    try {
-      await _boatAmbientPlayer.seek(Duration.zero);
-    } catch (_) {}
+    // stop() et seek(0) défensifs, mais seulement à partir du second
+    // déclenchement (voir [_boatAmbientHasPlayedOnce]) : sur le tout
+    // premier appel, le lecteur natif vient d'être créé et n'a jamais été
+    // préparé. Logcat a confirmé que c'est précisément `stop()` sur ce
+    // lecteur "vierge" qui bloquait indéfiniment (l'exécution n'atteignait
+    // jamais `play()`, ni même le `catch` — l'`await` ne se résolvait tout
+    // simplement jamais). Le `.timeout()` ci-dessous est une seconde
+    // protection, pour les appels suivants où stop()/seek() ont
+    // effectivement un état à réinitialiser : même défensifs, ils ne
+    // doivent plus jamais pouvoir bloquer indéfiniment.
+    if (_boatAmbientHasPlayedOnce) {
+      try {
+        await _boatAmbientPlayer.stop().timeout(_kBoatAmbientCallTimeout);
+      } catch (e) {
+        debugPrint('[BoatAmbient] stop() ignoré (échec/timeout) : $e');
+      }
+      try {
+        await _boatAmbientPlayer
+            .seek(Duration.zero)
+            .timeout(_kBoatAmbientCallTimeout);
+      } catch (e) {
+        debugPrint('[BoatAmbient] seek() ignoré (échec/timeout) : $e');
+      }
+    }
     // Réaffirmé ici (et pas seulement dans le constructeur) : le constructeur
     // l'appelle via `unawaited`, donc rien ne garantit qu'il ait bien été
     // appliqué nativement avant ce tout premier `play()` si le bateau de
@@ -606,11 +637,19 @@ class AudioService {
     // son s'arrêterait net après sa seule lecture (~40s) au lieu de tourner
     // tant que le bateau est à l'écran.
     try {
-      await _boatAmbientPlayer.setReleaseMode(ReleaseMode.loop);
-    } catch (_) {}
-    await _boatAmbientPlayer.setVolume(0.0);
-    // Contrairement au `stop()`/`seek()` ci-dessus (dont l'échec est sans
-    // conséquence : au pire un fondu repart d'une position non nulle), un
+      await _boatAmbientPlayer
+          .setReleaseMode(ReleaseMode.loop)
+          .timeout(_kBoatAmbientCallTimeout);
+    } catch (e) {
+      debugPrint('[BoatAmbient] setReleaseMode() ignoré (échec/timeout) : $e');
+    }
+    try {
+      await _boatAmbientPlayer.setVolume(0.0).timeout(_kBoatAmbientCallTimeout);
+    } catch (e) {
+      debugPrint('[BoatAmbient] setVolume(0.0) ignoré (échec/timeout) : $e');
+    }
+    // Contrairement aux appels ci-dessus (dont l'échec est sans
+    // conséquence grave : au pire un fondu repart d'un état non idéal), un
     // échec ICI signifie que le son ne sera jamais audible — c'est donc le
     // seul point de cette méthode où l'erreur est à la fois catchée ET
     // rendue visible localement (voir le commentaire sur `debugPrint`
@@ -618,7 +657,10 @@ class AudioService {
     // global. `return` après l'échec : poursuivre le fondu sur un lecteur
     // qui n'a pas démarré n'aurait aucun effet audible.
     try {
-      await _boatAmbientPlayer.play(AssetSource(_kBoatAmbientAssetPath));
+      await _boatAmbientPlayer
+          .play(AssetSource(_kBoatAmbientAssetPath))
+          .timeout(_kBoatAmbientCallTimeout);
+      _boatAmbientHasPlayedOnce = true;
       debugPrint('[BoatAmbient] play() a réussi, asset=$_kBoatAmbientAssetPath');
     } catch (e, stack) {
       debugPrint('[BoatAmbient] ÉCHEC de play() : $e\n$stack');
@@ -631,7 +673,13 @@ class AudioService {
         debugPrint('[BoatAmbient] fondu d\'entrée invalidé (generation $generation).');
         return;
       }
-      await _boatAmbientPlayer.setVolume(targetVolume * i / _kBoatAmbientFadeSteps);
+      try {
+        await _boatAmbientPlayer
+            .setVolume(targetVolume * i / _kBoatAmbientFadeSteps)
+            .timeout(_kBoatAmbientCallTimeout);
+      } catch (e) {
+        debugPrint('[BoatAmbient] setVolume() (fondu d\'entrée) ignoré (échec/timeout) : $e');
+      }
       if (stepDuration > Duration.zero) {
         await Future<void>.delayed(stepDuration);
       }
@@ -651,16 +699,28 @@ class AudioService {
     final stepDuration = _kBoatAmbientFadeDuration ~/ _kBoatAmbientFadeSteps;
     for (var i = _kBoatAmbientFadeSteps - 1; i >= 0; i--) {
       if (generation != _boatAmbientFadeGeneration) return;
-      await _boatAmbientPlayer.setVolume(startVolume * i / _kBoatAmbientFadeSteps);
+      try {
+        await _boatAmbientPlayer
+            .setVolume(startVolume * i / _kBoatAmbientFadeSteps)
+            .timeout(_kBoatAmbientCallTimeout);
+      } catch (e) {
+        debugPrint('[BoatAmbient] setVolume() (fondu de sortie) ignoré (échec/timeout) : $e');
+      }
       if (stepDuration > Duration.zero) {
         await Future<void>.delayed(stepDuration);
       }
     }
     if (generation == _boatAmbientFadeGeneration) {
-      // stop() défensif — voir le commentaire équivalent dans [playBoatAmbient].
+      // stop() défensif — voir le commentaire équivalent dans
+      // [playBoatAmbient]. Ici le lecteur a forcément déjà joué (le fondu
+      // de sortie ne se déclenche qu'après un fondu d'entrée réussi), donc
+      // ce n'est pas le cas de blocage observé en logcat — mais le
+      // `.timeout()` reste une protection peu coûteuse.
       try {
-        await _boatAmbientPlayer.stop();
-      } catch (_) {}
+        await _boatAmbientPlayer.stop().timeout(_kBoatAmbientCallTimeout);
+      } catch (e) {
+        debugPrint('[BoatAmbient] stop() (fondu de sortie) ignoré (échec/timeout) : $e');
+      }
     }
   }
 
