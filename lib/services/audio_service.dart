@@ -241,7 +241,30 @@ class AudioService {
     // musique qui se coupe au premier bruitage et ne reprend plus.
     // `none` supprime toute demande de focus : aucun lecteur n'interrompt
     // plus jamais les autres, ils se superposent librement.
-    unawaited(AudioPlayer.global.setAudioContext(
+    //
+    // IMPORTANT — corrige un bug confirmé en logcat : cet appel était
+    // auparavant fait en `unawaited`, sans aucune garantie qu'il ait fini
+    // d'être appliqué côté natif avant le tout premier `play()` d'un
+    // lecteur. Dans le cas observé, le bateau de pêche jouait ~2s après le
+    // lancement de l'app, en pleine concurrence avec l'initialisation du
+    // SDK Google Ads — sa toute première lecture partait donc avec le
+    // comportement de focus AUDIO PAR DÉFAUT d'Android (pas encore
+    // `none`), ce qui lui faisait enregistrer un vrai
+    // `AudioFocusChangeListener` natif (`ModernFocusManager` côté plugin
+    // `audioplayers`). Quand le SDK Ads réclamait ensuite le focus audio
+    // pour charger sa WebView publicitaire, Android envoyait à ce
+    // listener un `AUDIOFOCUS_LOSS` (`onAudioFocusChange(-1)`, perte
+    // permanente) — que `ModernFocusManager` traduit en mise en pause
+    // native du lecteur. Le fondu d'entrée continuait bien côté Flutter
+    // (le volume logique montait normalement jusqu'à sa cible), mais le
+    // lecteur natif sous-jacent était déjà coupé : silence total malgré
+    // des logs indiquant un succès à chaque étape. Le futur est maintenant
+    // conservé ([_audioContextReady]) et chaque méthode de lecture
+    // l'attend avant son tout premier appel natif, pour qu'aucune lecture
+    // ne puisse plus jamais partir avec le focus audio par défaut
+    // d'Android.
+    _audioContextReady = AudioPlayer.global
+        .setAudioContext(
       AudioContext(
         iOS: AudioContextIOS(
           category: AVAudioSessionCategory.playback,
@@ -255,7 +278,10 @@ class AudioService {
           audioFocus: AndroidAudioFocus.none,
         ),
       ),
-    ));
+    )
+        .catchError((Object e, StackTrace stack) {
+      debugPrint('[AudioService] setAudioContext() a échoué : $e\n$stack');
+    });
     unawaited(_musicPlayer.setReleaseMode(ReleaseMode.loop));
     // Lecteurs dédiés (tileGain, endGame, questReward) : ReleaseMode.stop
     // plutôt que le défaut ReleaseMode.release. En mode `release`, le
@@ -274,6 +300,15 @@ class AudioService {
     // [playBoatAmbient]/[stopBoatAmbient].
     unawaited(_boatAmbientPlayer.setReleaseMode(ReleaseMode.loop));
   }
+
+  /// Résolu une fois le contexte audio global (voir constructeur) réellement
+  /// appliqué côté natif — ou après l'échec de cette tentative, pour ne
+  /// jamais bloquer indéfiniment un appelant. Chaque méthode de lecture
+  /// (musique, bruitages, bateau) l'attend avant son tout premier appel
+  /// natif de la partie, pour ne plus jamais risquer de jouer un son avec
+  /// le focus audio par défaut d'Android le temps que ce réglage se
+  /// propage — voir le commentaire détaillé dans le constructeur.
+  late final Future<void> _audioContextReady;
 
   final Ref _ref;
   final Random _random = Random();
@@ -358,6 +393,10 @@ class AudioService {
   Future<void> playMusic(MusicTrack track) async {
     if (_currentTrack == track) return;
     _currentTrack = track;
+    // Voir [_audioContextReady] : garantit que `audioFocus: none` est
+    // appliqué avant la toute première lecture de la partie (typiquement
+    // la musique d'accueil, jouée dès l'écran de démarrage).
+    await _audioContextReady;
     await _musicPlayer.setVolume(_musicEnabled ? _musicVolume : 0.0);
     await _musicPlayer.play(AssetSource(track.assetPath));
   }
@@ -441,6 +480,8 @@ class AudioService {
   /// [_kTilePlacedVolumeScale], [_kRotationClickVolumeScale].
   Future<void> _playSfx(SfxTrack sfx, {double volumeScale = 1.0}) async {
     if (!_sfxEnabled) return;
+    // Voir [_audioContextReady].
+    await _audioContextReady;
     final player = _sfxPool[_sfxCursor];
     _sfxCursor = (_sfxCursor + 1) % _sfxPool.length;
     final pitch = 1.0 + (_random.nextDouble() * 2 - 1) * _kPitchVariance;
@@ -492,6 +533,10 @@ class AudioService {
   /// de couper le son précédent trop tôt.
   Future<void> playTileGained() async {
     if (!_sfxEnabled) return;
+    // Voir [_audioContextReady] : la toute première tuile posée en partie
+    // est justement le genre de lecture très précoce exposée à cette
+    // course.
+    await _audioContextReady;
     final now = DateTime.now();
     final scheduledAt =
         _nextTileGainAllowedAt != null && _nextTileGainAllowedAt!.isAfter(now)
@@ -542,6 +587,8 @@ class AudioService {
   /// délai supplémentaire soit nécessaire ici.
   Future<void> playEndGame() async {
     if (!_sfxEnabled) return;
+    // Voir [_audioContextReady].
+    await _audioContextReady;
     // stop() et seek(0) défensifs, dans le même try/catch que
     // [playTileGained] : sur certains appareils, le plugin `audioplayers`
     // peut laisser le lecteur natif dans un état où `stop()`/`seek()` ne se
@@ -604,6 +651,11 @@ class AudioService {
       debugPrint('[BoatAmbient] bruitages désactivés — abandon.');
       return;
     }
+    // Attend que le contexte audio natif (audioFocus: none, voir
+    // constructeur) soit réellement appliqué avant tout `play()` — c'est ce
+    // qui manquait et causait le silence confirmé en logcat (voir le
+    // commentaire détaillé dans le constructeur de [AudioService]).
+    await _audioContextReady;
     final generation = ++_boatAmbientFadeGeneration;
     // stop() et seek(0) défensifs, mais seulement à partir du second
     // déclenchement (voir [_boatAmbientHasPlayedOnce]) : sur le tout
