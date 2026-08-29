@@ -811,6 +811,54 @@ class AudioService {
     }
   }
 
+  /// « Réchauffe » [_boatAmbientPlayer] au lancement en le faisant vraiment
+  /// jouer une fraction de seconde (à volume nul) puis pause, plutôt que de
+  /// le laisser vierge jusqu'au tout premier passage du bateau de pêche.
+  ///
+  /// Réplique ce qui rend [_musicPlayer] fiable : ce dernier n'est JAMAIS
+  /// utilisé "à froid" — `SplashScreen.initState` appelle déjà
+  /// `playMusic(home)` en tout premier, avant même `preloadSfx`/le reste de
+  /// `_load` (voir `splash_screen.dart`), si bien que par le temps où
+  /// `game_screen.dart` demande `MusicTrack.ambient`, ce lecteur a déjà
+  /// traversé un cycle complet play/prepare natif réussi, bien avant que le
+  /// SDK Ads ne commence son initialisation. C'est justement cette toute
+  /// première préparation native, à froid, de [_boatAmbientPlayer] qui
+  /// posait problème (logcat : `stop()` qui ne se résolvait jamais sur un
+  /// lecteur jamais préparé, puis, une fois ce point contourné, un silence
+  /// total malgré des logs de succès à chaque étape) — et qui survenait
+  /// systématiquement dans la fenêtre de quelques secondes après le
+  /// lancement où le SDK Ads s'initialise (`DynamiteModule`, chargement de
+  /// la bannière...), contrairement à `_musicPlayer` dont le premier
+  /// `play()` a lieu plus tôt, avant cette contention.
+  ///
+  /// Appelée depuis `SplashScreen.initState`, `unawaited`, juste après
+  /// `playMusic(home)` — même point d'entrée, même timing — plutôt que
+  /// depuis [preloadSfx] (qui ne démarre qu'ensuite, dans `_load`, après
+  /// `AudioCache.loadAll` de tous les autres bruitages, ce qui aurait
+  /// repoussé ce premier cycle natif un peu plus tard, réduisant l'avance
+  /// prise sur le SDK Ads). En avançant ce premier cycle natif ici, le
+  /// bateau de pêche ne fait plus jamais sa toute première lecture "à
+  /// froid" en pleine partie : quand [playBoatAmbient] s'exécute, le
+  /// lecteur est déjà dans le même état "déjà utilisé une fois" que
+  /// [_musicPlayer] l'est pour sa propre toute première lecture en jeu.
+  Future<void> primeBoatAmbient() async {
+    try {
+      await _boatAmbientPlayer.setReleaseMode(ReleaseMode.loop);
+      await _boatAmbientPlayer.setVolume(0.0);
+      await _boatAmbientPlayer.play(AssetSource(_kBoatAmbientAssetPath));
+      await Future<void>.delayed(const Duration(milliseconds: 200));
+      await _boatAmbientPlayer.pause();
+      await _boatAmbientPlayer.seek(Duration.zero);
+      _boatAmbientHasPlayedOnce = true;
+      debugPrint('[BoatAmbient] préchauffage réussi.');
+    } catch (e, stack) {
+      // Comme pour [AudioCache.loadAll] dans [preloadSfx] : un échec de
+      // préchauffage n'empêche pas [playBoatAmbient] de retenter un cycle
+      // complet plus tard, juste sans ce bénéfice.
+      debugPrint('[BoatAmbient] préchauffage échoué (sans conséquence) : $e\n$stack');
+    }
+  }
+
   /// Joue `purchase_success.mp3` (fanfare procédurale) lorsqu'un achat
   /// in-app aboutit — pack de pièces ou premium, voir
   /// `purchase_success_popup.dart` — déclenché à l'ouverture de la pop-up
