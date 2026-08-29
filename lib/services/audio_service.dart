@@ -718,6 +718,39 @@ class AudioService {
       debugPrint('[BoatAmbient] ÉCHEC de play() : $e\n$stack');
       return;
     }
+    // Diagnostic supplémentaire : `play()` réussi ne garantit pas que le
+    // lecteur natif avance réellement dans le fichier — sur certains
+    // appareils, l'appel de plateforme peut "réussir" (retourner sans
+    // erreur) sans que le rendu audio matériel démarre vraiment derrière.
+    // On vérifie ici, 600ms après le lancement, l'état natif réel du
+    // lecteur ET sa position de lecture :
+    //  - state != playing → le lecteur ne joue pas réellement, malgré le
+    //    succès apparent de `play()` ;
+    //  - state == playing mais position toujours ~0 → le lecteur est
+    //    "démarré" côté plugin mais bloqué en interne (décodage/rendu qui
+    //    ne progresse pas) ;
+    //  - state == playing ET position qui avance → la lecture est
+    //    RÉELLEMENT active côté natif, ce qui déplacerait la cause du
+    //    silence hors de ce code (routage audio de l'appareil, sortie
+    //    active, volume média système...).
+    unawaited(() async {
+      await Future<void>.delayed(const Duration(milliseconds: 600));
+      try {
+        final state = _boatAmbientPlayer.state;
+        final position = await _boatAmbientPlayer
+            .getCurrentPosition()
+            .timeout(_kBoatAmbientCallTimeout);
+        final duration = await _boatAmbientPlayer
+            .getDuration()
+            .timeout(_kBoatAmbientCallTimeout);
+        debugPrint(
+          '[BoatAmbient] diagnostic 600ms après play() — state=$state '
+          'position=$position duration=$duration volumeLogique=${_boatAmbientPlayer.volume}',
+        );
+      } catch (e) {
+        debugPrint('[BoatAmbient] diagnostic 600ms — échec de lecture d\'état : $e');
+      }
+    }());
     final targetVolume = _sfxVolume;
     final stepDuration = _kBoatAmbientFadeDuration ~/ _kBoatAmbientFadeSteps;
     for (var i = 1; i <= _kBoatAmbientFadeSteps; i++) {
