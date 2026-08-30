@@ -105,7 +105,10 @@ class StatsScreen extends ConsumerWidget {
                           ...biomeSizes.entries.map(
                             (e) => _StatCard(
                               icon: Icons.circle,
-                              iconColor: _biomeColor(e.key),
+                              iconColor: BiomeType.values.firstWhere(
+                                (b) => b.name == e.key,
+                                orElse: () => BiomeType.forest,
+                              ).color,
                               label: biomeName(context, e.key),
                               value: context.tr.stats_biomeMax(e.value),
                             ),
@@ -133,12 +136,7 @@ class StatsScreen extends ConsumerWidget {
     );
   }
 
-Color _biomeColor(String biome) =>
-      BiomeType.values.firstWhere(
-        (b) => b.name == biome,
-        orElse: () => BiomeType.forest,
-      ).color;
-  }
+
 
 class _StatCard extends StatelessWidget {
   const _StatCard({
