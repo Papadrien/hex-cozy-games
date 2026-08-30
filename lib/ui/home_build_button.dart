@@ -8,7 +8,6 @@ import '../core/snackbar_utils.dart';
 import '../core/strings.dart';
 import '../data/app_database.dart';
 import '../providers/progression_provider.dart';
-import '../services/haptics_service.dart';
 import 'build_screen.dart';
 import 'coin_icon.dart';
 import 'glass_button.dart';
@@ -43,8 +42,7 @@ class HomeBuildButton extends StatelessWidget {
         tint: hasResumableGame ? Colors.grey : Colors.transparent,
         onPressed: hasResumableGame
             ? () {
-                buttonTapFeedback(context);
-                showAppSnackBar(
+                showAppSnackBars(
                   SnackBar(
                     content: Text(context.tr.home_buildSelectionLockedResume),
                     behavior: SnackBarBehavior.floating,
@@ -52,7 +50,6 @@ class HomeBuildButton extends StatelessWidget {
                 );
               }
             : () {
-                buttonTapFeedback(context);
                 clearAppSnackBars();
                 Navigator.of(context).push(
                   BlurFadePageRoute<void>(builder: (_) => const BuildScreen()),
