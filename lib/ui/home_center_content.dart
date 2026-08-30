@@ -9,7 +9,6 @@ import '../providers/build_provider.dart';
 import '../providers/player_profile_provider.dart';
 import '../providers/quest_provider.dart';
 import '../services/ad_service.dart';
-import '../services/haptics_service.dart';
 import 'coin_icon.dart';
 import 'home_ad_buttons.dart';
 import 'home_build_button.dart';
@@ -132,7 +131,6 @@ class _HomeCenterContentState extends ConsumerState<HomeCenterContent>
                       label: context.tr.quests_title,
                       showBadge: hasUnclaimedQuest,
                       onTap: () {
-                        buttonTapFeedback(context);
                         clearAppSnackBars();
                         Navigator.of(context).push(
                           BlurFadePageRoute<void>(
@@ -147,7 +145,6 @@ class _HomeCenterContentState extends ConsumerState<HomeCenterContent>
                       icon: Icons.bar_chart_outlined,
                       label: context.tr.home_stats,
                       onTap: () {
-                        buttonTapFeedback(context);
                         clearAppSnackBars();
                         Navigator.of(context).push(
                           BlurFadePageRoute<void>(
