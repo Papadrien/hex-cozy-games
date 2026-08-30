@@ -109,8 +109,9 @@ final double _kHeadingAngle = atan2(923 - 641, 1247 - 314); // ≈ 16.8°
 
 /// Largeur cible du voilier à zoom 1.0 — proche de la largeur d'une tuile
 /// posée (hexWidth = sqrt(3) * kHexSize ≈ 83 px, voir `hex_coords.dart`),
-/// légèrement supérieure pour rester bien lisible malgré le mât/la voile.
-const double _kBaseWidth = kHexSize * 2.0;
+/// agrandie de 50% par rapport à cette base pour rester bien lisible malgré
+/// le mât/la voile.
+const double _kBaseWidth = kHexSize * 2.0 * 1.5;
 
 /// Ratio hauteur/largeur du sprite source (1536×1024, redimensionné en
 /// 768×512 dans l'asset embarqué — même ratio).

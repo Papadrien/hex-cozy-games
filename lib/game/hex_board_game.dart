@@ -71,6 +71,19 @@ class HexBoardGame extends FlameGame
 
   final ProviderContainer _container;
 
+  /// Délai appliqué avant l'ajout effectif d'un easter egg décoratif (voir
+  /// [_maybeSpawnSailboat]/[_maybeSpawnPlane]/[_maybeSpawnHotAirBalloon]/
+  /// [_maybeSpawnFishingBoat]) : le chargement du sprite ([Sprite.load],
+  /// dans le `onLoad` de chaque composant) et le démarrage du son
+  /// d'ambiance associé (`play*Ambient`, voir `audio_service.dart`) sont un
+  /// peu coûteux et peuvent introduire un léger à-coup s'ils tombent sur la
+  /// même frame que la pose de tuile en cours ([placeTileOnFlame]). On
+  /// préfère nettement une pose de tuile parfaitement fluide, quitte à ce
+  /// que l'easter egg (image + son) apparaisse avec un léger décalage,
+  /// plutôt que l'inverse — d'où ce court délai, qui laisse la frame de
+  /// pose se terminer et se stabiliser avant de déclencher le chargement.
+  static const Duration _kEasterEggSpawnDelay = Duration(milliseconds: 250);
+
   /// Nombre de tuiles posées (cumulé sur la partie) à partir duquel le
   /// voilier décoratif ([SailboatComponent]) apparaît, une seule fois par
   /// partie — easter egg purement visuel, sans impact sur le jeu. Compté
@@ -89,11 +102,16 @@ class HexBoardGame extends FlameGame
     if (grid == null) return;
     if (grid.placedTiles.length < kSailboatTriggerTileCount) return;
     _sailboatTriggered = true;
-    grid.add(SailboatComponent(
-      screenSize: grid.screenSize.clone(),
-      container: _container,
-      zoom: grid.zoom,
-    ));
+    // Voir [_kEasterEggSpawnDelay] : on laisse la frame de pose de tuile se
+    // terminer avant de charger le sprite/son du voilier.
+    Future.delayed(_kEasterEggSpawnDelay, () {
+      if (!isMounted || !grid.isMounted) return;
+      grid.add(SailboatComponent(
+        screenSize: grid.screenSize.clone(),
+        container: _container,
+        zoom: grid.zoom,
+      ));
+    });
   }
 
   /// Nombre de tuiles posées à partir duquel l'avion décoratif
@@ -110,11 +128,16 @@ class HexBoardGame extends FlameGame
     if (grid == null) return;
     if (grid.placedTiles.length < kPlaneTriggerTileCount) return;
     _planeTriggered = true;
-    grid.add(PlaneComponent(
-      screenSize: grid.screenSize.clone(),
-      container: _container,
-      zoom: grid.zoom,
-    ));
+    // Voir [_kEasterEggSpawnDelay] : on laisse la frame de pose de tuile se
+    // terminer avant de charger le sprite/son de l'avion.
+    Future.delayed(_kEasterEggSpawnDelay, () {
+      if (!isMounted || !grid.isMounted) return;
+      grid.add(PlaneComponent(
+        screenSize: grid.screenSize.clone(),
+        container: _container,
+        zoom: grid.zoom,
+      ));
+    });
   }
 
   /// Nombre de tuiles posées à partir duquel la montgolfière décorative
@@ -132,11 +155,16 @@ class HexBoardGame extends FlameGame
     if (grid == null) return;
     if (grid.placedTiles.length < kHotAirBalloonTriggerTileCount) return;
     _hotAirBalloonTriggered = true;
-    grid.add(HotAirBalloonComponent(
-      screenSize: grid.screenSize.clone(),
-      container: _container,
-      zoom: grid.zoom,
-    ));
+    // Voir [_kEasterEggSpawnDelay] : on laisse la frame de pose de tuile se
+    // terminer avant de charger le sprite/son de la montgolfière.
+    Future.delayed(_kEasterEggSpawnDelay, () {
+      if (!isMounted || !grid.isMounted) return;
+      grid.add(HotAirBalloonComponent(
+        screenSize: grid.screenSize.clone(),
+        container: _container,
+        zoom: grid.zoom,
+      ));
+    });
   }
 
   /// Nombre de tuiles posées à partir duquel le bateau de pêche décoratif
@@ -153,11 +181,16 @@ class HexBoardGame extends FlameGame
     if (grid == null) return;
     if (grid.placedTiles.length < kFishingBoatTriggerTileCount) return;
     _fishingBoatTriggered = true;
-    grid.add(FishingBoatComponent(
-      screenSize: grid.screenSize.clone(),
-      container: _container,
-      zoom: grid.zoom,
-    ));
+    // Voir [_kEasterEggSpawnDelay] : on laisse la frame de pose de tuile se
+    // terminer avant de charger le sprite/son du bateau de pêche.
+    Future.delayed(_kEasterEggSpawnDelay, () {
+      if (!isMounted || !grid.isMounted) return;
+      grid.add(FishingBoatComponent(
+        screenSize: grid.screenSize.clone(),
+        container: _container,
+        zoom: grid.zoom,
+      ));
+    });
   }
 
   /// Canevas Flame superposé au HUD (voir `upgrade_fx_overlay_game.dart`),
@@ -701,16 +734,22 @@ class HexBoardGame extends FlameGame
 
     final delta = details.focalPointDelta;
 
+    // Capturé avant application du delta pour pouvoir calculer, une fois le
+    // clampCameraOffset() ci-dessous passé, le déplacement réellement
+    // appliqué au plateau (voir onCameraMove ci-dessous).
+    final offsetBeforeDrag = grid.cameraOffset.clone();
+
     // Pendant la prévisualisation, un geste à un doigt fait pivoter la
     // tuile en suivant l'angle du doigt autour de son centre (rotation
     // circulaire, voir _handleRotation). Le pan est désactivé pendant la
     // prévisualisation (story 1.7e).
     final placement = _container.read(placementProvider);
-    if (placement.hasSelection && (details.scale - 1.0).abs() < 0.05) {
+    final isPanning =
+        !(placement.hasSelection && (details.scale - 1.0).abs() < 0.05);
+    if (!isPanning) {
       _handleRotation(details.focalPoint);
     } else {
       grid.cameraOffset.add(Vector2(delta.dx, delta.dy));
-      onCameraMove?.call(delta.dx, delta.dy);
     }
 
     grid.zoom = (_scaleStart * details.scale)
@@ -720,6 +759,17 @@ class HexBoardGame extends FlameGame
     // de faire sortir le centre du plateau de l'écran — sans ça, un pan
     // trop ample fait perdre le joueur.
     grid.clampCameraOffset();
+
+    // Le fond (voir `game_screen.dart`, [_OceanBackground]/_bgOffsetX/Y)
+    // doit rester verrouillé exactement comme le plateau : on lui
+    // transmet le déplacement réellement appliqué à [grid.cameraOffset]
+    // (donc déjà borné par clampCameraOffset() ci-dessus), pas le delta
+    // brut du geste — sinon le fond continue de défiler au-delà de la
+    // limite atteinte par le plateau, qui lui reste immobile.
+    if (isPanning) {
+      final appliedDelta = grid.cameraOffset - offsetBeforeDrag;
+      onCameraMove?.call(appliedDelta.x, appliedDelta.y);
+    }
 
     _cameraDirty = true;
   }

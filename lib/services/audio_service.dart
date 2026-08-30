@@ -347,9 +347,9 @@ const double _kTilePlacedVolumeScale = 0.9;
 const double _kRotationClickVolumeScale = 0.63;
 
 /// Atténuation appliquée au son de gain de pièce ([AudioService.playCoinsGained])
-/// par rapport au réglage « Bruitages » — 36 % plus discret que le volume
+/// par rapport au réglage « Bruitages » — 60 % plus discret que le volume
 /// nominal.
-const double _kCoinVolumeScale = 0.64;
+const double _kCoinVolumeScale = 0.4;
 
 class AudioService {
   AudioService(this._ref) {
@@ -629,18 +629,28 @@ class AudioService {
     await _musicPlayer.setVolume(_musicEnabled ? _musicVolume : 0.0);
   }
 
-  /// Met en pause la musique de fond quand l'app passe en arrière-plan (voir
-  /// `main.dart`, `didChangeAppLifecycleState` — [AppLifecycleState.paused]).
-  /// Conserve la position de lecture pour une reprise transparente via
-  /// [resumeMusicFromBackground]. Sans effet sur les bruitages ponctuels
-  /// (pool SFX, tile gain), qui n'ont pas vocation à continuer en tâche de
-  /// fond de toute façon.
-  Future<void> pauseMusicForBackground() => _pauseMusicPlayer();
+  /// Met en pause la musique de fond ainsi que les sons d'ambiance des
+  /// easter eggs (bateau de pêche, voilier, avion, montgolfière — voir
+  /// [_pauseAmbientPlayersForBackground]) quand l'app passe en arrière-plan
+  /// (voir `main.dart`, `didChangeAppLifecycleState` —
+  /// [AppLifecycleState.paused]). Conserve la position de lecture de chacun
+  /// pour une reprise transparente via [resumeMusicFromBackground]. Sans
+  /// effet sur les bruitages ponctuels (pool SFX, tile gain), qui n'ont pas
+  /// vocation à continuer en tâche de fond de toute façon.
+  Future<void> pauseMusicForBackground() async {
+    await _pauseMusicPlayer();
+    await _pauseAmbientPlayersForBackground();
+  }
 
-  /// Reprend la musique de fond interrompue par [pauseMusicForBackground] au
-  /// retour au premier plan ([AppLifecycleState.resumed]). Ne fait rien si
-  /// aucune piste n'a jamais été lancée.
-  Future<void> resumeMusicFromBackground() => _resumeMusicPlayer();
+  /// Reprend la musique de fond et les sons d'ambiance interrompus par
+  /// [pauseMusicForBackground] au retour au premier plan
+  /// ([AppLifecycleState.resumed]). Ne fait rien pour un lecteur qui
+  /// n'était pas effectivement en pause (musique jamais lancée, ou easter
+  /// egg déjà quitté l'écran entretemps).
+  Future<void> resumeMusicFromBackground() async {
+    await _resumeMusicPlayer();
+    await _resumeAmbientPlayersFromBackground();
+  }
 
   /// Met en pause la musique de fond (accueil ou partie) pendant qu'une pub
   /// plein écran est à l'affichage — rewarded (voir `home_screen.dart`,
@@ -663,6 +673,51 @@ class AudioService {
   Future<void> _resumeMusicPlayer() async {
     if (_currentTrack == null) return;
     await _musicPlayer.resume();
+  }
+
+  /// Les quatre lecteurs d'ambiance des easter eggs (bateau de pêche,
+  /// voilier, avion, montgolfière) — utilisé par
+  /// [_pauseAmbientPlayersForBackground]/[_resumeAmbientPlayersFromBackground]
+  /// pour appliquer le même traitement aux quatre sans dupliquer le corps
+  /// des méthodes.
+  List<AudioPlayer> get _ambientPlayers => [
+        _boatAmbientPlayer,
+        _sailboatAmbientPlayer,
+        _planeAmbientPlayer,
+        _hotAirBalloonAmbientPlayer,
+      ];
+
+  /// Met en pause chacun des [_ambientPlayers] — voir
+  /// [pauseMusicForBackground]. Un `pause()` sur un lecteur déjà arrêté (pas
+  /// d'easter egg à l'écran) est sans effet ; les échecs sont ignorés comme
+  /// ailleurs dans ce service (voir les blocs try/catch des méthodes
+  /// `play*Ambient`/`stop*Ambient`).
+  Future<void> _pauseAmbientPlayersForBackground() async {
+    for (final player in _ambientPlayers) {
+      try {
+        await player.pause();
+      } catch (e) {
+        debugPrint('[AmbientBackground] pause() ignoré (échec) : $e');
+      }
+    }
+  }
+
+  /// Reprend chacun des [_ambientPlayers] effectivement mis en pause par
+  /// [_pauseAmbientPlayersForBackground] — voir [resumeMusicFromBackground].
+  /// Ne relance que les lecteurs dont l'état est encore [PlayerState.paused]
+  /// au retour au premier plan (donc pas ceux dont l'easter egg a quitté
+  /// l'écran, et déjà `stop()` entretemps, pendant que l'app était en
+  /// arrière-plan) : un `resume()` sur un lecteur arrêté relancerait le son
+  /// depuis le début plutôt que de ne rien faire.
+  Future<void> _resumeAmbientPlayersFromBackground() async {
+    for (final player in _ambientPlayers) {
+      if (player.state != PlayerState.paused) continue;
+      try {
+        await player.resume();
+      } catch (e) {
+        debugPrint('[AmbientBackground] resume() ignoré (échec) : $e');
+      }
+    }
   }
 
   /// Joue [sfx] avec une hauteur légèrement randomisée, sur un lecteur pris

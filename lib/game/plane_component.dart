@@ -100,8 +100,8 @@ const double _kSpriteAspect = 512 / 768;
 /// Vitesse moyenne visée pour le trajet (px/s à zoom 1.0).
 const double _kFlightSpeed = 130.0;
 
-const double _kMinFlightDuration = 3.5;
-const double _kMaxFlightDuration = 9.0;
+const double _kMinFlightDuration = 7.0;
+const double _kMaxFlightDuration = 18.0;
 
 /// Distance (fraction de la largeur d'écran) parcourue de part et d'autre du
 /// centre de l'écran — détermine, avec [_kHeadingAngle], les points de
@@ -112,6 +112,15 @@ const double _kReachFraction = 0.62;
 /// départ/arrivée, ajoutée symétriquement des deux côtés (ne modifie donc
 /// pas la position du milieu du trajet, qui reste le centre de l'écran).
 const double _kEdgeMargin = 100.0;
+
+/// Multiplicateur appliqué à la distance de départ/arrivée pour que ces
+/// points restent bien plus loin du plateau (l'avion apparaît/disparaît
+/// nettement hors champ plutôt qu'à la limite visible de l'écran) — un peu
+/// comme le voilier et le bateau de pêche, dont les points de départ/sortie
+/// sont eux aussi largement au-delà du cadre visible. [_kMinFlightDuration]
+/// et [_kMaxFlightDuration] sont doublées en conséquence, pour conserver la
+/// vitesse moyenne visée ([_kFlightSpeed]) malgré la distance accrue.
+const double _kSpawnDistanceMultiplier = 2.0;
 
 /// Facteur de sécurité appliqué à la distance de départ/arrivée pour rester
 /// hors du cadre visible même si le plateau est dézoomé au maximum après
@@ -204,7 +213,8 @@ class PlaneComponent extends SpriteComponent {
         _kReachFraction * (0.9 + rand.nextDouble() * 0.2); // ±10%
     final halfLength =
         ((screenSize.x * reachFraction) / cos(_kHeadingAngle) + _kEdgeMargin) *
-            _offScreenSafetyFactor(_spawnZoom);
+            _offScreenSafetyFactor(_spawnZoom) *
+            _kSpawnDistanceMultiplier;
 
     _startOffset = _kDirection * (-halfLength);
     _endOffset = _kDirection * halfLength;

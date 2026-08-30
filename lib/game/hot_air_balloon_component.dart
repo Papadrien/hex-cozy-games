@@ -87,8 +87,8 @@ const double _kSpriteAspect = 1536 / 1024;
 /// trajet ne s'en écarte que très peu).
 const double _kFlightSpeed = 85.0;
 
-const double _kMinFlightDuration = 6.0;
-const double _kMaxFlightDuration = 13.0;
+const double _kMinFlightDuration = 12.0;
+const double _kMaxFlightDuration = 26.0;
 
 /// Décalage horizontal (fraction de la largeur d'écran, tiré au sort dans
 /// cette plage) du point de départ vers la droite par rapport au centre.
@@ -111,6 +111,16 @@ const double _kEdgeMargin = 120.0;
 /// fichier pour le détail), dupliqué ici car privé à `plane_component.dart`.
 double _offScreenSafetyFactor(double spawnZoom) =>
     spawnZoom / HexGridComponent.minZoom;
+
+/// Multiplicateur appliqué à la distance des points de départ/arrivée par
+/// rapport au centre de l'écran, pour que ces points restent bien plus loin
+/// du plateau (la montgolfière apparaît/disparaît nettement hors champ
+/// plutôt qu'à la limite visible de l'écran) — un peu comme le voilier et
+/// le bateau de pêche, dont les points de départ/sortie sont eux aussi
+/// largement au-delà du cadre visible. [_kMinFlightDuration] et
+/// [_kMaxFlightDuration] sont doublées en conséquence, pour conserver la
+/// vitesse moyenne visée ([_kFlightSpeed]) malgré la distance accrue.
+const double _kSpawnDistanceMultiplier = 2.0;
 
 /// Amplitude de la légère courbe : fraction de la distance départ→arrivée
 /// dont le point de contrôle de la courbe de Bézier est décalé
@@ -197,7 +207,8 @@ class HotAirBalloonComponent extends SpriteComponent {
     final endLeftFraction = _kEndLeftFraction +
         (rand.nextDouble() * 2 - 1) * _kEndLeftFractionRange;
 
-    final safetyFactor = _offScreenSafetyFactor(_spawnZoom);
+    final safetyFactor =
+        _offScreenSafetyFactor(_spawnZoom) * _kSpawnDistanceMultiplier;
     _startOffset = Vector2(
           screenSize.x * startRightFraction,
           screenSize.y / 2 + _kEdgeMargin,
