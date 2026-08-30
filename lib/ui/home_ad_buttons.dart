@@ -6,7 +6,7 @@ import '../core/constants.dart';
 import '../core/snackbar_utils.dart';
 import '../core/strings.dart';
 import '../services/ad_service.dart';
-import '../services/haptics_service.dart';
+
 import 'coin_icon.dart';
 import 'glass_button.dart';
 import 'glass_container.dart';
@@ -43,7 +43,6 @@ class HomeRewardedAdButton extends ConsumerWidget {
             // isWatchingRewardedAdProvider.
             onTap: adAvailable && !isLoading
                 ? () async {
-                    buttonTapFeedback(context);
                     ref.read(isWatchingRewardedAdProvider.notifier).state =
                         true;
                     try {
@@ -159,7 +158,6 @@ class HomePremiumDailyCoinsButton extends ConsumerWidget {
             tint: available ? kUpgradePurple : Colors.grey,
             onPressed: available
                 ? () async {
-                    buttonTapFeedback(context);
                     final claimed = await claimPremiumDailyCoins(ref);
                     if (claimed && context.mounted) {
                       animController.forward().then((_) {
