@@ -11,7 +11,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/colors.dart';
 import '../providers/pause_provider.dart';
-import '../services/haptics_service.dart';
 
 /// Taille visuelle du bouton pause (carré).
 const double _kPauseButtonSize = 36.0;
@@ -29,27 +28,20 @@ class PauseButton extends ConsumerWidget {
       type: MaterialType.transparency,
       child: InkWell(
         borderRadius: BorderRadius.circular(_kPauseButtonHitSize / 2),
-        onTap: () {
-          buttonTapFeedback(context);
-          ref.read(pauseProvider.notifier).pause();
-        },
+        onTap: () => ref.read(pauseProvider.notifier).pause(),
         child: const SizedBox(
           width: _kPauseButtonHitSize,
           height: _kPauseButtonHitSize,
           child: Center(
-            child: GlassContainer(
+            child: GlassIconButton(
+              icon: Icons.pause,
+              size: 20,
+              padding: const EdgeInsets.all(8),
               borderRadius: 10,
-              blurSigma: 10,
               tintColor: kGlassBlue,
               tintAlpha: 0.22,
               borderColor: kGlassBlueBorder,
-              width: _kPauseButtonSize,
-              height: _kPauseButtonSize,
-              child: Icon(
-                Icons.pause,
-                color: Colors.white,
-                size: 20,
-              ),
+              blurSigma: 10,
             ),
           ),
         ),
