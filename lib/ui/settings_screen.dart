@@ -45,7 +45,6 @@ class SettingsScreen extends ConsumerWidget {
                         label: context.tr.options_music,
                         value: options.musicEnabled,
                         onToggle: () {
-                          buttonTapFeedback(context);
                           ref.read(optionsProvider.notifier).toggleMusic();
                           ref.read(audioServiceProvider).refreshMusicVolume();
                         },
@@ -67,7 +66,6 @@ class SettingsScreen extends ConsumerWidget {
                         label: context.tr.options_sfx,
                         value: options.sfxEnabled,
                         onToggle: () {
-                          buttonTapFeedback(context);
                           ref.read(optionsProvider.notifier).toggleSfx();
                         },
                       ),
@@ -87,7 +85,6 @@ class SettingsScreen extends ConsumerWidget {
                         label: context.tr.options_vibrations,
                         value: options.vibrationEnabled,
                         onToggle: () {
-                          buttonTapFeedback(context);
                           ref.read(optionsProvider.notifier).toggleVibration();
                         },
                       ),
@@ -99,7 +96,6 @@ class SettingsScreen extends ConsumerWidget {
                         label: context.tr.options_immersiveMode,
                         value: options.immersiveEnabled,
                         onToggle: () {
-                          buttonTapFeedback(context);
                           ref.read(optionsProvider.notifier).toggleImmersive();
                           // Applique immédiatement le nouveau mode : le
                           // joueur voit les barres système réapparaître
@@ -116,7 +112,6 @@ class SettingsScreen extends ConsumerWidget {
                         label: context.tr.settings_rateApp,
                         subtitle: context.tr.settings_rateAppSubtitle,
                         onTap: () {
-                          buttonTapFeedback(context);
                           ref.read(reviewServiceProvider).openStoreListing();
                         },
                       ),
