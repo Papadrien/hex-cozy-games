@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../core/colors.dart';
+import '../services/haptics_service.dart';
 import 'glass_container.dart';
 
 /// Bouton glassmorphism réutilisable — teinte bleu glacier.
@@ -27,7 +28,14 @@ class GlassButton extends StatelessWidget {
       borderRadius: 16,
       padding: padding,
       blurSigma: 10,
-      onTap: onPressed,
+      onTap: onPressed != null
+          ? () {
+              if (onPressed != null) {
+                buttonTapFeedback(context);
+                onPressed();
+              }
+            }
+          : null,
       child: tint == Colors.transparent
           ? child
           : Stack(
