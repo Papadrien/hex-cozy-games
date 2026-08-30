@@ -21,6 +21,7 @@ class GlassButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final callback = onPressed;
     return GlassContainer(
       tintColor: kGlassBlue,
       tintAlpha: 0.18,
@@ -28,12 +29,10 @@ class GlassButton extends StatelessWidget {
       borderRadius: 16,
       padding: padding,
       blurSigma: 10,
-      onTap: onPressed != null
+      onTap: callback != null
           ? () {
-              if (onPressed != null) {
-                buttonTapFeedback(context);
-                onPressed();
-              }
+              buttonTapFeedback(context);
+              callback();
             }
           : null,
       child: tint == Colors.transparent

@@ -135,8 +135,7 @@ class StatsScreen extends ConsumerWidget {
         ),
     );
   }
-
-
+}
 
 class _StatCard extends StatelessWidget {
   const _StatCard({

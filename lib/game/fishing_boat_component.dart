@@ -212,10 +212,9 @@ enum _BoatPhase { approach, pause, departure, done }
 class FishingBoatComponent extends SpriteComponent with WakeMixin {
   FishingBoatComponent({
     required this.screenSize,
-    required ProviderContainer container,
+    required this._container,
     double zoom = 1.0,
   })  : _spawnZoom = zoom,
-        _container = container,
         super(anchor: Anchor.center, priority: kTileDepthPriorityBase - 1);
 
   final Vector2 screenSize;

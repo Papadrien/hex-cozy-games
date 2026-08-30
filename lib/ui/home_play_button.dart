@@ -51,7 +51,7 @@ class HomePlayButton extends StatelessWidget {
                 borderRadius: BorderRadius.circular(28),
                 child: InkWell(
                   borderRadius: BorderRadius.circular(28),
-                  onTap: onTap == null ? null : onTap,
+                  onTap: onTap,
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 18),
                     decoration: BoxDecoration(

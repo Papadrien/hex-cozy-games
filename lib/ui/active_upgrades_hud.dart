@@ -338,7 +338,7 @@ class _UpgradeSlotState extends ConsumerState<_UpgradeSlot>
           child: Opacity(
             opacity: canTap ? 1.0 : 0.4,
             child: isActive
-                ? GlassIconButton(
+                ? const GlassIconButton(
                     icon: Icons.close,
                     size: 22,
                     padding: EdgeInsets.zero,

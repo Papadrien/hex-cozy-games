@@ -42,6 +42,7 @@ import '../providers/tile_stack_provider.dart';
 import '../providers/tutorial_provider.dart';
 import '../services/ad_service.dart';
 import '../services/audio_service.dart';
+import '../services/haptics_service.dart';
 import 'active_upgrades_hud.dart';
 import 'glass_container.dart';
 import 'coin_icon.dart';
@@ -483,8 +484,9 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                         }
                       : null,
               ),
-            );
-          }),
+            ),
+          );
+        }),
 
           // ── Bouton Pause ──────────────────────────────────────────────────
           const Positioned(

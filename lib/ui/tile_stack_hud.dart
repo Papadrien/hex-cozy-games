@@ -25,10 +25,10 @@ import '../game/tile_component.dart' show BiomeColor;
 import '../providers/placement_provider.dart';
 import '../providers/second_chance_provider.dart';
 import '../providers/tile_stack_provider.dart';
+import '../services/haptics_service.dart';
 
 const double _kActiveTileRadius = 34.0;
 const double _kUpcomingTileRadius = 26.0;
-const double _kCrossSize = 26.0;
 
 // Bleu nuit tealisé pour les composants HUD.
 const Color _kHudGlass = kGlassBlue;

@@ -24,6 +24,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/colors.dart';
 import '../core/strings.dart';
 import '../services/audio_service.dart';
+import '../services/haptics_service.dart';
 
 import 'coin_icon.dart';
 import 'glass_container.dart';

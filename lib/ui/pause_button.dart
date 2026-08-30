@@ -12,9 +12,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/colors.dart';
 import '../providers/pause_provider.dart';
 
-/// Taille visuelle du bouton pause (carré).
-const double _kPauseButtonSize = 36.0;
-
 /// Taille de la zone cliquable — plus grande que le rendu visuel pour que
 /// le bouton reste facile à toucher malgré sa position en bord d'écran.
 const double _kPauseButtonHitSize = 48.0;
@@ -36,7 +33,7 @@ class PauseButton extends ConsumerWidget {
             child: GlassIconButton(
               icon: Icons.pause,
               size: 20,
-              padding: const EdgeInsets.all(8),
+              padding: EdgeInsets.all(8),
               borderRadius: 10,
               tintColor: kGlassBlue,
               tintAlpha: 0.22,

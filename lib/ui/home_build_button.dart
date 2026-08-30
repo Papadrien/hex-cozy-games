@@ -42,7 +42,7 @@ class HomeBuildButton extends StatelessWidget {
         tint: hasResumableGame ? Colors.grey : Colors.transparent,
         onPressed: hasResumableGame
             ? () {
-                showAppSnackBars(
+                showAppSnackBar(
                   SnackBar(
                     content: Text(context.tr.home_buildSelectionLockedResume),
                     behavior: SnackBarBehavior.floating,

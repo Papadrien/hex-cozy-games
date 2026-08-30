@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../core/colors.dart';
 import 'glass_container.dart';
 
 /// Barre d'app bar glassmorphism partagée des écrans secondaires (bouton

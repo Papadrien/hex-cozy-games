@@ -156,10 +156,9 @@ class _MidFlightSlowdownCurve extends Curve {
 class PlaneComponent extends SpriteComponent {
   PlaneComponent({
     required this.screenSize,
-    required ProviderContainer container,
+    required this._container,
     double zoom = 1.0,
   })  : _spawnZoom = zoom,
-        _container = container,
         super(anchor: Anchor.center, priority: kTileDepthPriorityPreview + 1);
 
   final Vector2 screenSize;

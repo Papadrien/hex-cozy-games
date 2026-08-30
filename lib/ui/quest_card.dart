@@ -11,6 +11,7 @@ import '../providers/quest_provider.dart';
 import '../providers/progression_provider.dart';
 import '../services/analytics_service.dart';
 import '../services/audio_service.dart';
+import '../services/haptics_service.dart';
 
 import 'coin_icon.dart';
 import 'glass_container.dart';
