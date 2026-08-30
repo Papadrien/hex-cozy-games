@@ -5,7 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/colors.dart';
 import '../core/strings.dart';
-import '../services/haptics_service.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // BOUTON JOUER PRINCIPAL
@@ -52,12 +51,7 @@ class HomePlayButton extends StatelessWidget {
                 borderRadius: BorderRadius.circular(28),
                 child: InkWell(
                   borderRadius: BorderRadius.circular(28),
-                  onTap: onTap == null
-                      ? null
-                      : () async {
-                          buttonTapFeedback(context);
-                          await onTap();
-                        },
+                  onTap: onTap == null ? null : onTap,
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 18),
                     decoration: BoxDecoration(
