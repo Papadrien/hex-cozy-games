@@ -28,7 +28,6 @@ import '../data/app_database.dart';
 import '../providers/build_provider.dart';
 import '../providers/player_profile_provider.dart';
 import '../providers/progression_provider.dart';
-import '../services/haptics_service.dart';
 import 'coin_icon.dart';
 import 'glass_container.dart';
 import 'screen_app_bar.dart';
@@ -78,7 +77,6 @@ class BuildScreen extends ConsumerWidget {
                                 isSelected: selected.contains(u.id),
                                 totalCoins: totalCoins,
                                 onToggleSelect: () {
-                                  buttonTapFeedback(context);
                                   ref
                                       .read(selectedUpgradeIdsProvider
                                           .notifier)
@@ -216,7 +214,6 @@ class _BuildCardState extends ConsumerState<_BuildCard>
   bool get wantKeepAlive => _expanded;
 
   void _toggleExpanded() {
-    buttonTapFeedback(context);
     setState(() => _expanded = !_expanded);
     updateKeepAlive();
   }
@@ -718,7 +715,6 @@ class _UpgradeButtonState extends ConsumerState<_UpgradeButton> {
   }
 
   void _startConfirm() {
-    buttonTapFeedback(context);
     setState(() => _confirming = true);
     _revertTimer?.cancel();
     _revertTimer = Timer(const Duration(seconds: 4), () {
@@ -795,7 +791,6 @@ class _UpgradeButtonState extends ConsumerState<_UpgradeButton> {
   }
 
   Future<void> _handleUpgrade(BuildContext context, WidgetRef ref) async {
-    buttonTapFeedback(context);
     final upgrade = widget.upgrade;
     final service = ref.read(progressionServiceProvider);
     final result = await service.levelUpUpgrade(upgrade.id);

@@ -1,6 +1,6 @@
 /// Avion décoratif traversant l'écran — easter egg purement visuel, sans
 /// impact sur le jeu, déclenché après un certain nombre de tuiles posées
-/// (voir [HexBoardGame.kPlaneTriggerTileCount]).
+/// (voir [HexBoardGame.kEasterEggTriggerInterval]).
 ///
 /// Contrairement au voilier ([SailboatComponent], deux trajets avec pause et
 /// demi-tour), l'avion effectue un unique trajet rectiligne du quart
@@ -156,10 +156,9 @@ class _MidFlightSlowdownCurve extends Curve {
 class PlaneComponent extends SpriteComponent {
   PlaneComponent({
     required this.screenSize,
-    required ProviderContainer container,
+    required this._container,
     double zoom = 1.0,
   })  : _spawnZoom = zoom,
-        _container = container,
         super(anchor: Anchor.center, priority: kTileDepthPriorityPreview + 1);
 
   final Vector2 screenSize;

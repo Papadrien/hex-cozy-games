@@ -29,7 +29,6 @@ import '../services/haptics_service.dart';
 
 const double _kActiveTileRadius = 34.0;
 const double _kUpcomingTileRadius = 26.0;
-const double _kCrossSize = 26.0;
 
 // Bleu nuit tealisé pour les composants HUD.
 const Color _kHudGlass = kGlassBlue;
@@ -113,7 +112,6 @@ class TileStackHud extends ConsumerWidget {
             visible: visible,
             hasSelection: placement.hasSelection,
             onCancelSelection: () {
-              buttonTapFeedback(context);
               ref.read(placementProvider.notifier).clearSelection();
             },
           ),
@@ -245,19 +243,16 @@ class _AnimatedTilePileState extends ConsumerState<_AnimatedTilePile> {
               top: 0,
               width: _kActiveTileWidth,
               height: _kStackHeight,
-              child: GestureDetector(
-                behavior: HitTestBehavior.translucent,
-                onTap: widget.onCancelSelection,
-                child: const Center(
-                  child: GlassContainer(
-                    borderRadius: 13,
-                    blurSigma: 10,
-                    tintColor: _kHudGlass,
-                    borderColor: _kHudGlassBorder,
-                    width: _kCrossSize,
-                    height: _kCrossSize,
-                    child: Icon(Icons.close, size: 16, color: Colors.white),
-                  ),
+              child: Center(
+                child: GlassIconButton(
+                  icon: Icons.close,
+                  size: 16,
+                  padding: const EdgeInsets.all(5),
+                  borderRadius: 13,
+                  tintColor: _kHudGlass,
+                  borderColor: _kHudGlassBorder,
+                  blurSigma: 10,
+                  onPressed: widget.onCancelSelection,
                 ),
               ),
             ),
@@ -366,7 +361,6 @@ class _AnimatedTilePileState extends ConsumerState<_AnimatedTilePile> {
       dragAnchorStrategy: pointerDragAnchorStrategy,
       feedback: _DraggedTileFeedback(tile: tile),
       childWhenDragging: Opacity(opacity: 0.25, child: preview),
-      onDragStarted: () => buttonTapFeedback(context),
       child: preview,
     );
   }

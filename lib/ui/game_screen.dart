@@ -462,17 +462,17 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                 button: true,
                 label: context.tr.game_undo_semanticLabel,
                 enabled: canUndo,
-                child: GlassContainer(
+                child: GlassIconButton(
                   key: _undoKey,
+                  icon: Icons.undo,
+                  size: 20,
+                  padding: const EdgeInsets.all(10),
                   borderRadius: 14,
                   tintColor: kGlassBlue,
                   tintAlpha: 0.22,
                   borderColor: kGlassBlueBorder,
-                  width: kActiveUpgradeSlotSize,
-                  height: kActiveUpgradeSlotSize,
-                  onTap: canUndo
+                  onPressed: canUndo
                       ? () {
-                          buttonTapFeedback(context);
                           final target = _stackHudFlyTarget();
                           undoPlacement(
                             ref,
@@ -483,11 +483,10 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                           );
                         }
                       : null,
-                  child: const Icon(Icons.undo, color: Colors.white, size: 20),
-                ),
               ),
-            );
-          }),
+            ),
+          );
+        }),
 
           // ── Bouton Pause ──────────────────────────────────────────────────
           const Positioned(

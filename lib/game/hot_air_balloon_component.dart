@@ -1,6 +1,6 @@
 /// Montgolfière décorative traversant l'écran de bas en haut — easter egg
 /// purement visuel, sans impact sur le jeu, déclenché après un certain
-/// nombre de tuiles posées (voir [HexBoardGame.kHotAirBalloonTriggerTileCount]).
+/// nombre de tuiles posées (voir [HexBoardGame.kEasterEggTriggerInterval]).
 ///
 /// Contrairement à l'avion ([PlaneComponent], trajet rectiligne) ou au
 /// voilier ([SailboatComponent], deux trajets avec pause), la montgolfière
@@ -146,10 +146,9 @@ class _MidFlightSlowdownCurve extends Curve {
 class HotAirBalloonComponent extends SpriteComponent {
   HotAirBalloonComponent({
     required this.screenSize,
-    required ProviderContainer container,
+    required this._container,
     double zoom = 1.0,
   })  : _spawnZoom = zoom,
-        _container = container,
         super(anchor: Anchor.center, priority: kTileDepthPriorityPreview + 1);
 
   final Vector2 screenSize;

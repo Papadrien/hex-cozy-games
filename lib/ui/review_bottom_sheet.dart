@@ -9,7 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/colors.dart';
 import '../core/strings.dart';
-import '../services/haptics_service.dart';
+
 import '../services/review_service.dart';
 import 'glass_container.dart';
 
@@ -143,13 +143,11 @@ class _ReviewBottomSheet extends ConsumerWidget {
   }
 
   void _rateNow(BuildContext context, WidgetRef ref) {
-    buttonTapFeedback(context);
     ref.read(reviewServiceProvider).requestReview();
     Navigator.of(context).pop();
   }
 
   void _later(BuildContext context) {
-    buttonTapFeedback(context);
     Navigator.of(context).pop();
   }
 }

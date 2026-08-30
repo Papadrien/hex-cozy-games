@@ -1,6 +1,6 @@
 /// Bateau de pêche décoratif traversant l'écran — easter egg purement
 /// visuel, sans impact sur le jeu, déclenché après un certain nombre de
-/// tuiles posées (voir [HexBoardGame.kFishingBoatTriggerTileCount]).
+/// tuiles posées (voir [HexBoardGame.kEasterEggTriggerInterval]).
 ///
 /// Reprend exactement le principe du voilier ([SailboatComponent] — voir sa
 /// doc de fichier pour le détail du suivi de pan/zoom, du calcul du point
@@ -142,7 +142,7 @@ const double _kBoardApproachMargin = _kTileWidth * 2;
 
 /// Distance de repli (fraction de la largeur d'écran) utilisée uniquement
 /// si aucune tuile n'est posée (ne devrait pas arriver en usage normal,
-/// voir `HexBoardGame.kFishingBoatTriggerTileCount`) — dans ce cas la
+/// voir `HexBoardGame.kEasterEggTriggerInterval`) — dans ce cas la
 /// bounding box du plateau n'existe pas et on retombe sur un point de
 /// départ dans le quart haut-droit de l'écran.
 const double _kFallbackApproachDxFraction = 0.62;
@@ -212,10 +212,9 @@ enum _BoatPhase { approach, pause, departure, done }
 class FishingBoatComponent extends SpriteComponent with WakeMixin {
   FishingBoatComponent({
     required this.screenSize,
-    required ProviderContainer container,
+    required this._container,
     double zoom = 1.0,
   })  : _spawnZoom = zoom,
-        _container = container,
         super(anchor: Anchor.center, priority: kTileDepthPriorityBase - 1);
 
   final Vector2 screenSize;
@@ -343,7 +342,7 @@ class FishingBoatComponent extends SpriteComponent with WakeMixin {
       _startOffset = _pauseOffset - headingDir * travelDistance;
     } else {
       // Repli si jamais aucune tuile n'est posée (ne devrait pas arriver en
-      // usage normal, voir `HexBoardGame.kFishingBoatTriggerTileCount`) :
+      // usage normal, voir `HexBoardGame.kEasterEggTriggerInterval`) :
       // point de départ dans le quart haut-droit de l'écran.
       final startPosition = Vector2(
         screenSize.x * (-0.16 + rand.nextDouble() * 0.60),

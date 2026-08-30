@@ -137,7 +137,6 @@ class _OptionsContent extends ConsumerWidget {
           label: context.tr.options_music,
           value: options.musicEnabled,
           onToggle: () {
-            buttonTapFeedback(context);
             ref.read(optionsProvider.notifier).toggleMusic();
             ref.read(audioServiceProvider).refreshMusicVolume();
           },
@@ -157,7 +156,6 @@ class _OptionsContent extends ConsumerWidget {
           label: context.tr.options_sfx,
           value: options.sfxEnabled,
           onToggle: () {
-            buttonTapFeedback(context);
             ref.read(optionsProvider.notifier).toggleSfx();
           },
         ),
@@ -175,7 +173,6 @@ class _OptionsContent extends ConsumerWidget {
           label: context.tr.options_vibrations,
           value: options.vibrationEnabled,
           onToggle: () {
-            buttonTapFeedback(context);
             ref.read(optionsProvider.notifier).toggleVibration();
           },
         ),
@@ -310,7 +307,6 @@ class _ResumeButton extends ConsumerWidget {
           ),
         ),
         onPressed: () {
-          buttonTapFeedback(context);
           ref.read(pauseProvider.notifier).resume();
         },
         child: Text(
@@ -341,7 +337,6 @@ class _OptionsButton extends ConsumerWidget {
           ),
         ),
         onPressed: () {
-          buttonTapFeedback(context);
           ref.read(pauseProvider.notifier).toggleOptions();
         },
         child: Text(
@@ -368,7 +363,6 @@ class _BackButton extends ConsumerWidget {
           ),
         ),
         onPressed: () {
-          buttonTapFeedback(context);
           ref.read(pauseProvider.notifier).toggleOptions();
         },
         child: const Text(
@@ -395,7 +389,6 @@ class _SaveAndQuitButton extends ConsumerWidget {
           ),
         ),
         onPressed: () async {
-          buttonTapFeedback(context);
           await SessionSaver.save(ref.container);
           ref.invalidate(activeSessionProvider);
           // Forcer la destruction immédiate de la bannière AdMob plutôt que
@@ -443,7 +436,6 @@ class _AbandonButton extends ConsumerWidget {
           ),
         ),
         onPressed: () {
-          buttonTapFeedback(context);
           _showAbandonConfirmDialog(context, ref);
         },
         child: Text(
@@ -478,7 +470,6 @@ Future<void> _showAbandonConfirmDialog(
       actions: [
         TextButton(
           onPressed: () {
-            buttonTapFeedback(dialogContext);
             Navigator.of(dialogContext).pop();
           },
           child: Text(
@@ -488,7 +479,6 @@ Future<void> _showAbandonConfirmDialog(
         ),
         TextButton(
           onPressed: () {
-            buttonTapFeedback(dialogContext);
             Navigator.of(dialogContext).pop();
             _abandonGame(context, ref);
           },

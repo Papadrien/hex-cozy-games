@@ -184,11 +184,10 @@ const Duration kCoinSfxGap = Duration(milliseconds: 250);
 /// attente plutôt que de couper net le son précédent trop tôt.
 const Duration _kTileGainSfxGap = Duration(milliseconds: 250);
 
-/// Durée de vol d'une pièce vers son compteur avant l'impact — valeur
-/// alignée sur [kCoinFlyDurationSec] (`bonus_animations.dart`, source
-/// canonique utilisée par [CoinComponent]) — point de départ du calcul de
-/// [_coinSoundsFinishDelay].
-const Duration _kCoinFlyDuration = Duration(milliseconds: 600);
+/// Durée de vol d'une pièce vers son compteur avant l'impact — source
+/// canonique partagée avec `bonus_animations.dart` ([CoinComponent]) —
+/// point de départ du calcul de [_coinSoundsFinishDelay].
+const Duration kCoinFlyDuration = Duration(milliseconds: 600);
 
 /// Durée de lecture d'un `coin.mp3` (mesurée ~0.696s, arrondie à 0.7s par
 /// prudence) — sert à estimer quand la dernière pièce d'un gain a fini de
@@ -205,6 +204,21 @@ const Duration _kMusicFadeOutDuration = Duration(milliseconds: 500);
 /// [AudioService.playMusicWithFadeOut] — un compromis entre fluidité perçue
 /// et nombre d'appels à [AudioPlayer.setVolume].
 const int _kMusicFadeSteps = 12;
+
+/// Timeout appliqué à chaque appel natif `stop()`/`seek()` sur
+/// [AudioService._musicPlayer], le pool tournant ([AudioService._sfxPool]
+/// via [AudioService._playSfx]), [AudioService._tileGainPlayer] et
+/// [AudioService._endGamePlayer] — même principe exactement que
+/// [AudioService._kBoatAmbientCallTimeout] (voir sa doc pour le détail du
+/// bug plugin `audioplayers` d'origine). Ces quatre lecteurs en étaient
+/// jusqu'ici dépourvus : un `stop()`/`seek()` natif resté bloqué (bug déjà
+/// observé en Crashlytics, `TimeoutException` après 30s côté plugin) s'y
+/// répercutait donc intégralement comme délai perceptible avant la lecture
+/// suivante — c'est ce qui causait le retard de ~30s signalé sur
+/// `end_game.mp3`. Un `try/catch` seul ne suffit pas : il faut un timeout
+/// explicite pour être certain d'atteindre le `play()` suivant en un temps
+/// borné plutôt que de rester bloqué indéfiniment sur un appel préalable.
+const Duration _kSfxCallTimeout = Duration(seconds: 2);
 
 /// Chemin (relatif à `assets/`) du son d'ambiance du bateau de pêche — voir
 /// [AudioService.playBoatAmbient]/[AudioService.stopBoatAmbient].
@@ -616,7 +630,14 @@ class AudioService {
         }
       }
     }
-    await _musicPlayer.stop();
+    // Voir [_kSfxCallTimeout] : défensif, comme les fondus d'ambiance —
+    // un stop() natif resté bloqué ne doit pas retarder indéfiniment le
+    // changement de piste qui suit.
+    try {
+      await _musicPlayer.stop().timeout(_kSfxCallTimeout);
+    } catch (e) {
+      debugPrint('[Music] stop() (avant changement de piste) ignoré (échec/timeout) : $e');
+    }
     await playMusic(track);
   }
 
@@ -667,12 +688,23 @@ class AudioService {
   Future<void> resumeMusicFromAd() => _resumeMusicPlayer();
 
   Future<void> _pauseMusicPlayer() async {
-    await _musicPlayer.pause();
+    // Voir [_kSfxCallTimeout] : même risque de blocage natif que
+    // stop()/seek() — sans protection, une pub ou une mise en arrière-plan
+    // pourrait rester bloquée jusqu'à 30s sur cet appel.
+    try {
+      await _musicPlayer.pause().timeout(_kSfxCallTimeout);
+    } catch (e) {
+      debugPrint('[Music] pause() ignoré (échec/timeout) : $e');
+    }
   }
 
   Future<void> _resumeMusicPlayer() async {
     if (_currentTrack == null) return;
-    await _musicPlayer.resume();
+    try {
+      await _musicPlayer.resume().timeout(_kSfxCallTimeout);
+    } catch (e) {
+      debugPrint('[Music] resume() ignoré (échec/timeout) : $e');
+    }
   }
 
   /// Les quatre lecteurs d'ambiance des easter eggs (bateau de pêche,
@@ -695,9 +727,9 @@ class AudioService {
   Future<void> _pauseAmbientPlayersForBackground() async {
     for (final player in _ambientPlayers) {
       try {
-        await player.pause();
+        await player.pause().timeout(_kSfxCallTimeout);
       } catch (e) {
-        debugPrint('[AmbientBackground] pause() ignoré (échec) : $e');
+        debugPrint('[AmbientBackground] pause() ignoré (échec/timeout) : $e');
       }
     }
   }
@@ -713,9 +745,9 @@ class AudioService {
     for (final player in _ambientPlayers) {
       if (player.state != PlayerState.paused) continue;
       try {
-        await player.resume();
+        await player.resume().timeout(_kSfxCallTimeout);
       } catch (e) {
-        debugPrint('[AmbientBackground] resume() ignoré (échec) : $e');
+        debugPrint('[AmbientBackground] resume() ignoré (échec/timeout) : $e');
       }
     }
   }
@@ -734,7 +766,14 @@ class AudioService {
     final player = _sfxPool[_sfxCursor];
     _sfxCursor = (_sfxCursor + 1) % _sfxPool.length;
     final pitch = 1.0 + (_random.nextDouble() * 2 - 1) * _kPitchVariance;
-    await player.stop();
+    // Voir [_kSfxCallTimeout] : défensif — sans timeout, un stop() natif
+    // resté bloqué sur ce lecteur du pool retarderait d'autant TOUS les
+    // bruitages courants qui y passent (pièces, poses, rotations, clics...).
+    try {
+      await player.stop().timeout(_kSfxCallTimeout);
+    } catch (e) {
+      debugPrint('[Sfx] stop() (pool) ignoré (échec/timeout) : $e');
+    }
     await player.setVolume(_sfxVolume * volumeScale);
     await player.setPlaybackRate(pitch);
     await player.play(AssetSource(sfx.assetPath));
@@ -805,8 +844,11 @@ class AudioService {
     // exception ici n'était jamais rattrapée (appel fait via `unawaited`
     // côté appelant) et empêchait silencieusement TOUTE lecture future de
     // `tile_gain.mp3` pour le reste de la session.
+    // Voir [_kSfxCallTimeout] : timeout ajouté en plus du try/catch — sans
+    // lui, un stop() natif resté bloqué (30s côté plugin, voir sa doc)
+    // retarderait d'autant ce bruitage plutôt que d'être simplement ignoré.
     try {
-      await _tileGainPlayer.stop();
+      await _tileGainPlayer.stop().timeout(_kSfxCallTimeout);
     } catch (_) {}
     // seek(0) explicite, dans le même try/catch défensif que le stop()
     // ci-dessus : sur Android, stop() seul ne réinitialise pas toujours la
@@ -815,7 +857,7 @@ class AudioService {
     // position où la précédente s'est arrêtée plutôt que du début, d'où des
     // lectures de plus en plus courtes à chaque déclenchement rapproché.
     try {
-      await _tileGainPlayer.seek(Duration.zero);
+      await _tileGainPlayer.seek(Duration.zero).timeout(_kSfxCallTimeout);
     } catch (_) {}
     await _tileGainPlayer.setVolume(_sfxVolume);
     await _tileGainPlayer.play(AssetSource(SfxTrack.tileGain.assetPath));
@@ -843,18 +885,21 @@ class AudioService {
     // peut laisser le lecteur natif dans un état où `stop()`/`seek()` ne se
     // résolvent jamais, ce qui déclenche côté plugin un `TimeoutException`
     // après 30s (voir crash Crashlytics `AudioPlayer.seek` /
-    // `AudioService.playEndGame`). Sans ce try/catch, cette exception
-    // n'était jamais rattrapée et faisait planter l'app plutôt que de
-    // simplement empêcher ce bruitage ponctuel.
+    // `AudioService.playEndGame`). Le try/catch seul rattrape bien
+    // l'exception une fois levée, mais ne raccourcit pas l'attente : sans
+    // [_kSfxCallTimeout] en plus, l'`await` restait bloqué jusqu'à 30s avant
+    // que le plugin ne lève lui-même cette exception — c'est exactement ce
+    // délai qui se répercutait, intégralement, comme retard perceptible
+    // avant `end_game.mp3`.
     try {
-      await _endGamePlayer.stop();
+      await _endGamePlayer.stop().timeout(_kSfxCallTimeout);
     } catch (_) {}
     // seek(0) explicite — voir le commentaire équivalent dans
     // [playTileGained] : sans ça, une lecture répétée sur le même lecteur
     // dédié peut repartir de la position de l'arrêt précédent au lieu du
     // début du fichier.
     try {
-      await _endGamePlayer.seek(Duration.zero);
+      await _endGamePlayer.seek(Duration.zero).timeout(_kSfxCallTimeout);
     } catch (_) {}
     await _endGamePlayer.setVolume(_sfxVolume);
     await _endGamePlayer.play(AssetSource(SfxTrack.endGame.assetPath));
@@ -1487,7 +1532,7 @@ class AudioService {
 
   /// Estime le délai à partir duquel le dernier `coin.mp3` d'un gain de
   /// [coinCount] pièces aura fini de sonner : vol de la pièce jusqu'au
-  /// compteur ([_kCoinFlyDuration]) puis lectures échelonnées
+  /// compteur ([kCoinFlyDuration]) puis lectures échelonnées
   /// ([kCoinSfxGap] entre chacune, plafonnées à [kMaxCoinSfxRepeats])
   /// jusqu'à la fin de la dernière ([kCoinSfxClipDuration]). Retourne
   /// [Duration.zero] si [coinCount] est nul (aucune pièce, donc aucun
@@ -1500,7 +1545,7 @@ class AudioService {
   static Duration coinSoundsFinishDelay(int coinCount) {
     if (coinCount <= 0) return Duration.zero;
     final n = coinCount.clamp(0, kMaxCoinSfxRepeats);
-    return _kCoinFlyDuration + kCoinSfxGap * (n - 1) + kCoinSfxClipDuration;
+    return kCoinFlyDuration + kCoinSfxGap * (n - 1) + kCoinSfxClipDuration;
   }
 
   /// Joue `undo.mp3` à chaque annulation du dernier placement (voir

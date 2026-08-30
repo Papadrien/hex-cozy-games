@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../core/colors.dart';
-import '../services/haptics_service.dart';
 import 'glass_container.dart';
 
 /// Barre d'app bar glassmorphism partagée des écrans secondaires (bouton
@@ -19,17 +17,11 @@ class ScreenAppBar extends StatelessWidget {
       child: Row(
         children: [
           // Bouton fermer glassmorphism
-          GlassContainer(
-            borderRadius: 14,
-            tintColor: kGlassBlue,
-            tintAlpha: 0.22,
-            borderColor: kGlassBlueBorder,
+          GlassIconButton(
+            icon: Icons.close,
+            size: 20,
             padding: const EdgeInsets.all(10),
-            onTap: () {
-              buttonTapFeedback(context);
-              Navigator.of(context).pop();
-            },
-            child: const Icon(Icons.close, color: Colors.white, size: 20),
+            onPressed: () => Navigator.of(context).pop(),
           ),
           const SizedBox(width: 14),
           Expanded(

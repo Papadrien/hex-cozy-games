@@ -1,6 +1,7 @@
 /// Voilier décoratif traversant l'écran — easter egg purement visuel,
 /// sans impact sur le jeu, déclenché après un certain nombre de tuiles
-/// posées (voir [HexBoardGame.kSailboatTriggerTileCount]).
+/// posées (voir [HexBoardGame.kEasterEggTriggerInterval] — tiré au hasard
+/// parmi les easter eggs possibles, plutôt qu'un seuil dédié).
 ///
 /// Le sprite `sailboat.png` a son cap naturellement orienté vers le
 /// bas-droite dans l'image source (poupe/gouvernail en haut-gauche,
@@ -146,7 +147,7 @@ const double _kBoardApproachMargin = _kTileWidth * 2;
 
 /// Distance de repli (fraction de la largeur d'écran) utilisée uniquement
 /// si aucune tuile n'est posée (ne devrait pas arriver en usage normal,
-/// voir `HexBoardGame.kSailboatTriggerTileCount`) — dans ce cas la bounding
+/// voir `HexBoardGame.kEasterEggTriggerInterval`) — dans ce cas la bounding
 /// box du plateau n'existe pas et on retombe sur un point de départ dans le
 /// quart haut-gauche de l'écran (comportement d'origine, avant la prise en
 /// compte des tuiles réellement posées).
@@ -226,10 +227,9 @@ enum _SailPhase { approach, pause, departure, done }
 class SailboatComponent extends SpriteComponent with WakeMixin {
   SailboatComponent({
     required this.screenSize,
-    required ProviderContainer container,
+    required this._container,
     double zoom = 1.0,
   })  : _spawnZoom = zoom,
-        _container = container,
         super(anchor: Anchor.center, priority: kTileDepthPriorityBase - 1);
 
   final Vector2 screenSize;
@@ -349,7 +349,7 @@ class SailboatComponent extends SpriteComponent with WakeMixin {
       _startOffset = _pauseOffset - headingDir * travelDistance;
     } else {
       // Repli si jamais aucune tuile n'est posée (ne devrait pas arriver en
-      // usage normal, voir `HexBoardGame.kSailboatTriggerTileCount`) :
+      // usage normal, voir `HexBoardGame.kEasterEggTriggerInterval`) :
       // ancien comportement, point de départ dans le quart haut-gauche de
       // l'écran.
       final startPosition = Vector2(
@@ -623,7 +623,7 @@ class SailboatComponent extends SpriteComponent with WakeMixin {
   /// désynchroniserait cette bounding box de [_startOffset]). Renvoie
   /// `null` si le voilier n'a pas de grille parente ou si aucune tuile
   /// n'est posée (ne devrait pas arriver en usage normal, voir
-  /// `HexBoardGame.kSailboatTriggerTileCount`).
+  /// `HexBoardGame.kEasterEggTriggerInterval`).
   (Vector2, Vector2)? _boardWorldBoundsOffset() {
     final grid = _grid;
     if (grid == null || grid.placedTiles.isEmpty) return null;

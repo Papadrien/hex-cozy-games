@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/snackbar_utils.dart';
 import '../providers/progression_provider.dart';
-import '../services/haptics_service.dart';
 
 /// Bouton DEBUG (mode debug uniquement)
 class HomeDebugButton extends StatelessWidget {
@@ -22,7 +21,6 @@ class HomeDebugButton extends StatelessWidget {
         ),
         label: const Text('DEBUG : tout débloquer'),
         onPressed: () async {
-          buttonTapFeedback(context);
           await ref.read(progressionServiceProvider).unlockAllUpgrades();
           if (context.mounted) {
             showAppSnackBar(

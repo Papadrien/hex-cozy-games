@@ -25,6 +25,7 @@ import '../core/colors.dart';
 import '../core/strings.dart';
 import '../services/audio_service.dart';
 import '../services/haptics_service.dart';
+
 import 'coin_icon.dart';
 import 'glass_container.dart';
 import 'quest_reward_burst.dart';
@@ -326,10 +327,7 @@ class _PurchaseSuccessCard extends StatelessWidget {
                 borderColor: accent.withValues(alpha: 0.6),
                 blurSigma: 8,
                 padding: const EdgeInsets.symmetric(vertical: 12),
-                onTap: () {
-                  buttonTapFeedback(context);
-                  onContinue();
-                },
+                onTap: onContinue,
                 child: Center(
                   child: Text(
                     context.tr.shop_purchaseSuccessContinue,

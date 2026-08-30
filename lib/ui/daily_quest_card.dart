@@ -9,6 +9,7 @@ import '../providers/quest_provider.dart';
 import '../services/analytics_service.dart';
 import '../services/audio_service.dart';
 import '../services/haptics_service.dart';
+
 import 'coin_icon.dart';
 import 'glass_container.dart';
 import 'quest_card.dart';
@@ -101,7 +102,6 @@ class DailyQuestCardState extends ConsumerState<DailyQuestCard>
 
   Future<void> _handleClaim() async {
     if (!_isPendingClaim || _isClaiming) return;
-    buttonTapFeedback(context);
     final questId = widget.quest.def.id;
     setState(() => _isClaiming = true);
     unawaited(ref.read(hapticsServiceProvider).questRewardClaimed());

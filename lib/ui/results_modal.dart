@@ -27,7 +27,7 @@ import '../providers/tile_stack_provider.dart';
 import '../services/ad_service.dart';
 import '../services/analytics_service.dart';
 import '../services/audio_service.dart';
-import '../services/haptics_service.dart';
+
 
 class ResultsModal extends ConsumerWidget {
   const ResultsModal({super.key});
@@ -217,7 +217,6 @@ class _ResultsCard extends ConsumerWidget {
   }
 
   void _replay(BuildContext context, WidgetRef ref) {
-    buttonTapFeedback(context);
     SessionSaver.endSession(ref.container);
     startNewGame(ref);
     clearAppSnackBars();
@@ -225,7 +224,6 @@ class _ResultsCard extends ConsumerWidget {
   }
 
   void _goHome(BuildContext context, WidgetRef ref) {
-    buttonTapFeedback(context);
     SessionSaver.endSession(ref.container);
     // Sans ce nettoyage complet (identique à _abandonGame dans
     // pause_modal.dart), l'état de la partie terminée restait en mémoire

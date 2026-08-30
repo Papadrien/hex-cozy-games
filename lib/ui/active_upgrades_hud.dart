@@ -52,7 +52,7 @@ import '../providers/session_provider.dart';
 import '../providers/tile_stack_provider.dart';
 import '../providers/upgrade_counter.dart';
 import '../providers/upgrade_feedback_provider.dart';
-import '../services/haptics_service.dart';
+
 import 'glass_container.dart';
 import 'coin_icon.dart';
 
@@ -177,7 +177,6 @@ class _UpgradeSlotState extends ConsumerState<_UpgradeSlot>
   }
 
   void _showDescription(BuildContext context) {
-    buttonTapFeedback(context);
     final effectType = UpgradeEffectType.fromDb(widget.upgrade.effectType);
     showModalBottomSheet<void>(
       context: context,
@@ -289,12 +288,7 @@ class _UpgradeSlotState extends ConsumerState<_UpgradeSlot>
           borderWidth: heldTile != null
               ? 1.5
               : (glowAlpha > 0 ? 1.0 + glowAlpha : 1.0),
-          onTap: canSwap
-              ? () {
-                  buttonTapFeedback(context);
-                  swapHoldSlot(ref);
-                }
-              : null,
+          onTap: canSwap ? () => swapHoldSlot(ref) : null,
           child: Opacity(
             opacity: canSwap ? 1.0 : 0.4,
             child: heldTile != null
@@ -340,16 +334,19 @@ class _UpgradeSlotState extends ConsumerState<_UpgradeSlot>
                   ? Color.lerp(kGlassBlueBorder, kRewardGold, glowAlpha)
                   : kGlassBlueBorder),
           borderWidth: isActive ? 1.5 : (glowAlpha > 0 ? 1.0 + glowAlpha : 1.0),
-          onTap: canTap
-              ? () {
-                  buttonTapFeedback(context);
-                  toggleSecondChanceMode(ref);
-                }
-              : null,
+          onTap: canTap ? () => toggleSecondChanceMode(ref) : null,
           child: Opacity(
             opacity: canTap ? 1.0 : 0.4,
             child: isActive
-                ? const Icon(Icons.close, color: Colors.white, size: 22)
+                ? const GlassIconButton(
+                    icon: Icons.close,
+                    size: 22,
+                    padding: EdgeInsets.zero,
+                    borderRadius: 0,
+                    tintColor: Colors.transparent,
+                    borderColor: Colors.transparent,
+                    blurSigma: 0,
+                  )
                 : const UpgradeEffectIcon(
                     effectType: UpgradeEffectType.secondChanceUses,
                     upgradeId: 'second_chance',
@@ -411,12 +408,7 @@ class _UpgradeSlotState extends ConsumerState<_UpgradeSlot>
               ? Color.lerp(kGlassBlueBorder, kRewardGold, glowAlpha)
               : kGlassBlueBorder,
           borderWidth: glowAlpha > 0 ? 1.0 + glowAlpha : 1.0,
-          onTap: canActivate
-              ? () {
-                  buttonTapFeedback(context);
-                  _showColorPicker(context);
-                }
-              : null,
+          onTap: canActivate ? () => _showColorPicker(context) : null,
           child: Opacity(
             opacity: canActivate ? 1.0 : 0.4,
             child: const UpgradeEffectIcon(
@@ -461,10 +453,7 @@ class _UpgradeSlotState extends ConsumerState<_UpgradeSlot>
                   ? Color.lerp(kGlassBlueBorder, kRewardGold, glowAlpha)
                   : kGlassBlueBorder),
           borderWidth: isActive ? 1.5 : (glowAlpha > 0 ? 1.0 + glowAlpha : 1.0),
-          onTap: () {
-            buttonTapFeedback(context);
-            ref.read(biomeSizeOverlayProvider.notifier).toggle();
-          },
+          onTap: () => ref.read(biomeSizeOverlayProvider.notifier).toggle(),
           child: UpgradeEffectIcon(
             effectType: UpgradeEffectType.closureBonusTiles,
             upgradeId: widget.upgrade.id,
@@ -900,10 +889,7 @@ class _HatedColorSwatch extends StatelessWidget {
   Widget build(BuildContext context) {
     final color = biome.color;
     return GestureDetector(
-      onTap: () {
-        buttonTapFeedback(context);
-        Navigator.of(context).pop(biome);
-      },
+      onTap: () => Navigator.of(context).pop(biome),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [

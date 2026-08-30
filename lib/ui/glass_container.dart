@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 
 import '../core/colors.dart';
+import '../services/haptics_service.dart';
 
 /// Composant glassmorphism réutilisable — applique [BackdropFilter] avec
 /// flou, fond semi-transparent et bordure assortie.
@@ -131,5 +132,64 @@ class GlassContainer extends StatelessWidget {
     );
 
     return margin != null ? Padding(padding: margin!, child: glass) : glass;
+  }
+}
+
+/// Bouton icône glassmorphism réutilisable pour les barres d'outils et écrans.
+///
+/// Ce widget factorise le pattern répété de boutons icônes avec style glassmorphism,
+/// bordure arrondie (14 par défaut), fond translucide et feedback haptique.
+/// Utilisé dans : home_top_bar.dart, screen_app_bar.dart, et autres écrans.
+class GlassIconButton extends StatelessWidget {
+  const GlassIconButton({
+    super.key,
+    required this.icon,
+    this.tooltip,
+    this.onPressed,
+    this.size = 22,
+    this.iconColor = Colors.white,
+    this.padding = const EdgeInsets.all(10),
+    this.borderRadius = 14,
+    this.tintColor = kGlassBlue,
+    this.tintAlpha = 0.22,
+    this.borderColor = kGlassBlueBorder,
+    this.blurSigma = 10,
+  });
+
+  final IconData icon;
+  final String? tooltip;
+  final VoidCallback? onPressed;
+  final double size;
+  final Color iconColor;
+  final EdgeInsetsGeometry padding;
+  final double borderRadius;
+  final Color tintColor;
+  final double tintAlpha;
+  final Color borderColor;
+  final double blurSigma;
+
+  @override
+  Widget build(BuildContext context) {
+    final button = GlassContainer(
+      borderRadius: borderRadius,
+      tintColor: tintColor,
+      tintAlpha: tintAlpha,
+      borderColor: borderColor,
+      padding: padding,
+      blurSigma: blurSigma,
+      onTap: onPressed != null
+          ? () {
+              if (onPressed != null) {
+                buttonTapFeedback(context);
+                onPressed!();
+              }
+            }
+          : null,
+      child: Icon(icon, color: iconColor, size: size),
+    );
+
+    return tooltip != null
+        ? Tooltip(message: tooltip, child: button)
+        : button;
   }
 }

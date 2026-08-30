@@ -22,7 +22,7 @@ import '../core/strings.dart';
 import '../core/tutorial_step.dart';
 import '../l10n/app_localizations.dart';
 import '../providers/tutorial_provider.dart';
-import '../services/haptics_service.dart';
+
 
 class TutorialOverlay extends ConsumerStatefulWidget {
   const TutorialOverlay({super.key, required this.targetKeys});
@@ -193,10 +193,7 @@ class _TutorialOverlayState extends ConsumerState<TutorialOverlay>
               tintAlpha: 0.18,
               borderColor: kGlassBlueBorder,
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-              onTap: () {
-                buttonTapFeedback(context);
-                notifier.skip();
-              },
+              onTap: () => notifier.skip(),
               child: Text(
                 context.tr.tutorial_skip,
                 style: const TextStyle(
@@ -219,10 +216,7 @@ class _TutorialOverlayState extends ConsumerState<TutorialOverlay>
               tintAlpha: 0.22,
               borderColor: kGlassBlueBorder,
               padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
-              onTap: () {
-                buttonTapFeedback(context);
-                notifier.next();
-              },
+              onTap: () => notifier.next(),
               child: Text(
                 notifier.isLastStep ? 'OK' : '→',
                 style: const TextStyle(

@@ -32,7 +32,7 @@
 ///    pour filtrer les swipes (story 1.7d).
 library;
 
-import 'dart:math' show atan2, pi;
+import 'dart:math' show Random, atan2, pi;
 import 'dart:ui' show Color, Offset;
 
 import 'package:flame/events.dart';
@@ -62,6 +62,11 @@ import 'plane_component.dart';
 import 'sailboat_component.dart';
 import 'upgrade_fx_overlay_game.dart';
 
+/// Les quatre easter eggs décoratifs pouvant être tirés au hasard tous les
+/// [HexBoardGame.kEasterEggTriggerInterval] poses de tuile — voir
+/// [HexBoardGame._maybeSpawnRandomEasterEgg].
+enum _EasterEggKind { sailboat, plane, hotAirBalloon, fishingBoat }
+
 class HexBoardGame extends FlameGame
     with MultiTouchTapDetector {
   HexBoardGame({required this._container, this.onCameraMove});
@@ -72,8 +77,7 @@ class HexBoardGame extends FlameGame
   final ProviderContainer _container;
 
   /// Délai appliqué avant l'ajout effectif d'un easter egg décoratif (voir
-  /// [_maybeSpawnSailboat]/[_maybeSpawnPlane]/[_maybeSpawnHotAirBalloon]/
-  /// [_maybeSpawnFishingBoat]) : le chargement du sprite ([Sprite.load],
+  /// [_maybeSpawnRandomEasterEgg]) : le chargement du sprite ([Sprite.load],
   /// dans le `onLoad` de chaque composant) et le démarrage du son
   /// d'ambiance associé (`play*Ambient`, voir `audio_service.dart`) sont un
   /// peu coûteux et peuvent introduire un léger à-coup s'ils tombent sur la
@@ -84,112 +88,102 @@ class HexBoardGame extends FlameGame
   /// pose se terminer et se stabiliser avant de déclencher le chargement.
   static const Duration _kEasterEggSpawnDelay = Duration(milliseconds: 250);
 
-  /// Nombre de tuiles posées (cumulé sur la partie) à partir duquel le
-  /// voilier décoratif ([SailboatComponent]) apparaît, une seule fois par
-  /// partie — easter egg purement visuel, sans impact sur le jeu. Compté
-  /// uniquement sur les poses interactives du joueur (voir
-  /// [placeTileOnFlame]), pas sur la restauration du plateau au chargement
-  /// d'une partie reprise (voir [_initBoard]) : une partie reprise avec déjà
-  /// [kSailboatTriggerTileCount] tuiles ou plus déclenchera le voilier dès
-  /// la prochaine pose plutôt qu'au chargement.
-  static const int kSailboatTriggerTileCount = 5;
+  /// Nombre de poses de tuile interactives (voir [placeTileOnFlame]) entre
+  /// deux apparitions d'un easter egg décoratif — un seul élément tiré au
+  /// hasard parmi [_EasterEggKind.values] à chaque intervalle, plutôt qu'un
+  /// seuil fixe par élément (ancien comportement : voilier à 5 tuiles, avion
+  /// à 12, montgolfière à 20, bateau de pêche à 2 — chacun une seule fois
+  /// par partie). Comme l'ancien comptage, ne compte que les poses
+  /// interactives du joueur, pas la restauration du plateau au chargement
+  /// d'une partie reprise (voir [_initBoard]).
+  static const int kEasterEggTriggerInterval = 18;
 
-  bool _sailboatTriggered = false;
+  /// Éléments décoratifs pouvant apparaître tous les [kEasterEggTriggerInterval]
+  /// poses — un seul tiré au hasard à chaque intervalle (voir
+  /// [_maybeSpawnRandomEasterEgg]).
+  final Random _easterEggRandom = Random();
 
-  void _maybeSpawnSailboat() {
-    if (_sailboatTriggered) return;
-    final grid = _grid;
-    if (grid == null) return;
-    if (grid.placedTiles.length < kSailboatTriggerTileCount) return;
-    _sailboatTriggered = true;
-    // Voir [_kEasterEggSpawnDelay] : on laisse la frame de pose de tuile se
-    // terminer avant de charger le sprite/son du voilier.
-    Future.delayed(_kEasterEggSpawnDelay, () {
-      if (!isMounted || !grid.isMounted) return;
-      grid.add(SailboatComponent(
-        screenSize: grid.screenSize.clone(),
-        container: _container,
-        zoom: grid.zoom,
-      ));
-    });
+  /// Poses interactives écoulées depuis la dernière apparition (ou depuis le
+  /// début de partie). Remis à zéro uniquement quand un easter egg est
+  /// effectivement déclenché — si l'intervalle est atteint mais qu'un
+  /// easter egg est déjà à l'écran (voir [_hasActiveEasterEgg]), le compteur
+  /// n'est PAS remis à zéro : le tirage est simplement retenté à la
+  /// prochaine pose, jusqu'à ce que l'écran soit libre.
+  int _tilesSinceLastEasterEgg = 0;
+
+  /// `true` entre le moment où un tirage a réussi (intervalle atteint, écran
+  /// libre) et l'ajout effectif du composant après [_kEasterEggSpawnDelay] —
+  /// évite qu'une pose survenant dans cette courte fenêtre ne déclenche un
+  /// second tirage avant que le premier composant n'ait été ajouté (auquel
+  /// cas [_hasActiveEasterEgg] ne le verrait pas encore).
+  bool _easterEggSpawnPending = false;
+
+  /// `true` si un easter egg décoratif (voilier, avion, montgolfière ou
+  /// bateau de pêche) est actuellement présent sur la grille — un seul à la
+  /// fois à l'écran, pour ne pas superposer leurs ambiances sonores.
+  bool _hasActiveEasterEgg(HexGridComponent grid) {
+    return grid.children.any((c) =>
+        c is SailboatComponent ||
+        c is PlaneComponent ||
+        c is HotAirBalloonComponent ||
+        c is FishingBoatComponent);
   }
 
-  /// Nombre de tuiles posées à partir duquel l'avion décoratif
-  /// ([PlaneComponent]) apparaît, une seule fois par partie — même logique
-  /// que [kSailboatTriggerTileCount] mais avec un seuil différent pour que
-  /// les deux easter eggs ne se déclenchent pas systématiquement ensemble.
-  static const int kPlaneTriggerTileCount = 12;
-
-  bool _planeTriggered = false;
-
-  void _maybeSpawnPlane() {
-    if (_planeTriggered) return;
-    final grid = _grid;
-    if (grid == null) return;
-    if (grid.placedTiles.length < kPlaneTriggerTileCount) return;
-    _planeTriggered = true;
-    // Voir [_kEasterEggSpawnDelay] : on laisse la frame de pose de tuile se
-    // terminer avant de charger le sprite/son de l'avion.
-    Future.delayed(_kEasterEggSpawnDelay, () {
-      if (!isMounted || !grid.isMounted) return;
-      grid.add(PlaneComponent(
-        screenSize: grid.screenSize.clone(),
-        container: _container,
-        zoom: grid.zoom,
-      ));
-    });
+  /// Tire un élément décoratif au hasard et l'ajoute à la grille, en
+  /// respectant [_kEasterEggSpawnDelay] — voir la doc de chaque `add...`
+  /// ci-dessous pour le composant correspondant.
+  void _addRandomEasterEgg(HexGridComponent grid, _EasterEggKind kind) {
+    switch (kind) {
+      case _EasterEggKind.sailboat:
+        grid.add(SailboatComponent(
+          screenSize: grid.screenSize.clone(),
+          container: _container,
+          zoom: grid.zoom,
+        ));
+      case _EasterEggKind.plane:
+        grid.add(PlaneComponent(
+          screenSize: grid.screenSize.clone(),
+          container: _container,
+          zoom: grid.zoom,
+        ));
+      case _EasterEggKind.hotAirBalloon:
+        grid.add(HotAirBalloonComponent(
+          screenSize: grid.screenSize.clone(),
+          container: _container,
+          zoom: grid.zoom,
+        ));
+      case _EasterEggKind.fishingBoat:
+        grid.add(FishingBoatComponent(
+          screenSize: grid.screenSize.clone(),
+          container: _container,
+          zoom: grid.zoom,
+        ));
+    }
   }
 
-  /// Nombre de tuiles posées à partir duquel la montgolfière décorative
-  /// ([HotAirBalloonComponent]) apparaît, une seule fois par partie — même
-  /// logique que [kSailboatTriggerTileCount]/[kPlaneTriggerTileCount] mais
-  /// avec un seuil différent pour que les trois easter eggs ne se
-  /// déclenchent pas systématiquement ensemble.
-  static const int kHotAirBalloonTriggerTileCount = 20;
-
-  bool _hotAirBalloonTriggered = false;
-
-  void _maybeSpawnHotAirBalloon() {
-    if (_hotAirBalloonTriggered) return;
+  /// Appelé à chaque pose de tuile interactive (voir [placeTileOnFlame]).
+  /// Incrémente [_tilesSinceLastEasterEgg] ; une fois
+  /// [kEasterEggTriggerInterval] atteint, tire un élément au hasard parmi
+  /// [_EasterEggKind.values] et le fait apparaître, sauf si un easter egg
+  /// est déjà à l'écran (voir [_hasActiveEasterEgg]) — auquel cas le tirage
+  /// est retenté à la prochaine pose, sans remettre le compteur à zéro.
+  void _maybeSpawnRandomEasterEgg() {
+    if (_easterEggSpawnPending) return;
     final grid = _grid;
     if (grid == null) return;
-    if (grid.placedTiles.length < kHotAirBalloonTriggerTileCount) return;
-    _hotAirBalloonTriggered = true;
+    _tilesSinceLastEasterEgg++;
+    if (_tilesSinceLastEasterEgg < kEasterEggTriggerInterval) return;
+    if (_hasActiveEasterEgg(grid)) return;
+    _tilesSinceLastEasterEgg = 0;
+    _easterEggSpawnPending = true;
+    final kind = _EasterEggKind
+        .values[_easterEggRandom.nextInt(_EasterEggKind.values.length)];
     // Voir [_kEasterEggSpawnDelay] : on laisse la frame de pose de tuile se
-    // terminer avant de charger le sprite/son de la montgolfière.
+    // terminer avant de charger le sprite/son de l'easter egg tiré.
     Future.delayed(_kEasterEggSpawnDelay, () {
+      _easterEggSpawnPending = false;
       if (!isMounted || !grid.isMounted) return;
-      grid.add(HotAirBalloonComponent(
-        screenSize: grid.screenSize.clone(),
-        container: _container,
-        zoom: grid.zoom,
-      ));
-    });
-  }
-
-  /// Nombre de tuiles posées à partir duquel le bateau de pêche décoratif
-  /// ([FishingBoatComponent]) apparaît, une seule fois par partie — même
-  /// logique que les autres seuils ci-dessus, avec un seuil différent pour
-  /// que les easter eggs ne se déclenchent pas systématiquement ensemble.
-  static const int kFishingBoatTriggerTileCount = 2;
-
-  bool _fishingBoatTriggered = false;
-
-  void _maybeSpawnFishingBoat() {
-    if (_fishingBoatTriggered) return;
-    final grid = _grid;
-    if (grid == null) return;
-    if (grid.placedTiles.length < kFishingBoatTriggerTileCount) return;
-    _fishingBoatTriggered = true;
-    // Voir [_kEasterEggSpawnDelay] : on laisse la frame de pose de tuile se
-    // terminer avant de charger le sprite/son du bateau de pêche.
-    Future.delayed(_kEasterEggSpawnDelay, () {
-      if (!isMounted || !grid.isMounted) return;
-      grid.add(FishingBoatComponent(
-        screenSize: grid.screenSize.clone(),
-        container: _container,
-        zoom: grid.zoom,
-      ));
+      _addRandomEasterEgg(grid, kind);
     });
   }
 
@@ -462,10 +456,7 @@ class HexBoardGame extends FlameGame
           onBonusImpact: _handleBonusImpact,
           onCoinImpact: onCoinImpact);
     }
-    _maybeSpawnSailboat();
-    _maybeSpawnPlane();
-    _maybeSpawnHotAirBalloon();
-    _maybeSpawnFishingBoat();
+    _maybeSpawnRandomEasterEgg();
   }
 
   /// Déclenche la particule dédiée de tuile bonus Combo+ : contrairement au

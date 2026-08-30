@@ -7,7 +7,7 @@ import '../core/snackbar_utils.dart';
 import '../core/strings.dart';
 import '../providers/player_profile_provider.dart';
 import '../services/iap_service.dart';
-import '../services/haptics_service.dart';
+
 import 'coin_icon.dart';
 import 'glass_container.dart';
 import 'purchase_success_popup.dart';
@@ -226,7 +226,6 @@ class _CoinPackCardState extends ConsumerState<_CoinPackCard> {
             onTap: (_loading || !iapAvailable)
                 ? null
                 : () async {
-                    buttonTapFeedback(context);
                     setState(() => _loading = true);
                     try {
                       final result =
@@ -468,7 +467,6 @@ class _PremiumCardState extends ConsumerState<_PremiumCard> {
             onTap: (widget.isPremium || _loading || !iapAvailable)
                 ? null
                 : () async {
-                    buttonTapFeedback(context);
                     setState(() => _loading = true);
                     try {
                       final result = await purchasePremium(ref);
@@ -569,7 +567,6 @@ class _RestoreButtonState extends ConsumerState<_RestoreButton> {
       onTap: _loading
           ? null
           : () async {
-              buttonTapFeedback(context);
               setState(() => _loading = true);
               try {
                 final ok = await restoreAllPurchases(ref);
