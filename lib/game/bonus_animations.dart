@@ -37,11 +37,11 @@ const double kBonusIconStaggerInterval = 0.12;
 /// Durée de vol d'une pièce vers son compteur avant l'impact — utilisée par
 /// [CoinComponent] ([MoveEffect]) et comme point de départ du calcul de
 /// [_coinSoundsFinishDelaySec].
-const double kCoinFlyDurationSec = 0.6;
+
 
 /// Estime le délai, à partir de la pose de la tuile, auquel le dernier
 /// `coin.mp3` d'un gain de [coinCount] pièces aura fini de sonner :
-/// vol de la pièce jusqu'au compteur ([kCoinFlyDurationSec]) puis lectures
+/// vol de la pièce jusqu'au compteur ([_kCoinFlyDuration.inMilliseconds / 1000.0]) puis lectures
 /// échelonnées ([kCoinSfxGap] entre chacune, plafonnées à
 /// [kMaxCoinSfxRepeats]) jusqu'à la fin de la dernière
 /// ([kCoinSfxClipDuration]). Retourne 0 si [coinCount] est nul (aucune
@@ -49,7 +49,7 @@ const double kCoinFlyDurationSec = 0.6;
 double _coinSoundsFinishDelaySec(int coinCount) {
   if (coinCount <= 0) return 0.0;
   final n = coinCount.clamp(0, kMaxCoinSfxRepeats);
-  return kCoinFlyDurationSec +
+  return _kCoinFlyDuration.inMilliseconds / 1000.0 +
       (kCoinSfxGap * (n - 1) + kCoinSfxClipDuration).inMilliseconds / 1000.0;
 }
 
@@ -218,7 +218,7 @@ class CoinComponent extends PositionComponent {
       add(MoveEffect.to(
         flyTarget!,
         EffectController(
-            duration: kCoinFlyDurationSec,
+            duration: _kCoinFlyDuration.inMilliseconds / 1000.0,
             startDelay: _startDelay,
             curve: Curves.easeInOut),
       )..onComplete = () => onImpact?.call());
